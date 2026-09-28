@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness"
+  short_description: "프로젝트별 Codex 에이전트 팀과 스킬 설계"
+  default_prompt: "Use $harness to design or maintain a Codex-native agent harness for this repository."

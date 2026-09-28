@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ax-auth": {
+      "type": "http",
+      "url": "https://ax-auth.s-food.ai/mcp"
+    },
+    "sfood-ds": {
+      "type": "http",
+      "url": "https://sfood-design-system.vercel.app/api/mcp"
+    }
+  }
+}

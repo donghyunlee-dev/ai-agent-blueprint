@@ -1,0 +1,93 @@
+.conversational-app .blueprint-sidebar-heading,
+.conversational-app .blueprint-card-header {
+  min-width: 0;
+}
+
+.conversational-app .blueprint-card-list {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.conversational-app .blueprint-sidebar > [role="progressbar"] {
+  margin-block: var(--spacing-3) var(--spacing-4);
+}
+
+.conversational-app .blueprint-decision-card {
+  min-width: 0;
+  overflow: visible;
+}
+
+.conversational-app .blueprint-card-header {
+  align-items: flex-start;
+  min-height: 28px;
+  gap: var(--spacing-2);
+}
+
+.conversational-app .blueprint-card-header > strong {
+  min-width: 0;
+  padding-top: 4px;
+  line-height: 1.35;
+}
+
+.conversational-app .blueprint-card-header strong,
+.conversational-app .blueprint-decision-card p,
+.conversational-app .blueprint-decision-card dt,
+.conversational-app .blueprint-decision-card dd {
+  overflow-wrap: anywhere;
+}
+
+.conversational-app .blueprint-decision-card p {
+  margin-top: var(--spacing-2);
+  line-height: 1.45;
+}
+
+.blueprint-mobile-toolbar,
+.blueprint-backdrop,
+.mobile-blueprint-trigger-row { display: none; }
+
+@media (max-width: 1100px) {
+  .conversational-app .blueprint-workspace { grid-template-columns: minmax(0, 1fr); }
+  .conversational-app .conversation-main { padding-right: var(--spacing-5); padding-bottom: 104px; padding-left: var(--spacing-5); }
+  .conversational-app .chat-composer-wrap { position: static; }
+  .conversational-app .blueprint-sidebar {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 70;
+    width: min(380px, calc(100vw - 28px));
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: var(--spacing-4);
+    overflow-y: auto;
+    border: 0;
+    border-left: 1px solid var(--color-border);
+    border-radius: var(--radius-page) 0 0 var(--radius-page);
+    background: var(--color-background-surface);
+    box-shadow: var(--shadow-high);
+    transform: translateX(105%);
+    transition: transform 220ms ease;
+  }
+
+  .conversational-app .blueprint-sidebar.is-mobile-open { transform: translateX(0); }
+  .blueprint-mobile-toolbar { display: flex; justify-content: flex-end; margin-bottom: var(--spacing-2); }
+  .blueprint-backdrop.is-open {
+    position: fixed;
+    inset: 0;
+    z-index: 69;
+    display: block;
+    border: 0;
+    background: var(--color-overlay);
+  }
+
+  .mobile-blueprint-trigger-row { display: flex; justify-content: flex-end; padding: 0 var(--spacing-5) var(--spacing-6); }
+  .conversational-app .mobile-blueprint-link { position: static; z-index: auto; display: inline-flex; width: auto; box-shadow: var(--shadow-med); }
+}
+
+@media (max-width: 640px) {
+  .conversational-app .conversation-titlebar { display: grid; gap: var(--spacing-3); }
+  .conversational-app .stage-rail { margin-bottom: var(--spacing-6); }
+  .conversational-app .question-focus { padding-bottom: var(--spacing-5); }
+  .conversational-app .chat-composer-wrap { position: static; margin-top: var(--spacing-6); }
+  .conversational-app .composer-hint { display: none; }
+  .conversational-app .chat-composer .composer-send { min-width: 126px; }
+}

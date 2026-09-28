@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.vite/
+.DS_Store
+*.local
+.env
+.env.local
+.env.*.local
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+.pr-artifacts/
+playwright-report/
+test-results/
