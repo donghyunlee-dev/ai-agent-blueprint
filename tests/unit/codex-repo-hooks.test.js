@@ -7,11 +7,10 @@ import test from "node:test";
 
 const hookScript = path.resolve("scripts/codex-repo-hooks.py");
 
-function runHook(event, input, state = undefined, pr = undefined) {
-  const projectRoot = mkdtempSync(path.join(tmpdir(), "codex-hook-test-"));
+function runHookInRoot(projectRoot, event, input, state = undefined, pr = undefined) {
   try {
     const binDirectory = path.join(projectRoot, "bin");
-    mkdirSync(binDirectory);
+    mkdirSync(binDirectory, { recursive: true });
     if (pr) {
       const ghPath = path.join(binDirectory, "gh");
       writeFileSync(ghPath, `#!/bin/sh\nprintf '%s' '${JSON.stringify(pr)}'\n`);
@@ -32,6 +31,15 @@ function runHook(event, input, state = undefined, pr = undefined) {
 
     assert.equal(result.status, 0, result.stderr);
     return result.stdout.trim();
+  } catch (error) {
+    throw error;
+  }
+}
+
+function runHook(event, input, state = undefined, pr = undefined) {
+  const projectRoot = mkdtempSync(path.join(tmpdir(), "codex-hook-test-"));
+  try {
+    return runHookInRoot(projectRoot, event, input, state, pr);
   } finally {
     rmSync(projectRoot, { recursive: true, force: true });
   }
@@ -94,15 +102,44 @@ test("pretool hook blocks direct pushes to main and GitHub API merge calls", () 
     "git push origin main",
     "git push origin HEAD:refs/heads/main",
     "git push origin +HEAD:main",
+    "git -C /tmp/repo push origin HEAD:main",
     "git push origin :main",
     "git push --force-with-lease origin feature",
     "gh api --method PUT repos/example/repo/pulls/42/merge",
+    "gh api graphql -f query=mutation{mergePullRequest}",
+    "curl -X PUT https://api.github.com/repos/example/repo/pulls/42/merge",
   ]) {
     const output = JSON.parse(runHook("pretool", {
       tool_name: "Bash",
       tool_input: { command },
     }));
     assert.equal(output.hookSpecificOutput.permissionDecision, "deny", command);
+  }
+});
+
+test("merge authorization is consumed once and cannot authorize a second invocation", () => {
+  const projectRoot = mkdtempSync(path.join(tmpdir(), "codex-hook-test-"));
+  const state = {
+    pullRequest: 42,
+    baseBranch: "main",
+    stage: "ready_to_merge",
+    validation: "pass",
+    codeReview: "pass",
+    qa: "pass",
+    mergeAuthorized: true,
+    headSha: "abc123",
+    codeReviewHeadSha: "abc123",
+    qaHeadSha: "abc123",
+    mergeAuthorizedAt: new Date().toISOString(),
+  };
+  const event = { tool_name: "Bash", tool_input: { command: "gh pr merge 42 --squash" } };
+  const pr = { baseRefName: "main", headRefOid: "abc123", statusCheckRollup: [] };
+  try {
+    assert.equal(runHookInRoot(projectRoot, "pretool", event, state, pr), "");
+    const repeated = JSON.parse(runHookInRoot(projectRoot, "pretool", event, undefined, pr));
+    assert.equal(repeated.hookSpecificOutput.permissionDecision, "deny");
+  } finally {
+    rmSync(projectRoot, { recursive: true, force: true });
   }
 });
 

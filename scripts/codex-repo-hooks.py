@@ -82,6 +82,17 @@ def merge_is_allowed(command: str, state: dict) -> bool:
     except ValueError:
         return False
 
+    if (
+        requested_pr != state.get("pullRequest")
+        or state.get("baseBranch") != "main"
+        or state.get("stage") != "ready_to_merge"
+        or state.get("validation") != "pass"
+        or state.get("codeReview") != "pass"
+        or state.get("qa") != "pass"
+        or state.get("mergeAuthorized") is not True
+    ):
+        return False
+
     authorization_time = state.get("mergeAuthorizedAt")
     if not isinstance(authorization_time, str):
         return False
@@ -132,15 +143,7 @@ def merge_is_allowed(command: str, state: dict) -> bool:
     except OSError:
         return False
 
-    return (
-        requested_pr == state.get("pullRequest")
-        and state.get("baseBranch") == "main"
-        and state.get("stage") == "ready_to_merge"
-        and state.get("validation") == "pass"
-        and state.get("codeReview") == "pass"
-        and state.get("qa") == "pass"
-        and state.get("mergeAuthorized") is False
-    )
+    return True
 
 
 def pretool_hook(event: dict) -> None:
@@ -151,16 +154,28 @@ def pretool_hook(event: dict) -> None:
     if not isinstance(command, str):
         return
 
-    direct_main_push = re.search(
-        r"\bgit\s+push\b(?:(?![\n;&|]).)*(?:(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)|:[+]?(?:refs/heads/)?main(?:\s|$)|\+[^\s:]+:(?:refs/heads/)?main(?:\s|$)|\s--(?:all|mirror)(?:\s|$))",
-        command,
+    push_match = re.search(r"\bgit\b(?:(?![\n;&|]).)*\bpush\b", command)
+    push_args = ""
+    if push_match:
+        push_args = re.split(r"[\n;&|]", command[push_match.end() :], maxsplit=1)[0]
+    direct_main_push = bool(
+        push_match
+        and (
+            re.search(r"(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)", push_args)
+            or re.search(r"(?::|\+[^\s:]+:)(?:\+)?(?:refs/heads/)?main(?:\s|$)", push_args)
+            or re.search(r"\s--(?:all|mirror)(?:\s|$)", push_args)
+        )
     )
-    force_push = re.search(r"\bgit\s+push\b(?:(?![\n;&|]).)*(?:\s-f(?:\s|$)|\s--force(?:-with-lease)?(?:\s|$))", command)
+    force_push = bool(push_match and re.search(r"(?:^|\s)-f(?:\s|$)|(?:^|\s)--force(?:-with-lease)?(?:\s|$)", push_args))
     api_merge = re.search(
-        r"\bgh\s+api\b(?:(?![\n;&|]).)*(?:pulls/\d+/merge|git/refs/heads/main)",
+        r"\bgh\s+api\b(?:(?![\n;&|]).)*(?:pulls/\d+/merge|git/refs/heads/main|\bmutation\b)",
         command,
     )
-    if re.search(r"\bgit\s+merge\b", command) or force_push or direct_main_push or api_merge:
+    curl_merge = re.search(
+        r"\bcurl\b(?:(?![\n;&|]).)*api\.github\.com/repos/[^\s'\"]+/pulls/\d+/merge",
+        command,
+    )
+    if re.search(r"\bgit\s+merge\b", command) or force_push or direct_main_push or api_merge or curl_merge:
         reason = "Direct merges and force pushes are blocked by the repository PR workflow."
     elif re.search(r"\bgh\s+pr\s+merge\b", command):
         if merge_is_allowed(command, load_state()):
