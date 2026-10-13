@@ -13,7 +13,7 @@
 ## 배경 근거 (구현자가 알아야 할 사실)
 
 - 저장소는 리빌드 준비 단계이며 `docs/product/08-delivery-plan.md`가 정의한 인증 선행 → 0~6단계, `docs/delivery/development-pr-review-qa-workflow.md`가 정의한 27개 PR 단위표를 따른다.
-- `AGENTS.md:28`, `CLAUDE.md`, `docs/delivery/development-pr-review-qa-workflow.md:157,257,318`은 모든 UI PR에 Playwright 캡처를 요구하는데, PR 단위표상 두 번째 PR인 `AUTH-PR-02`(로그인·보호 라우트, UI 포함)가 test 인프라를 정식으로 구성하는 `FND-PR-03`(6번째)보다 먼저 온다. 즉 Playwright가 필요한 시점이 그것을 준비하는 PR보다 앞선다. 이 계획은 최소 Playwright 스캐폴드를 지금 추가해 그 간극을 없앤다. `FND-PR-03`(`docs/delivery/00-foundation-and-contracts.md:109` FND-005)은 여전히 도메인/계약/컴포넌트 테스트 디렉터리 전체 구성을 담당하며 이 계획이 대체하지 않는다.
+- `AGENTS.md`와 `docs/delivery/development-pr-review-qa-workflow.md`는 모든 UI PR에 Playwright 캡처를 요구하는데, PR 단위표상 두 번째 PR인 `AUTH-PR-02`(로그인·보호 라우트, UI 포함)가 test 인프라를 정식으로 구성하는 `FND-PR-03`(6번째)보다 먼저 온다. 즉 Playwright가 필요한 시점이 그것을 준비하는 PR보다 앞선다. 이 계획은 최소 Playwright 스캐폴드를 지금 추가해 그 간극을 없앤다. `FND-PR-03`(`docs/delivery/00-foundation-and-contracts.md` FND-005)은 여전히 도메인/계약/컴포넌트 테스트 디렉터리 전체 구성을 담당하며 이 계획이 대체하지 않는다.
 - `docs/product/10-decision-log.md`는 `DEC-001`~`DEC-039`까지 순번으로 기록돼 있다. 이번 결정은 `DEC-040`, `DEC-041`로 이어 붙인다.
 - 사용자가 확정한 두 결정:
   - DOC-004: 문서 편집 영향 미리보기에서 사용자가 영향받는 항목을 **항목별로 선택 제외**하고 저장할 수 있다.
@@ -547,4 +547,4 @@ git commit -m "docs: DOC-004/GDE-504 결정 반영하고 관련 PR 단위 blocke
 - [ ] `npx playwright install --with-deps chromium` 및 `npm run test:e2e:ci` 실행 결과 기록(성공 또는 "환경 제약으로 미실행"을 제한사항으로 명시, 성공으로 위장하지 않음)
 - [ ] `git diff --check` 통과 (trailing whitespace 등 없음)
 - [ ] 이 plan 문서를 링크하는 PR 생성, `docs/delivery/development-pr-review-qa-workflow.md`의 PR 본문 계약 형식 준수
-- [ ] 독립 코드 리뷰 `pass`, QA `pass` 후 `ready_to_merge`에서 사용자 머지 대기
+- [ ] 독립 코드 리뷰 `pass`, QA `pass` 후 요청된 PR lifecycle 정책에 따라 병합 또는 `ready_to_merge` 대기

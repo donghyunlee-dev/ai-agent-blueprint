@@ -43,7 +43,7 @@ const DEVELOPER_PROMPT = `OpenAI API 프롬프트 지침서를 아래 규칙으�
 - 가능한 경우 구체적인 도구 이름, 설치 명령, 설정 파일 위치, 연결 포인트를 적는다
 - guide 문서와 이어서 읽을 수 있도록 결과 문서의 흐름을 설계한다
 - AI Agent를 선택한 경우 해당 Agent의 설치 방법과 환경 설정 방법을 반드시 별도 섹션으로 작성한다
-- Claude 선택 시 Claude Code 설치, API 키, MCP 설정을 포함한다
+- 선택한 외부 AI 서비스의 설치·인증 세부 설정은 공식 문서를 따르며 저장소가 공급자 전용 설정을 가정하지 않는다
 - Codex 또는 ChatGPT 선택 시 OpenAI API 키, 환경 변수, 호출 구조를 포함한다
 - Cursor 또는 Copilot 계열 선택 시 에디터 설치, 로그인, 프로젝트 연결 방법을 포함한다
 - Gemini 선택 시 Google 계정 또는 API 키 준비와 연결 방법을 포함한다

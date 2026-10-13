@@ -30,7 +30,7 @@
 ## 선행 조건 (Definition of Ready)
 
 - `AUTH-PR-01`이 사용자에 의해 머지됨(`/api/auth/*` 4종 API와 `requireSession` 헬퍼 사용 가능).
-- `sfood-ds` MCP로 `Alert`, `Button`, `Spinner`, `Typography`, `Container`/`Stack`(또는 `Card`) 컴포넌트와 semantic token을 조회해 대응표를 확정했다.
+- [`docs/template/README.md`](../../template/README.md)에서 로그인·세션 화면과 오류/redirect 상태에 맞는 참고 이미지를 확인했다.
 
 ## 작업 단위별 구현 개요
 
@@ -93,7 +93,7 @@ Given 사용 중 세션이 만료됐다, When 사용자가 쓰기 작업(답변 
 ## 코드 리뷰·QA 체크리스트
 
 - [ ] 인증·권한 우회 여부(클라이언트 전용 가드로 화면만 숨기고 API가 열려 있지 않은지)
-- [ ] `@sfood/ui` public export와 semantic token 준수(임의 색상값·중복 UI primitive 없음)
+- [ ] semantic HTML/CSS와 연결된 template screenshot reference를 사용하고, 접근성·키보드·반응형을 검증했다.
 - [ ] 실패 경로 테스트(만료, 우회, 취소) 누락 여부
 - [ ] QA gate "UI" 유형: desktop/mobile, keyboard, focus, loading/empty/error
 

@@ -44,32 +44,6 @@ curl -X POST -H 'Content-type: application/json' \
 
 ---
 
-## MCP로 Slack 연동 (Claude와 직접 소통)
-
-`~/.claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "slack": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-slack"],
-      "env": {
-        "SLACK_BOT_TOKEN": "xoxb-YOUR-TOKEN",
-        "SLACK_TEAM_ID": "T0000000000"
-      }
-    }
-  }
-}
-```
-
-Claude에게 자연어로 요청:
-
-```
-"#dev-alerts 채널에 '배포 완료' 메시지 보내줘"
-"#general 채널 최근 메시지 10개 보여줘"
-```
-
 ---
 
 ## 알림 조건 예시
@@ -99,4 +73,4 @@ curl -H 'Content-Type: application/json' \
 ## 다음 단계
 
 - [배포 환경 가이드](./deploy-guide.md)
-- [Claude MCP 전체 설정](./claude-mcp.md)
+- [GitHub 연동 가이드](./github-setup.md)

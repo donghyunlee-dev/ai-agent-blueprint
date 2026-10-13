@@ -18,7 +18,7 @@
 - 모바일: viewport 폭에서 좌우 `--spacing-md`를 제외한 폭을 넘지 않는다.
 - header와 footer는 고정, content만 스크롤한다.
 - 열릴 때 제목 또는 첫 유효 제어에 포커스, 닫힐 때 trigger로 복귀한다.
-- `@sfood/ui Drawer`는 닫혀도 DOM의 focusable child가 Tab 대상이 될 수 있으므로 상위에서 `inert` 또는 focusable unmount를 반드시 적용한다.
+- 닫힌 Drawer는 DOM에 남더라도 내부 focusable child가 Tab 대상이 되지 않도록 `inert`, hidden state 또는 focusable unmount를 적용한다.
 
 ## Modal 계약
 

@@ -7,12 +7,12 @@ React·TypeScript·Vite 기반 애플리케이션에서 사내 인증, 프로젝
 ## 프런트엔드 기술 기준
 
 - 런타임은 `react@18.3.1`, `react-dom@18.3.1`로 고정한다.
-- UI 패키지는 배포된 `@sfood/ui@0.1.3`을 사용하고 앱이 이웃 저장소의 소스 파일을 직접 참조하지 않는다.
-- `@sfood/ui`와 다른 디자인 시스템을 한 화면에서 혼용하지 않는다.
-- 진입점은 `@sfood/ui/global.css`를 한 번만 불러오고, 제품 스타일은 사내 디자인 토큰을 사용한다.
-- 컴포넌트와 토큰 선택은 프로젝트에 등록된 `sfood-ds` MCP 조회 결과를 구현 근거로 삼는다.
+- UI는 기존 React·TypeScript 런타임 위에서 semantic HTML과 Blueprint 소유 CSS로 구현한다.
+- 레이아웃과 시각 계층은 [`docs/template/`](../template/README.md)의 관련 캡처를 기준으로 하며, 제품 명세가 동작 계약을 정의한다.
+- UI 디자인 시스템 패키지, 외부 UI MCP, 전역 디자인 시스템 stylesheet를 새 화면 구현에 추가하지 않는다.
+- 현재 프로토타입의 legacy UI package imports는 화면 마이그레이션 PR에서 의존성과 함께 제거한다.
 
-세부 설치 기준, MCP 사용 순서와 기존 UI 전환 규칙은 [디자인 시스템 통합 명세](09-design-system-integration.md)를 따른다.
+세부 시각 참고 절차와 화면 전환 규칙은 [UI 참고 이미지 통합 명세](09-ui-reference-integration.md)를 따른다.
 
 ## 시스템 구성
 

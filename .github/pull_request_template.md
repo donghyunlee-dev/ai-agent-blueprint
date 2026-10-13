@@ -63,7 +63,8 @@
 
 ## Merge
 
-- [ ] Agent가 자동 머지하지 않았다.
+- [ ] merge gate(자체 검증, 독립 코드 리뷰, 독립 QA, required checks)가 모두 통과했다.
+- [ ] 전체 PR lifecycle 요청 시에만 Agent가 병합했다.
 - [ ] 코드 리뷰와 QA가 통과했다.
 - [ ] UI PR이면 최종 화면 캡처가 보인다.
 - 사용자 직접 merge: `pending | merged`

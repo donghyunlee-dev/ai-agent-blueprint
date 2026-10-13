@@ -13,7 +13,7 @@
 | 1 | `AUTH-PR-01` 인증 서버 경계 | 인증 선행 | ready | [plan](AUTH-PR-01/plan.md) |
 | 2 | `AUTH-PR-02` 로그인·보호 라우트 | 인증 선행 | planned | [plan](AUTH-PR-02/plan.md) |
 | 3 | `AUTH-PR-03` 사용자 저장 격리 | 인증 선행 | planned | [plan](AUTH-PR-03/plan.md) |
-| 4 | `FND-PR-01` 런타임·디자인 시스템 | 0단계 | planned | [plan](FND-PR-01/plan.md) |
+| 4 | `FND-PR-01` 런타임·화면 기반 | 0단계 | planned | [plan](FND-PR-01/plan.md) |
 | 5 | `FND-PR-02` 도메인·Agent 계약 | 0단계 | planned | [plan](FND-PR-02/plan.md) |
 | 6 | `FND-PR-03` 테스트 기반 | 0단계 | planned | [plan](FND-PR-03/plan.md) |
 | 7 | `PRJ-PR-01` 라우팅·프로젝트 생성 | 1단계 | planned | [plan](PRJ-PR-01/plan.md) |
@@ -42,7 +42,7 @@
 
 ## 진행 시 사용 순서
 
-1. 해당 PR의 `plan.md`를 `superpowers:writing-plans` 기준 실행 단위로 보고 `superpowers:subagent-driven-development` + TDD로 구현한다(또는 Superpowers 불가 시 `task-spec-template` fallback).
+1. 해당 PR의 `plan.md`와 연결 명세를 읽고 `$pr-development-loop`의 planner, implementer, reviewer, QA 단계를 순서대로 수행한다. 변경된 business behavior는 test-first로 구현한다.
 2. 구현 중/후 같은 폴더에 `test-results.md`(테스트 실행 결과), `review-notes.md`(독립 코드 리뷰 finding과 조치), `qa-report.md`(독립 QA 결과와 캡처 링크)를 추가한다.
 3. PR이 `merged` 상태가 되면 이 표의 상태와 `docs/delivery/traceability.md`를 함께 갱신한다.
 

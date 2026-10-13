@@ -33,9 +33,9 @@
 
 ## 선행 조건 (Definition of Ready)
 
-- `CON-PR-02` 사용자 머지 완료(질문 트리거·표준 제출 경로 존재)
+- `CON-PR-02` 기본 브랜치 병합 완료(질문 트리거·표준 제출 경로 존재)
 - `AI-PR-01`에서 `DisplayBlock` JSON Schema가 registry에 등록 완료
-- `@sfood/ui`의 Alert, Badge, Popover 등 block 렌더링에 필요한 컴포넌트 확인 완료(`FND-PR-01`)
+- `FND-PR-01`에서 allowed block별 Blueprint-owned semantic renderer와 UI references가 확정됨
 
 ## 작업 단위별 구현 개요
 

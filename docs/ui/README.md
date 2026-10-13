@@ -2,7 +2,7 @@
 
 ## 목적
 
-이 디렉터리는 화면을 구현하고 완료 여부를 판정하는 시각·상호작용 계약이다. [UI 디자인 명세](../product/07-ui-design.md)가 제품 전체의 방향과 정보 구조를 정의한다면, 여기서는 위치, 크기, 여백, 컴포넌트, 토큰, 스크롤, 반응형, 상태와 검수 증거를 고정한다.
+이 디렉터리는 화면을 구현하고 완료 여부를 판정하는 시각·상호작용 계약이다. [UI 디자인 명세](../product/07-ui-design.md)가 제품 전체의 방향과 정보 구조를 정의한다면, 여기서는 위치, 크기, 여백, semantic control, 스크롤, 반응형, 상태와 검수 증거를 고정한다.
 
 ## 화면 분할 기준
 
@@ -39,11 +39,11 @@ Blueprint는 주로 하나의 작업 공간 라우트에서 동작하지만 다�
 
 1. 확정된 제품 결정과 접근성 요구사항
 2. 이 디렉터리의 화면별 위치·상태 계약
-3. `sfood-ds` MCP가 반환하는 현재 컴포넌트·토큰 API
-4. `@sfood/ui` business template의 정보 구조
+3. [`docs/template/README.md`](../template/README.md)의 관련 screenshot reference
+4. 기존 React 구조와 semantic HTML/CSS
 5. 구현 편의
 
-`MasterDetail`, `ReportLayout`, `DiffView`는 완성 화면이 아니라 조합 근거다. Blueprint 도메인 상태와 한 화면의 작업 연속성을 유지하도록 해체하여 사용한다.
+참고 이미지는 완성 화면을 그대로 복제하라는 지시가 아니라 화면 위계와 배치를 설명하는 근거다. Blueprint 도메인 상태와 접근성 계약을 유지한다.
 
 ## 화면 명세 공통 항목
 
@@ -52,8 +52,8 @@ Blueprint는 주로 하나의 작업 공간 라우트에서 동작하지만 다�
 - `UI-*` 식별자와 사용자 목표
 - 상위 영역과 화면 내 위치
 - 너비·높이·내부 여백·요소 간격
-- 사용 `@sfood/ui` 컴포넌트와 허용 props
-- 적용 semantic token
+- 참고한 template image와 관찰한 화면 패턴
+- local CSS custom property와 레이아웃 값
 - 기본·hover·focus·selected·disabled·loading·error·empty 상태
 - 키보드와 포커스 이동
 - 데스크톱·태블릿·모바일 변형
@@ -75,15 +75,4 @@ Blueprint는 주로 하나의 작업 공간 라우트에서 동작하지만 다�
 
 ## 구조 치수 원칙
 
-색상·간격·반경·그림자는 디자인 시스템 토큰만 사용한다. 뷰포트 분기점, 패널 최소 폭과 앱 바 높이처럼 토큰에 없는 제품 구조 치수는 이 문서에서 `--bp-*` 레이아웃 변수로 한 번만 정의한다. 컴포넌트 내부에서 숫자를 반복하지 않는다.
-
-## MCP 확인 기록
-
-2026-09-15 `sfood-ds` MCP에서 다음을 재확인했다.
-
-- 도구: `list_components`, `get_component`, `search_components`, `get_tokens`, `get_business_templates`, `get_setup_guide`
-- 컴포넌트: `Stack`, `Grid`, `Container`, `Tabs`, `Drawer`
-- 템플릿: `MasterDetail`, `ReportLayout`, `DiffView`
-- semantic light token 전체
-
-구현 시작 시 같은 조회를 다시 수행하고 결과가 달라졌으면 이 문서를 먼저 갱신한다.
+반복되는 색상과 간격은 Blueprint 소유 CSS custom property로 정의한다. 뷰포트 분기점, 패널 최소 폭과 앱 바 높이처럼 레이아웃 구조에 속하는 값은 `--bp-*` 변수로 한 번 정의하고 컴포넌트 안에서 숫자를 반복하지 않는다.

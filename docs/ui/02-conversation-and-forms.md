@@ -38,7 +38,7 @@
 
 ## 상황별 AI 응답 block
 
-한 번의 AI 응답은 아래 block 여러 개를 순서대로 표시할 수 있다. 모델이 반환한 component 이름이 아니라 block type을 Blueprint renderer가 `@sfood/ui`로 조립한다.
+한 번의 AI 응답은 아래 block 여러 개를 순서대로 표시할 수 있다. 모델이 반환한 component 이름이 아니라 block type을 Blueprint의 local semantic React renderer가 조립한다.
 
 | block | 화면 형태 | 행동 |
 | --- | --- | --- |

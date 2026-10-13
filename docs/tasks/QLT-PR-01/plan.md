@@ -114,7 +114,7 @@ Then 페이지 전체 수평 스크롤이 발생하지 않는다
 
 ## 코드 리뷰·QA 체크리스트
 
-- [ ] `@sfood/ui` public export만 사용했는지 (신규 로컬 Button/Input 없음)
+- [ ] semantic controls와 관련 `docs/template/` references가 사용됐는지, 중복된 로컬 component 없이 접근성 계약을 만족하는지
 - [ ] 접근성 수정이 기존 확정 동작(다른 요구사항)을 깨지 않았는지
 - [ ] 5개 viewport 모두에서 실제 캡처로 확인했는지 (문서상 주장이 아니라 증거)
 - [ ] 성능 계측이 사용자 원문/대화 내용을 기록하지 않는지

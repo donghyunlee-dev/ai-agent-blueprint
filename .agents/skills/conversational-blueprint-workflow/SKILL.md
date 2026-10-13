@@ -1,6 +1,6 @@
 ---
 name: conversational-blueprint-workflow
-description: Coordinate product design, SFOOD UI implementation, and QA when changing the conversational Blueprint, decision sidebar, requirements specification, or PRD flow.
+description: Coordinate product design, Blueprint UI implementation from repository screenshot references, and QA when changing the conversational Blueprint, decision sidebar, requirements specification, or PRD flow.
 ---
 
 # Conversational Blueprint workflow
@@ -13,13 +13,13 @@ Spawn subagents only when the user explicitly requests delegation or a multi-age
 
 - User goal and product behavior.
 - Current Survey, recommendation, requirements, and PRD code.
-- `@sfood/ui` exports, global CSS, usage guide, and Storybook evidence.
+- Relevant `docs/template/` screenshots, screen specifications, and existing React/CSS conventions.
 - Allowed file scope and existing uncommitted changes.
 
 ## Team and ownership
 
 - `blueprint-product-designer`: read-only conversation model and acceptance criteria.
-- `sfood-ui-engineer`: sole implementation owner for assigned application and test files.
+- `blueprint-ui-engineer`: sole implementation owner for assigned application and test files.
 - `blueprint-qa-reviewer`: read-only independent behavior and regression review.
 - Parent orchestrator: sequencing, handoffs, retries, and final synthesis.
 
@@ -27,7 +27,7 @@ Spawn subagents only when the user explicitly requests delegation or a multi-age
 
 1. Audit repository reality, dirty files, current behavior, and design-system compatibility.
 2. Produce dialogue states, field mapping, sidebar groups, completion conditions, and acceptance criteria.
-3. Implement with non-overlapping file ownership while preserving deterministic validation and services.
+3. Implement with non-overlapping file ownership, using `docs/template/` references and preserving deterministic validation and services.
 4. Run build and browser checks, then independently review behavior and responsiveness.
 5. Route actionable findings through one correction pass and perform final validation.
 
@@ -35,7 +35,7 @@ Read-only discovery may run in parallel. Writes may not overlap.
 
 ## Handoff format
 
-Return evidence, decisions, changed files if any, validation, unresolved risks, and completion state. Implementation also lists `@sfood/ui` components used and local UI that remains.
+Return evidence, decisions, changed files if any, validation, unresolved risks, and completion state. UI implementation also lists the reference images used and responsive/accessibility checks.
 
 ## Retry and failure policy
 
@@ -50,8 +50,8 @@ Report the flow, design-system integration, requirements-to-PRD handoff, validat
 
 ## Normal-flow scenario
 
-The designer maps six survey groups into assistant prompts and sidebar cards. The engineer implements with `@sfood/ui`, preserves validation and fallback generation, and QA confirms desktop/mobile completion through requirements and PRD Markdown download.
+The designer maps six survey groups into assistant prompts and sidebar cards. The engineer follows relevant project-start and document screenshots, preserves validation and fallback generation, and QA confirms desktop/mobile completion through requirements and PRD Markdown download.
 
 ## Failure-flow scenario
 
-`@sfood/ui` fails from a React peer or Tailwind incompatibility. The engineer records evidence, avoids duplicate components, validates the smallest compatible integration or reports the blocker, and QA checks existing routes still build.
+The screenshot reference conflicts with a required mobile or keyboard behavior. The engineer follows the product accessibility contract, records the deviation from the capture, and QA verifies the accessible responsive behavior.

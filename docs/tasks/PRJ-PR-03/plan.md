@@ -34,9 +34,9 @@
 
 ## 선행 조건 (Definition of Ready)
 
-- `PRJ-PR-02`가 사용자 머지 완료 상태여야 한다.
+- `PRJ-PR-02`가 기본 브랜치에 병합된 상태여야 한다.
 - IndexedDB에서 마지막 활성 탭·스크롤 위치를 저장/조회할 수 있는 필드가 확정돼 있어야 한다.
-- `sfood-ds` MCP로 `Tabs`, `StatusBadge`, `Drawer` 컴포넌트의 controlled state 지원 여부를 조회하고 부족한 부분을 디자인 시스템 보강 후보로 기록한다.
+- `docs/template/README.md`에서 persistent workspace와 모바일 전환 참고 이미지를 확인하고 native tab/navigation semantics를 정의한다.
 
 ## 작업 단위별 구현 개요
 
@@ -145,7 +145,7 @@ Given 뷰포트가 767px 이하이면, when 작업 공간을 열면, then AppBar
 - [ ] 패널 리사이즈 값이 프로젝트 데이터가 아니라 UI preference로 저장되는지 확인
 - [ ] 767px 이하에서 AppBar가 2줄로 늘어나지 않는지 확인
 - [ ] 저장 실패 상태가 탭 전환 후에도 유지되는지 확인
-- [ ] `sfood-ds` MCP 조회 결과와 실제 사용 컴포넌트가 일치하는지, 커스텀 `Tabs` wrapper가 필요한 이유가 기록됐는지 확인
+- [ ] 참고 이미지 사용 근거, URL navigation과 in-place tabs 구분, responsive/focus behavior를 검증
 - [ ] Tab 순서가 숨겨진 패널로 이동하지 않는지 키보드로 확인
 
 ## Done Checklist

@@ -11,11 +11,12 @@
 - React 18.3.1
 - TypeScript
 - Vite
-- `@sfood/ui@0.1.3`
-- SFOOD 디자인 시스템 MCP
+- Visual references in `docs/template/`
 - AX Auth MCP와 서버 세션
 
-UI를 구현하기 전에 프로젝트의 `sfood-ds` MCP로 setup guide, 컴포넌트, 토큰과 business template을 조회한다. 세부 기준은 [디자인 시스템 통합 명세](docs/product/09-design-system-integration.md)를 따른다.
+UI를 구현하기 전에 `docs/template/README.md`에서 관련 화면 캡처를 확인한다. 새 화면은 semantic HTML과 Blueprint 소유 CSS로 구현하고, 기존 UI package imports는 foundation UI migration 단계에서 함께 제거한다. 세부 기준은 [UI 참고 이미지 통합 명세](docs/product/09-ui-reference-integration.md)를 따른다.
+
+현행 prototype에는 legacy `@sfood/ui` import가 남아 있다. 새 화면은 사용하지 않으며 `FND-PR-01`에서 화면 import와 package 설정을 함께 제거한다.
 
 인증을 구현하기 전에 `ax-auth` MCP의 `list_guides`를 먼저 호출하고 [AX Login 인증 설계](docs/product/11-ax-login-authentication.md)를 따른다. AX client secret과 Blueprint session secret은 서버 환경에만 둔다.
 

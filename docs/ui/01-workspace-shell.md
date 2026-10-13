@@ -31,11 +31,11 @@ height: 100dvh, body scroll 없음
 | 3 | 문서 전환 | `Tabs` 기반 controlled wrapper | 중앙, URL과 활성값 동기화 |
 | 4 | 저장 상태 | `StatusBadge` | 오른쪽, 저장 중/저장됨/실패 |
 | 5 | 내보내기 | `Button secondary sm` | 항상 마지막 |
-| 6 | 사용자 메뉴 | MCP로 확인한 menu/popover 조합 | 이메일, 로컬 저장 안내, 로그아웃 |
+| 6 | 사용자 메뉴 | Semantic button + menu/dialog pattern | 이메일, 로컬 저장 안내, 로그아웃 |
 
 AppBar는 `--color-surface`, 하단 `--color-border`를 사용하고 스크롤되지 않는다. 좌우 요소가 겹치면 프로젝트명을 먼저 줄이고 탭과 주요 행동은 유지한다.
 
-기본 `Tabs`가 controlled state, badge, disabled tab과 URL 동기화를 지원하지 않으므로 기존 DOM 의미를 유지하는 Blueprint feature wrapper가 필요하다. 이 기능은 디자인 시스템 보강 후보로도 기록한다.
+작업 영역을 URL 이동 없이 전환할 때는 accessible tablist semantics를 직접 구현한다. URL이 바뀌는 navigation은 tab처럼 위장하지 않고 anchor link로 구현한다.
 
 ## Work surface
 

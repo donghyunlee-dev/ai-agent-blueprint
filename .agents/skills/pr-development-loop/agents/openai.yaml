@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blueprint PR Loop"
+  short_description: "Plan, implement, review, QA, and gate a Blueprint PR"
+  default_prompt: "Use $pr-development-loop to take this repository change through its PR gates."

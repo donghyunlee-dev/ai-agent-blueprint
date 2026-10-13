@@ -30,8 +30,8 @@
 Frame: F-DISCOVERY
 Annotations: D01-D12
 Viewport: desktop-wide, mobile
-Components: BlueprintTabs, QuestionField, StatusBadge, Button, Textarea
-MCP checked: date / package version
+Interactive patterns: navigation, question input, item status, primary action
+Reference images: docs/template/image (16).png, docs/template/image (15).png
 Evidence: screenshot, keyboard scenario, automated test
 Differences: none or approved difference link
 ```

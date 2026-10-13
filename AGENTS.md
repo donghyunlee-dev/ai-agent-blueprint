@@ -23,9 +23,9 @@ During the rebuild, add tests with each PRD phase instead of restoring the remov
 ## Commit & Pull Request Guidelines
 Current history uses short imperative messages such as `Initial commit` and `Add files via upload`. Continue with concise imperative commit subjects, but make them more descriptive, for example `Update survey progress copy`. PRs should summarize changed pages, note any deployment or config impact, link related issues, and attach screenshots for visible UI changes.
 
-During the rebuild, follow `docs/delivery/development-pr-review-qa-workflow.md`. Implement one listed PR unit at a time from a base that includes the user's previous merge. Every PR must include its tests and evidence, pass an independent code review and independent QA, and stop at `ready_to_merge`. Never merge the PR on the user's behalf, and do not begin the next implementation unit until the user confirms the current PR is merged.
+During the rebuild, invoke `$pr-development-loop` for code, documentation, UI, or repository configuration changes intended for a PR. Follow `docs/delivery/development-pr-review-qa-workflow.md`, implement one PR unit at a time from the latest `main`, and require self-validation, independent code review, and independent QA. The loop may merge only after every gate passes and the user requested the full PR lifecycle; otherwise stop at `ready_to_merge`. Do not start the next implementation unit until the current PR is verified merged.
 
-For visible UI work, attach final-HEAD development screenshots to the PR for at least 1440×900 and 390×844, plus every affected loading, empty, error, validation, overlay, or completed state. Verify the same flow with both Playwright and Agent Browser. Follow `CLAUDE.md` when Claude performs staged development: Superpowers is the primary plan/TDD/subagent/review workflow, `task-spec-template` is the required fallback, and implementation, code review, and QA use separate agents.
+For visible UI work, read `docs/template/README.md`, use its mapped screenshots as visual references, and attach final-HEAD development screenshots to the PR for at least 1440×900 and 390×844, plus every affected loading, empty, error, validation, overlay, or completed state. Verify the same flow with both Playwright and Agent Browser. Keep implementation, code review, and QA in separate agent contexts.
 
 ## Security & Configuration Tips
 Keep secrets such as `OPENAI_API_KEY` in local environment files only, never in tracked HTML or Markdown. Treat `.env` values, deployment tokens, and internal server details as non-committable data.
@@ -49,26 +49,25 @@ Keep secrets such as `OPENAI_API_KEY` in local environment files only, never in 
 
 ## UI 구현 규칙
 
-- 모든 UI는 `@sfood/ui` 컴포넌트를 우선 사용한다.
-- 컴포넌트를 직접 구현하기 전에 `@sfood/ui` export를 확인한다.
-- 전역 진입점에서 `@sfood/ui/global.css`를 import한다.
-- 색상, 간격은 디자인 토큰 CSS 변수로 사용한다.
-- 임의의 색상값과 중복 UI 컴포넌트를 만들지 않는다.
-- 컴포넌트 확인 주소: http://localhost:6007
-- 사용 문서: `../sfood-design-system/docs/USAGE.md`
+- 시각적 기준은 `docs/template/README.md`가 연결하는 `docs/template/` 캡처다.
+- 관련 캡처를 직접 확인하고 화면 명세의 동작·접근성 요구와 함께 적용한다.
+- 새 UI에 `@sfood/ui`, SFOOD 디자인 토큰, 전역 스타일 또는 컴포넌트 의존성을 추가하지 않는다.
+- 기존 프레임워크와 파일 구조를 유지하고 semantic HTML, CSS variables, 키보드 접근성과 반응형 동작을 구현한다.
+- 캡처 이미지를 제품 화면에 그대로 배경이나 합성물로 사용하지 않는다. 동작하는 인터페이스를 구현한다.
 
 ## Codex Harness
 
 - Goal: Maintain repository-scoped Codex agent teams, skills, and reusable orchestration workflows.
 - Trigger: Use `$harness` when asked to configure, extend, audit, or synchronize a harness, custom-agent team, or multi-agent workflow for this repository.
-- Canonical paths: Store repository skills in `.agents/skills/`, Codex custom agents in `.codex/agents/`, Claude custom agents in `.claude/agents/`, and reusable Codex workflows as orchestrator skills under `.agents/skills/`.
-- Authorization: Spawn subagents only when the user explicitly asks for subagents, delegation, parallel agent work, or execution of a multi-agent harness. Configuration alone does not authorize spawning.
-- Workflow: Use `$conversational-blueprint-workflow` for dialogue-flow, design-sidebar, requirements, or PRD workflow changes.
+- Canonical paths: Store repository skills in `.agents/skills/`, Codex custom agents in `.codex/agents/`, hook configuration in `.codex/hooks.json`, and reusable workflows as orchestrator skills under `.agents/skills/`.
+- Authorization: Running `$pr-development-loop` authorizes its planner, implementer, independent reviewer, and QA agents in sequential phases. Outside that workflow, spawn subagents only when the user asks.
+- Workflow: Use `$pr-development-loop` for repository changes intended for a PR. It follows `docs/delivery/development-pr-review-qa-workflow.md`.
 
 ### Harness Change History
 
 | Date | Change | Target | Reason |
 | --- | --- | --- | --- |
-| 2026-07-02 | Add Codex-native harness meta-skill and workflow references | `AGENTS.md`, `.agents/skills/harness/` | Port the project-local Claude harness to Codex |
+| 2026-07-02 | Add Codex-native harness meta-skill and workflow references | `AGENTS.md`, `.agents/skills/harness/` | Define the repository-native agent harness |
 | 2026-07-02 | Add conversational Blueprint delivery team | `AGENTS.md`, `.agents/skills/conversational-blueprint-workflow/`, `.codex/agents/` | Make the product redesign workflow reusable |
-| 2026-09-16 | Add Claude staged-development and UI PR evidence rules | `CLAUDE.md`, PR template, delivery workflow | Require skill-backed task specs, separate implementation/review/QA agents, and visible screenshots |
+| 2026-10-13 | Add Codex PR development loop, stage agents, and guarded hooks | `.agents/skills/pr-development-loop/`, `.codex/agents/`, `.codex/hooks.json` | Run implementation, review, QA, and authorized merge as a bounded loop |
+| 2026-10-13 | Replace SFOOD UI guidance with template screenshot references | `AGENTS.md`, product and delivery UI guidance, `docs/template/README.md` | Make repository screenshots the visual source of truth |

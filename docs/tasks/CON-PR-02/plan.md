@@ -33,8 +33,8 @@
 
 ## 선행 조건 (Definition of Ready)
 
-- `CON-PR-01` 사용자 머지 완료
-- `FND-PR-01`에서 `@sfood/ui` 폼 컴포넌트(Radio, Checkbox/MultiSelect, Input, Textarea, NumberInput) 사용 가능 확인 완료
+- `CON-PR-01` 기본 브랜치 병합 완료
+- `FND-PR-01`에서 Blueprint 소유 semantic form controls와 `docs/template/` 시각 기준 확정 완료
 - 질문 카탈로그 12개 영역의 콘텐츠(문구, 옵션)가 `FND-PR-01`/`02`에서 데이터로 확정됨
 
 ## 작업 단위별 구현 개요
@@ -132,7 +132,7 @@ flowchart TD
 
 - 질문 카탈로그 데이터와 선택 엔진 로직이 분리돼 있는지(하드코딩된 순서 없는지)
 - 표준 선택 제출 시 실제로 AI 호출이 발생하지 않는지 request ledger로 확인
-- `@sfood/ui` 컴포넌트만 사용했는지, 임의 색상값 없는지
+- semantic form controls, reference images, accessibility, responsive states 검증 여부
 - QA: 데스크톱/모바일 키보드 내비게이션 수동 확인, screen reader 이름/오류 연결 확인
 
 ## Done Checklist

@@ -35,7 +35,7 @@ Blueprint의 핵심 라우트(`/`, `/blueprints/new`, `/blueprints/:projectId`, 
 
 ## 선행 조건 (Definition of Ready)
 
-- `AUTH-PR-03`(사용자 저장 격리)이 사용자 머지 완료 상태여야 한다.
+- `AUTH-PR-03`(사용자 저장 격리)이 기본 브랜치에 병합된 상태여야 한다.
 - 현재 인증 사용자의 owner namespace를 조회하는 인터페이스가 존재해야 한다(구체 IndexedDB 구현은 없어도 됨).
 - `docs/product/06-architecture.md`의 라우팅 표와 충돌 없음을 확인한다.
 
@@ -108,7 +108,7 @@ Given 사용자가 제출 버튼을 빠르게 여러 번 클릭하면, when 첫 
 - `src/pages/blueprint-home-page.tsx` (신규)
 - `src/pages/not-found-page.tsx`, `src/pages/project-not-found-page.tsx` (신규)
 - `src/features/projects/` 하위 `createProject` 커맨드와 최소 타입 (신규)
-- `src/components/blueprint/` 홈 composer 컴포넌트 (신규, `@sfood/ui` 우선 사용)
+- `src/components/blueprint/` 홈 composer 컴포넌트 (신규, semantic HTML/CSS 및 `docs/template/` 참고 이미지 적용)
 
 ## 테스트 계획
 
@@ -128,7 +128,7 @@ Given 사용자가 제출 버튼을 빠르게 여러 번 클릭하면, when 첫 
 - [ ] `/survey`, `/prd` 접근 시 리다이렉트 없이 404인지 확인 (DEC-018)
 - [ ] 임시 제목 생성 시 HTML/제어문자가 섞이지 않는지 확인
 - [ ] 중복 클릭 방지가 네트워크 지연 상황에서도 유지되는지 확인
-- [ ] `@sfood/ui` public export만 사용했는지, 임의 색상값이 없는지 확인
+- [ ] 관련 template images 반영, semantic controls, CSS consistency, keyboard/responsive 검증
 - [ ] 프로젝트 없음 화면과 일반 404 화면이 시각적으로 구분되는지 확인
 
 ## Done Checklist

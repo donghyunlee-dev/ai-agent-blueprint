@@ -32,7 +32,7 @@
 
 ## 선행 조건 (Definition of Ready)
 
-- `CON-PR-03`이 사용자 머지 완료 상태(`docs/delivery/development-pr-review-qa-workflow.md`)
+- `CON-PR-03`이 기본 브랜치에 병합된 상태(`docs/delivery/development-pr-review-qa-workflow.md`)
 - `ProposalPayload`, `DesignItem` 타입 계약이 `FND-PR-02`에서 확정됨
 - 미결정 차단 항목 없음(이 PR 범위 내 blocked 요구사항 없음)
 
@@ -121,7 +121,7 @@ Given 같은 proposal에 대해 승인 command가 중복 실행된 상태(더블
 
 ## 코드 리뷰·QA 체크리스트
 
-- [ ] `@sfood/ui` public export만 사용, 임의 색상값 없음
+- [ ] Blueprint semantic HTML/CSS와 관련 `docs/template/` references를 사용하고 접근성 및 상태를 검증함
 - [ ] 승인 전 제안값이 확정값 화면에 노출되지 않음
 - [ ] 저장 실패 시 proposal/confirmed item 상태 보존 확인
 - [ ] 키보드만으로 카드 선택 → 승인/거절/수정 전체 흐름 가능
