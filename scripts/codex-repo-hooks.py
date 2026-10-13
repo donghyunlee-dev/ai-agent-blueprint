@@ -8,6 +8,7 @@ import subprocess
 import sys
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from pathlib import Path
 
 try:
@@ -137,12 +138,11 @@ def merge_is_allowed(command: str) -> bool:
         return _merge_is_allowed(requested_pr, command)
 
 
-def invokes_git_alias(segment: str, subcommand: str) -> bool:
-    if re.search(rf"(?:^|\s)-c\s+['\"]?alias\.{re.escape(subcommand)}=", segment):
-        return True
+@lru_cache(maxsize=1)
+def builtin_git_subcommands() -> set[str]:
     try:
         result = subprocess.run(
-            ["git", "config", "--get", f"alias.{subcommand}"],
+            ["git", "--list-cmds=main,others"],
             cwd=project_root(),
             check=False,
             capture_output=True,
@@ -150,10 +150,10 @@ def invokes_git_alias(segment: str, subcommand: str) -> bool:
             timeout=3,
         )
     except (OSError, subprocess.SubprocessError):
-        return False
-    # Git aliases can run arbitrary shell commands or chain other aliases. Deny alias
-    # invocations in this workflow so a mutation cannot hide behind an alias name.
-    return result.returncode == 0
+        return set()
+    if result.returncode != 0:
+        return set()
+    return set(result.stdout.split())
 
 
 def _merge_is_allowed(requested_pr: int, command: str) -> bool:
@@ -237,7 +237,7 @@ def pretool_hook(event: dict) -> None:
     git_alias = False
     for segment in re.split(r"[\n;&|]+", command):
         for git_command in GIT_SUBCOMMAND.finditer(segment):
-            git_alias = git_alias or invokes_git_alias(segment, git_command.group("subcommand"))
+            git_alias = git_alias or git_command.group("subcommand") not in builtin_git_subcommands()
         for git_command in GIT_MUTATION_COMMAND.finditer(segment):
             args = git_command.group("args")
             if git_command.group("subcommand") == "merge":

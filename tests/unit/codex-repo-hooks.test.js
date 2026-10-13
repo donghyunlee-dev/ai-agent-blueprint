@@ -122,11 +122,17 @@ test("pretool hook blocks direct pushes to main and GitHub API merge calls", () 
 });
 
 test("pretool hook blocks configured and command-scoped Git mutation aliases", () => {
-  const scoped = JSON.parse(runHook("pretool", {
-    tool_name: "Bash",
-    tool_input: { command: "git -c alias.p=push p origin main" },
-  }));
-  assert.equal(scoped.hookSpecificOutput.permissionDecision, "deny");
+  for (const command of [
+    "git -c alias.p=push p origin main",
+    "git -c alias.p\\=push p origin main",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push git p origin main",
+  ]) {
+    const scoped = JSON.parse(runHook("pretool", {
+      tool_name: "Bash",
+      tool_input: { command },
+    }));
+    assert.equal(scoped.hookSpecificOutput.permissionDecision, "deny", command);
+  }
 
   const projectRoot = mkdtempSync(path.join(tmpdir(), "codex-hook-test-"));
   try {
