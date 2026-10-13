@@ -1,16 +1,27 @@
 import crypto from "node:crypto";
 import { validateReturnTo } from "../../_lib/return-to.js";
 import { buildTransactionCookieHeader } from "../../_lib/auth-transaction.js";
+import { getAuthStore, getRequestIp } from "../../_lib/auth-store.js";
 
-function sendErrorRedirect(res) {
-  res.statusCode = 302;
-  res.setHeader("Location", "/login?error=AUTH_UNAVAILABLE");
-  res.end();
+const TRANSACTION_TTL_SECONDS = 300;
+const START_RATE_LIMIT = 10;
+const RATE_WINDOW_SECONDS = 900;
+
+function sendStatus(res, status) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(JSON.stringify({ error: status === 429 ? "AUTH_RATE_LIMITED" : "AUTH_UNAVAILABLE" }));
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res, deps = {}) {
   if (req.method !== "GET") { res.statusCode = 405; res.end(); return; }
+  let store;
   try {
+    store = deps.store || getAuthStore();
+    if (!await store.checkRateLimit("google-start", getRequestIp(req), START_RATE_LIMIT, RATE_WINDOW_SECONDS)) {
+      sendStatus(res, 429);
+      return;
+    }
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const redirectUri = process.env.GOOGLE_REDIRECT_URI;
     if (!clientId || !process.env.GOOGLE_CLIENT_SECRET || !redirectUri || !process.env.APP_BASE_URL) throw new Error("GOOGLE_OIDC_NOT_CONFIGURED");
@@ -31,9 +42,10 @@ export default function handler(req, res) {
       code_challenge_method: "S256",
     }).toString();
     const transaction = { state, nonce, codeVerifier, returnTo: validateReturnTo(url.searchParams.get("returnTo")) };
-    res.setHeader("Set-Cookie", buildTransactionCookieHeader(transaction));
+    if (!await store.createTransaction(state, transaction, TRANSACTION_TTL_SECONDS)) throw new Error("AUTH_TRANSACTION_STORE_FAILED");
+    res.setHeader("Set-Cookie", buildTransactionCookieHeader(state));
     res.statusCode = 302;
     res.setHeader("Location", authorizationUrl.toString());
     res.end();
-  } catch { sendErrorRedirect(res); }
+  } catch { sendStatus(res, 503); }
 }
