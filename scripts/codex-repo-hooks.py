@@ -280,10 +280,14 @@ def pretool_hook(event: dict) -> None:
         )
     interpreter_mutation = False
     if re.search(r"\b(?:python(?:\d+(?:\.\d+)*)?|node|ruby|perl)\b", command):
-        serialized_git = re.search(r"['\"]git['\"]\s*,\s*['\"](?P<subcommand>push|merge)['\"]", command)
+        serialized_git = re.search(
+            r"['\"]git['\"]\s*,\s*(?:['\"](?P<subcommand>push|merge)['\"]|\[\s*['\"](?P<array_subcommand>push|merge)['\"])\s*\]?",
+            command,
+        )
         if serialized_git:
-            interpreter_mutation = serialized_git.group("subcommand") == "merge" or (
-                serialized_git.group("subcommand") == "push" and targets_main(command)
+            subcommand = serialized_git.group("subcommand") or serialized_git.group("array_subcommand")
+            interpreter_mutation = subcommand == "merge" or (
+                subcommand == "push" and targets_main(command)
             )
     if git_alias or local_merge or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation or indirect_git_mutation or interpreter_mutation:
         reason = "Direct merges and force pushes are blocked by the repository PR workflow."

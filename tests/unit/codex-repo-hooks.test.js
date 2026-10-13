@@ -109,6 +109,8 @@ test("pretool hook blocks direct pushes to main and GitHub API merge calls", () 
     "GIT=git; $GIT push origin main",
     "bash -c 'git push origin main'",
     "python3 -c 'import subprocess; subprocess.run([\"git\",\"push\",\"origin\",\"main\"])'",
+    "node -e \"require('child_process').execFile('git',['push','origin','main'])\"",
+    "node -e \"require('child_process').spawn('git',['push','origin','HEAD:refs/heads/main'])\"",
     "git push origin :main",
     "git push --force-with-lease origin feature",
     "gh api --method PUT repos/example/repo/pulls/42/merge",
