@@ -2,17 +2,17 @@
 
 ## 목표
 
-후속 기능이 동일한 런타임, 디자인 시스템, 도메인 상태와 Agent 스키마를 사용하도록 기반을 고정한다. 이 단계의 사용자 결과는 기능 화면이 아니라 이후 화면이 흔들리지 않게 만드는 실행 가능한 앱 셸과 검증 가능한 계약이다.
+후속 기능이 동일한 런타임, UI reference, 도메인 상태와 Agent 스키마를 사용하도록 기반을 고정한다. 이 단계의 사용자 결과는 기능 화면이 아니라 이후 화면이 흔들리지 않게 만드는 실행 가능한 앱 셸과 검증 가능한 계약이다.
 
 ## 연결 기준
 
 - 요구사항: 모든 P0 계약의 기반, `AI-001`~`AI-010`, `NFR-001`, `NFR-004`, `NFR-005`, `NFR-006`
 - 결정: `DEC-003`, `DEC-005`, `DEC-007`, `DEC-010`, `DEC-017`, `DEC-018`, `DEC-025`~`DEC-030`
-- 참조: [데이터 명세](../product/05-data-spec.md), [아키텍처](../product/06-architecture.md), [AI 오케스트레이션](../product/12-ai-orchestration-and-model-policy.md), [프롬프트 계약](../product/13-prompt-and-response-contracts.md), [AI 예산·평가](../product/14-ai-budget-evaluation-and-operations.md), [디자인 시스템 통합](../product/09-design-system-integration.md)
+- 참조: [데이터 명세](../product/05-data-spec.md), [아키텍처](../product/06-architecture.md), [AI 오케스트레이션](../product/12-ai-orchestration-and-model-policy.md), [프롬프트 계약](../product/13-prompt-and-response-contracts.md), [AI 예산·평가](../product/14-ai-budget-evaluation-and-operations.md), [UI 참고 이미지 통합](../product/09-ui-reference-integration.md)
 
 ## 포함 범위
 
-- React 18과 `@sfood/ui` 런타임
+- React 18 runtime and Blueprint-owned UI implementation baseline
 - 라우터와 전역 provider 뼈대
 - 도메인 타입, 상태 enum과 저장 schema 초안
 - Agent 요청·응답 JSON Schema와 fixture
@@ -20,7 +20,7 @@
 - DisplayBlock, ContextManifest와 AiRequestLedger 타입
 - golden eval harness의 기본 fixture와 금지 결과 assertion
 - 새 테스트 구조와 빌드 검증
-- 디자인 시스템 조회·보강 목록
+- template image reference map and UI accessibility contracts
 
 ## 제외 범위
 
@@ -36,34 +36,35 @@
 입력:
 
 - `react@18.3.1`, `react-dom@18.3.1`
-- `@sfood/ui@0.1.3`
-- Tailwind 3 preset과 `@sfood/ui/global.css`
+- React 18 and TypeScript runtime
+- `docs/template/README.md` reference screenshots and local CSS conventions
 
 구현:
 
 - package와 lockfile 버전을 고정한다.
 - React 중복 인스턴스와 다른 UI 시스템 의존성이 없게 한다.
-- 앱 진입점에서 디자인 시스템 전역 CSS를 한 번만 불러온다.
+- 앱 진입점에서 framework setup과 Blueprint 소유 base CSS를 불러온다.
 
 출력 및 성공 조건:
 
-- `npm ls react react-dom @sfood/ui`에서 React 18 한 계열만 표시된다.
+- `npm ls react react-dom`에서 React 18 한 계열만 표시된다.
+- `@sfood/ui` dependency and imports are absent after the UI migration.
 - 빈 라우트가 오류 없이 렌더링되고 기본 Button, FormField, Alert가 스타일과 함께 보인다.
 - production build가 성공한다.
 
-### FND-002 디자인 시스템 계약
+### FND-002 UI reference 및 semantic HTML/CSS 계약
 
 구현:
 
-- MCP에서 setup guide, layout, form, navigation, feedback, overlay와 business template을 조회한다.
-- 화면별 채택 컴포넌트, 필요한 조합과 디자인 시스템 보강 후보를 기록한다.
-- Drawer 포커스 차단 등 MCP에서 확인한 주의사항을 테스트 기준으로 옮긴다.
+- `docs/template/README.md`에서 shell, 대화, 문서와 로그인에 맞는 캡처를 선택한다.
+- 화면별 semantic landmarks, inputs, actions, status, overlay와 navigation 동작을 기록한다.
+- Drawer 포커스 차단 등 접근성 계약을 테스트 기준으로 옮긴다.
 
 성공 조건:
 
-- 모든 공통 primitive가 `@sfood/ui` export와 연결된다.
-- 디자인 시스템에 없는 공용 primitive는 앱에 복제되지 않고 보강 항목으로 기록된다.
-- 원시 색상과 앱 전용 디자인 토큰을 추가하지 않는다.
+- shared controls follow Blueprint-owned semantic HTML/CSS patterns and the relevant template references.
+- 공용 UI package 대신 Blueprint 소유 semantic HTML/CSS를 사용한다.
+- CSS custom properties를 반복 값에만 사용하고 화면 구조에 없는 임의 디자인 체계를 만들지 않는다.
 
 ### FND-003 도메인 타입과 상태
 

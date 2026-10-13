@@ -34,7 +34,7 @@
 
 ## 선행 조건 (Definition of Ready)
 
-- `FND-PR-02`가 사용자 머지 완료돼 도메인 ID, Proposal, DocumentSection, GenerationJob schema가 확정됨
+- `FND-PR-02`가 기본 브랜치에 병합돼 도메인 ID, Proposal, DocumentSection, GenerationJob schema가 확정됨
 - AX 세션에서 비식별 `ownerKey` 발급 경로가 준비됨(`AUTH-PR-01`~`03` 머지 완료)
 - OpenAI project에서 Luna/Mini/Terra 접근 권한과 rate limit을 배포 전 재확인
 - 평가 fixture가 실제 직원·프로젝트 원문을 포함하지 않음을 확인

@@ -4,7 +4,7 @@
 
 SFOOD Agent Blueprint를 사내 직원 전용 서비스로 운영한다. 사용자는 Blueprint 홈에 들어가기 전에 AX Login을 거쳐 사내 Microsoft 계정으로 인증해야 하며, 인증되지 않은 브라우저는 제품 화면과 Blueprint API를 사용할 수 없어야 한다.
 
-이 문서는 AX Auth MCP에서 확인한 계약, Claude의 구현 순서, 애플리케이션 인증 경계, 화면·데이터·오류·테스트 기준을 하나의 구현 계약으로 정의한다.
+이 문서는 AX Auth MCP에서 확인한 계약, Codex 구현 순서, 애플리케이션 인증 경계, 화면·데이터·오류·테스트 기준을 하나의 구현 계약으로 정의한다.
 
 ## 확정 결정
 
@@ -16,7 +16,7 @@ SFOOD Agent Blueprint를 사내 직원 전용 서비스로 운영한다. 사용�
 - 사내 전체 직원이 대상이므로 AX Auth client 등록 시 계정 allowlist를 비워 둔다. 별도 제한이 필요해질 때만 명시적 allowlist를 등록한다.
 - 프로젝트 데이터는 서버에 장기 저장하지 않고 IndexedDB에 유지하되, 인증 사용자별 namespace로 분리한다.
 
-## AX Auth MCP 연결과 Claude 작업 순서
+## AX Auth MCP 연결과 구현 순서
 
 프로젝트 루트 `.mcp.json`에는 다음 HTTP MCP가 등록되어 있어야 한다.
 
@@ -31,9 +31,9 @@ SFOOD Agent Blueprint를 사내 직원 전용 서비스로 운영한다. 사용�
 }
 ```
 
-Claude는 구현을 시작할 때 다음 순서를 지킨다.
+Codex는 구현을 시작할 때 다음 순서를 지킨다.
 
-1. 프로젝트 루트에서 Claude Code를 다시 시작하거나 MCP 설정을 다시 불러오고 `ax-auth` 연결을 승인한다.
+1. 프로젝트 루트에서 Codex MCP 설정을 다시 불러오고 `ax-auth` 연결을 승인한다.
 2. AX Auth MCP의 `list_guides`를 **가장 먼저** 호출한다.
 3. `get_guide`로 `client-registration`, `login-redirect-backend`, `api-reference`를 읽는다.
 4. `get_code_example`의 `node-express-redirect` 예시는 흐름 참고용으로만 읽고 Vercel 함수와 TypeScript 계약에 맞게 변환한다.

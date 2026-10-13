@@ -32,25 +32,24 @@
 - 문서 본문은 최대 760px이고 화면 중앙 또는 남은 작업 영역 중앙에 위치한다.
 - 390px에서 수평 스크롤이 없고 고정 행동이 마지막 콘텐츠를 가리지 않는다.
 
-## 컴포넌트 검수
+## 화면 구현 검수
 
-- UI primitive는 `@sfood/ui` public export를 사용한다.
-- `Button` variant는 primary 1개 원칙, secondary/ghost/danger 의미를 지킨다.
-- field label·description·error는 `FormField` 관계로 연결한다.
-- 상태는 `Badge`/`StatusBadge`와 텍스트를 함께 사용한다.
-- `Drawer`, `Modal`, `Tabs`에 필요한 기능이 public API에 없으면 feature wrapper와 보강 후보 기록이 있다.
-- template 전체를 복사하지 않고 필요한 정보 구조만 사용했다.
+- UI는 관련 `docs/template/` 캡처와 화면 명세의 정보 위계·배치·상태를 반영한다.
+- 버튼, 링크, 입력, 선택, 탭, 대화상자는 `component-contracts.md`의 semantic contract를 따른다.
+- 상태는 읽을 수 있는 텍스트와 필요한 경우 아이콘/색상을 함께 사용한다.
+- 재사용 로컬 컴포넌트는 실제 공유 동작이 있는 범위에 한정한다.
+- template 전체를 복사하지 않고 관련 화면 패턴만 적용했다.
 
 ## 토큰 검수
 
 다음 검색 결과가 0이어야 한다. 단, `--bp-*` 구조 변수 선언과 테스트 fixture는 예외다.
 
 - 제품 CSS의 hex/rgb/hsl 색상
-- 디자인 시스템 외 `--color-*` 재정의
+- 프로젝트 공통 UI 기준이 없는 임의의 `--color-*` 재정의
 - 컴포넌트마다 반복되는 raw padding/gap/radius/shadow
 - 브랜드 색을 직접 참조하는 base palette
 
-MCP `get_tokens` 응답과 실제 패키지 토큰이 다르면 구현을 멈추고 버전과 문서를 맞춘다.
+색상과 간격은 참고 캡처와 `docs/ui/00-visual-foundation.md`의 앱 소유 CSS 변수를 일관되게 사용한다.
 
 ## 상태와 행동 검수
 
@@ -80,7 +79,7 @@ UI 작업은 다음 조건을 모두 통과해야 `done`이다.
 - Playwright 시각·행동 검증과 Agent Browser 수동 검증 완료
 - 5개 기준 viewport에서 레이아웃 체크 완료
 - 키보드와 focus transition 표 검증 완료
-- `sfood-ds` MCP 조회 컴포넌트·토큰 목록 기록
+- 사용한 `docs/template/` image filename과 반영한 패턴 기록
 - raw visual value와 중복 primitive 검사 통과
 - P0/P1 UI 결함 없음
 - 알려진 차이는 의도, 영향과 후속 작업을 명시
@@ -89,6 +88,6 @@ UI 작업은 다음 조건을 모두 통과해야 `done`이다.
 
 - 정상 화면 캡처만 있고 오류·빈 상태가 없으면 실패다.
 - 모바일에서 DOM 순서가 시각 순서와 달라 키보드 이동이 꼬이면 실패다.
-- 디자인 시스템과 비슷하게 보이더라도 로컬 Button/Input을 새로 만들었으면 실패다.
+- 화면 캡처와 비슷하게 보이더라도 semantic HTML, 키보드 동작, responsive behavior가 누락되면 실패다.
 - 화면이 맞더라도 저장 실패 후 입력이 사라지면 실패다.
 - 숨긴 Drawer에 Tab으로 진입할 수 있으면 실패다.

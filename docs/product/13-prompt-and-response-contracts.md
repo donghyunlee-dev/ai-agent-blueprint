@@ -2,7 +2,7 @@
 
 ## 목적
 
-AI가 같은 대화 안에서도 질문, 설명, 추천, 복수 제안, 충돌 안내와 문서 결과를 상황에 맞는 형태로 반환하게 한다. 모델이 임의 UI나 HTML을 생성하지 않으며, 허용된 구조화 block을 애플리케이션이 `@sfood/ui` 컴포넌트로 렌더링한다.
+AI가 같은 대화 안에서도 질문, 설명, 추천, 복수 제안, 충돌 안내와 문서 결과를 상황에 맞는 형태로 반환하게 한다. 모델이 임의 UI나 HTML을 생성하지 않으며, 허용된 구조화 block을 애플리케이션의 allowlisted React renderer로 렌더링한다.
 
 모델 등급과 token 한도는 [AI 오케스트레이션과 모델 정책](12-ai-orchestration-and-model-policy.md)을 따른다.
 
@@ -346,7 +346,7 @@ AI JSON response
 → reference/revision validation
 → atomic repository transaction
 → allowlisted renderer
-→ @sfood/ui component
+→ Blueprint-owned React component
 ```
 
 예시 매핑:
@@ -361,7 +361,7 @@ AI JSON response
 | `readiness_notice` | `StatusBadge`, 부족 영역 목록 |
 | `next_action` | `EmptyState` 또는 단계 완료 surface |
 
-실제 component 이름과 props는 구현 시 `sfood-ds` MCP로 확인한다. AI 응답에 component 이름을 포함하지 않는다.
+실제 component 구현은 Blueprint의 화면 계약과 semantic HTML/CSS 원칙을 따른다. AI 응답에 component 이름을 포함하지 않는다.
 
 ## Prompt injection과 데이터 경계
 

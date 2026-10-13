@@ -56,7 +56,7 @@ flowchart TD
     G --> H[사용자 최종 검토]
     H -- 반려 --> E
     H -- 승인 --> I[ready_to_merge]
-    I --> J[사용자 직접 머지]
+    I --> J[전체 lifecycle 요청 시 승인된 병합]
     J --> K[merged: 리빌드 출시 가능 상태]
 ```
 

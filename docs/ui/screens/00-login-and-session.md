@@ -57,7 +57,7 @@
 
 ## 구조와 토큰
 
-| ID | 위치·치수 | `@sfood/ui` 우선 컴포넌트 | 토큰·행동 |
+| ID | 위치·치수 | Semantic element | CSS·행동 |
 | --- | --- | --- | --- |
 | L01 | viewport 상단, page padding 안 | `Typography` 또는 승인된 Brand mark | text secondary, 장식 링크 금지 |
 | L02 | 인증 surface 첫 heading | `Typography` heading | `h1`, text primary |
@@ -71,8 +71,8 @@
 - desktop 인증 surface 최대 폭은 `--bp-auth-surface-max: 440px`이다.
 - desktop 좌우 여백은 `--spacing-xl`, mobile은 `--spacing-md`를 사용한다.
 - surface 내부 간격은 `--spacing-xl`, 요소 간 기본 간격은 `--spacing-md`다.
-- 제품 배경, surface, border, text, focus는 semantic token만 사용한다.
-- Card 사용 여부와 실제 component props는 구현 시 `sfood-ds` MCP 조회 결과로 확정한다. Card가 없으면 `Container`와 `Stack`을 조합하며 로컬 Card primitive를 만들지 않는다.
+- 제품 배경, surface, border, text, focus는 Blueprint-owned CSS custom property를 사용한다.
+- 로그인 surface는 semantic `<main>`과 `<section>` 안에 제목, 안내, 오류, 버튼 순으로 배치한다. 외부 Card package를 추가하지 않는다.
 
 ## 상태별 콘텐츠
 

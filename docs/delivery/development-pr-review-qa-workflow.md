@@ -2,7 +2,7 @@
 
 ## 목적
 
-PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현하고, 매 PR마다 코드 리뷰와 QA를 통과한 뒤 사용자가 직접 머지하는 반복 절차를 정의한다. 이 문서는 구현 순서뿐 아니라 다음 개발 단계를 시작할 수 있는 조건을 규정한다.
+PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현하고, 매 PR마다 자체 검증·코드 리뷰·QA·승인된 병합을 통과시키는 반복 절차를 정의한다. 이 문서는 구현 순서뿐 아니라 다음 개발 단계를 시작할 수 있는 조건을 규정한다.
 
 ## 현재 설계 점검 결과
 
@@ -11,7 +11,7 @@ PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현�
 - 작업 ID를 어떤 PR 단위로 묶는지
 - 구현 완료 후 코드 리뷰와 QA를 어떤 순서로 수행하는지
 - 리뷰·QA 실패를 누가 고치고 어디까지 재검증하는지
-- 사용자가 직접 머지하기 전 다음 개발 PR을 시작하지 않는 규칙
+- gate를 통과한 PR의 병합 조건과 다음 개발 PR 시작 조건
 - PR마다 남겨야 하는 공통 증거와 승인 상태
 
 아래 절차가 이 공백을 보완하며 기존 단계별 작업 문서보다 실행 순서에서 우선한다.
@@ -23,12 +23,12 @@ PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현�
 3. 구현자 자체 검증, 독립 코드 리뷰, 독립 QA를 모두 통과해야 `ready_to_merge`가 된다.
 4. 구현자가 자신의 작업을 최종 승인하지 않는다.
 5. 자동 테스트만으로 UI/프로세스 QA를 대체하지 않는다.
-6. 사용자가 직접 PR을 머지한다. Agent와 구현자는 자동 머지하지 않는다.
-7. 현재 PR이 기본 브랜치에 머지됐다는 확인 전에는 다음 PR의 구현을 시작하지 않는다.
+6. Agent는 사용자가 전체 PR lifecycle을 요청했을 때만 모든 gate가 통과된 PR을 병합할 수 있다. 이 요청이 없으면 `ready_to_merge`에서 멈춘다.
+7. 현재 PR이 기본 브랜치에 병합됐다는 확인 전에는 다음 PR의 구현을 시작하지 않는다.
 8. 미결정·차단 요구사항은 임의로 구현하지 않고 별도 PR 단위도 시작하지 않는다.
 9. 최종 품질 단계는 매 PR의 QA를 대체하지 않고 전체 회귀를 추가한다.
 10. UI PR은 최종 HEAD와 일치하는 개발 화면 캡처가 PR에서 보여야 한다.
-11. 단계별 구현은 `CLAUDE.md`의 Superpowers 우선·`task-spec-template` fallback과 분리된 구현/리뷰/QA agent 규칙을 따른다.
+11. 단계별 구현은 Codex `$pr-development-loop` skill과 별도 planner, implementer, code-reviewer, QA agent 규칙을 따른다.
 
 ## PR 개발 단위 기준
 
@@ -50,12 +50,12 @@ PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현�
 | --- | --- | --- | --- |
 | `planned` | 순서만 배치됨 | PR 단위표 등록 | 선행 의존성 확인 |
 | `ready` | 구현 가능 | 결정·선행 PR·수용 기준 확정 | 브랜치 생성 |
-| `in_progress` | 구현 중 | 사용자 머지된 base에서 시작 | 자체 검증 완료 |
+| `in_progress` | 구현 중 | 최신 기본 브랜치에서 시작 | 자체 검증 완료 |
 | `code_review` | 독립 리뷰 중 | build·관련 테스트·self-check 통과 | 차단 finding 0건 |
 | `qa` | 동작 검증 중 | 코드 리뷰 통과 | QA 차단 finding 0건 |
 | `fix_required` | 수정 필요 | 리뷰 또는 QA 실패 | 한 번의 수정 pass 후 재검증 |
-| `ready_to_merge` | 사용자 머지 대기 | 리뷰·QA·증거 완료 | 사용자 머지 |
-| `merged` | 기본 브랜치 반영 | 사용자 머지 확인 | 다음 PR `ready` 전환 |
+| `ready_to_merge` | 모든 merge gate 통과 | 리뷰·QA·증거 및 필요한 CI 성공 | 전체 lifecycle 요청이면 Agent 병합, 아니면 사용자 대기 |
+| `merged` | 기본 브랜치 반영 | GitHub에서 병합 확인 | 다음 PR `ready` 전환 |
 | `blocked` | 진행 불가 | 결정·환경·선행 산출물 누락 | 원인 해소 후 재계획 |
 
 `ready_to_merge`는 완료가 아니다. `merged`만 후속 구현의 선행 조건을 충족한다.
@@ -64,7 +64,7 @@ PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현�
 
 ```mermaid
 flowchart TD
-    A[이전 PR 사용자 머지 확인] --> B[기본 브랜치 동기화]
+    A[이전 PR 병합 확인] --> B[기본 브랜치 동기화]
     B --> C[다음 PR Definition of Ready 확인]
     C --> D[전용 브랜치 생성·구현]
     D --> E[관련 테스트·build·self-check]
@@ -79,25 +79,23 @@ flowchart TD
     K --> L{QA 통과}
     L -- 아니오 --> J
     L -- 예 --> M[ready_to_merge 보고]
-    M --> N{사용자 직접 머지}
-    N -- 대기 --> M
-    N -- 완료 --> O[merged 기록·다음 PR 해제]
+    M --> N{전체 lifecycle 요청 및 모든 gate 통과}
+    N -- 아니오 --> M
+    N -- 예 --> O[Agent 병합·merged 기록·다음 PR 해제]
     O --> A
 ```
 
-코드 리뷰 finding은 `superpowers:subagent-driven-development`의 task fix/re-review loop를 따른다. QA finding은 하나의 통합 correction pass로 묶고 수정 후 전체 관련 테스트와 영향 경로를 다시 검증한다. 같은 QA 차단 문제가 남으면 PR을 `blocked`로 돌리고 범위·설계를 다시 정한다.
+코드 리뷰 finding은 Codex `$pr-development-loop`의 bounded fix/re-review loop를 따른다. QA finding은 하나의 통합 correction pass로 묶고 수정 후 전체 관련 테스트와 영향 경로를 다시 검증한다. 재시도 한도 뒤에도 같은 QA 차단 문제가 남으면 PR을 `blocked`로 돌리고 범위·설계를 다시 정한다.
 
 ## Skill과 멀티 에이전트 실행
 
-- Claude 개발은 저장소 [CLAUDE.md](../../CLAUDE.md)를 먼저 읽는다.
-- Superpowers가 사용 가능하면 `using-superpowers` → `writing-plans` → `using-git-worktrees` → `subagent-driven-development`와 TDD 순서로 실행한다.
-- Superpowers를 불러올 수 없으면 등록된 `task-spec-template`로 `docs/tasks/<pr-unit-id>/task-spec.md`를 작성하고 사용자 확인 전 코드를 작성하지 않는다.
+- Codex는 저장소 root `AGENTS.md`와 [`$pr-development-loop`](../../.agents/skills/pr-development-loop/SKILL.md)를 먼저 따른다.
 - coordinator와 프로젝트 agents `blueprint-task-planner`, `blueprint-implementer`, `blueprint-code-reviewer`, `blueprint-qa-reviewer` 역할을 분리한다.
 - implementer는 production/test 파일을 쓰지만 자신의 최종 코드 리뷰나 QA를 승인하지 않는다.
 - reviewer와 QA는 서로 다른 agent context를 사용한다. QA는 diff뿐 아니라 실행 중 화면과 프로세스를 검증한다.
-- 기계적 소규모 구현만 Haiku를 허용하고, 일반 구현·QA는 Sonnet, 고위험 및 최종 whole-PR review는 Opus를 사용한다.
 - 구현 agent를 병렬 실행해 공유 파일을 수정하지 않는다. 리뷰와 QA는 앞 단계 산출물에 의존하므로 순차 실행한다.
-- `.claude/agents/` 정의를 새로 추가하거나 수정한 뒤에는 Claude Code session을 재시작해 agent를 다시 로드한다.
+- UI 작업은 `docs/template/README.md`와 화면별 연결 이미지를 시각 참고 근거로 기록한다. SFOOD UI package, tokens, stylesheet 또는 MCP를 UI 기준으로 새로 추가하지 않는다.
+- 프로젝트 `.codex/hooks.json`은 workflow context를 제공하고 gate 누락 상태의 PR merge, 일반·간접 `main` 직접 push, Git aliases와 `gh api`/`curl` GitHub API merge를 차단한다. merge hook은 프로세스 잠금 안에서 최신 PR HEAD와 리뷰·QA 증거가 일치하는지 확인하고 15분 1회 허가를 소비한다. hook은 Codex에서 검토·신뢰된 뒤 실행된다. GitHub `main` branch protection도 pull request를 요구하도록 설정해 hook을 우회하는 외부 push를 막는다.
 
 ## 역할과 책임
 
@@ -105,7 +103,7 @@ flowchart TD
 
 - 허용된 PR 범위만 변경한다.
 - 테스트를 기능과 함께 작성한다.
-- `@sfood/ui` 사용 내역과 직접 구현한 UI 잔여분을 기록한다.
+- UI 작업에서 참고한 `docs/template/` 이미지와 semantic HTML/CSS 구현 범위를 기록한다.
 - build, 자동 테스트와 self-check 결과를 PR에 첨부한다.
 - finding을 수정하고 수정 영향 범위를 설명한다.
 - PR을 머지하지 않는다.
@@ -114,7 +112,7 @@ flowchart TD
 
 - 구현자와 분리된 read-only 관점에서 diff를 검토한다.
 - 요구사항 누락, 회귀, 보안, 데이터 무결성, 오류 처리와 테스트 신뢰성을 판정한다.
-- UI 변경은 `@sfood/ui` public export와 semantic token 준수를 확인한다.
+- UI 변경은 연결된 reference image, semantic HTML, 접근성, 반응형과 CSS 구현을 확인한다.
 - finding을 severity, 파일·위치, 재현 근거와 기대 결과로 남긴다.
 - 직접 기능 범위를 확장하지 않는다.
 
@@ -131,8 +129,8 @@ flowchart TD
 
 - PR 범위와 제품 결과를 확인한다.
 - 코드 리뷰와 QA가 `pass`인지 확인한다.
-- 직접 merge하거나 수정·보류를 결정한다.
-- 머지 완료를 알림으로써 다음 PR 구현을 승인한다.
+- 필요하면 수정·보류를 결정한다.
+- 전체 PR lifecycle 요청 여부를 결정하고 병합 뒤 다음 PR의 조건을 검토한다.
 
 ## Definition of Ready
 
@@ -144,7 +142,7 @@ flowchart TD
 - 선행 PR의 `merged` 상태
 - 관찰 가능한 수용 기준
 - 정상·실패·경계 테스트 목록
-- UI 변경 시 화면 ID, viewport와 디자인 시스템 근거
+- UI 변경 시 화면 ID, viewport와 `docs/template/` image 근거
 - 데이터/API 변경 시 schema, migration과 rollback 영향
 - 미결정 차단 항목 0건
 
@@ -174,7 +172,7 @@ PR 생성 전 최소 검증:
 - 관련 없는 파일 변경이나 숨은 범위 확장
 - 실패 경로·경계값 테스트 누락
 - 임의 디자인 값 또는 중복 UI primitive 추가
-- 사용자 직접 머지 원칙을 우회하는 자동 merge 설정
+- 독립 review/QA 또는 required check가 pass가 아닌 PR의 자동 merge 설정
 
 리뷰 결과는 `pass`, `pass_with_non_blocking`, `fail` 중 하나다. `pass_with_non_blocking` 항목은 후속 작업 ID가 있어야 하며 P0 결함에는 사용할 수 없다.
 
@@ -239,8 +237,8 @@ QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`�
 - 알려진 제한:
 
 ## Merge
-- Agent auto-merge: 금지
-- 사용자 merge: pending | merged
+- Agent auto-merge: 전체 PR lifecycle을 사용자가 요청한 경우 모든 gate 통과 후에만 허용
+- Merge result: pending | merged
 ```
 
 스크린샷·녹화·대용량 로그는 PR 첨부나 CI artifact로 보관하고 저장소 루트에 커밋하지 않는다. 저장소에는 지속적으로 필요한 fixture와 테스트 코드만 남긴다.
@@ -262,14 +260,14 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 
 ## PR 단위 실행 순서
 
-아래 순서는 초기 계획이다. 각 행은 독립 PR이며 앞 행의 사용자 머지가 다음 행 구현의 선행 조건이다.
+아래 순서는 초기 계획이다. 각 행은 독립 PR이며 앞 행의 병합 확인이 다음 행 구현의 선행 조건이다.
 
 | 순서 | PR unit | 포함 작업 | 검증 가능한 결과 | 상태 |
 | ---: | --- | --- | --- | --- |
 | 1 | `AUTH-PR-01` 인증 서버 경계 | AUTH-001~003 | AX fixture로 valid 세션만 발급, 위조·재사용 거절 | ready |
 | 2 | `AUTH-PR-02` 로그인·보호 라우트 | AUTH-004, 005, 007 | 비인증 UI/API 차단, returnTo와 logout | planned |
 | 3 | `AUTH-PR-03` 사용자 저장 격리 | AUTH-006 | 계정 A/B 로컬 프로젝트 교차 노출 0건 | planned |
-| 4 | `FND-PR-01` 런타임·디자인 시스템 | FND-001, 002 | React 18과 `@sfood/ui` 단일 기반·샘플 렌더 | planned |
+| 4 | `FND-PR-01` 런타임·화면 기반 | FND-001, 002 | React 18과 `docs/template` 기반 Blueprint 소유 semantic HTML/CSS | planned |
 | 5 | `FND-PR-02` 도메인·Agent 계약 | FND-003, 004 | 상태·schema·모델 registry 계약 테스트 | planned |
 | 6 | `FND-PR-03` 테스트 기반 | FND-005 | unit/contract/browser test 명령과 CI gate 실행 | planned |
 | 7 | `PRJ-PR-01` 라우팅·프로젝트 생성 | PRJ-101, 102 | 홈에서 생성, 잘못된 경로 404 | planned |
@@ -298,13 +296,13 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 
 ## 머지 후 절차
 
-사용자 머지 확인 후에만 다음을 수행한다.
+현재 PR의 GitHub 병합이 확인된 뒤에만 다음을 수행한다.
 
 1. 기본 브랜치를 최신 상태로 동기화한다.
 2. 머지된 commit과 CI 결과를 기록한다.
 3. 추적표의 해당 작업을 `done`으로 바꾸고 PR·테스트 증거를 연결한다.
 4. 다음 PR의 선행 조건과 base 동작을 smoke test한다.
-5. 다음 PR을 `ready`로 전환하고 새 브랜치를 만든다.
+5. 다음 PR을 `ready`로 전환한다. 새 브랜치와 다음 PR은 해당 작업을 요청받았을 때 시작한다.
 
 머지 뒤 회귀가 발견되면 다음 기능을 계속 쌓지 않는다. 해당 PR의 revert 또는 hotfix를 별도 사용자 승인 PR로 먼저 처리한다.
 
@@ -312,16 +310,16 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 
 ### 정상 UI PR
 
-1. `blueprint-task-planner`가 Superpowers plan과 화면·상태 acceptance를 작성한다.
-2. `blueprint-implementer`가 Sonnet으로 TDD 구현과 self-check를 수행한다.
+1. `blueprint-task-planner`가 plan과 화면·상태 acceptance를 작성한다.
+2. `blueprint-implementer`가 TDD 구현과 self-check를 수행한다.
 3. `blueprint-code-reviewer`가 별도 context에서 diff와 spec을 검토한다.
 4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 Playwright·Agent Browser로 desktop/mobile을 검증한다.
 5. QA가 최종 HEAD 캡처를 만들고 PR `Screenshots`에 노출한다.
-6. PR은 `ready_to_merge`에서 멈추고 사용자 머지를 기다린다.
+6. 전체 PR lifecycle 요청이면 gate 통과 후 Agent가 PR을 병합하고 결과를 확인한다. 요청이 없으면 `ready_to_merge`에서 멈춘다.
 
-### Superpowers 또는 QA 실패
+### Agent 또는 QA 실패
 
-- Superpowers를 호출할 수 없으면 `task-spec-template` 문서를 작성하고 사용자 확인 뒤 같은 4개 project agent를 수동 순차 dispatch한다.
+- 필요한 agent나 도구를 사용할 수 없으면 정확한 누락을 기록하고 해당 gate를 `blocked`로 둔다.
 - UI 런타임, Playwright 또는 Agent Browser 중 하나라도 실행할 수 없으면 QA를 `blocked`로 기록한다. 캡처만 올리고 `pass`로 처리하지 않는다.
 - QA correction pass 뒤에도 같은 차단 finding이 남으면 PR을 머지 대기로 보내지 않고 task 범위나 설계를 다시 정한다.
 
@@ -329,7 +327,7 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 
 개발 단계는 코드 작성, PR 생성 또는 QA 통과만으로 완료되지 않는다. 다음 조건이 모두 충족돼야 한다.
 
-- 계획된 PR unit이 사용자에 의해 머지됐다.
+- 계획된 PR unit이 기본 브랜치에 병합됐고 결과가 GitHub에서 확인됐다.
 - 각 PR에 코드 리뷰와 QA 결과가 있다.
 - 차단 finding과 미연결 P0 요구사항이 없다.
 - 요구사항 추적표에 PR과 검증 증거가 연결됐다.

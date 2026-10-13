@@ -10,5 +10,6 @@ dist/
 vite.config.js
 vite.config.d.ts
 .pr-artifacts/
+.codex/state/
 playwright-report/
 test-results/

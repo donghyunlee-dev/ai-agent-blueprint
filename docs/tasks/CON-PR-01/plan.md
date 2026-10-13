@@ -35,7 +35,7 @@
 
 ## 선행 조건 (Definition of Ready)
 
-- `AI-PR-01`이 사용자 머지 완료돼 model registry/prompt registry/request ledger 사용 가능
+- `AI-PR-01`이 기본 브랜치에 병합돼 model registry/prompt registry/request ledger 사용 가능
 - `AUTH-PR-01`~`03` 머지 완료돼 `requireSession` 미들웨어 사용 가능
 - 도메인 GenerationJob 상태 enum이 `FND-PR-02`에서 확정됨
 

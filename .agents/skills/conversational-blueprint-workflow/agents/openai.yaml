@@ -1,4 +1,4 @@
 interface:
   display_name: "Conversational Blueprint"
-  short_description: "대화형 설계, SFOOD UI 구현, QA 워크플로"
+  short_description: "대화형 설계, 화면 참고 이미지 기반 UI 구현, QA 워크플로"
   default_prompt: "Use $conversational-blueprint-workflow to redesign and validate the conversational Blueprint and PRD flow."

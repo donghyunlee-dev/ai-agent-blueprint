@@ -38,7 +38,7 @@
 
 - `PRJ-PR-01`, `PRJ-PR-02`가 사용자에 의해 머지됨
 - IndexedDB `ProjectRepository`가 동작함(`docs/product/06-architecture.md` 저장소 인터페이스)
-- `@sfood/ui`의 FileUpload, StatusBadge 컴포넌트 사용 가능 확인(`FND-PR-01` 완료)
+- `FND-PR-01`에서 file picker, per-file status, error UI semantic contracts가 확정됨
 
 ## 작업 단위별 구현 개요
 
@@ -111,7 +111,7 @@ Given 프로젝트에 파일 5개가 이미 있을 때, when 사용자가 6번�
 - [ ] 10MB/5개 경계값이 추출 전에 검증되는지(추출 후 검증 아님)
 - [ ] 원본 예외 메시지가 UI에 그대로 노출되지 않는지
 - [ ] 파일 원문이 로그에 남지 않는지
-- [ ] `@sfood/ui` public export만 사용했는지
+- [ ] semantic file input/controls와 task reference image 및 validation/error states를 검증했는지
 
 ## Done Checklist
 

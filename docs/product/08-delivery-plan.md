@@ -10,17 +10,17 @@
 - 인증 선행 단계는 홈과 모든 후속 단계보다 먼저 완료한다.
 - 인증 구현 전 `ax-auth` MCP의 `list_guides`를 먼저 호출하고 실제 client 설정을 검증한다.
 - 단계마다 동작 가능한 제품 상태를 유지한다.
-- UI 구현 전 `sfood-ds` MCP로 setup, component, token과 business template을 조회한다.
-- 프런트엔드 런타임과 디자인 시스템 기준은 [디자인 시스템 통합 명세](09-design-system-integration.md)를 따른다.
+- UI 구현 전 `docs/template/README.md`에서 관련 화면 캡처와 상태를 확인한다.
+- 프런트엔드 런타임과 screenshot 기준은 [UI 참고 이미지 통합 명세](09-ui-reference-integration.md)를 따른다.
 - Agent 출력은 strict schema로 검증하고 검증 실패 결과를 상태에 반영하지 않는다.
 - AI 구현은 [AI 오케스트레이션](12-ai-orchestration-and-model-policy.md), [프롬프트 계약](13-prompt-and-response-contracts.md), [AI 예산·평가](14-ai-budget-evaluation-and-operations.md)를 따른다.
 - model, reasoning, prompt, schema와 token 한도를 작업별 registry로 관리하고 변경 시 golden eval을 실행한다.
 - UI 또는 상호작용이 바뀌는 단계는 빌드와 E2E, 데스크톱·모바일 브라우저 검증을 수행한다.
 - 관련 없는 기존 작업 파일을 변경하거나 정리하지 않는다.
 - 구현은 [PR·리뷰·QA 반복 워크플로](../delivery/development-pr-review-qa-workflow.md)의 PR unit 순서로 진행한다.
-- 각 PR은 자체 검증 → 독립 코드 리뷰 → 독립 QA를 통과해야 하며 Agent가 자동 머지하지 않는다.
-- 사용자가 현재 PR을 직접 머지했다는 확인 전에는 다음 PR 구현을 시작하지 않는다.
-- Claude 실행은 `CLAUDE.md`의 Superpowers 우선, `task-spec-template` fallback과 분리된 구현·리뷰·QA agent 규칙을 따른다.
+- 각 PR은 자체 검증 → 독립 코드 리뷰 → 독립 QA를 통과해야 한다. `$pr-development-loop`는 사용자가 전체 PR lifecycle을 요청한 경우에만 gate 통과 후 자동 머지한다.
+- 현재 PR의 머지를 확인하기 전에는 다음 PR 구현을 시작하지 않는다.
+- Codex 실행은 `$pr-development-loop` skill과 `.codex/agents/`의 단계별 planner, implementer, reviewer, QA 역할을 따른다.
 - 화면 작업 PR은 최종 HEAD의 desktop/mobile 개발 화면 캡처를 PR에서 직접 볼 수 있게 제공해야 한다.
 
 ## 전체 순서
@@ -36,7 +36,7 @@
   → 6. 통합 품질과 출시 준비
 ```
 
-각 단계 내부는 하나 이상의 PR unit으로 나뉜다. 단계 전체가 끝날 때까지 큰 브랜치를 유지하지 않고, 검증 가능한 결과마다 PR을 닫고 사용자 머지 후 다음 unit으로 진행한다.
+각 단계 내부는 하나 이상의 PR unit으로 나뉜다. 단계 전체가 끝날 때까지 큰 브랜치를 유지하지 않고, 검증 가능한 결과마다 PR을 닫고 병합 확인 후 다음 unit으로 진행한다.
 
 ## 인증 선행 단계: AX Login과 보호 경계
 
@@ -74,16 +74,14 @@
 
 ### 목표
 
-구현 전에 React와 디자인 시스템 기반을 단일화하고, 도메인 상태, 질문 규칙과 Agent API 스키마를 코드로 옮길 수 있는 수준으로 확정한다.
+구현 전에 React와 local semantic UI 기반을 단일화하고, 도메인 상태, 질문 규칙과 Agent API 스키마를 코드로 옮길 수 있는 수준으로 확정한다.
 
 ### 작업
 
 - `react`와 `react-dom`을 `18.3.1`로 맞추고 대응하는 타입 패키지를 사용
-- 다른 디자인 시스템의 의존성과 import를 `@sfood/ui`로 치환한 뒤 제거
-- 이웃 저장소를 가리키는 `@sfood/ui` Vite alias와 로컬 호환 CSS 제거
-- 배포된 `@sfood/ui@0.1.3`과 `@sfood/ui/global.css`를 기준으로 설치
-- Tailwind 소비 방식은 사내 패키지 공식 지원 범위에서 검증하고 하나의 구성만 유지
-- MCP 조회 결과로 화면별 컴포넌트 대응표와 디자인 시스템 보강 목록 확정
+- 이전 UI 라이브러리 의존성과 import를 제거하고 Blueprint 소유 semantic HTML/CSS로 전환
+- `docs/template/README.md`의 관련 캡처를 화면 레이아웃과 시각 계층의 구현 근거로 연결
+- 접근성, keyboard operation, responsive behavior와 화면 상태 검증을 제품 UI 계약에 포함
 - 데이터 명세의 타입을 TypeScript 계약으로 정의
 - 질문 카탈로그의 필수 영역과 조건부 질문 목록 확정
 - 질문, 사용자 답변, 변경안과 문서 API JSON Schema 작성
@@ -97,9 +95,9 @@
 
 ### 완료 조건
 
-- `npm ls react react-dom @sfood/ui`에 React 18 계열이 하나만 존재함
-- 제품 코드에 다른 디자인 시스템 import와 `@sfood/ui` 소스 alias가 없음
-- MCP에서 조회한 기본 컴포넌트가 전역 스타일과 함께 샘플 화면에 정상 렌더링됨
+- `npm ls react react-dom`에 React 18 계열이 하나만 존재함
+- 제품 코드와 package manifest에서 `@sfood/ui` 및 디자인 시스템 MCP 연결이 제거됨
+- 적용 대상의 UI 화면이 관련 template 캡처를 참고해 구현되고 desktop/mobile 검증이 완료됨
 - 모든 P0 요구사항이 타입 또는 테스트 가능한 행동과 연결됨
 - 상태 enum이 요구사항, 데이터와 API에서 동일함
 - 정상 응답, 충돌, 스키마 오류 예제가 준비됨
@@ -379,7 +377,7 @@
 - 단계 도중 범위가 바뀌면 PRD와 요구사항 ID를 먼저 갱신한다.
 - 데이터 상태가 바뀌면 데이터 명세와 API schema를 함께 갱신한다.
 - 단계 완료 후 다음 단계에 필요한 결정과 알려진 제한을 기록한다.
-- PR마다 추적표에 작업 상태, 코드 리뷰, QA와 사용자 머지 증거를 연결한다.
+- PR마다 추적표에 작업 상태, 코드 리뷰, QA와 병합 증거를 연결한다.
 - 머지 후 회귀가 발생하면 다음 기능 PR보다 revert 또는 hotfix PR을 우선한다.
 - 새로운 시각 기능은 UI 디자인 명세와 모바일 동작을 함께 정의한다.
 - 향후 유저플로우나 와이어프레임을 추가할 때는 별도 PRD 범위로 승인한다.

@@ -16,7 +16,7 @@ Use Codex-native surfaces only:
 - Put project custom agents in `.codex/agents/{agent-name}.toml`.
 - Represent a reusable workflow as an orchestrator skill in `.agents/skills/{workflow-name}/SKILL.md`.
 - Put intermediate artifacts in `_workspace/` only when they are useful for handoff or audit.
-- Never generate `.claude/`, `CLAUDE.md`, Claude commands, `TeamCreate`, `TaskCreate`, `SendMessage`, or model names copied from Claude configuration.
+- Keep this harness native to the active runtime. Do not generate foreign agent directories, provider-specific commands, or model names copied from another agent configuration.
 
 Codex spawns subagents only when the user explicitly requests subagents, delegation, parallel agents, or a harness run that explicitly includes them. A stored harness does not itself authorize spawning agents in unrelated turns.
 

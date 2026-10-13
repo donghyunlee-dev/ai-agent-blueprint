@@ -31,7 +31,7 @@
 
 ## 선행 조건 (Definition of Ready)
 
-- `DSG-PR-01`이 사용자 머지 완료 상태
+- `DSG-PR-01`이 기본 브랜치에 병합된 상태
 - ChangeProposal의 `pending`/`accepted`/`rejected` 상태 전이가 계약 테스트로 확정됨
 - 미결정 차단 항목 없음
 
@@ -133,7 +133,7 @@ Given "인증 불필요"로 선행 결정이 변경된 상태, when 기존 로�
 - [ ] 해결 전 기존 확정값이 어떤 경로로도 변경되지 않음
 - [ ] 종속 항목이 review_required로만 전환되고 삭제되지 않음
 - [ ] 일괄 처리 부분 실패 시 전체 rollback, 부분 성공 상태 노출 없음
-- [ ] `@sfood/ui` DiffView/Modal public export 사용, 임의 컴포넌트 없음
+- [ ] diff와 modal 동작이 semantic HTML/CSS로 구현되고 `docs/template/` reference 및 overlay 접근성 계약을 충족함
 
 ## Done Checklist
 

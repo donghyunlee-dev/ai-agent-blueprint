@@ -40,7 +40,6 @@ function collectGuideDocs(data: SurveyFormData) {
   GUIDE_DOC_SET.clear();
   GUIDE_DOC_SET.add("custom-setup-guide");
 
-  if (data.aiAgent === "claude") GUIDE_DOC_SET.add("claude-mcp");
   if (data.aiAgent === "codex") GUIDE_DOC_SET.add("openai-prompt-guide");
   if (data.tools.includes("github") || data.git === "yes" || data.git === "plan") {
     GUIDE_DOC_SET.add("github-setup");
@@ -82,41 +81,11 @@ function buildAgentSetupSection(data: SurveyFormData, os: string) {
   }
 
   if (data.aiAgent === "claude") {
-    const installCommand =
-      data.os === "windows"
-        ? "npm install -g @anthropic-ai/claude-code"
-        : "npm install -g @anthropic-ai/claude-code";
-
     return [
       ...commonIntro,
-      "Claude를 선택한 경우에는 Claude Code CLI와 Anthropic API 키, MCP 설정 파일을 함께 준비해야 합니다. 단순 웹 사용만으로는 프로젝트 루트에서 반복 작업을 자동화하기 어렵기 때문에 CLI 환경을 먼저 맞추는 편이 좋습니다.",
+      "선택한 AI 서비스의 공식 문서에서 계정 로그인과 지원되는 프로젝트 연결 방식을 확인합니다. 이 프로젝트는 특정 공급자의 CLI, API 키 환경 변수 또는 MCP 설정을 대신 구성하지 않습니다.",
       "",
-      "```bash",
-      installCommand,
-      "```",
-      "",
-      "설치 후 API 키를 환경 변수로 등록합니다.",
-      "",
-      "```bash",
-      data.os === "windows"
-        ? "setx ANTHROPIC_API_KEY your-anthropic-api-key"
-        : "export ANTHROPIC_API_KEY=your-anthropic-api-key",
-      "```",
-      "",
-      "MCP를 함께 쓰려면 Claude 설정 파일에 서버 정보를 등록합니다.",
-      "",
-      "```json",
-      "{",
-      '  "mcpServers": {',
-      '    "filesystem": {',
-      '      "command": "npx",',
-      '      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]',
-      "    }",
-      "  }",
-      "}",
-      "```",
-      "",
-      `${os} 기준으로 설정 파일 위치와 권한 정책을 먼저 확인해야 합니다. 이후 프로젝트 루트에서 Claude Code를 실행하고, 저장소와 문서 디렉터리를 읽을 수 있는지부터 점검합니다.`,
+      "저장소 작업 규칙은 `AGENTS.md`와 연결된 프로젝트 문서를 기준으로 적용합니다. 비밀값은 서비스가 제공하는 안전한 자격 증명 저장소에 두고 저장소, prompt, log 또는 브라우저 코드에 기록하지 않습니다.",
     ].join("\n");
   }
 

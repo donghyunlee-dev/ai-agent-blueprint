@@ -1,0 +1,39 @@
+{
+  "description": "Repository PR loop context and merge gate.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/codex-repo-hooks.py\" session-start",
+            "statusMessage": "Loading repository PR workflow"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/codex-repo-hooks.py\" prompt",
+            "statusMessage": "Checking repository workflow"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/codex-repo-hooks.py\" pretool",
+            "statusMessage": "Checking PR merge gates"
+          }
+        ]
+      }
+    ]
+  }
+}

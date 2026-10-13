@@ -34,7 +34,7 @@
 
 ## 선행 조건 (Definition of Ready)
 
-- `PRJ-PR-01`이 사용자 머지 완료 상태여야 한다.
+- `PRJ-PR-01`이 기본 브랜치에 병합된 상태여야 한다.
 - 인증된 사용자의 `ownerKey` 파생 규칙이 확정돼 있어야 한다(`AUTH-PR-03`).
 - `docs/product/06-architecture.md`의 `ProjectRepository` 인터페이스 정의와 충돌 없음을 확인한다.
 

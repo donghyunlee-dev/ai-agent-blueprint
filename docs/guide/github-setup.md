@@ -69,34 +69,6 @@ git push origin feature/survey-api
 
 ---
 
-## Claude(MCP)로 GitHub 연동(선택)
-
-`~/.claude/claude_desktop_config.json`에 추가:
-
-```json
-{
-  "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_YOUR_TOKEN_HERE"
-      }
-    }
-  }
-}
-```
-
-예시 요청 문장:
-
-```
-"agent-blueprint 저장소 이슈 생성: 제목 'survey API 개선', 라벨 enhancement"
-"main 브랜치의 최근 커밋 5개 요약해줘"
-"열려있는 PR 목록을 알려줘"
-```
-
----
-
 ## GitHub Actions로 자동 배포(선택)
 
 `.github/workflows/deploy.yml` 예시:
