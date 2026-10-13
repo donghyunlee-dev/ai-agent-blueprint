@@ -1,11 +1,13 @@
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { pathToFileURL } from "node:url";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const guideDir = path.resolve(__dirname, "docs/guide");
+const currentDir = process.cwd();
+const projectRoot = existsSync(path.join(currentDir, "api/auth/google/start.js")) ? currentDir : path.resolve(currentDir, "../..");
+const guideDir = path.resolve(projectRoot, "docs/guide");
+const importServerModule = new Function("specifier", "return import(specifier)") as (specifier: string) => Promise<{ default: (req: any, res: any) => unknown }>;
 
 function slugify(value: string) {
   return value
@@ -25,7 +27,9 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    root: process.cwd(),
     resolve: { dedupe: ["react", "react-dom"] },
+    server: { host: "localhost", port: 5173, strictPort: true },
     plugins: [
       react(),
       !env.VERCEL && {
@@ -50,6 +54,28 @@ export default defineConfig(({ mode }) => {
             }
 
             try {
+              const authHandlerPath: Record<string, string> = {
+                "/api/auth/google/start": "api/auth/google/start.js",
+                "/api/auth/google/callback": "api/auth/google/callback.js",
+                "/api/auth/session": "api/auth/session.js",
+                "/api/auth/logout": "api/auth/logout.js",
+              };
+              const authPath = authHandlerPath[url.pathname];
+              if (authPath) {
+                const chunks: Buffer[] = [];
+                await new Promise<void>((resolve, reject) => {
+                  req.on("data", (chunk: Buffer) => chunks.push(Buffer.from(chunk)));
+                  req.on("end", resolve);
+                  req.on("error", reject);
+                });
+                const body = Buffer.concat(chunks);
+                const apiReq = Object.assign(req, { url: raw, method: req.method, headers: req.headers, body });
+                const handlerUrl = pathToFileURL(path.resolve(projectRoot, authPath)).href;
+                const { default: handler } = await importServerModule(handlerUrl);
+                await handler(apiReq, res);
+                return;
+              }
+
               const blueprintMatch = url.pathname.match(/^\/api\/blueprint\/(chat|requirements|prd)$/);
               if (blueprintMatch) {
                 const handlers = {

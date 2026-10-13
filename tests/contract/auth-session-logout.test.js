@@ -6,8 +6,8 @@ import { signSession, buildSessionCookieHeader, sessionCookieName } from "../../
 import { createMockReq, createMockRes } from "../fixtures/http.js";
 
 before(() => {
-  process.env.AX_SESSION_SECRET = "test-session-secret";
-  process.env.AX_SESSION_TTL_SECONDS = "28800";
+  process.env.APP_SESSION_SECRET = "test-session-secret-with-sufficient-length";
+  process.env.APP_SESSION_TTL_SECONDS = "28800";
 });
 
 test("GET /api/auth/session returns 401 when there is no session cookie", async () => {
@@ -19,7 +19,7 @@ test("GET /api/auth/session returns 401 when there is no session cookie", async 
 });
 
 test("GET /api/auth/session returns 401 for a tampered session cookie", async () => {
-  const { value } = signSession({ email: "user@s-food.com", clientId: "client-1" });
+  const { value } = signSession({ issuer: "https://accounts.google.com", subject: "subject-1", email: "user@example.com" });
   const req = createMockReq({
     url: "/api/auth/session",
     cookie: `${sessionCookieName()}=${encodeURIComponent(value)}x`,
@@ -30,7 +30,7 @@ test("GET /api/auth/session returns 401 for a tampered session cookie", async ()
 });
 
 test("GET /api/auth/session returns 200 and the user for a valid session cookie", async () => {
-  const { value } = signSession({ email: "user@s-food.com", clientId: "client-1" });
+  const { value } = signSession({ issuer: "https://accounts.google.com", subject: "subject-1", email: "user@example.com" });
   const cookieHeader = buildSessionCookieHeader(value).split(";")[0];
   const req = createMockReq({ url: "/api/auth/session", cookie: cookieHeader });
   const res = createMockRes();
@@ -38,7 +38,7 @@ test("GET /api/auth/session returns 200 and the user for a valid session cookie"
   assert.equal(res.statusCode, 200);
   assert.deepEqual(JSON.parse(res.body), {
     authenticated: true,
-    user: { email: "user@s-food.com", clientId: "client-1" },
+    user: { issuer: "https://accounts.google.com", subject: "subject-1", email: "user@example.com" },
   });
 });
 
