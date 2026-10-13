@@ -152,7 +152,7 @@ def pretool_hook(event: dict) -> None:
         return
 
     direct_main_push = re.search(
-        r"\bgit\s+push\b(?:(?![\n;&|]).)*(?:(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)|:[+]?(?:refs/heads/)?main(?:\s|$))",
+        r"\bgit\s+push\b(?:(?![\n;&|]).)*(?:(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)|:[+]?(?:refs/heads/)?main(?:\s|$)|\+[^\s:]+:(?:refs/heads/)?main(?:\s|$)|\s--(?:all|mirror)(?:\s|$))",
         command,
     )
     force_push = re.search(r"\bgit\s+push\b(?:(?![\n;&|]).)*(?:\s-f(?:\s|$)|\s--force(?:-with-lease)?(?:\s|$))", command)
