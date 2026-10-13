@@ -156,6 +156,15 @@ def builtin_git_subcommands() -> set[str]:
     return set(result.stdout.split())
 
 
+def targets_main(args: str) -> bool:
+    normalized = re.sub(r"['\"(){}\\[\]]", " ", args)
+    return bool(
+        re.search(r"(?:^|[\s,+])(?:main|refs/heads/main)(?:[\s,]|$)", normalized)
+        or re.search(r"(?::|\+[^\s:]+:)(?:\+)?(?:refs/heads/)?main(?:[\s,]|$)", normalized)
+        or re.search(r"\s--(?:all|mirror)(?:\s|$)", normalized)
+    )
+
+
 def _merge_is_allowed(requested_pr: int, command: str) -> bool:
     state = load_state()
 
@@ -243,11 +252,7 @@ def pretool_hook(event: dict) -> None:
             if git_command.group("subcommand") == "merge":
                 local_merge = True
             if git_command.group("subcommand") == "push":
-                direct_main_push = direct_main_push or bool(
-                    re.search(r"(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)", args)
-                    or re.search(r"(?::|\+[^\s:]+:)(?:\+)?(?:refs/heads/)?main(?:\s|$)", args)
-                    or re.search(r"\s--(?:all|mirror)(?:\s|$)", args)
-                )
+                direct_main_push = direct_main_push or targets_main(args)
                 force_push = force_push or bool(
                     re.search(r"(?:^|\s)-f(?:\s|$)|(?:^|\s)--force(?:-with-lease)?(?:\s|$)", args)
                 )
@@ -271,10 +276,16 @@ def pretool_hook(event: dict) -> None:
         args = indirect.group("args")
         indirect_git_mutation = indirect_git_mutation or indirect.group("subcommand") == "merge" or bool(
             re.search(r"(?:^|\s)-f(?:\s|$)|(?:^|\s)--force(?:-with-lease)?(?:\s|$)", args)
-            or re.search(r"(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)", args)
-            or re.search(r"(?::|\+[^\s:]+:)(?:\+)?(?:refs/heads/)?main(?:\s|$)", args)
+            or targets_main(args)
         )
-    if git_alias or local_merge or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation or indirect_git_mutation:
+    interpreter_mutation = False
+    if re.search(r"\b(?:python(?:\d+(?:\.\d+)*)?|node|ruby|perl)\b", command):
+        serialized_git = re.search(r"['\"]git['\"]\s*,\s*['\"](?P<subcommand>push|merge)['\"]", command)
+        if serialized_git:
+            interpreter_mutation = serialized_git.group("subcommand") == "merge" or (
+                serialized_git.group("subcommand") == "push" and targets_main(command)
+            )
+    if git_alias or local_merge or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation or indirect_git_mutation or interpreter_mutation:
         reason = "Direct merges and force pushes are blocked by the repository PR workflow."
     elif re.search(r"\bgh\s+pr\s+merge\b", command):
         if merge_is_allowed(command):

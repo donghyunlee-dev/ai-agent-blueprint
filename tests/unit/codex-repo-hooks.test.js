@@ -107,6 +107,8 @@ test("pretool hook blocks direct pushes to main and GitHub API merge calls", () 
     "git push origin feature && git push origin HEAD:refs/heads/main",
     "git -C /repo merge main",
     "GIT=git; $GIT push origin main",
+    "bash -c 'git push origin main'",
+    "python3 -c 'import subprocess; subprocess.run([\"git\",\"push\",\"origin\",\"main\"])'",
     "git push origin :main",
     "git push --force-with-lease origin feature",
     "gh api --method PUT repos/example/repo/pulls/42/merge",
@@ -114,10 +116,12 @@ test("pretool hook blocks direct pushes to main and GitHub API merge calls", () 
     "curl -X PUT https://api.github.com/repos/example/repo/pulls/42/merge",
     "curl https://api.github.com/graphql -d '{\"query\":\"mutation{mergePullRequest}\"}'",
   ]) {
-    const output = JSON.parse(runHook("pretool", {
+    const raw = runHook("pretool", {
       tool_name: "Bash",
       tool_input: { command },
-    }));
+    });
+    assert.notEqual(raw, "", command);
+    const output = JSON.parse(raw);
     assert.equal(output.hookSpecificOutput.permissionDecision, "deny", command);
   }
 });
