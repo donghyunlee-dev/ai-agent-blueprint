@@ -30,6 +30,9 @@ MERGE_COMMAND = re.compile(
     r"^\s*gh\s+pr\s+merge\s+(\d+)"
     r"(?:\s+--(?:squash|merge|rebase|delete-branch|auto))*\s*$"
 )
+GIT_MUTATION_COMMAND = re.compile(
+    r"\bgit\b(?:\s+-C\s+\S+|\s+-c\s+\S+|\s+--git-dir(?:=\S+|\s+\S+)|\s+--work-tree(?:=\S+|\s+\S+))*\s+(?P<subcommand>push|merge)\b(?P<args>.*)",
+)
 
 
 def project_root() -> Path:
@@ -206,19 +209,23 @@ def pretool_hook(event: dict) -> None:
     if not isinstance(command, str):
         return
 
-    push_match = re.search(r"\bgit\b(?:(?![\n;&|]).)*\bpush\b", command)
-    push_args = ""
-    if push_match:
-        push_args = re.split(r"[\n;&|]", command[push_match.end() :], maxsplit=1)[0]
-    direct_main_push = bool(
-        push_match
-        and (
-            re.search(r"(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)", push_args)
-            or re.search(r"(?::|\+[^\s:]+:)(?:\+)?(?:refs/heads/)?main(?:\s|$)", push_args)
-            or re.search(r"\s--(?:all|mirror)(?:\s|$)", push_args)
-        )
-    )
-    force_push = bool(push_match and re.search(r"(?:^|\s)-f(?:\s|$)|(?:^|\s)--force(?:-with-lease)?(?:\s|$)", push_args))
+    local_merge = False
+    direct_main_push = False
+    force_push = False
+    for segment in re.split(r"[\n;&|]+", command):
+        for git_command in GIT_MUTATION_COMMAND.finditer(segment):
+            args = git_command.group("args")
+            if git_command.group("subcommand") == "merge":
+                local_merge = True
+            if git_command.group("subcommand") == "push":
+                direct_main_push = direct_main_push or bool(
+                    re.search(r"(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)", args)
+                    or re.search(r"(?::|\+[^\s:]+:)(?:\+)?(?:refs/heads/)?main(?:\s|$)", args)
+                    or re.search(r"\s--(?:all|mirror)(?:\s|$)", args)
+                )
+                force_push = force_push or bool(
+                    re.search(r"(?:^|\s)-f(?:\s|$)|(?:^|\s)--force(?:-with-lease)?(?:\s|$)", args)
+                )
     api_merge = re.search(
         r"\bgh\s+api\b(?:(?![\n;&|]).)*(?:pulls/\d+/merge|git/refs/heads/main|\bmutation\b)",
         command,
@@ -231,7 +238,7 @@ def pretool_hook(event: dict) -> None:
         r"\bcurl\b(?:(?![\n;&|]).)*api\.github\.com/graphql(?:(?![\n;&|]).)*\bmutation\b",
         command,
     )
-    if re.search(r"\bgit\s+merge\b", command) or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation:
+    if local_merge or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation:
         reason = "Direct merges and force pushes are blocked by the repository PR workflow."
     elif re.search(r"\bgh\s+pr\s+merge\b", command):
         if merge_is_allowed(command):
