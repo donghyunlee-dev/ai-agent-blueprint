@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateReturnTo } from "../../api/_lib/session.js";
+import { validateReturnTo } from "../../api/_lib/return-to.js";
 
 test("validateReturnTo accepts a same-origin internal path", () => {
   assert.equal(validateReturnTo("/blueprints/p-1"), "/blueprints/p-1");

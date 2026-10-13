@@ -4,21 +4,21 @@ import crypto from "node:crypto";
 import { signSession, verifySession } from "../../api/_lib/session.js";
 
 before(() => {
-  process.env.AX_SESSION_SECRET = "test-session-secret";
-  process.env.AX_SESSION_TTL_SECONDS = "28800";
+  process.env.APP_SESSION_SECRET = "test-session-secret-with-sufficient-length";
+  process.env.APP_SESSION_TTL_SECONDS = "28800";
 });
 
 test("signSession then verifySession round-trips the user", () => {
-  const { value } = signSession({ email: "user@s-food.com", clientId: "client-1" });
+  const { value } = signSession({ issuer: "https://accounts.google.com", subject: "subject-1", email: "user@example.com" });
   const session = verifySession(value);
   assert.ok(session);
-  assert.equal(session.user.email, "user@s-food.com");
-  assert.equal(session.user.clientId, "client-1");
+  assert.equal(session.user.issuer, "https://accounts.google.com");
+  assert.equal(session.user.subject, "subject-1");
   assert.equal(session.audience, "sfood-agent-blueprint");
 });
 
 test("verifySession rejects a tampered signature", () => {
-  const { value } = signSession({ email: "user@s-food.com", clientId: "client-1" });
+  const { value } = signSession({ issuer: "https://accounts.google.com", subject: "subject-1", email: "user@example.com" });
   const [payload, signature] = value.split(".");
   const tamperedChar = signature.at(-1) === "A" ? "B" : "A";
   const tampered = `${payload}.${signature.slice(0, -1)}${tamperedChar}`;
@@ -26,10 +26,10 @@ test("verifySession rejects a tampered signature", () => {
 });
 
 test("verifySession rejects a tampered payload", () => {
-  const { value } = signSession({ email: "user@s-food.com", clientId: "client-1" });
+  const { value } = signSession({ issuer: "https://accounts.google.com", subject: "subject-1", email: "user@example.com" });
   const [, signature] = value.split(".");
   const forgedPayload = Buffer.from(JSON.stringify({
-    user: { email: "attacker@s-food.com", clientId: "client-1" },
+    user: { issuer: "https://accounts.google.com", subject: "attacker" },
     issuedAt: Date.now(),
     expiresAt: Date.now() + 1000,
     audience: "sfood-agent-blueprint",
@@ -38,9 +38,9 @@ test("verifySession rejects a tampered payload", () => {
 });
 
 test("verifySession rejects an expired session", () => {
-  const secret = process.env.AX_SESSION_SECRET;
+  const secret = process.env.APP_SESSION_SECRET;
   const session = {
-    user: { email: "user@s-food.com", clientId: "client-1" },
+    user: { issuer: "https://accounts.google.com", subject: "subject-1" },
     issuedAt: Date.now() - 10_000,
     expiresAt: Date.now() - 1_000,
     audience: "sfood-agent-blueprint",

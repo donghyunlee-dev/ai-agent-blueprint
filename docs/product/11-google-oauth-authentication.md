@@ -97,6 +97,10 @@ sequenceDiagram
 | `GOOGLE_REDIRECT_URI` | server configuration | 현재 환경의 정확한 callback URI |
 | `APP_SESSION_SECRET` | server only | Blueprint session 서명/암호화 |
 | `APP_BASE_URL` | server configuration | 안전한 내부 redirect와 환경 origin 확인 |
+| `UPSTASH_REDIS_REST_URL` | server only | Vercel 인스턴스 사이 OAuth transaction 소비와 인증 rate limit 공유 |
+| `UPSTASH_REDIS_REST_TOKEN` | server only | Upstash Redis REST 접근 인증 |
+
+Production 및 인증을 사용하는 Preview 배포에는 두 Upstash 변수를 모두 설정한다. 값이 없거나 저장소 요청이 실패하면 인증 endpoint는 fail closed로 응답한다. 로컬 Vite 개발은 단일 프로세스 메모리 저장소를 사용하므로 여러 개발 서버 사이에서 transaction이나 rate limit을 공유하지 않는다.
 
 실제 secret 값은 저장소 문서에 기록하지 않는다. 로컬 환경 설정 예시는 값 대신 변수명만 사용하고 secret manager 운영 절차에 연결한다.
 

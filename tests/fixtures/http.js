@@ -1,10 +1,10 @@
 // Minimal mock req/res for calling Vercel-style handler(req, res) modules directly in node:test.
 
-export function createMockReq({ method = "GET", url = "/", cookie } = {}) {
+export function createMockReq({ method = "GET", url = "/", cookie, headers = {} } = {}) {
   return {
     method,
     url,
-    headers: cookie ? { cookie } : {},
+    headers: { ...headers, ...(cookie ? { cookie } : {}) },
   };
 }
 
