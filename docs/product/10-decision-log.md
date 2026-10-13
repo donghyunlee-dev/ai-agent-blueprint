@@ -40,13 +40,15 @@
 | --- | --- | --- |
 | DEC-021 | 시스템이 Requirements ready 가능 조건을 계산하고, 모든 조건 충족 후 사용자가 `Requirements 검토 완료`를 명시적으로 확인해야 `ready`가 된다. MVP에는 별도 역할 권한을 두지 않으며 자동 ready 처리는 허용하지 않는다. | PRD, 요구사항, 데이터, 프로세스, UI, 개발 계획 |
 
-## 2026-09-16 인증 결정
+## 인증 결정 (2026-10-13 갱신)
 
 | ID | 결정 | 반영 문서 |
 | --- | --- | --- |
-| DEC-022 | AX Login과 사내 Microsoft 계정 인증을 홈보다 앞에 배치하고 사내 직원 전용 서비스로 운영한다. | 제품 정의, PRD, 요구사항, 프로세스, UI |
-| DEC-023 | AX Auth backend redirect로 token을 서버 검증하고 HttpOnly Blueprint 세션을 발급하며 모든 Blueprint API를 보호한다. | 인증 설계, 아키텍처, 요구사항, 테스트 |
-| DEC-024 | 사내 전체 직원을 허용하고 AX 계정 allowlist는 사용하지 않는다. 로컬 프로젝트는 인증 사용자별 namespace로 분리한다. | 인증 설계, 데이터, 아키텍처 |
+| DEC-022 | Google OIDC 로그인은 제품 홈과 기능보다 먼저 제공한다. | 제품 정의, PRD, 요구사항, 프로세스, UI |
+| DEC-023 | 서버가 authorization code와 OIDC ID token을 검증하고 verified email에만 HttpOnly Blueprint session을 발급한다. 모든 Blueprint API는 session을 검증한다. | 인증 설계, 아키텍처, 요구사항, 테스트 |
+| DEC-024 | 계정 domain allowlist를 두지 않는다. 로컬 프로젝트는 인증된 `(issuer, sub)` namespace로 분리한다. | 인증 설계, 데이터, 아키텍처 |
+
+Google OAuth/OIDC가 유일한 로그인 방식이다. 별도 OTP 입력, Gmail mailbox 접근 및 Gmail 전송 권한은 제공하지 않는다. Google OAuth setup은 제품 구현 전 선행 조건이며, setup 확인 전 AUTH-PR-01은 blocked다.
 
 ## 2026-09-16 AI 모델·프롬프트 결정
 
@@ -71,7 +73,7 @@
 | DEC-036 | Agent는 기본적으로 `ready_to_merge`에서 멈춘다. 사용자가 full PR lifecycle을 요청하면 자체 검증·독립 리뷰·독립 QA·필요한 CI가 모두 통과한 뒤에만 병합할 수 있다. 다음 PR은 현재 병합 확인 후 별도 요청에서 시작한다. | delivery workflow, 개발 계획, AGENTS, Codex PR loop |
 | DEC-037 | 화면 작업 PR은 `docs/template/`의 관련 캡처를 참고하고 최종 HEAD의 desktop/mobile 개발 화면과 관련 상태 캡처를 PR에서 직접 볼 수 있게 제공한다. | PR template, delivery workflow, `docs/template/README.md` |
 | DEC-038 | 단계별 개발은 Codex `$pr-development-loop` skill과 분리된 planner, implementer, code reviewer, QA reviewer agent를 사용한다. | AGENTS, Codex PR loop, delivery workflow |
-| DEC-039 | 구현은 `docs/template/` 시각 참고와 Blueprint 소유 semantic HTML/CSS를 사용하며 `@sfood/ui`와 SFOOD 디자인 시스템 연결은 새 UI 기준에서 제외한다. 기존 prototype imports는 화면 migration PR에서 dependency와 함께 제거한다. | UI design, architecture, delivery plan |
+| DEC-039 | 구현은 `docs/template/` 시각 참고와 semantic HTML/CSS를 사용한다. 새 화면은 기존 외부 UI library에 의존하지 않으며 legacy imports는 UI migration unit에서 dependency와 함께 제거한다. | UI design, architecture, delivery plan |
 
 ## 남은 세부 결정
 

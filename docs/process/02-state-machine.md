@@ -8,7 +8,7 @@ stateDiagram-v2
     PS_AUTH_CHECK --> PS_LOGIN: EV_SESSION_MISSING_OR_EXPIRED
     PS_AUTH_CHECK --> PS_HOME: EV_SESSION_VALID
     PS_LOGIN --> PS_AUTH_REDIRECT: EV_LOGIN_STARTED
-    PS_AUTH_REDIRECT --> PS_AUTH_CHECK: EV_AX_CALLBACK_RECEIVED
+    PS_AUTH_REDIRECT --> PS_AUTH_CHECK: EV_GOOGLE_CALLBACK_RECEIVED
     PS_AUTH_REDIRECT --> PS_LOGIN: EV_AUTH_FAILED
     PS_HOME --> PS_LOGIN: EV_SESSION_EXPIRED
     PS_HOME --> PS_PROJECT_CREATING: EV_START_VALID
@@ -52,8 +52,8 @@ UI의 `F-PRD-LOCKED`, `F-SAVE-ERROR`, `F-DOC-STALE`은 독립 도메인 상태�
 | --- | --- | --- | --- | --- |
 | `PS_AUTH_CHECK` | session valid | cookie 서명·만료 유효 | user/owner scope 초기화 | `PS_HOME` 또는 returnTo |
 | `PS_AUTH_CHECK` | session invalid | 세션 없음·만료·위조 | 민감 상태 제거 | `PS_LOGIN` / `F-LOGIN` |
-| `PS_LOGIN` | login 시작 | returnTo가 same-origin path | 임시 returnTo 저장, AX 302 | `PS_AUTH_REDIRECT` |
-| `PS_AUTH_REDIRECT` | callback valid | AX `result.valid`, client 일치 | token 폐기, 세션 발급 | `PS_AUTH_CHECK` |
+| `PS_LOGIN` | login 시작 | returnTo가 same-origin path | state/nonce 생성, safe returnTo 저장 후 Google redirect | `PS_AUTH_REDIRECT` |
+| `PS_AUTH_REDIRECT` | callback valid | ID token signature, `iss`, `aud`, `exp`, `nonce`, `email_verified` 유효 | code/token 처리 종료, Blueprint session 발급 | `PS_AUTH_CHECK` |
 | `PS_HOME` | `EV_START_VALID` | 입력 또는 ready source 존재 | 프로젝트 한도 확인 | `PS_PROJECT_CREATING` |
 | `PS_PROJECT_CREATING` | `EV_PROJECT_SAVED` | 저장 성공 | 단일 Thread와 첫 Message 생성 | `PS_INTAKE` / `F-INTAKE` |
 | `PS_INTAKE` | `EV_AI_NOTICE_ACCEPTED` | 프로젝트별 미확인 | consent 저장, turn 시작 | `PS_EXTRACTING` |

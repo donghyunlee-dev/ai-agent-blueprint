@@ -2,13 +2,13 @@
 
 이 문서는 개발 단계의 순서와 단계별 산출물을 정의한다. 각 작업의 입력, 화면 상태, 데이터·API 영향, 실패 처리, 테스트와 성공 판정은 [개발 단위 작업 설계](../delivery/README.md)를 실행 기준으로 사용한다.
 
-사내 로그인부터 프로젝트 시작과 PRD 생성까지 기능 간 전이와 테스트 경로는 [Blueprint 프로세스 설계](../process/README.md)를 따른다.
+Google 로그인부터 프로젝트 시작과 PRD 생성까지 기능 간 전이와 테스트 경로는 [Blueprint 프로세스 설계](../process/README.md)를 따른다.
 
 ## 실행 원칙
 
 - 각 단계는 이전 단계의 데이터 계약과 완료 조건을 통과한 뒤 시작한다.
 - 인증 선행 단계는 홈과 모든 후속 단계보다 먼저 완료한다.
-- 인증 구현 전 `ax-auth` MCP의 `list_guides`를 먼저 호출하고 실제 client 설정을 검증한다.
+- 인증 구현 전 Google Cloud OAuth client, consent screen, 정확한 환경별 callback URI와 서버 secret 설정을 준비한다.
 - 단계마다 동작 가능한 제품 상태를 유지한다.
 - UI 구현 전 `docs/template/README.md`에서 관련 화면 캡처와 상태를 확인한다.
 - 프런트엔드 런타임과 screenshot 기준은 [UI 참고 이미지 통합 명세](09-ui-reference-integration.md)를 따른다.
@@ -26,7 +26,7 @@
 ## 전체 순서
 
 ```text
-인증 선행. AX Login과 보호 경계
+인증 선행. Google 로그인과 보호 경계
   → 0. 구현 기반과 계약 확정
   → 1. 프로젝트와 저장
   → 2. 대화와 선택 폼
@@ -38,9 +38,9 @@
 
 각 단계 내부는 하나 이상의 PR unit으로 나뉜다. 단계 전체가 끝날 때까지 큰 브랜치를 유지하지 않고, 검증 가능한 결과마다 PR을 닫고 병합 확인 후 다음 unit으로 진행한다.
 
-## 인증 선행 단계: AX Login과 보호 경계
+## 인증 선행 단계: Google OAuth/OIDC와 보호 경계
 
-[상세 인증 설계와 작업 계약](11-ax-login-authentication.md)
+[상세 인증 설계와 작업 계약](11-google-oauth-authentication.md)
 
 ### 연결 요구사항
 
@@ -48,25 +48,23 @@
 
 ### 목표
 
-사내 Microsoft 계정으로 인증한 직원만 홈, 로컬 프로젝트와 Blueprint API를 사용할 수 있게 한다.
+Google OIDC로 사용자를 인증하고 Blueprint session, 보호 API와 사용자별 로컬 저장 격리를 홈과 foundation 이전에 완성한다.
 
-### 작업
+### 작업 순서
 
-- AX Auth MCP에서 client 등록, backend redirect와 API 계약 재확인
-- 환경별 AX client 등록과 exact callback URI 검증
-- `/api/auth/login`, callback, session, logout과 서명 세션 구현
-- `/login`, AuthProvider와 보호 라우트 구현
-- 모든 `/api/blueprint/*`에 공통 `requireSession` 적용
-- same-origin `returnTo`, token 비저장과 비밀 환경 변수 적용
-- 사용자별 IndexedDB owner namespace와 사용자 전환 정리 구현
+1. Google Cloud consent screen과 OAuth client를 설정하고 각 환경의 exact callback URI 및 서버 전용 secret을 등록한다.
+2. `AUTH-PR-01`: authorization-code callback, state/nonce/ID-token 검증, verified email, HttpOnly session과 session/logout API를 구현한다.
+3. `AUTH-PR-02`: `Google로 계속` 로그인 화면, safe `returnTo`, route guard와 모든 Blueprint API의 `requireSession`을 구현한다.
+4. `AUTH-PR-03`: `(issuer, sub)`에 기반한 IndexedDB owner namespace와 사용자 전환 정리를 구현한다.
+5. 이후 `FND-PR-01`~`03` foundation work를 시작한다.
 
 ### 완료 조건
 
-- 비인증 홈과 직접 Blueprint API 접근이 모두 차단됨
-- AX valid 응답만 세션을 만들고 만료·재사용·위조가 거절됨
-- 로그인 성공 후 원래 보호 경로로 복귀함
-- 로그아웃과 사용자 전환 뒤 이전 사용자의 프로젝트가 노출되지 않음
-- secret과 token이 번들, 로그, 브라우저 저장소와 테스트 증거에 없음
+- 검증된 `iss`, `sub`, `email_verified`만 Blueprint session을 발급한다.
+- state/nonce, signature, issuer, audience, expiry 검증 실패는 session을 발급하지 않는다.
+- 비인증 화면/API 접근이 차단되고 로그인 후 안전한 원래 경로로 돌아간다.
+- 로그아웃과 account switch 뒤 이전 사용자의 프로젝트가 노출되지 않는다.
+- Gmail API scope, authorization code, token과 secret은 브라우저 저장소·로그에 남지 않는다.
 
 ## 0단계: 구현 기반과 계약 확정
 
@@ -96,7 +94,7 @@
 ### 완료 조건
 
 - `npm ls react react-dom`에 React 18 계열이 하나만 존재함
-- 제품 코드와 package manifest에서 `@sfood/ui` 및 디자인 시스템 MCP 연결이 제거됨
+- 제품 코드와 package manifest에서 legacy shared UI dependency와 관련 integration이 제거됨
 - 적용 대상의 UI 화면이 관련 template 캡처를 참고해 구현되고 desktop/mobile 검증이 완료됨
 - 모든 P0 요구사항이 타입 또는 테스트 가능한 행동과 연결됨
 - 상태 enum이 요구사항, 데이터와 API에서 동일함
@@ -339,7 +337,7 @@
 
 ### 필수 E2E 시나리오
 
-1. 비인증 보호 경로 → AX 로그인 → 원래 경로 → 로그아웃
+1. 비인증 보호 경로 → Google 로그인 → 원래 경로 → 로그아웃
 2. 아이디어 입력 → 복수 제안 승인 → 연속 질문 → 요구사항명세서 → PRD → 다운로드
 3. 파일 첨부 → 추출 근거 확인 → 제안 수정 후 승인 → 문서 생성
 4. 기존 확정 항목과 충돌 → 기존/신규 비교 → 해결 → 관련 문서 갱신
@@ -355,13 +353,13 @@
 - 지원 브라우저에서 핵심 흐름 수동 확인
 - 로그인, 홈, 작업 공간, 설계 검토, 요구사항명세서, PRD와 다운로드의 데스크톱·모바일 증거 확보
 - 알려진 P0 결함 없음
-- API 키, AX secret, 로그인 token, 대화 원문과 파일 내용이 로그 또는 클라이언트 번들에 노출되지 않음
+- API 키, Google OAuth secret, 로그인 token, 대화 원문과 파일 내용이 로그 또는 클라이언트 번들에 노출되지 않음
 
 ## 단계별 산출물
 
 | 단계 | 검토 가능한 결과 |
 | --- | --- |
-| 인증 선행 | 사내 로그인, 서버 세션, 보호된 화면/API와 사용자별 로컬 저장 |
+| 인증 선행 | Google 로그인, 서버 세션, 보호된 화면/API와 사용자별 로컬 저장 |
 | 0 | 타입, schema, 질문 카탈로그, model/token registry, prompt version과 eval fixture |
 | 1 | 저장·재개 가능한 빈 Blueprint 작업 공간 |
 | 2 | 연속 질문과 모든 선택 폼이 동작하는 대화 |

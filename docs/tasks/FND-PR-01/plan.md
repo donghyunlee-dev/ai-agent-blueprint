@@ -7,7 +7,7 @@
 ## 범위
 
 - React 18 및 TypeScript 기반 확인
-- `@sfood/ui` 의존성, import, 전역 stylesheet, Tailwind preset과 MCP 설정 제거
+- `legacy external UI package` 의존성, import, 전역 stylesheet, Tailwind preset과 MCP 설정 제거
 - 기존 prototype 화면을 앱 소유 semantic HTML/CSS로 전환하여 전체 build 유지
 - `docs/template/README.md` reference map에 연결된 기본 app shell 샘플 구현
 - 접근성, CSS custom property, responsive layout conventions 정리
@@ -23,14 +23,14 @@
 
 ## 선행 조건
 
-- Authentication contract is fixed; unrelated AX configuration is not changed.
+- Authentication contract is fixed; unrelated Google OAuth configuration is not changed.
 - `.mcp.json` retains only MCP servers required by active product contracts.
 - The reference image for the app shell and login state is identified in the task implementation report.
 
 ## Acceptance criteria
 
-1. `package.json`, lockfile, Vite, Tailwind, and source contain no `@sfood/ui` dependency, alias, preset, or global stylesheet import.
-2. `.mcp.json` has no SFOOD design-system MCP entry.
+1. `package.json`, lockfile, Vite, Tailwind, and source contain no `legacy external UI package` dependency, alias, preset, or global stylesheet import.
+2. `.mcp.json` has no legacy UI integration MCP entry.
 3. `npm run build` succeeds and existing routes render without runtime component import errors.
 4. The base shell follows the relevant template screenshot while preserving semantic landmarks, keyboard focus, and 1440×900/390×844 layouts.
 5. No reference screenshot is imported into the application bundle or rendered as a background.
@@ -40,7 +40,7 @@
 
 | Scenario | Evidence |
 | --- | --- |
-| Fresh install dependency tree | `npm ls react react-dom` has one React 18 line and no `@sfood/ui` |
+| Fresh install dependency tree | `npm ls react react-dom` has one React 18 line and no `legacy external UI package` |
 | Build and unit tests | Exact command and output in PR |
 | Desktop shell | Playwright image at 1440×900 |
 | Mobile shell | Playwright image at 390×844; no horizontal overflow |
@@ -64,7 +64,7 @@
 
 ## Done checklist
 
-- [ ] Product, package, Tailwind, and MCP config contain no legacy SFOOD UI integration.
+- [ ] Product, package, Tailwind, and MCP config contain no legacy external UI integration.
 - [ ] Relevant reference image filenames are linked in the implementation evidence.
 - [ ] Desktop, mobile, keyboard, Playwright, and Agent Browser checks pass.
 - [ ] Build, targeted tests, and `git diff --check` pass.

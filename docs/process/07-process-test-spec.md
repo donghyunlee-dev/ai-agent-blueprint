@@ -32,7 +32,7 @@ flowchart LR
 
 | PATH | 핵심 분기 | 종료 기대 |
 | --- | --- | --- |
-| `PATH-AUTH-SUCCESS` | 보호 경로, AX valid callback | 세션 발급, returnTo 복귀 |
+| `PATH-AUTH-SUCCESS` | 보호 경로, Google ID token valid callback | 세션 발급, returnTo 복귀 |
 | `PATH-AUTH-DENIED` | user denied/not allowed | 세션 없음, 로그인 오류 |
 | `PATH-AUTH-EXPIRED` | 작업 중 자체 세션 만료 | 프로젝트 비표시, 재로그인 |
 | `PATH-AUTH-API-BYPASS` | 비인증 직접 API | 401, 외부 AI 호출 0회 |
@@ -63,7 +63,7 @@ Given 유효한 Blueprint 세션이 없다
 When 사용자가 /blueprints/p-1에 접근한다
 Then F-AUTH-CHECK 뒤 F-LOGIN이 표시된다
 And 프로젝트 내용은 렌더링되지 않는다
-When AX verify fixture가 valid로 응답한다
+When Google ID token verification fixture가 valid로 응답한다
 Then HttpOnly 세션이 발급된다
 And 사용자는 /blueprints/p-1로 복귀한다
 ```
@@ -71,7 +71,7 @@ And 사용자는 /blueprints/p-1로 복귀한다
 ### `PT-AUTH-002` 검증 실패와 API 우회
 
 ```gherkin
-Given AX verify HTTP status는 200이고 result.valid는 false다
+Given Google ID token verification HTTP status는 200이고 result.valid는 false다
 When callback을 처리한다
 Then 세션은 발급되지 않는다
 And F-AUTH-ERROR가 표시된다

@@ -10,7 +10,7 @@
 
 ## 목표
 
-- 사내 Microsoft 계정으로 인증된 직원만 제품 화면과 Blueprint API를 사용하게 한다.
+- Google 계정으로 로그인한 사용자만 제품 화면과 Blueprint API를 사용하게 한다.
 - 간단한 질문, 설계 분석과 최종 문서 작성에 서로 다른 모델·reasoning·token 정책을 적용한다.
 - 한 AI 응답에서 상황에 맞는 질문·설명·추천·복수 제안 block을 안전하게 제공한다.
 - 프로젝트별 AI 호출·token 예산을 관리하면서 Requirements와 PRD 품질을 자동 평가한다.
@@ -32,13 +32,13 @@
 
 ## 핵심 사용자 여정
 
-### 여정 0: 사내 직원 로그인
+### 여정 0: 사용자 로그인
 
 1. 사용자가 보호된 제품 경로에 접근한다.
 2. 시스템이 Blueprint 세션을 확인하고 비인증 상태면 로그인 화면을 표시한다.
-3. 사용자가 `Microsoft 계정으로 계속`을 선택한다.
-4. AX Login과 Microsoft 인증을 완료한다.
-5. 서버가 AX 일회용 토큰을 검증하고 Blueprint 세션을 발급한다.
+3. 사용자가 `Google로 계속`을 선택한다.
+4. Google 인증을 완료하고 서버 callback에서 state, nonce, ID token과 검증된 email claim을 확인한다.
+5. 서버가 검증된 OIDC identity로 Blueprint HttpOnly session을 발급한다.
 6. 사용자는 홈 또는 원래 접근한 보호 경로로 이동한다.
 
 ### 여정 A: 아이디어에서 시작
@@ -71,9 +71,9 @@
 
 ## 핵심 기능
 
-### 사내 인증
+### Google 인증
 
-- AX Login 기반 사내 Microsoft 계정 인증
+- Google OAuth/OIDC 기반 로그인과 verified email 확인
 - 서버 검증 Blueprint 세션과 보호 라우트
 - 모든 Blueprint API의 서버 측 인증
 - 현재 사용자 표시, 로그아웃과 세션 만료 재인증
@@ -151,14 +151,14 @@
 
 ## 확정된 운영 정책
 
-- 홈보다 AX Login을 먼저 제공하며 비인증 사용자는 제품과 Blueprint API에 접근할 수 없다.
-- AX Auth 일회용 토큰은 서버에서 즉시 검증하고 Blueprint 자체 HttpOnly 세션으로 교환한다.
+- 홈보다 Google 로그인을 먼저 제공하며 비인증 사용자는 제품과 Blueprint API에 접근할 수 없다.
+- Google authorization code와 OIDC ID token은 서버에서 검증하고 Blueprint HttpOnly session으로 교환한다. scope는 `openid email`이며 Gmail API를 요청하지 않는다.
 - 질문 기본 문구와 문서 plan은 코드로 만들고, 맥락형 보조는 LIGHT, 답변 추출·Requirements는 DEFAULT, 최종 PRD draft만 FINAL을 사용한다.
 - AI가 process state, readiness와 사용자 확정 여부를 결정하지 않는다.
 - Requirements와 PRD는 plan, draft, review, 선택적 1회 repair로 생성한다.
 - AI 응답은 허용된 DisplayBlock과 strict schema로만 렌더링한다.
 - 일반 프로젝트는 약 17~21회 AI 호출과 프로젝트당 $0.60 hard 비용 상한을 기준으로 설계한다.
-- 사내 전체 직원에게 허용하며 별도 계정 allowlist를 사용하지 않는다.
+- Google 계정으로 로그인할 수 있으며 조직 도메인 allowlist를 두지 않는다.
 - 로컬 프로젝트는 최근 사용 순으로 최대 20개를 보관한다. 초과 시 현재 프로젝트를 제외한 가장 오래된 프로젝트를 정리 대상으로 제시하고 사용자 확인 후 삭제한다.
 - 문서 직접 편집은 연결된 공통 설계 항목에 사용자 확정 변경으로 자동 반영한다.
 - 문서 저장 전에 영향받는 공통 설계 항목과 다른 문서를 미리 보여주고 사용자 확인을 받는다.
@@ -201,9 +201,11 @@
 
 ## 출시 단계
 
-### 인증 선행 단계: AX Login
+### 인증 선행 단계: Google 로그인
 
-AX Auth MCP와 client 등록값을 확인하고 로그인, 서버 세션, API 보호, 사용자별 로컬 저장 격리를 먼저 완성한다. 이 단계를 통과하기 전에는 홈과 이후 기능을 출시하지 않는다.
+Google Cloud OAuth client와 환경별 callback 설정을 준비한 뒤 Google 로그인, 서버 session, API 보호, 사용자별 로컬 저장 격리를 먼저 완성한다. 이 단계를 통과하기 전에는 홈과 이후 기능을 출시하지 않는다.
+
+개발 순서는 Google OAuth consent screen/client와 callback 설정 → `AUTH-PR-01` 서버 callback·OIDC 검증·session → `AUTH-PR-02` 로그인 화면·보호 route/API → `AUTH-PR-03` `(issuer, sub)` 기반 로컬 저장 격리 → `FND-PR-01`~`FND-PR-03` 구현 기반이다. 각 unit은 앞선 PR이 병합된 후 시작한다.
 
 ### 1단계: 프로젝트 기반
 
@@ -239,12 +241,12 @@ AI task router, LIGHT/DEFAULT profile, 상황별 DisplayBlock, prompt version과
 - AI golden eval에서 미승인 확정, 질문 계약 변경, 존재하지 않는 참조와 문서 핵심 coverage 누락이 0건이다.
 - 일반 프로젝트의 호출 수가 기준 예산 안에서 Requirements와 PRD까지 완료된다.
 - 비인증 접근, 만료·위조 세션과 직접 API 호출이 차단된다.
-- AX 로그인 성공 후 원래 보호 경로로 복귀하고 로그아웃 후 로컬 작업 상태가 화면에서 제거된다.
+- Google 로그인 성공 후 원래 보호 경로로 복귀하고 로그아웃 후 로컬 작업 상태가 화면에서 제거된다.
 - 필수 요구사항의 수용 기준이 자동 테스트 또는 브라우저 검증으로 확인된다.
 - 대화 시작부터 요구사항명세서와 PRD 다운로드까지 중단 없는 정상 흐름이 동작한다.
 - OpenAI 실패, 잘못된 응답, 파일 추출 실패와 저장 실패 상태가 사용자 입력을 잃지 않는다.
 - 데스크톱과 모바일에서 대화, 설계 검토, 문서 편집과 내보내기가 가능하다.
-- API 키, AX secret, 로그인 token과 참고 자료 내용이 브라우저 로그나 저장소에 노출되지 않는다.
+- API 키, Google OAuth secret, 로그인 token과 참고 자료 내용이 브라우저 로그나 저장소에 노출되지 않는다.
 
 ## 오픈 이슈
 

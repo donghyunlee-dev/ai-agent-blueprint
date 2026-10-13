@@ -94,7 +94,7 @@ flowchart TD
 - implementer는 production/test 파일을 쓰지만 자신의 최종 코드 리뷰나 QA를 승인하지 않는다.
 - reviewer와 QA는 서로 다른 agent context를 사용한다. QA는 diff뿐 아니라 실행 중 화면과 프로세스를 검증한다.
 - 구현 agent를 병렬 실행해 공유 파일을 수정하지 않는다. 리뷰와 QA는 앞 단계 산출물에 의존하므로 순차 실행한다.
-- UI 작업은 `docs/template/README.md`와 화면별 연결 이미지를 시각 참고 근거로 기록한다. SFOOD UI package, tokens, stylesheet 또는 MCP를 UI 기준으로 새로 추가하지 않는다.
+- UI 작업은 `docs/template/README.md`와 화면별 연결 이미지를 시각 참고 근거로 기록한다. third-party UI package, design tokens, stylesheet, or MCP를 UI 기준으로 새로 추가하지 않는다.
 - 프로젝트 `.codex/hooks.json`은 workflow context를 제공하고 gate 누락 상태의 PR merge, 일반·간접 `main` 직접 push, Git aliases와 `gh api`/`curl` GitHub API merge를 차단한다. merge hook은 프로세스 잠금 안에서 최신 PR HEAD와 리뷰·QA 증거가 일치하는지 확인하고 15분 1회 허가를 소비한다. hook은 Codex에서 검토·신뢰된 뒤 실행된다. GitHub `main` branch protection도 pull request를 요구하도록 설정해 hook을 우회하는 외부 push를 막는다.
 
 ## 역할과 책임
@@ -264,9 +264,9 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 
 | 순서 | PR unit | 포함 작업 | 검증 가능한 결과 | 상태 |
 | ---: | --- | --- | --- | --- |
-| 1 | `AUTH-PR-01` 인증 서버 경계 | AUTH-001~003 | AX fixture로 valid 세션만 발급, 위조·재사용 거절 | ready |
-| 2 | `AUTH-PR-02` 로그인·보호 라우트 | AUTH-004, 005, 007 | 비인증 UI/API 차단, returnTo와 logout | planned |
-| 3 | `AUTH-PR-03` 사용자 저장 격리 | AUTH-006 | 계정 A/B 로컬 프로젝트 교차 노출 0건 | planned |
+| 1 | `AUTH-PR-01` Google OIDC 서버 인증 경계 | AUTH-002 | 검증된 OIDC identity에만 session 발급 | blocked: Google OAuth client/callback 설정 확인 필요 |
+| 2 | `AUTH-PR-02` Google 로그인·보호 라우트 | AUTH-001, 003, 004 | Google 로그인 UI, 비인증 API 차단, returnTo와 logout | planned |
+| 3 | `AUTH-PR-03` Google subject 기반 저장 격리 | AUTH-005 | subject별 로컬 프로젝트 교차 노출 0건 | planned |
 | 4 | `FND-PR-01` 런타임·화면 기반 | FND-001, 002 | React 18과 `docs/template` 기반 Blueprint 소유 semantic HTML/CSS | planned |
 | 5 | `FND-PR-02` 도메인·Agent 계약 | FND-003, 004 | 상태·schema·모델 registry 계약 테스트 | planned |
 | 6 | `FND-PR-03` 테스트 기반 | FND-005 | unit/contract/browser test 명령과 CI gate 실행 | planned |

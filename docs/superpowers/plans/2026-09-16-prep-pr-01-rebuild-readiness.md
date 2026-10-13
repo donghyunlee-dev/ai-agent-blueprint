@@ -64,7 +64,7 @@ git commit -m "docs: AI-003 추적표의 block/proposal 상한 표기 오차 수
 **Files:**
 - Modify (전체 교체): `docs/guide/deploy-guide.md`
 
-**배경:** 현재 파일은 `public/index.html` 정적 사이트, `survey.html → index.html` 링크 점검 등 리빌드 이전 설문 앱 배포법을 그대로 담고 있다. `docs/product/06-architecture.md:17-45`가 정의한 구조는 `Vercel Serverless API`(`api/auth/*`, `api/blueprint/*`) + `React SPA`(Vite build) + `AX Login` + `OpenAI Responses API`이며 서버 DB 없이 브라우저 IndexedDB만 사용한다. 정적 파일 서빙이 아니라 서버리스 함수 배포가 핵심이므로 사내 서버 Nginx 정적 서빙, 로컬 Python `http.server` 안내는 아키텍처와 맞지 않는다.
+**배경:** 현재 파일은 `public/index.html` 정적 사이트, `survey.html → index.html` 링크 점검 등 리빌드 이전 설문 앱 배포법을 그대로 담고 있다. `docs/product/06-architecture.md:17-45`가 정의한 구조는 `Vercel Serverless API`(`api/auth/*`, `api/blueprint/*`) + `React SPA`(Vite build) + `Google 로그인` + `OpenAI Responses API`이며 서버 DB 없이 브라우저 IndexedDB만 사용한다. 정적 파일 서빙이 아니라 서버리스 함수 배포가 핵심이므로 서버 Nginx 정적 서빙, 로컬 Python `http.server` 안내는 아키텍처와 맞지 않는다.
 
 - [ ] **Step 1: 기존 파일 내용을 새 내용으로 전체 교체**
 
@@ -73,24 +73,24 @@ git commit -m "docs: AI-003 추적표의 block/proposal 상한 표기 오차 수
 ```markdown
 # 배포 가이드
 
-> Vercel Serverless API + React SPA + AX Login 구조의 배포 절차
+> Vercel Serverless API + React SPA + Google 로그인 구조의 배포 절차
 
 ## 아키텍처 요약
 
-Blueprint는 정적 파일 서빙이 아니라 Vercel Serverless Functions로 `api/auth/*`, `api/blueprint/*`를 배포하고, 빌드된 React SPA를 같은 프로젝트에서 서빙한다. 서버 DB는 없으며 프로젝트 데이터는 인증된 사용자의 브라우저 IndexedDB에만 저장된다. 상세 구조는 [아키텍처 명세](../product/06-architecture.md)를 따른다.
+Blueprint는 정적 파일 서빙이 아니라 Vercel Serverless Functions로 `api/auth/*`, `api/blueprint/*`를 배포하고, 빌드된 React SPA를 같은 프로젝트에서 서빙한다. 서버 DB는 없으며 프로젝트 데이터는 인증된 사용자의 브라우저 IndexedDB에만 저장된다. 상세 구조는 [아키텍처 명세](../../product/06-architecture.md)를 따른다.
 
 ## 최초 배포
 
 ```bash
 npm install -g vercel
-cd SFOOD-AGENT-BLUEPRINT
+cd Agent Blueprint-AGENT-BLUEPRINT
 vercel
 ```
 
 안내 프롬프트에서 다음을 선택한다.
 
 - Set up and deploy? Y
-- Which scope? (사내 조직 계정 선택)
+- Which scope? (Vercel account/team scope 선택)
 - Link to existing project? 기존 프로젝트가 있으면 Y, 없으면 N
 - Project name: 저장소와 동일한 이름 사용 권장
 - Directory: `./`
@@ -109,12 +109,12 @@ vercel --prod
 
 | 변수 | 용도 |
 | --- | --- |
-| `AX_AUTH_CLIENT_SECRET` | AX Login backend redirect client 인증 |
-| `AX_SESSION_SECRET` | Blueprint HttpOnly 세션 서명 |
+| `GOOGLE_CLIENT_SECRET` | Google 로그인 backend redirect client 인증 |
+| `APP_SESSION_SECRET` | Blueprint HttpOnly 세션 서명 |
 | `OPENAI_API_KEY` | OpenAI Responses API 호출 |
 | `AI_MODEL_LIGHT`, `AI_MODEL_DEFAULT`, `AI_MODEL_FINAL` | 논리 model profile의 물리 model ID 매핑 |
 
-AX client 등록값과 callback URI는 배포 전 `ax-auth` MCP의 `get_client_config`로 환경별 실제 값을 대조한다. 자세한 계약은 [AX Login 인증 설계](../product/11-ax-login-authentication.md)를 따른다.
+Google OAuth client settings and callback URIs must be confirmed in Google Cloud Console for each environment before deployment. 자세한 계약은 [Google 로그인 인증 설계](../../product/11-google-oauth-authentication.md)를 따른다.
 
 로컬 개발은 `.env`(git 추적 제외)에 동일한 키를 넣고 `npm run dev`로 실행한다.
 
@@ -122,7 +122,7 @@ AX client 등록값과 callback URI는 배포 전 `ax-auth` MCP의 `get_client_c
 
 ```
 ☐ .env가 .gitignore에 포함되어 있는가
-☐ API 키·AX secret이 소스코드나 커밋 이력에 없는가
+☐ API 키·Google OAuth secret이 소스코드나 커밋 이력에 없는가
 ☐ npm run build가 로컬에서 성공하는가
 ☐ /login, /, /blueprints/new, /blueprints/:projectId 라우트가 배포 환경에서 401/404를 올바르게 반환하는가
 ☐ 데스크톱·모바일 레이아웃 확인
@@ -132,7 +132,7 @@ AX client 등록값과 callback URI는 배포 전 `ax-auth` MCP의 `get_client_c
 ## 도메인 연결
 
 1. Vercel 대시보드 → 프로젝트 → **Settings** → **Domains**
-2. 사내 도메인 입력 → **Add**
+2. 서비스 도메인 입력 → **Add**
 3. 도메인 구매처 DNS에 안내된 CNAME 레코드 등록
 ```
 
@@ -141,14 +141,14 @@ AX client 등록값과 callback URI는 배포 전 `ax-auth` MCP의 `get_client_c
 Run: `grep -n "survey.html\|public/index.html\|http.server\|Nginx" docs/guide/deploy-guide.md`
 Expected: 아무 결과도 출력되지 않는다(레거시 정적 배포 안내가 모두 제거됨).
 
-Run: `grep -n "AX_AUTH_CLIENT_SECRET\|Vercel Serverless" docs/guide/deploy-guide.md`
+Run: `grep -n "GOOGLE_CLIENT_SECRET\|Vercel Serverless" docs/guide/deploy-guide.md`
 Expected: 두 문자열 모두 매치된다(현재 아키텍처 반영 확인).
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add docs/guide/deploy-guide.md
-git commit -m "docs: 배포 가이드를 Vercel Serverless + AX Login 구조로 재작성"
+git commit -m "docs: 배포 가이드를 Vercel Serverless + Google 로그인 구조로 재작성"
 ```
 
 ---
@@ -171,11 +171,11 @@ git commit -m "docs: 배포 가이드를 Vercel Serverless + AX Login 구조로 
 
 ## 개요
 
-지침을 "먼저 읽히는" 방식은 별도 기능이 아니라 입력 순서 설계다. Responses API도 입력 항목을 순서대로 처리하므로, 시스템 규칙과 작업별 개발자 규칙을 사용자 요청보다 앞에 배치한다. 실제 System/Developer 문구와 변수는 [AI Prompt Template 명세](../product/15-ai-prompt-template-spec.md)를, task·model profile 매핑은 [AI 오케스트레이션과 모델 정책](../product/12-ai-orchestration-and-model-policy.md)을 따른다.
+지침을 "먼저 읽히는" 방식은 별도 기능이 아니라 입력 순서 설계다. Responses API도 입력 항목을 순서대로 처리하므로, 시스템 규칙과 작업별 개발자 규칙을 사용자 요청보다 앞에 배치한다. 실제 System/Developer 문구와 변수는 [AI Prompt Template 명세](../../product/15-ai-prompt-template-spec.md)를, task·model profile 매핑은 [AI 오케스트레이션과 모델 정책](../../product/12-ai-orchestration-and-model-policy.md)을 따른다.
 
 ## 입력 계층
 
-Blueprint는 다음 순서로 입력을 구성한다([프롬프트·응답 계약](../product/13-prompt-and-response-contracts.md) 컨텍스트 계층 참고).
+Blueprint는 다음 순서로 입력을 구성한다([프롬프트·응답 계약](../../product/13-prompt-and-response-contracts.md) 컨텍스트 계층 참고).
 
 1. System 규칙 — 모든 task에서 유지되는 절대 규칙(한국어 응답, 미확정 사실 단정 금지 등)
 2. Developer 규칙 — task별 목적, 입력 범위, 금지 결과
@@ -201,7 +201,7 @@ const response = await client.responses.create({
 ```
 
 - `model`은 물리 model ID를 직접 쓰지 않고 `AiModelRegistry`에서 논리 profile(`LIGHT`/`DEFAULT`/`FINAL`)로 조회한다.
-- `store: false`를 항상 명시한다. prompt cache는 사내 데이터 정책 확인 후 서버에서만 별도로 켠다.
+- `store: false`를 항상 명시한다. prompt cache는 사용자 데이터 정책 확인 후 서버에서만 별도로 켠다.
 - `truncation: "disabled"`를 사용하고, provider 자동 truncation 대신 서버 token budgeter가 컨텍스트 생략 범위를 결정한다.
 - 구조화 출력이 필요한 모든 task는 `text.format`에 `json_schema` + `strict: true`를 사용한다. 자유 텍스트만 반환하는 task는 없다.
 - `safety_identifier`에는 인증 `ownerKey`에서 파생한 비식별 ID만 사용하고 이메일·프로젝트명·원문을 넣지 않는다.
@@ -223,14 +223,14 @@ Responses API도 상태를 서버가 자동으로 유지하지 않는다(`store:
 
 - system/developer 지침은 versioned prompt registry(`docs/product/13-prompt-and-response-contracts.md`)로 관리하고 코드에 inline 문자열로 흩어놓지 않는다.
 - 문구를 바꿔도 모델 행동이 달라질 수 있으면 `promptVersion`을 올린다.
-- prompt/model/schema를 바꾸면 golden eval을 다시 통과해야 배포한다([AI 예산·평가·운영](../product/14-ai-budget-evaluation-and-operations.md)).
+- prompt/model/schema를 바꾸면 golden eval을 다시 통과해야 배포한다([AI 예산·평가·운영](../../product/14-ai-budget-evaluation-and-operations.md)).
 
 ## 참고
 
-- [AI 오케스트레이션과 모델 정책](../product/12-ai-orchestration-and-model-policy.md)
-- [프롬프트·응답 계약](../product/13-prompt-and-response-contracts.md)
-- [AI Prompt Template 명세](../product/15-ai-prompt-template-spec.md)
-- [AI 호출 예산·평가·운영 명세](../product/14-ai-budget-evaluation-and-operations.md)
+- [AI 오케스트레이션과 모델 정책](../../product/12-ai-orchestration-and-model-policy.md)
+- [프롬프트·응답 계약](../../product/13-prompt-and-response-contracts.md)
+- [AI Prompt Template 명세](../../product/15-ai-prompt-template-spec.md)
+- [AI 호출 예산·평가·운영 명세](../../product/14-ai-budget-evaluation-and-operations.md)
 ```
 
 - [ ] **Step 2: 검증**
@@ -342,7 +342,7 @@ test-results/
 - [ ] **Step 6: 실행 검증**
 
 Run: `npx playwright install --with-deps chromium`
-Expected: chromium 바이너리 설치 성공(사내 네트워크 제한으로 실패하면 실패 메시지를 그대로 기록하고 다음 단계에서 "로컬 실행 불가, CI에서 확인 필요"로 남긴다 — 성공으로 표시하지 않는다).
+Expected: chromium 바이너리 설치 성공(네트워크 제한으로 실패하면 실패 메시지를 그대로 기록하고 다음 단계에서 "로컬 실행 불가, CI에서 확인 필요"로 남긴다 — 성공으로 표시하지 않는다).
 
 Run: `npm run build`
 Expected: 기존과 동일하게 성공한다(신규 script가 build를 깨지 않음).

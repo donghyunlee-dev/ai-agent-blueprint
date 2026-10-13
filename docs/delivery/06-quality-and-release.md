@@ -72,7 +72,7 @@
 검증:
 
 - API 키는 서버 환경에만 존재
-- AX client secret과 session secret은 서버 환경에만 존재
+- Google OAuth client secret과 session secret은 서버 환경에만 존재
 - login token과 session cookie 값은 저장·로그되지 않음
 - 모든 Blueprint API의 서버 세션 검증과 same-origin 검증
 - 외부 `returnTo` 거절과 token 재사용 차단
@@ -93,8 +93,8 @@
 
 필수 흐름:
 
-1. 비인증 보호 경로 → AX valid fixture → returnTo 복귀 → logout
-2. AX invalid/expired/reused fixture → 오류 → 세션 미발급
+1. 비인증 보호 경로 → Google ID token valid fixture → returnTo 복귀 → logout
+2. Google ID token invalid/expired/reused fixture → 오류 → 세션 미발급
 3. 세션 만료와 비인증 직접 Blueprint API 401
 4. 사용자 A 로그아웃 → 사용자 B 로그인 → 로컬 프로젝트 격리
 5. 아이디어 → 복수 제안 → 연속 질문 → requirements ready → PRD → 개별 다운로드
@@ -176,7 +176,7 @@
 - 평가되지 않은 model/prompt/schema version 배포
 - 프로젝트 AI hard budget 이후 provider 호출
 - API 키 또는 파일·대화 원문 노출
-- AX secret, login token 또는 session 값 노출
+- Google OAuth secret, login token 또는 session 값 노출
 - 비인증 화면/API 접근 또는 사용자 간 로컬 프로젝트 노출
 - 핵심 흐름 키보드 완료 불가
 - 모바일에서 질문 제출 또는 문서 다운로드 불가

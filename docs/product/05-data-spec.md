@@ -28,7 +28,7 @@ interface LocalOwnerScope {
 - `AuthUser`는 `/api/auth/session` 응답에서만 초기화하며 localStorage에 인증 근거로 저장하지 않는다.
 - `ownerKey`는 정규화한 email과 client ID를 일방향 해시한 안정적 값이다.
 - 프로젝트, thread, message, source, document와 activity의 모든 repository 작업은 현재 `ownerKey` 범위 안에서 수행한다.
-- login token, session cookie, AX client secret과 session secret은 이 데이터 모델과 IndexedDB에 포함하지 않는다.
+- login token, session cookie, Google OAuth client secret과 session secret은 이 데이터 모델과 IndexedDB에 포함하지 않는다.
 - 로그아웃과 사용자 전환 시 React 작업 복사본, 최근 프로젝트 cache와 repository 연결을 폐기한다.
 
 ## 엔터티 관계

@@ -41,10 +41,10 @@
 
 ## 선행 조건
 
-- AX 세션에서 비식별 `ownerKey`를 제공한다.
+- Google-backed session에서 비식별 `ownerKey`를 제공한다.
 - 도메인 ID, Proposal, DocumentSection과 GenerationJob schema가 확정됐다.
 - OpenAI project에서 선택 모델 접근 권한과 rate limit을 확인했다.
-- 평가 fixture는 실제 직원·프로젝트 원문을 포함하지 않는다.
+- 평가 fixture는 실제 사용자·프로젝트 원문을 포함하지 않는다.
 
 ## 작업 단위
 

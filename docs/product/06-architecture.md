@@ -2,7 +2,7 @@
 
 ## 목표
 
-React·TypeScript·Vite 기반 애플리케이션에서 사내 인증, 프로젝트 상태, Agent 실행, 설계 변경과 문서 생성을 명확한 경계로 분리한다. MVP는 AX Login으로 사내 직원을 인증하고 서버 데이터베이스 없이 사용자별 브라우저에 프로젝트를 저장하며, OpenAI 요청은 인증된 서버 API를 통해 처리한다.
+React·TypeScript·Vite 기반 애플리케이션에서 Google OIDC 인증, 프로젝트 상태, Agent 실행, 설계 변경과 문서 생성을 명확한 경계로 분리한다. MVP는 Google 로그인으로 사용자를 인증하고 서버 데이터베이스 없이 사용자별 브라우저에 프로젝트를 저장하며, OpenAI 요청은 인증된 서버 API를 통해 처리한다.
 
 ## 프런트엔드 기술 기준
 
@@ -27,7 +27,7 @@ Browser
         │ HttpOnly session + HTTPS JSON
         ▼
 Vercel Serverless API
-├─ AX Auth Redirect / Callback
+├─ Google OAuth Redirect / Callback
 ├─ Session Verification
 ├─ Blueprint API
 ├─ Request Validation
@@ -44,7 +44,7 @@ Vercel Serverless API
 OpenAI Responses API
 ```
 
-AX callback은 별도 서버 간 요청으로 AX Auth `/auth/token/verify`를 호출한다. 세부 흐름과 비밀값 계약은 [AX Login 인증 설계](11-ax-login-authentication.md)를 따른다.
+Google OAuth callback은 서버에서 authorization code를 Google token endpoint와 교환하고 ID token을 검증한다. 세부 흐름과 비밀값 계약은 [Google 로그인 인증 설계](11-google-oauth-authentication.md)를 따른다.
 
 AI 실행 경계는 [AI 오케스트레이션과 모델 정책](12-ai-orchestration-and-model-policy.md), [프롬프트·응답 계약](13-prompt-and-response-contracts.md), [AI 예산·평가·운영](14-ai-budget-evaluation-and-operations.md)을 따른다.
 
@@ -76,7 +76,7 @@ AI 실행 경계는 [AI 오케스트레이션과 모델 정책](12-ai-orchestrat
 
 ### 서버 API
 
-- AX Auth 일회용 token 검증, Blueprint 세션 발급과 보호 API 인증을 담당한다.
+- Google authorization code와 OIDC ID token 검증, Blueprint session 발급과 보호 API 인증을 담당한다.
 - API 키 보호, 입력 크기 제한, 구조화 출력 요청과 오류 정규화를 담당한다.
 - 브라우저 프로젝트를 장기 저장하지 않는다.
 - 사용자의 승인 없이 프로젝트 상태를 변경할 수 없다.
@@ -122,7 +122,7 @@ src/
 └─ styles/
 ```
 
-서버 함수는 `api/auth/`에 login, callback, session, logout을 두고 공통 AX client와 세션 검증은 `api/_lib/`에 둔다. `/api/blueprint/*` handler는 같은 `requireSession` 경계를 사용한다.
+서버 함수는 `api/auth/`에 login, callback, session, logout을 두고 공통 Google OAuth client와 세션 검증은 `api/_lib/`에 둔다. `/api/blueprint/*` handler는 같은 `requireSession` 경계를 사용한다.
 
 도메인 기능은 `features/`에 두고, 여러 기능이 공유하는 상태 전이와 엔터티 규칙만 `domain/blueprint/`에 둔다. 페이지 컴포넌트는 데이터 조합과 레이아웃만 담당한다.
 
@@ -130,7 +130,7 @@ src/
 
 | 경로 | 역할 |
 | --- | --- |
-| `/login` | 비인증 사용자의 AX Login 시작과 인증 오류 |
+| `/login` | 비인증 사용자의 Google 로그인 시작과 인증 오류 |
 | `/` | 제품 소개, 새 프로젝트 시작, 최근 프로젝트 |
 | `/blueprints/new` | 첫 입력과 참고 자료 수집 |
 | `/blueprints/:projectId` | 통합 작업 공간 |
@@ -326,8 +326,8 @@ IndexedDB 구현은 프로젝트 단위 트랜잭션과 스키마 마이그레�
 
 ## 보안
 
-- AX client secret과 Blueprint session secret은 서버 전용 환경 변수로 관리한다.
-- AX `login_token`은 서버에서 즉시 검증하고 저장하거나 로그로 남기지 않는다.
+- Google OAuth client secret과 Blueprint session secret은 서버 전용 환경 변수로 관리한다.
+- Google authorization code는 서버에서 즉시 검증하고 저장하거나 로그로 남기지 않는다.
 - 모든 `/api/blueprint/*` 요청은 유효한 Blueprint 세션과 same-origin 정책을 검증한다.
 - `returnTo`는 same-origin 내부 경로로 제한해 open redirect를 막는다.
 - OpenAI 키는 서버 전용 환경 변수로 관리한다.
@@ -335,7 +335,7 @@ IndexedDB 구현은 프로젝트 단위 트랜잭션과 스키마 마이그레�
 - Markdown은 안전한 렌더러를 사용하고 임의 HTML 실행을 막는다.
 - 로그에는 파일 원문과 대화 원문 대신 요청 ID, 상태, 지연 시간과 오류 코드를 남긴다.
 - 프롬프트 인젝션 가능성이 있는 첨부 자료를 명시적으로 비신뢰 데이터로 구분한다.
-- OpenAI 요청은 `store: false`를 명시하고 prompt cache 사용은 사내 데이터 정책 확인 후 서버에서만 활성화한다.
+- OpenAI 요청은 `store: false`를 명시하고 prompt cache 사용은 사용자 데이터 정책 확인 후 서버에서만 활성화한다.
 - provider metadata, safety identifier와 cache key에는 이메일·프로젝트명·원문을 넣지 않는다.
 - 다운로드 파일명에서 경로 문자와 제어 문자를 제거한다.
 
@@ -344,9 +344,9 @@ IndexedDB 구현은 프로젝트 단위 트랜잭션과 스키마 마이그레�
 | 코드 | 의미 | 사용자 처리 |
 | --- | --- | --- |
 | `AUTH_REQUIRED` | 세션 없음 또는 만료 | 로그인 후 원래 경로로 복귀 |
-| `AUTH_NOT_ALLOWED` | 허용되지 않은 계정 | 다른 사내 계정 또는 관리자 문의 |
-| `AUTH_TOKEN_INVALID` | 만료·재사용·불일치 token | 로그인 처음부터 다시 시도 |
-| `AUTH_UNAVAILABLE` | AX Auth 연결 실패 | 로그인 재시도 |
+| `AUTH_NOT_ALLOWED` | 허용되지 않은 계정 | 다른 Google 계정으로 다시 시도 |
+| `AUTH_TOKEN_INVALID` | state/nonce 또는 OIDC token 검증 실패 | 로그인 처음부터 다시 시도 |
+| `AUTH_UNAVAILABLE` | Google OAuth 연결 실패 | 로그인 재시도 |
 | `NETWORK_ERROR` | 서버 연결 실패 | 입력 유지, 재시도 |
 | `AI_NOT_CONFIGURED` | API 설정 없음 | 관리자 설정 안내 |
 | `AI_RATE_LIMITED` | 요청 제한 | 대기 후 재시도 |
@@ -360,7 +360,7 @@ AI 요청 오류는 정상 결과로 대체하지 않는다. 클라이언트는 
 
 ## 테스트 전략
 
-- 인증 계약 테스트: AX valid/invalid HTTP 200 응답, token 만료·재사용, 세션 서명·만료와 returnTo 검증
+- 인증 계약 테스트: Google OIDC valid/invalid claim 응답, token 만료·재사용, 세션 서명·만료와 returnTo 검증
 - 인증 E2E: 보호 경로, 로그인 성공/거절, logout, session expiry, 직접 API 401와 사용자 전환
 - AI contract: task별 prompt/schema version, model profile과 DisplayBlock 검증
 - AI process: 호출 수, token hard limit, context compaction, retry와 circuit breaker
