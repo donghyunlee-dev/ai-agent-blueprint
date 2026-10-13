@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -7,9 +7,16 @@ import test from "node:test";
 
 const hookScript = path.resolve("scripts/codex-repo-hooks.py");
 
-function runHook(event, input, state = undefined) {
+function runHook(event, input, state = undefined, pr = undefined) {
   const projectRoot = mkdtempSync(path.join(tmpdir(), "codex-hook-test-"));
   try {
+    const binDirectory = path.join(projectRoot, "bin");
+    mkdirSync(binDirectory);
+    if (pr) {
+      const ghPath = path.join(binDirectory, "gh");
+      writeFileSync(ghPath, `#!/bin/sh\nprintf '%s' '${JSON.stringify(pr)}'\n`);
+      chmodSync(ghPath, 0o755);
+    }
     if (state) {
       const stateDirectory = path.join(projectRoot, ".codex", "state");
       mkdirSync(stateDirectory, { recursive: true });
@@ -18,7 +25,7 @@ function runHook(event, input, state = undefined) {
 
     const result = spawnSync("python3", [hookScript, event], {
       cwd: projectRoot,
-      env: { ...process.env, CODEX_PROJECT_ROOT: projectRoot },
+      env: { ...process.env, CODEX_PROJECT_ROOT: projectRoot, PATH: `${binDirectory}:${process.env.PATH}` },
       input: JSON.stringify(input),
       encoding: "utf8",
     });
@@ -56,7 +63,11 @@ test("pretool hook allows the requested PR merge only at ready_to_merge with pas
     codeReview: "pass",
     qa: "pass",
     mergeAuthorized: true,
-  });
+    headSha: "abc123",
+    codeReviewHeadSha: "abc123",
+    qaHeadSha: "abc123",
+    mergeAuthorizedAt: new Date().toISOString(),
+  }, { baseRefName: "main", headRefOid: "abc123", statusCheckRollup: [] });
 
   assert.equal(output, "");
 });
@@ -76,4 +87,74 @@ test("pretool hook still blocks merge when any gate failed", () => {
   }));
 
   assert.equal(output.hookSpecificOutput.permissionDecision, "deny");
+});
+
+test("pretool hook blocks direct pushes to main and GitHub API merge calls", () => {
+  for (const command of [
+    "git push origin main",
+    "git push origin HEAD:refs/heads/main",
+    "git push origin :main",
+    "git push --force-with-lease origin feature",
+    "gh api --method PUT repos/example/repo/pulls/42/merge",
+  ]) {
+    const output = JSON.parse(runHook("pretool", {
+      tool_name: "Bash",
+      tool_input: { command },
+    }));
+    assert.equal(output.hookSpecificOutput.permissionDecision, "deny", command);
+  }
+});
+
+test("pretool hook denies a stale PR head or review and QA evidence", () => {
+  const state = {
+    pullRequest: 42,
+    baseBranch: "main",
+    stage: "ready_to_merge",
+    validation: "pass",
+    codeReview: "pass",
+    qa: "pass",
+    mergeAuthorized: true,
+    headSha: "abc123",
+    codeReviewHeadSha: "abc123",
+    qaHeadSha: "abc123",
+    mergeAuthorizedAt: new Date().toISOString(),
+  };
+  const output = JSON.parse(runHook("pretool", {
+    tool_name: "Bash",
+    tool_input: { command: "gh pr merge 42 --squash" },
+  }, state, { baseRefName: "main", headRefOid: "def456", statusCheckRollup: [] }));
+
+  assert.equal(output.hookSpecificOutput.permissionDecision, "deny");
+});
+
+test("pretool hook denies expired merge authorization and unsuccessful GitHub checks", () => {
+  const state = {
+    pullRequest: 42,
+    baseBranch: "main",
+    stage: "ready_to_merge",
+    validation: "pass",
+    codeReview: "pass",
+    qa: "pass",
+    mergeAuthorized: true,
+    headSha: "abc123",
+    codeReviewHeadSha: "abc123",
+    qaHeadSha: "abc123",
+    mergeAuthorizedAt: new Date(Date.now() - 16 * 60 * 1000).toISOString(),
+  };
+  const expired = JSON.parse(runHook("pretool", {
+    tool_name: "Bash",
+    tool_input: { command: "gh pr merge 42 --squash" },
+  }, state, { baseRefName: "main", headRefOid: "abc123", statusCheckRollup: [] }));
+  assert.equal(expired.hookSpecificOutput.permissionDecision, "deny");
+
+  state.mergeAuthorizedAt = new Date().toISOString();
+  const failedCheck = JSON.parse(runHook("pretool", {
+    tool_name: "Bash",
+    tool_input: { command: "gh pr merge 42 --squash" },
+  }, state, {
+    baseRefName: "main",
+    headRefOid: "abc123",
+    statusCheckRollup: [{ __typename: "StatusContext", state: "FAILURE" }],
+  }));
+  assert.equal(failedCheck.hookSpecificOutput.permissionDecision, "deny");
 });

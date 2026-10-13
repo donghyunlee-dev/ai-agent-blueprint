@@ -14,6 +14,7 @@ Use `docs/delivery/development-pr-review-qa-workflow.md` as the product delivery
 - Create one focused branch and one PR targeting the repository default branch (`main` in this repository).
 - The normal task ends after that PR is merged and its state is verified. Start another PR unit only if the user requested a batch.
 - Never force push, merge a local branch, bypass failing checks, or merge a PR with a failed or missing gate.
+- Never push directly to `main` or merge through a mutating GitHub API request; use the PR workflow.
 - Complete the merge step only when the user requested the full PR lifecycle or explicitly authorized merging. Otherwise stop at `ready_to_merge`.
 
 ## Required inputs
@@ -61,7 +62,7 @@ If QA fails, combine findings into one correction pass, rerun implementation val
 
 ### 5. Ready and gated merge
 
-Set `.codex/state/pr-loop.json` to the current PR only. The merge hook permits only the matching `gh pr merge <number> --squash` command when all fields below match. Keep this runtime state out of Git.
+Set `.codex/state/pr-loop.json` to the current PR only. The merge hook permits only the matching `gh pr merge <number> --squash` command when all fields below match, GitHub's current PR head matches `headSha`, review and QA evidence identify that same head, configured status checks pass, and the authorization is less than 15 minutes old. The hook consumes the authorization before allowing the command. Keep this runtime state out of Git.
 
 ```json
 {
@@ -71,7 +72,11 @@ Set `.codex/state/pr-loop.json` to the current PR only. The merge hook permits o
   "validation": "pass",
   "codeReview": "pass",
   "qa": "pass",
-  "mergeAuthorized": true
+  "headSha": "<current PR head SHA>",
+  "codeReviewHeadSha": "<same SHA>",
+  "qaHeadSha": "<same SHA>",
+  "mergeAuthorized": true,
+  "mergeAuthorizedAt": "<current UTC timestamp>"
 }
 ```
 

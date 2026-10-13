@@ -4,7 +4,9 @@
 import json
 import os
 import re
+import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -80,6 +82,56 @@ def merge_is_allowed(command: str, state: dict) -> bool:
     except ValueError:
         return False
 
+    authorization_time = state.get("mergeAuthorizedAt")
+    if not isinstance(authorization_time, str):
+        return False
+    try:
+        authorized_at = datetime.fromisoformat(authorization_time.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    now = datetime.now(timezone.utc)
+    if authorized_at.tzinfo is None or authorized_at > now + timedelta(minutes=1):
+        return False
+    if now - authorized_at > timedelta(minutes=15):
+        return False
+
+    if not state.get("headSha") or state.get("codeReviewHeadSha") != state.get("headSha"):
+        return False
+    if state.get("qaHeadSha") != state.get("headSha"):
+        return False
+
+    try:
+        result = subprocess.run(
+            ["gh", "pr", "view", str(requested_pr), "--json", "baseRefName,headRefOid,statusCheckRollup"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        pull_request = json.loads(result.stdout)
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+        return False
+
+    if pull_request.get("baseRefName") != "main" or pull_request.get("headRefOid") != state.get("headSha"):
+        return False
+    for check in pull_request.get("statusCheckRollup", []):
+        if check.get("__typename") == "CheckRun":
+            if check.get("status") != "COMPLETED" or check.get("conclusion") not in {"SUCCESS", "SKIPPED", "NEUTRAL"}:
+                return False
+        elif check.get("__typename") == "StatusContext":
+            if check.get("state") != "SUCCESS":
+                return False
+        else:
+            return False
+
+    # Consume the short-lived authorization so stale state cannot authorize a second command.
+    state["mergeAuthorized"] = False
+    try:
+        state_path = project_root() / ".codex" / "state" / "pr-loop.json"
+        state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    except OSError:
+        return False
+
     return (
         requested_pr == state.get("pullRequest")
         and state.get("baseBranch") == "main"
@@ -87,7 +139,7 @@ def merge_is_allowed(command: str, state: dict) -> bool:
         and state.get("validation") == "pass"
         and state.get("codeReview") == "pass"
         and state.get("qa") == "pass"
-        and state.get("mergeAuthorized") is True
+        and state.get("mergeAuthorized") is False
     )
 
 
@@ -99,14 +151,23 @@ def pretool_hook(event: dict) -> None:
     if not isinstance(command, str):
         return
 
-    if re.search(r"\bgit\s+merge\b|\bgit\s+push\s+(?:[^\n]*\s)?(?:-f|--force)\b", command):
+    direct_main_push = re.search(
+        r"\bgit\s+push\b(?:(?![\n;&|]).)*(?:(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)|:[+]?(?:refs/heads/)?main(?:\s|$))",
+        command,
+    )
+    force_push = re.search(r"\bgit\s+push\b(?:(?![\n;&|]).)*(?:\s-f(?:\s|$)|\s--force(?:-with-lease)?(?:\s|$))", command)
+    api_merge = re.search(
+        r"\bgh\s+api\b(?:(?![\n;&|]).)*(?:pulls/\d+/merge|git/refs/heads/main)",
+        command,
+    )
+    if re.search(r"\bgit\s+merge\b", command) or force_push or direct_main_push or api_merge:
         reason = "Direct merges and force pushes are blocked by the repository PR workflow."
     elif re.search(r"\bgh\s+pr\s+merge\b", command):
         if merge_is_allowed(command, load_state()):
             return
         reason = (
-            "PR merge requires the matching main PR to be ready_to_merge, with validation, "
-            "independent code review, and QA all passing and mergeAuthorized=true."
+            "PR merge requires the matching current main PR head, same-head validation, review and QA, "
+            "successful configured checks, and a fresh one-time merge authorization."
         )
     else:
         return
