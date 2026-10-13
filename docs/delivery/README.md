@@ -79,7 +79,7 @@
 ## 단계별 문서
 
 1. [PR·리뷰·QA 반복 워크플로와 PR 단위표](development-pr-review-qa-workflow.md)
-2. [인증 선행 — Google 로그인 상세 작업 계약](../product/11-google-oauth-authentication.md#개발-작업)
+2. [인증 선행 — Google 로그인 상세 작업 계약](../product/11-google-oauth-authentication.md)
 3. [AI 모델·프롬프트·평가 작업 계약](ai-model-prompt-and-evaluation.md)
 4. [0단계 — 구현 기반과 계약](00-foundation-and-contracts.md)
 5. [1단계 — 프로젝트와 저장](01-project-lifecycle.md)

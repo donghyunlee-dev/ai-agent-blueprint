@@ -84,7 +84,7 @@ Only begin an auth unit when its documented prerequisites are satisfied; do not 
 
 ## Scope
 
-- Rename `docs/product/11-ax-login-authentication.md` to `docs/product/11-google-oauth-authentication.md` and update all links.
+- Replace the obsolete authentication document with `docs/product/11-google-oauth-authentication.md` and update all links.
 - Align product definition, PRD, requirements, architecture, UI, decisions, delivery plans, and traceability with Google OIDC.
 - Update login screen states and process documents to use a single Google sign-in action, redirect/callback outcomes, authenticated state, and session expiry.
 - Update AUTH task plans, root instructions, READMEs, deployment guidance, templates, and other affected Markdown.
