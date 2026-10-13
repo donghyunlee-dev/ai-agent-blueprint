@@ -31,7 +31,7 @@
 
 ### Task 1: Canonical auth and product contracts
 
-**Files:** Rename `docs/product/11-google-oauth-authentication.md` to `docs/product/11-google-oauth-authentication.md`; update `docs/product/01-product-definition.md`, `02-prd.md`, `03-requirements.md`, `06-architecture.md`, and `10-decision-log.md`.
+**Files:** Rename `docs/product/11-ax-login-authentication.md` to `docs/product/11-google-oauth-authentication.md`; update `docs/product/01-product-definition.md`, `02-prd.md`, `03-requirements.md`, `06-architecture.md`, and `10-decision-log.md`.
 
 - [x] Replace company ownership, staff-only scope, and internal login requirements with neutral product identity and Google sign-in.
 - [x] Define server-side OAuth callback, state/nonce checks, ID-token validation, verified email, HttpOnly app session, logout, protected APIs, generic failures, and stable `(issuer, subject)` identity.
