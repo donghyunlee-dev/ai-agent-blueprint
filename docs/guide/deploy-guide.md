@@ -32,12 +32,16 @@ Configure secrets in Vercel Project Settings or with `vercel env add`. Never com
 | `GOOGLE_REDIRECT_URI` | Exact callback URL for this environment |
 | `APP_SESSION_SECRET` | Sign or encrypt the Blueprint session |
 | `APP_BASE_URL` | Validate the app origin and safe redirects |
+| `UPSTASH_REDIS_REST_URL` | Server-side shared OAuth transaction and rate-limit store |
+| `UPSTASH_REDIS_REST_TOKEN` | Server-side authentication for the Upstash Redis REST API |
 | `OPENAI_API_KEY` | Call the OpenAI Responses API |
 | `AI_MODEL_LIGHT`, `AI_MODEL_DEFAULT`, `AI_MODEL_FINAL` | Map logical model profiles to model IDs |
 
 Before implementing sign-in, create the Google Cloud consent screen and web OAuth client and register the exact callback URL for each environment. Request only the OIDC scopes required by the auth design; do not request Gmail API access. Follow [Google OAuth authentication design](../product/11-google-oauth-authentication.md).
 
 For local development, keep values in an ignored `.env.local` file and run `npm run dev`.
+
+For Production and any Preview deployment that needs authentication, connect an Upstash Redis database and configure both Redis variables above. OAuth transaction replay prevention and start/callback rate limits use this shared store across Vercel Function instances. Authentication fails closed if either variable is missing or Redis is unavailable. Local Vite development uses in-process memory and does not verify cross-process or production Redis behavior.
 
 ## Pre-deployment checklist
 

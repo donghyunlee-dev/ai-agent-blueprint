@@ -18,6 +18,7 @@ Google OAuth Authorization Code callback을 서버에서 처리하고, 검증된
 
 - Google Cloud OAuth consent screen과 web client가 준비되어 있다.
 - 현재 개발 환경의 정확한 callback URI가 등록되어 있고 secret은 서버 환경에만 제공된다.
+- 인증을 제공할 Vercel 환경에 shared Upstash Redis가 연결되어 있고 REST URL/token 환경 변수가 설정되어 있다. 로컬 Vite는 개발용 프로세스 메모리 저장소를 사용한다.
 - canonical contract `docs/product/11-google-oauth-authentication.md`와 `docs/product/06-architecture.md`가 승인되어 있다.
 - 설정 근거가 없다면 OAuth 설정을 완료로 간주하지 않는다.
 
