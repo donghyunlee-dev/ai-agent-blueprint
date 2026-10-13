@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import test from "node:test";
 
 const hookScript = path.resolve("scripts/codex-repo-hooks.py");
@@ -108,6 +108,7 @@ test("pretool hook blocks direct pushes to main and GitHub API merge calls", () 
     "gh api --method PUT repos/example/repo/pulls/42/merge",
     "gh api graphql -f query=mutation{mergePullRequest}",
     "curl -X PUT https://api.github.com/repos/example/repo/pulls/42/merge",
+    "curl https://api.github.com/graphql -d '{\"query\":\"mutation{mergePullRequest}\"}'",
   ]) {
     const output = JSON.parse(runHook("pretool", {
       tool_name: "Bash",
@@ -138,6 +139,56 @@ test("merge authorization is consumed once and cannot authorize a second invocat
     assert.equal(runHookInRoot(projectRoot, "pretool", event, state, pr), "");
     const repeated = JSON.parse(runHookInRoot(projectRoot, "pretool", event, undefined, pr));
     assert.equal(repeated.hookSpecificOutput.permissionDecision, "deny");
+  } finally {
+    rmSync(projectRoot, { recursive: true, force: true });
+  }
+});
+
+test("concurrent merge checks cannot consume the same authorization twice", async () => {
+  const projectRoot = mkdtempSync(path.join(tmpdir(), "codex-hook-test-"));
+  const binDirectory = path.join(projectRoot, "bin");
+  mkdirSync(path.join(projectRoot, ".codex", "state"), { recursive: true });
+  mkdirSync(binDirectory);
+  const state = {
+    pullRequest: 42,
+    baseBranch: "main",
+    stage: "ready_to_merge",
+    validation: "pass",
+    codeReview: "pass",
+    qa: "pass",
+    mergeAuthorized: true,
+    headSha: "abc123",
+    codeReviewHeadSha: "abc123",
+    qaHeadSha: "abc123",
+    mergeAuthorizedAt: new Date().toISOString(),
+  };
+  writeFileSync(path.join(projectRoot, ".codex", "state", "pr-loop.json"), JSON.stringify(state));
+  const ghPath = path.join(binDirectory, "gh");
+  writeFileSync(ghPath, "#!/bin/sh\nsleep 0.2\nprintf '%s' '{\"baseRefName\":\"main\",\"headRefOid\":\"abc123\",\"statusCheckRollup\":[]}'\n");
+  chmodSync(ghPath, 0o755);
+
+  const invoke = () => new Promise((resolve, reject) => {
+    const child = spawn("python3", [hookScript, "pretool"], {
+      cwd: projectRoot,
+      env: { ...process.env, CODEX_PROJECT_ROOT: projectRoot, PATH: `${binDirectory}:${process.env.PATH}` },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk) => { stdout += chunk; });
+    child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
+    child.on("error", reject);
+    child.on("close", (code) => code === 0 ? resolve(stdout.trim()) : reject(new Error(stderr)));
+    child.stdin.end(JSON.stringify({
+      tool_name: "Bash",
+      tool_input: { command: "gh pr merge 42 --squash" },
+    }));
+  });
+
+  try {
+    const results = await Promise.all([invoke(), invoke()]);
+    assert.equal(results.filter((result) => result === "").length, 1);
+    assert.equal(results.filter((result) => result !== "" && JSON.parse(result).hookSpecificOutput.permissionDecision === "deny").length, 1);
   } finally {
     rmSync(projectRoot, { recursive: true, force: true });
   }

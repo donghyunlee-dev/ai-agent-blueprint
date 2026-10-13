@@ -6,8 +6,14 @@ import os
 import re
 import subprocess
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Windows Codex hosts
+    fcntl = None
 
 
 WORKFLOW_CONTEXT = (
@@ -73,7 +79,44 @@ def prompt_hook(event: dict) -> None:
     )
 
 
-def merge_is_allowed(command: str, state: dict) -> bool:
+@contextmanager
+def merge_claim():
+    state_path = project_root() / ".codex" / "state" / "pr-loop.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    lock = state_path.with_name("pr-loop.merge-claim")
+    with lock.open("a+b") as handle:
+        if fcntl is not None:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                yield False
+                return
+            try:
+                yield True
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        else:  # pragma: no cover - Windows Codex hosts
+            import msvcrt
+
+            handle.seek(0)
+            if handle.read(1) == b"":
+                handle.seek(0)
+                handle.write(b"0")
+                handle.flush()
+            handle.seek(0)
+            try:
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            except OSError:
+                yield False
+                return
+            try:
+                yield True
+            finally:
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+
+
+def merge_is_allowed(command: str) -> bool:
     match = MERGE_COMMAND.fullmatch(command)
     if not match:
         return False
@@ -81,6 +124,15 @@ def merge_is_allowed(command: str, state: dict) -> bool:
         requested_pr = int(match.group(1))
     except ValueError:
         return False
+
+    with merge_claim() as claimed:
+        if not claimed:
+            return False
+        return _merge_is_allowed(requested_pr, command)
+
+
+def _merge_is_allowed(requested_pr: int, command: str) -> bool:
+    state = load_state()
 
     if (
         requested_pr != state.get("pullRequest")
@@ -175,10 +227,14 @@ def pretool_hook(event: dict) -> None:
         r"\bcurl\b(?:(?![\n;&|]).)*api\.github\.com/repos/[^\s'\"]+/pulls/\d+/merge",
         command,
     )
-    if re.search(r"\bgit\s+merge\b", command) or force_push or direct_main_push or api_merge or curl_merge:
+    curl_graphql_mutation = re.search(
+        r"\bcurl\b(?:(?![\n;&|]).)*api\.github\.com/graphql(?:(?![\n;&|]).)*\bmutation\b",
+        command,
+    )
+    if re.search(r"\bgit\s+merge\b", command) or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation:
         reason = "Direct merges and force pushes are blocked by the repository PR workflow."
     elif re.search(r"\bgh\s+pr\s+merge\b", command):
-        if merge_is_allowed(command, load_state()):
+        if merge_is_allowed(command):
             return
         reason = (
             "PR merge requires the matching current main PR head, same-head validation, review and QA, "

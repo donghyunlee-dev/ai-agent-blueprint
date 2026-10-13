@@ -62,7 +62,7 @@ If QA fails, combine findings into one correction pass, rerun implementation val
 
 ### 5. Ready and gated merge
 
-Set `.codex/state/pr-loop.json` to the current PR only. The merge hook permits only the matching `gh pr merge <number> --squash` command when all fields below match, GitHub's current PR head matches `headSha`, review and QA evidence identify that same head, configured status checks pass, and the authorization is less than 15 minutes old. The hook consumes the authorization before allowing the command. Keep this runtime state out of Git.
+Set `.codex/state/pr-loop.json` to the current PR only. The merge hook permits only the matching `gh pr merge <number> --squash` command when all fields below match, GitHub's current PR head matches `headSha`, review and QA evidence identify that same head, configured status checks pass, and the authorization is less than 15 minutes old. A process lock protects the check-and-consume operation, and the hook consumes the authorization before allowing the command. It blocks direct `main` pushes and common GitHub REST/GraphQL merge requests through `gh api` or `curl`. Keep this runtime state out of Git.
 
 ```json
 {
