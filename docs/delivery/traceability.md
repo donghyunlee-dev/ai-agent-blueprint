@@ -16,11 +16,11 @@
 | AI-008 | AI-008 | usage·latency 원장, 원문 미기록 | ready |
 | AI-009 | AI-009 | golden eval과 금지 결과 0건 | ready |
 | AI-010 | AI-003, AI-010 | store=false, retry/circuit 복구 | ready |
-| AUTH-001 | AUTH-001, AUTH-004 | 보호 경로, 로그인 시작, returnTo | ready |
-| AUTH-002 | AUTH-002, AUTH-003 | valid 판정, token 만료·재사용, cookie | ready |
-| AUTH-003 | AUTH-004, AUTH-005 | 화면 가드와 직접 API 401 | ready |
-| AUTH-004 | AUTH-003, AUTH-007 | 계정 표시, 만료, 멱등 logout | ready |
-| AUTH-005 | AUTH-006 | A/B owner namespace 격리 | ready |
+| AUTH-001 | AUTH-PR-02 | Google 로그인 시작, 보호 경로와 safe returnTo | planned |
+| AUTH-002 | AUTH-PR-01 | OIDC claim 검증, state/nonce 오류, session cookie | blocked: Google OAuth setup |
+| AUTH-003 | AUTH-PR-02 | 보호 화면과 직접 API 401 | planned |
+| AUTH-004 | AUTH-PR-02 | 사용자 표시, 만료, 멱등 logout | planned |
+| AUTH-005 | AUTH-PR-03 | `(issuer, sub)` owner namespace 격리 | planned |
 | PJT-001 | PRJ-102 | 제목 있음/없음, 중복 생성 | ready |
 | PJT-002 | PRJ-103, PRJ-105 | 자동 저장, 실패, 새로고침 | ready |
 | PJT-003 | PRJ-104, PRJ-105 | 최근 목록과 복구 | ready |

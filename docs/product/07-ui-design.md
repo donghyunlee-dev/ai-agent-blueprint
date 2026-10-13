@@ -19,7 +19,7 @@ Blueprint는 설문 페이지가 아니라 대화와 문서가 동시에 살아 
 - [UI 참고 이미지 목록](../template/README.md)에서 현재 작업과 관련된 캡처를 확인한다.
 - 캡처는 정보 위계, 작업 영역, 문서 밀도와 상호작용 패턴의 참고 자료다. 화면 이미지를 그대로 제품 자산으로 사용하지 않는다.
 - 기능, 상태 전이와 데이터 규칙은 제품 명세가 정의하고, 키보드·포커스·대비·반응형 기준은 화면 명세가 추가로 정의한다.
-- 제품 화면은 기존 React 구조와 semantic HTML/CSS를 사용한다. `@sfood/ui`, SFOOD 토큰과 전역 스타일은 새 화면의 기준으로 사용하지 않는다.
+- 제품 화면은 기존 React 구조와 semantic HTML/CSS를 사용한다. legacy external UI package나 외부 디자인 시스템은 사용하지 않는다. `docs/template/`을 바탕으로 앱 범위 CSS custom properties와 semantic HTML/CSS를 구현한다.
 - 재사용 컴포넌트는 Blueprint 코드에서 두 곳 이상이 같은 동작을 공유할 때만 추출한다.
 
 구현 계약과 캡처 확인 절차는 [UI 참고 이미지 통합 명세](09-ui-reference-integration.md)를 따른다.
@@ -29,8 +29,8 @@ Blueprint는 설문 페이지가 아니라 대화와 문서가 동시에 살아 
 ### 로그인
 
 1. 제품명과 한 문장 가치
-2. 사내 직원 전용 안내
-3. `Microsoft 계정으로 계속` 단일 주요 행동
+2. Google 로그인 안내
+3. `Google로 계속` 단일 주요 행동
 4. 인증 오류·세션 만료와 재시도
 5. 브라우저 로컬 저장 안내
 

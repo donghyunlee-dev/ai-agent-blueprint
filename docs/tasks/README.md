@@ -10,9 +10,9 @@
 
 | 순서 | PR unit | 단계 | 상태 | plan |
 | ---: | --- | --- | --- | --- |
-| 1 | `AUTH-PR-01` 인증 서버 경계 | 인증 선행 | ready | [plan](AUTH-PR-01/plan.md) |
-| 2 | `AUTH-PR-02` 로그인·보호 라우트 | 인증 선행 | planned | [plan](AUTH-PR-02/plan.md) |
-| 3 | `AUTH-PR-03` 사용자 저장 격리 | 인증 선행 | planned | [plan](AUTH-PR-03/plan.md) |
+| 1 | `AUTH-PR-01` Google OIDC 서버 인증 경계 | 인증 선행 | blocked: Google OAuth client/callback 설정 확인 필요 | [plan](AUTH-PR-01/plan.md) |
+| 2 | `AUTH-PR-02` Google 로그인·보호 라우트 | 인증 선행 | planned | [plan](AUTH-PR-02/plan.md) |
+| 3 | `AUTH-PR-03` Google subject 기반 사용자 저장 격리 | 인증 선행 | planned | [plan](AUTH-PR-03/plan.md) |
 | 4 | `FND-PR-01` 런타임·화면 기반 | 0단계 | planned | [plan](FND-PR-01/plan.md) |
 | 5 | `FND-PR-02` 도메인·Agent 계약 | 0단계 | planned | [plan](FND-PR-02/plan.md) |
 | 6 | `FND-PR-03` 테스트 기반 | 0단계 | planned | [plan](FND-PR-03/plan.md) |

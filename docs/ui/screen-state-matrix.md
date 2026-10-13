@@ -7,9 +7,9 @@
 | Frame | 경로/도메인 상태 | 대화 | 중앙 | 상세/오버레이 | 주요 행동 | 성공 후 |
 | --- | --- | --- | --- | --- | --- | --- |
 | `F-AUTH-CHECK` | 모든 최초 진입, session checking | 없음 | 인증 확인 loading | 없음 | 없음 | login/home/returnTo |
-| `F-LOGIN` | `/login`, unauthenticated | 없음 | 제품 소개 + AX Login | 없음 | Microsoft 계정으로 계속 | AX redirect |
-| `F-AUTH-REDIRECT` | login redirect 시작 | 없음 | 이동 중 상태 | 없음 | 중복 실행 차단 | AX/MS Login |
-| `F-AUTH-ERROR` | callback error/invalid | 없음 | 로그인 유지 | 오류 Alert | 다시 로그인/관리자 문의 | AX redirect |
+| `F-LOGIN` | `/login`, unauthenticated | 없음 | 제품 소개 + Google 로그인 | 없음 | Google로 계속 | Google OAuth callback |
+| `F-AUTH-REDIRECT` | login redirect 시작 | 없음 | 이동 중 상태 | 없음 | 중복 실행 차단 | Google callback |
+| `F-AUTH-ERROR` | callback error/invalid | 없음 | 로그인 유지 | 오류 Alert | 다시 로그인 | Google OAuth callback |
 | `F-SESSION-EXPIRED` | 보호 화면 중 401/expiry | 없음 | 제품 데이터 비표시 | 만료 Alert | 다시 로그인 | returnTo |
 | `F-HOME-EMPTY` | `/`, 프로젝트 0 | 없음 | 홈 시작 composer | 없음 | Blueprint 시작 | 신규 프로젝트 |
 | `F-HOME-RECENT` | `/`, 프로젝트 1~20 | 없음 | 시작 + 최근 목록 | 없음 | 계속하기/새로 시작 | 선택 workspace |

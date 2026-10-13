@@ -3,7 +3,7 @@
 ## 요구사항 표기
 
 - `PJT`: 프로젝트와 저장
-- `AUTH`: 사내 인증과 세션
+- `AUTH`: Google 인증과 세션
 - `AI`: AI 오케스트레이션, 프롬프트와 모델
 - `CONV`: 대화와 질문
 - `FORM`: 선택 폼
@@ -120,7 +120,7 @@ Requirements와 PRD는 각각 결정론적 plan, draft, review와 선택적 repa
 
 ### AI-010 저장·보안·실패 정책 — P0
 
-AI 요청은 사내 데이터를 불필요하게 보존하지 않고 실패 시 기존 상태를 지켜야 한다.
+AI 요청은 사용자 데이터를 불필요하게 보존하지 않고 실패 시 기존 상태를 지켜야 한다.
 
 수용 기준:
 
@@ -129,62 +129,63 @@ AI 요청은 사내 데이터를 불필요하게 보존하지 않고 실패 시 
 - rate limit과 timeout에서 모델을 승격하지 않는다.
 - 실패한 응답 일부를 프로젝트나 문서에 반영하지 않는다.
 
-## 사내 인증과 세션
+## Google 로그인과 세션
 
-### AUTH-001 AX Login 시작 — P0
+### AUTH-001 Google 로그인 시작 — P0
 
-비인증 사용자는 제품 홈보다 먼저 로그인 화면을 보고 AX Login의 사내 Microsoft 인증을 시작할 수 있어야 한다.
+비인증 사용자는 제품 홈보다 먼저 로그인 화면에서 Google 로그인을 시작할 수 있어야 한다.
 
 수용 기준:
 
-- 로그인 화면에는 이메일·비밀번호 입력 없이 `Microsoft 계정으로 계속` 행동 하나를 제공한다.
+- 로그인 화면은 `Google로 계속` 단일 행동을 제공하며 비밀번호나 별도 코드 입력을 요구하지 않는다.
 - 보호 경로 접근 시 인증 확인이 끝나기 전에 제품 내용을 렌더링하지 않는다.
 - 로그인 시작 전 same-origin 내부 경로만 `returnTo`로 보존한다.
 - 인증된 사용자가 로그인 화면에 접근하면 홈 또는 검증된 `returnTo`로 이동한다.
 
-### AUTH-002 AX token 검증과 세션 — P0
+### AUTH-002 OIDC callback 검증과 세션 — P0
 
-서버는 AX Auth의 일회용 token을 서버 간 요청으로 검증한 뒤 위조 방지된 Blueprint 세션을 발급해야 한다.
+서버는 Google authorization code를 교환하고 OIDC ID token을 검증한 후에만 Blueprint session을 발급해야 한다.
 
 수용 기준:
 
-- AX 검증 응답의 HTTP status가 아니라 `result.valid`로 성공을 판정한다.
-- client ID가 설정과 일치할 때만 세션을 발급한다.
-- 세션 cookie는 HttpOnly, SameSite=Lax, Path=/이며 운영에서는 Secure다.
-- client secret, session secret과 login token은 브라우저 저장소·번들·로그에 남지 않는다.
-- 만료, 재사용, client 불일치와 잘못된 token은 세션을 만들지 않는다.
+- OAuth `state`, OIDC `nonce`, 지원 시 PKCE를 검증한다.
+- ID token 서명, issuer, audience, 만료와 `email_verified === true`를 검증한다.
+- Google subject와 issuer를 identity로 사용하며, client가 전달한 email만으로 세션을 발급하지 않는다.
+- session cookie는 HttpOnly, SameSite=Lax, Path=/이며 운영에서는 Secure다.
+- client secret, session secret, authorization code와 token은 브라우저 저장소·번들·로그에 남지 않는다.
+- 요청 scope는 `openid email`이며 Gmail API scope는 요청하지 않는다.
 
 ### AUTH-003 보호 라우트와 API — P0
 
-인증된 사내 직원만 제품 화면과 모든 Blueprint API를 사용할 수 있어야 한다.
+유효한 Blueprint session을 가진 사용자만 제품 화면과 Blueprint API를 사용할 수 있어야 한다.
 
 수용 기준:
 
-- `/`와 `/blueprints/*`는 유효한 세션이 없으면 로그인 흐름으로 전환한다.
-- 모든 `/api/blueprint/*`는 공통 서버 세션 검증을 수행한다.
+- `/`와 `/blueprints/*`는 유효한 session이 없으면 로그인 흐름으로 전환한다.
+- 모든 `/api/blueprint/*`는 공통 서버 session 검증을 수행한다.
 - 비인증 API 요청은 `401 AUTH_REQUIRED`를 반환하며 OpenAI 요청을 만들지 않는다.
-- unsafe API method는 same-origin 요청만 허용한다.
+- unsafe API method는 same-origin/CSRF 방어를 통과해야 한다.
 
 ### AUTH-004 사용자 세션과 로그아웃 — P0
 
-사용자는 현재 로그인 계정을 확인하고 Blueprint 세션을 종료할 수 있어야 한다.
+사용자는 현재 Google 계정을 확인하고 Blueprint session을 종료할 수 있어야 한다.
 
 수용 기준:
 
-- AppBar 또는 사용자 메뉴에 현재 이메일과 로그아웃 행동을 표시한다.
-- 로그아웃은 멱등적으로 세션 cookie를 제거하고 메모리의 사용자·프로젝트 상태를 비운다.
-- 세션 만료 시 입력을 잘못된 사용자 영역에 저장하지 않고 재로그인을 안내한다.
-- AX/Microsoft 전체 계정 로그아웃으로 오해할 수 있는 문구를 사용하지 않는다.
+- 사용자 메뉴에 검증된 Google email과 로그아웃 행동을 표시한다.
+- 로그아웃은 멱등적으로 Blueprint session cookie를 제거하고 메모리의 사용자·프로젝트 상태를 비운다.
+- session 만료 시 사용자 입력을 다른 계정 영역에 저장하지 않고 재인증을 안내한다.
+- 로그아웃을 Google 계정 전체 로그아웃으로 표현하지 않는다.
 
 ### AUTH-005 사용자별 로컬 데이터 격리 — P0
 
-같은 브라우저를 사용하는 서로 다른 직원의 로컬 Blueprint 프로젝트를 분리해야 한다.
+같은 브라우저를 사용하는 서로 다른 Google identity의 로컬 프로젝트를 분리해야 한다.
 
 수용 기준:
 
 - IndexedDB 조회·저장·삭제에 현재 인증 사용자의 `ownerKey`를 적용한다.
 - 사용자 전환 시 이전 사용자의 최근 프로젝트와 열린 aggregate를 표시하거나 Agent 요청에 포함하지 않는다.
-- ownerKey에는 원문 이메일 대신 client ID와 정규화 이메일에서 파생한 안정적인 일방향 키를 사용한다.
+- `ownerKey`는 원문 이메일이 아닌 안정적인 `(issuer, sub)`에서 파생한다.
 
 ## 프로젝트와 저장
 
@@ -547,7 +548,7 @@ Agent는 확정 설계와 참고 자료를 사용해 프로젝트별 설정 가�
 ### NFR-004 보안과 개인정보 — P0
 
 - OpenAI API 키는 서버 환경에만 둔다.
-- AX client secret과 Blueprint session secret은 서버 환경에만 둔다.
+- Google OAuth client secret과 Blueprint session secret은 서버 환경에만 둔다.
 - 인증 token과 session cookie 값을 로그, URL 잔존 상태와 클라이언트 저장소에 기록하지 않는다.
 - 업로드 텍스트와 프로젝트 데이터는 요청 목적에 필요한 범위만 전송한다.
 - 오류 로그에 프로젝트 원문, 파일 내용, 토큰을 기록하지 않는다.

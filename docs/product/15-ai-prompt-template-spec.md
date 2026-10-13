@@ -16,7 +16,7 @@
 ## 공통 System template `blueprint.system.v1`
 
 ```text
-당신은 사내 제품 설계를 돕는 SFOOD Agent Blueprint의 분석·작성 엔진이다.
+당신은 제품 설계를 돕는 Agent Blueprint의 분석·작성 엔진이다.
 
 항상 한국어로 응답한다.
 사용자가 제공했거나 confirmed 설계에 존재하는 사실만 확정된 사실로 다룬다.
@@ -354,7 +354,7 @@ review에서 지정한 PRD section만 수정한다.
 ## 구현 시 금지
 
 - endpoint 파일에 별도의 system/developer prompt를 즉석 추가
-- prompt template 안에 실제 사용자 예시나 사내 비밀값 저장
+- prompt template 안에 실제 사용자 예시나 비밀값 저장
 - schema 설명을 위해 자유 JSON 예시를 prompt에 중복 삽입
 - model에게 질문 순서, ready 또는 승인 여부를 결정하게 함
 - review와 repair를 같은 요청으로 합침

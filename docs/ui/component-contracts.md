@@ -46,4 +46,4 @@ Blueprint feature components may combine domain state, such as proposal review o
 - Each interactive element uses the right semantic role and is operable with keyboard alone.
 - Screen readers receive names, state changes, validation errors, and progress updates.
 - The layout follows the selected reference capture while meeting responsive and accessibility requirements.
-- New screens add no `@sfood/ui`, SFOOD design tokens, or UI component package dependencies.
+- New screens add no `기존 공유 UI 라이브러리`, Agent Blueprint design tokens, or UI component package dependencies.

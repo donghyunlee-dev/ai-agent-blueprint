@@ -1,4 +1,4 @@
-# SFOOD Agent Blueprint 문서
+# Agent Blueprint 문서
 
 이 디렉터리는 Agent형 Blueprint의 제품 정의부터 구현 순서까지 관리한다. 제품 문서는 목표 상태를 설명하며, 현재 코드의 동작이나 마이그레이션 기록은 기준으로 삼지 않는다.
 
@@ -16,9 +16,9 @@ docs/
 │  ├─ 06-architecture.md
 │  ├─ 07-ui-design.md
 │  ├─ 08-delivery-plan.md
-│  ├─ 09-design-system-integration.md
+│  ├─ 09-ui-reference-integration.md
 │  ├─ 10-decision-log.md
-│  ├─ 11-ax-login-authentication.md
+│  ├─ 11-google-oauth-authentication.md
 │  ├─ 12-ai-orchestration-and-model-policy.md
 │  ├─ 13-prompt-and-response-contracts.md
 │  ├─ 14-ai-budget-evaluation-and-operations.md
@@ -80,7 +80,7 @@ docs/
 5. [데이터 명세](product/05-data-spec.md)
 6. [아키텍처](product/06-architecture.md)
 7. [UI 디자인 명세](product/07-ui-design.md)
-8. [AX Login 인증 설계](product/11-ax-login-authentication.md)
+8. [Google 로그인 인증 설계](product/11-google-oauth-authentication.md)
 9. [AI 오케스트레이션과 모델 정책](product/12-ai-orchestration-and-model-policy.md)
 10. [프롬프트·응답 계약](product/13-prompt-and-response-contracts.md)
 11. [AI 호출 예산·평가·운영](product/14-ai-budget-evaluation-and-operations.md)
@@ -105,7 +105,7 @@ docs/
 | 대화 프로세스 | Agent가 무엇을 묻고 선택 폼을 어떻게 만드는가? |
 | 데이터 명세 | 어떤 데이터를 어떤 상태와 관계로 보관하는가? |
 | 아키텍처 | 기능을 어떤 경계와 실행 흐름으로 구현하는가? |
-| AX Login 인증 | Codex가 어떤 MCP 계약으로 사내 로그인, 세션, API 보호와 사용자 격리를 구현하는가? |
+| Google 로그인 인증 | Google OIDC callback, session, API 보호와 사용자 격리를 어떻게 구현하는가? |
 | AI 오케스트레이션 | 어떤 작업에 어떤 모델·reasoning·token 정책을 적용하는가? |
 | 프롬프트·응답 계약 | 상황별 prompt가 어떤 구조화 block과 문서 결과를 반환하는가? |
 | AI 예산·평가·운영 | 프로젝트당 몇 번 호출하고 품질·비용·회귀를 어떻게 통제하는가? |

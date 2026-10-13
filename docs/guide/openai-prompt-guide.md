@@ -34,7 +34,7 @@ const response = await client.responses.create({
 ```
 
 - `model`은 물리 model ID를 직접 쓰지 않고 `AiModelRegistry`에서 논리 profile(`LIGHT`/`DEFAULT`/`FINAL`)로 조회한다.
-- `store: false`를 항상 명시한다. prompt cache는 사내 데이터 정책 확인 후 서버에서만 별도로 켠다.
+- `store: false`를 항상 명시한다. prompt cache는 사용자 데이터 정책 확인 후 서버에서만 별도로 켠다.
 - `truncation: "disabled"`를 사용하고, provider 자동 truncation 대신 서버 token budgeter가 컨텍스트 생략 범위를 결정한다.
 - 구조화 출력이 필요한 모든 task는 `text.format`에 `json_schema` + `strict: true`를 사용한다. 자유 텍스트만 반환하는 task는 없다.
 - `safety_identifier`에는 인증 `ownerKey`에서 파생한 비식별 ID만 사용하고 이메일·프로젝트명·원문을 넣지 않는다.

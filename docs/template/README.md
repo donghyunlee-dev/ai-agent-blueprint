@@ -32,6 +32,6 @@ The captures are also catalogued in [the benchmark analysis](../research/manyfas
 - Match the calm neutral canvas, compact navigation, clear document hierarchy, and restrained accent color visible in the relevant capture.
 - Keep the project frame stable as users move between conversation and deliverables.
 - Make empty, working, complete, and error states explain what happened and what the user can do next.
-- Recreate controls with the application's existing framework and local semantic HTML/CSS. Do not add `@sfood/ui`, SFOOD design tokens, or another component library for visual parity.
+- Recreate controls with the application's existing framework and local semantic HTML/CSS. Do not add `기존 공유 UI 라이브러리`, Agent Blueprint design tokens, or another component library for visual parity.
 - Preserve text contrast, visible focus, keyboard operation, reduced-motion preferences, and the specified mobile layout even where the capture does not show them.
 - Attach current development screenshots for the changed flow to the PR; do not submit these reference captures as proof of implementation.

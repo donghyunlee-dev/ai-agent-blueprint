@@ -37,7 +37,7 @@
 
 ## 작업 단위별 구현 개요
 
-1. **QLT-604 보안 점검**: 클라이언트 번들 grep으로 `OPENAI_API_KEY`/`AX_AUTH_CLIENT_SECRET`/`AX_SESSION_SECRET` 부재 확인, 비인증 직접 API 호출 401 및 OpenAI 미호출 확인, 서버 로그 fixture에서 사용자 원문 부재 확인, 외부 분석 endpoint로의 네트워크 요청 0건 확인.
+1. **QLT-604 보안 점검**: 클라이언트 번들 grep으로 `OPENAI_API_KEY`/`GOOGLE_CLIENT_SECRET`/`APP_SESSION_SECRET` 부재 확인, 비인증 직접 API 호출 401 및 OpenAI 미호출 확인, 서버 로그 fixture에서 사용자 원문 부재 확인, 외부 분석 endpoint로의 네트워크 요청 0건 확인.
 2. **QLT-605 전체 E2E — 인증군**: `PATH-AUTH-SUCCESS`, `PATH-AUTH-DENIED`, `PATH-AUTH-EXPIRED`, `PATH-AUTH-API-BYPASS`, `PATH-AUTH-USER-SWITCH` 5개를 실행해 `docs/product/08-delivery-plan.md`의 시나리오 1(로그인→로그아웃)과 시나리오 8(세션 만료·401·A/B 격리)을 커버한다.
 3. **QLT-605 전체 E2E — 기능군**: `PATH-HAPPY-IDEA`(시나리오 2: 아이디어→PRD→다운로드), `PATH-HAPPY-FILE`/`PATH-PARTIAL-FILE`(시나리오 3: 파일→문서), `PATH-CONFLICT`(시나리오 4: 충돌 해결), `PATH-AI-RETRY`/`PATH-SAVE-RETRY`(시나리오 5: AI 실패 재시도), `PATH-REFRESH`(시나리오 6: 새로고침 복구), `PATH-DOC-EDIT`, `PATH-PRD-LOCK`, `PATH-AI-BUDGET`, `PATH-DOC-PIPELINE` 등 나머지 12개 흐름을 실행한다. 모바일 시나리오(시나리오 7)는 `QLT-PR-01`에서 검증한 반응형 레이아웃 위에서 동일 기능 흐름을 재생한다.
 4. **QLT-608 AI 품질 회귀**: 질문/추출/설명/추천/compaction golden fixture, Requirements/PRD coverage fixture, prompt injection과 잘못된 참조 ID fixture, schema 실패 fixture를 모두 실행하고 현재 model/prompt와 후보 구성을 pairwise 비교한다.
@@ -47,8 +47,8 @@
 
 ```mermaid
 flowchart TD
-    A[비인증 보호 경로 접근] --> B[AX Login 시작]
-    B --> C{AX verify 결과}
+    A[비인증 보호 경로 접근] --> B[Google 로그인 시작]
+    B --> C{Google ID token verification 결과}
     C -- valid --> D[HttpOnly 세션 발급]
     C -- invalid/expired/reused --> E[세션 미발급, 로그인 오류]
     D --> F[원래 보호 경로 복귀]

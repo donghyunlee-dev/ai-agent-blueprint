@@ -8,8 +8,8 @@ flowchart TD
     AUTH -- 확인 중 --> AUTHCHECK[F-AUTH-CHECK]
     AUTHCHECK --> AUTH
     AUTH -- 아니오 --> LOGIN[로그인 F-LOGIN]
-    LOGIN --> AX[AX Login과 Microsoft 인증]
-    AX --> VERIFY{서버 token 검증 성공}
+    LOGIN --> GOOGLE[Google OAuth 로그인]
+    GOOGLE --> VERIFY{서버 OIDC 검증 성공}
     VERIFY -- 아니오 --> AUTHERR[F-AUTH-ERROR]
     AUTHERR -- 다시 로그인 --> LOGIN
     VERIFY -- 예 --> SESSION[Blueprint 세션 발급]

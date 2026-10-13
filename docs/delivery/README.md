@@ -58,7 +58,7 @@
 - 키보드, 포커스, 이름·설명·오류 연결을 확인했다.
 - 데스크톱과 해당 단계에서 요구하는 모바일 상태를 확인했다.
 - `npm run build`가 성공한다.
-- API 키, AX secret, 로그인 token, 사용자 원문과 파일 내용이 로그·번들·스크린샷에 노출되지 않는다.
+- API 키, Google OAuth secret, 로그인 token, 사용자 원문과 파일 내용이 로그·번들·스크린샷에 노출되지 않는다.
 - 변경 파일, 테스트 결과, 알려진 제한과 후속 작업을 인계 기록에 남겼다.
 - 독립 코드 리뷰와 QA 결과가 `pass`다.
 - PR merge gate가 통과했고 기본 브랜치에서 병합 및 누적 검증이 확인된다.
@@ -79,7 +79,7 @@
 ## 단계별 문서
 
 1. [PR·리뷰·QA 반복 워크플로와 PR 단위표](development-pr-review-qa-workflow.md)
-2. [인증 선행 — AX Login 상세 작업 계약](../product/11-ax-login-authentication.md#개발-작업)
+2. [인증 선행 — Google 로그인 상세 작업 계약](../product/11-google-oauth-authentication.md)
 3. [AI 모델·프롬프트·평가 작업 계약](ai-model-prompt-and-evaluation.md)
 4. [0단계 — 구현 기반과 계약](00-foundation-and-contracts.md)
 5. [1단계 — 프로젝트와 저장](01-project-lifecycle.md)

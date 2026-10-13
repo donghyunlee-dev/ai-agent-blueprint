@@ -48,7 +48,7 @@
 출력 및 성공 조건:
 
 - `npm ls react react-dom`에서 React 18 한 계열만 표시된다.
-- `@sfood/ui` dependency and imports are absent after the UI migration.
+- `legacy external UI package` dependency and imports are absent after the UI migration.
 - 빈 라우트가 오류 없이 렌더링되고 기본 Button, FormField, Alert가 스타일과 함께 보인다.
 - production build가 성공한다.
 
@@ -126,7 +126,7 @@
 
 필수 확인:
 
-- 사내 글꼴, surface, foreground, brand 토큰이 적용된다.
+- 제품 글꼴, surface, foreground, brand 토큰이 적용된다.
 - 키보드 포커스가 보인다.
 - 320px 너비에서 수평 overflow가 없다.
 - 로딩되지 않은 기능을 동작하는 것처럼 표시하지 않는다.
@@ -134,7 +134,7 @@
 ## 완료 증거
 
 - dependency tree 출력
-- MCP 조회 결과와 컴포넌트 대응표
+- reference-library component mapping
 - 타입 검사와 build 결과
 - schema fixture 테스트 결과
 - 기본 컴포넌트 데스크톱·모바일 캡처

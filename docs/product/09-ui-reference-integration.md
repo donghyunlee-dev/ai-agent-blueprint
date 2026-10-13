@@ -34,7 +34,7 @@ Do not embed the supplied screenshots as rendered UI, copy their raster content 
 
 ## Implementation constraints
 
-- Do not add `@sfood/ui`, its global CSS, SFOOD tokens, MCP configuration, or another component framework for visual parity.
+- Do not add a legacy external UI package, third-party design system, global design-system CSS, MCP integration, or another component framework for visual parity. Use local CSS and application-scoped custom properties informed by the selected captures.
 - Do not introduce arbitrary icon or component dependencies when semantic HTML and existing application patterns suffice.
 - Use CSS custom properties for repeated local values, with names scoped to the Blueprint application. Keep color choices consistent with the reference captures and meet text-contrast requirements.
 - Use buttons for actions, links for navigation, labels for inputs, and programmatically connected descriptions and errors.
@@ -43,7 +43,7 @@ Do not embed the supplied screenshots as rendered UI, copy their raster content 
 
 ## Migration note
 
-The current prototype still has legacy `@sfood/ui` imports. This specification makes the target UI contract explicit; the dependency and importing screens must be removed together in the product UI migration PR so each PR continues to build. Do not conceal the legacy imports or expand this configuration PR into a product-wide screen rewrite.
+The current prototype still has legacy external UI package imports. The dependency and importing screens must be removed together in the product UI migration PR so each PR continues to build. Do not conceal the imports or expand the migration PR into an unrelated product-wide screen rewrite.
 
 ## Verification checklist
 
