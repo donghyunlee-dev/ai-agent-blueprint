@@ -33,6 +33,9 @@ MERGE_COMMAND = re.compile(
 GIT_MUTATION_COMMAND = re.compile(
     r"\bgit\b(?:\s+-C\s+\S+|\s+-c\s+\S+|\s+--git-dir(?:=\S+|\s+\S+)|\s+--work-tree(?:=\S+|\s+\S+))*\s+(?P<subcommand>push|merge)\b(?P<args>.*)",
 )
+GIT_SUBCOMMAND = re.compile(
+    r"\bgit\b(?:\s+-C\s+\S+|\s+-c\s+\S+|\s+--git-dir(?:=\S+|\s+\S+)|\s+--work-tree(?:=\S+|\s+\S+))*\s+(?P<subcommand>[A-Za-z0-9_-]+)\b",
+)
 
 
 def project_root() -> Path:
@@ -134,6 +137,25 @@ def merge_is_allowed(command: str) -> bool:
         return _merge_is_allowed(requested_pr, command)
 
 
+def invokes_git_alias(segment: str, subcommand: str) -> bool:
+    if re.search(rf"(?:^|\s)-c\s+['\"]?alias\.{re.escape(subcommand)}=", segment):
+        return True
+    try:
+        result = subprocess.run(
+            ["git", "config", "--get", f"alias.{subcommand}"],
+            cwd=project_root(),
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    # Git aliases can run arbitrary shell commands or chain other aliases. Deny alias
+    # invocations in this workflow so a mutation cannot hide behind an alias name.
+    return result.returncode == 0
+
+
 def _merge_is_allowed(requested_pr: int, command: str) -> bool:
     state = load_state()
 
@@ -212,7 +234,10 @@ def pretool_hook(event: dict) -> None:
     local_merge = False
     direct_main_push = False
     force_push = False
+    git_alias = False
     for segment in re.split(r"[\n;&|]+", command):
+        for git_command in GIT_SUBCOMMAND.finditer(segment):
+            git_alias = git_alias or invokes_git_alias(segment, git_command.group("subcommand"))
         for git_command in GIT_MUTATION_COMMAND.finditer(segment):
             args = git_command.group("args")
             if git_command.group("subcommand") == "merge":
@@ -238,7 +263,7 @@ def pretool_hook(event: dict) -> None:
         r"\bcurl\b(?:(?![\n;&|]).)*api\.github\.com/graphql(?:(?![\n;&|]).)*\bmutation\b",
         command,
     )
-    if local_merge or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation:
+    if git_alias or local_merge or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation:
         reason = "Direct merges and force pushes are blocked by the repository PR workflow."
     elif re.search(r"\bgh\s+pr\s+merge\b", command):
         if merge_is_allowed(command):

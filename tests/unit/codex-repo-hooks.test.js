@@ -121,6 +121,29 @@ test("pretool hook blocks direct pushes to main and GitHub API merge calls", () 
   }
 });
 
+test("pretool hook blocks configured and command-scoped Git mutation aliases", () => {
+  const scoped = JSON.parse(runHook("pretool", {
+    tool_name: "Bash",
+    tool_input: { command: "git -c alias.p=push p origin main" },
+  }));
+  assert.equal(scoped.hookSpecificOutput.permissionDecision, "deny");
+
+  const projectRoot = mkdtempSync(path.join(tmpdir(), "codex-hook-test-"));
+  try {
+    const init = spawnSync("git", ["init", "-q"], { cwd: projectRoot, encoding: "utf8" });
+    assert.equal(init.status, 0, init.stderr);
+    const config = spawnSync("git", ["config", "alias.p", "push"], { cwd: projectRoot, encoding: "utf8" });
+    assert.equal(config.status, 0, config.stderr);
+    const output = JSON.parse(runHookInRoot(projectRoot, "pretool", {
+      tool_name: "Bash",
+      tool_input: { command: "git p origin main" },
+    }));
+    assert.equal(output.hookSpecificOutput.permissionDecision, "deny");
+  } finally {
+    rmSync(projectRoot, { recursive: true, force: true });
+  }
+});
+
 test("merge authorization is consumed once and cannot authorize a second invocation", () => {
   const projectRoot = mkdtempSync(path.join(tmpdir(), "codex-hook-test-"));
   const state = {
