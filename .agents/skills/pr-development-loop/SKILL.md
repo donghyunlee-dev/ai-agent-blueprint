@@ -14,7 +14,7 @@ Use `docs/delivery/development-pr-review-qa-workflow.md` as the product delivery
 - Create one focused branch and one PR targeting the repository default branch (`main` in this repository).
 - The normal task ends after that PR is merged and its state is verified. Start another PR unit only if the user requested a batch.
 - Never force push, merge a local branch, bypass failing checks, or merge a PR with a failed or missing gate.
-- Never push directly to `main` or merge through Git aliases or mutating GitHub API requests; use the PR workflow.
+- Never push directly to `main` or merge through Git aliases, indirect shell invocations, or mutating GitHub API requests; use the PR workflow.
 - Complete the merge step only when the user requested the full PR lifecycle or explicitly authorized merging. Otherwise stop at `ready_to_merge`.
 
 ## Required inputs

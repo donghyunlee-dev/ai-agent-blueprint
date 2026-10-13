@@ -263,7 +263,18 @@ def pretool_hook(event: dict) -> None:
         r"\bcurl\b(?:(?![\n;&|]).)*api\.github\.com/graphql(?:(?![\n;&|]).)*\bmutation\b",
         command,
     )
-    if git_alias or local_merge or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation:
+    indirect_git_mutation = False
+    for indirect in re.finditer(
+        r"(?:^|[\s;&|])['\"]?\$(?:\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)['\"]?\s+(?P<subcommand>push|merge)\b(?P<args>[^\n;&|]*)",
+        command,
+    ):
+        args = indirect.group("args")
+        indirect_git_mutation = indirect_git_mutation or indirect.group("subcommand") == "merge" or bool(
+            re.search(r"(?:^|\s)-f(?:\s|$)|(?:^|\s)--force(?:-with-lease)?(?:\s|$)", args)
+            or re.search(r"(?:^|\s|\+)(?:main|refs/heads/main)(?:\s|$)", args)
+            or re.search(r"(?::|\+[^\s:]+:)(?:\+)?(?:refs/heads/)?main(?:\s|$)", args)
+        )
+    if git_alias or local_merge or force_push or direct_main_push or api_merge or curl_merge or curl_graphql_mutation or indirect_git_mutation:
         reason = "Direct merges and force pushes are blocked by the repository PR workflow."
     elif re.search(r"\bgh\s+pr\s+merge\b", command):
         if merge_is_allowed(command):

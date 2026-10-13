@@ -106,6 +106,7 @@ test("pretool hook blocks direct pushes to main and GitHub API merge calls", () 
     "git push origin feature; git push origin main",
     "git push origin feature && git push origin HEAD:refs/heads/main",
     "git -C /repo merge main",
+    "GIT=git; $GIT push origin main",
     "git push origin :main",
     "git push --force-with-lease origin feature",
     "gh api --method PUT repos/example/repo/pulls/42/merge",
