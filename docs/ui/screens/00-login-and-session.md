@@ -24,15 +24,16 @@ The login screen is a clear entry point to the product. It explains the product 
 │                                                              │
 │             ┌──────────────────────────────────┐             │
 │             │ [L02] Agent Blueprint             │             │
-│             │ [L03] Turn ideas into reviewable  │             │
-│             │       product plans.              │             │
-│             │ [L04] Google sign-in information  │             │
-│             │ [L05] Error or expiry alert       │             │
-│             │ [L06] Continue with Google        │             │
-│             │ [L07] Local storage information  │             │
+│             │ [L03] 아이디어를 검토 가능한       │             │
+│             │       제품 계획으로 구체화하세요. │             │
+│             │ [L04] Google 계정으로 로그인하세요. │             │
+│             │ [L05] 오류 또는 세션 만료 안내     │             │
+│             │ [L06] Google로 계속               │             │
+│             │ [L07] 프로젝트는 이 브라우저에    │             │
+│             │       저장됩니다.                 │             │
 │             └──────────────────────────────────┘             │
 │                                                              │
-│ [L08 Privacy and support links]                              │
+│ [L08 개인정보 보호 및 고객 지원 링크]                        │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -43,13 +44,18 @@ The login screen is a clear entry point to the product. It explains the product 
 │ [L01 Agent Blueprint]        │
 │                              │
 │ [L02] Agent Blueprint        │
-│ [L03] Product planning value  │
-│ [L04] Google sign-in info     │
-│ [L05] Error or expiry alert   │
-│ [L06] Continue with Google   │
-│ [L07] Local storage info      │
+│ [L03] 아이디어를 검토 가능한  │
+│       제품 계획으로          │
+│       구체화하세요.          │
+│ [L04] Google 계정으로        │
+│       로그인하세요.         │
+│ [L05] 오류 또는 세션 만료 안내 │
+│ [L06] Google로 계속           │
+│ [L07] 프로젝트는 이 브라우저에 │
+│       저장됩니다.            │
 │                              │
-│ [L08 Privacy and support]     │
+│ [L08 개인정보 보호 및        │
+│      고객 지원]              │
 └──────────────────────────────┘
 ```
 
@@ -73,13 +79,13 @@ The login screen is a clear entry point to the product. It explains the product 
 
 ## State content
 
-| Frame | Content | Action/focus |
+| Frame | 표시 문구 | 동작 및 포커스 |
 | --- | --- | --- |
-| `F-AUTH-CHECK` | “Checking sign-in status” | Announce once through a live region |
-| `F-LOGIN` | Google sign-in information | Focusable `Google로 계속` button |
-| `F-AUTH-REDIRECT` | “Opening Google sign-in” | Disable repeated activation |
-| `F-AUTH-ERROR` | Generic callback/cancel error | Move focus to alert, allow retry |
-| `F-SESSION-EXPIRED` | “Your session has expired” | Preserve safe internal destination and offer sign-in |
+| `F-AUTH-CHECK` | “로그인 상태를 확인하고 있습니다.” | 라이브 영역에서 한 번 안내한다. |
+| `F-LOGIN` | “Google 계정으로 로그인하세요.” | `Google로 계속` 버튼에 포커스를 이동할 수 있다. |
+| `F-AUTH-REDIRECT` | “Google 로그인 화면으로 이동하고 있습니다.” | 중복 실행을 막는다. |
+| `F-AUTH-ERROR` | “로그인을 완료하지 못했습니다. 다시 시도해 주세요.” | 안내에 포커스를 이동하고 다시 시도할 수 있게 한다. |
+| `F-SESSION-EXPIRED` | “로그인 세션이 만료되었습니다. 다시 로그인해 주세요.” | 안전한 앱 내부 목적지를 유지하고 로그인을 안내한다. |
 
 ## Authenticated user controls
 
@@ -91,6 +97,7 @@ The login screen is a clear entry point to the product. It explains the product 
 
 ## Accessibility and copy
 
+- All user-visible copy and accessible names use Korean in the MVP, as required by NFR-006; product names and Google retain their names.
 - The page has a `main` landmark and one `h1`.
 - The button name identifies Google sign-in.
 - Loading states include text; color alone does not identify errors.
