@@ -94,8 +94,9 @@
 
 - TDD: owner context 테스트를 먼저 추가했으며 구현 전 helper 누락으로 실패(`ERR_MODULE_NOT_FOUND`)했다. helper와 lifecycle 적용 후 통과했다.
 - `npm run test:unit`: 76/76 통과.
-- `npm run test:e2e`: 12/12 통과 (Playwright Chromium, desktop/mobile).
+- `npm run test:e2e`: 20/20 통과 on HEAD `3d2242f22a4bafbfeff52ba3e7bf2eff11c5c037` (Playwright Chromium, desktop/mobile). AuthProvider deferred-response 시나리오 4개(logout, expiry, identity B, derivation failure)가 두 프로젝트에서 검증됐다.
 - `npm run build`: 통과. Vite 기존 bundle size 경고(500 kB 초과)가 있다.
 - `git diff --check`: 통과.
+- 독립 코드 리뷰: `pass_with_non_blocking` on HEAD `3d2242f22a4bafbfeff52ba3e7bf2eff11c5c037`. P2 stale E2E count 지적은 해당 HEAD에서 재실행한 20/20 결과와 이 문서 갱신으로 해소했다.
 - `node_modules`가 없는 격리 worktree에서 의존성을 설치하기 위해 `npm ci`를 실행했다. manifest/lockfile 변경은 없으며 기존 dependency audit finding 14개가 보고됐다.
 - UI 외관 변경은 없다. 실제 Google 계정 인증은 mock session 경계와 OAuth 환경 부재로 검증하지 않았다.
