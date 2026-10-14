@@ -1,5 +1,7 @@
 # PRJ-PR-01 — 라우팅·프로젝트 생성
 
+> **현재 상태: in_progress.** Implementation self-validation은 `test-results.md`의 exact HEAD 결과로 기록됐다. 독립 code review와 QA는 pending이다.
+
 ## Overview
 
 Blueprint의 핵심 라우트(`/`, `/blueprints/new`, `/blueprints/:projectId`, `/blueprints/:projectId/:documentType`)를 구성하고, 홈 화면의 시작 composer에서 아이디어 또는 파일로 새 프로젝트를 생성해 작업 공간으로 진입하는 흐름을 완성한다. 존재하지 않는 경로와 존재하지 않는 프로젝트 ID를 구분된 화면으로 처리한다.
