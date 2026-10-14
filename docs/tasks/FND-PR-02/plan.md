@@ -194,12 +194,13 @@ Given 한 응답에 `question` block이 2개 포함된 fixture가 주어졌을 �
 
 ## Done Checklist
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료 (해당 없음 — 화면 변경 없음)
-- [ ] 사용자 PR 머지 확인
+- [x] Requirements implemented
+- [x] Acceptance criteria verified
+- [x] 독립 코드 리뷰 pass (reviewed PR HEAD `806272f4b95edc563524386338ae9dc465013bc1`)
+- [x] 독립 QA pass (PR HEAD `806272f4b95edc563524386338ae9dc465013bc1`; non-UI, browser evidence not applicable)
+- [x] 화면 변경 시 desktop/mobile 캡처 완료 (해당 없음 — 화면 변경 없음)
+- [x] 사용자 full PR lifecycle 요청으로 merge 권한 확인
+- [ ] 사용자 PR 머지 확인 (아직 merge 전)
 
 ## 실행 시 추가 문서
 
