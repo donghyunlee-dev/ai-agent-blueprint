@@ -16,7 +16,7 @@ test("GET /api/auth/session returns 401 when there is no session cookie", async 
   const res = createMockRes();
   await sessionHandler(req, res);
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(JSON.parse(res.body), { authenticated: false });
+  assert.deepEqual(JSON.parse(res.body), { error: "AUTH_REQUIRED" });
 });
 
 test("GET /api/auth/session returns 401 for a tampered session cookie", async () => {
@@ -48,7 +48,7 @@ test("GET /api/auth/session returns 401 for a correctly signed legacy-audience s
   await sessionHandler(req, res);
 
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(JSON.parse(res.body), { authenticated: false });
+  assert.deepEqual(JSON.parse(res.body), { error: "AUTH_REQUIRED" });
 });
 
 test("GET /api/auth/session returns 200 and the user for a valid session cookie", async () => {

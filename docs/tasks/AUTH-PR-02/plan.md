@@ -16,7 +16,7 @@
 
 ## Definition of Ready
 
-- `AUTH-PR-01`이 병합되어 start/callback/session/logout API와 `requireSession`을 사용할 수 있다.
+- `AUTH-PR-01` PR #3가 2026-10-13에 `main`으로 병합되어 start/callback/session/logout API와 `requireSession`을 사용할 수 있다.
 - 로그인/세션 화면 참고 이미지와 상태가 `docs/template/README.md`, `docs/ui/screens/00-login-and-session.md`에서 확인되었다.
 
 ## Acceptance criteria
@@ -32,9 +32,24 @@
 ## Verification plan
 
 - auth 상태별 화면 전이, API 401 계약, 안전한 `returnTo`, logout 테스트를 수행한다.
-- Playwright와 Agent Browser로 desktop 1440×900, mobile 390×844 흐름을 확인한다.
-- 최종 HEAD 캡처는 기본 로그인, 오류, session 만료, 사용자 메뉴 상태를 포함한다.
+- Playwright Chromium으로 desktop 1440×900, mobile 390×844 흐름을 확인한다. Agent Browser가 제공되는 경우 같은 흐름을 추가 확인한다. 사용할 수 없으면 도구 목록과 실행 파일 확인 결과를 남기고 Playwright Chromium에서 독립 QA를 완료한다.
+- 최종 HEAD 캡처는 기본 로그인, 세션 확인, 오류, session 만료, 사용자 메뉴 상태를 desktop/mobile 모두 포함한다.
+- 실제 Google provider sign-in은 로컬 server-only OAuth 환경 설정이 없으면 claim하지 않고, mocked auth/OAuth boundaries로 화면·세션 흐름을 검증한다.
+
+## Self-validation
+
+- API authorization regression tests failed before the shared guard: each of `/api/blueprint/chat`, `/requirements`, and `/prd` returned a non-401 response. After implementation, missing and expired sessions return `401 AUTH_REQUIRED` with zero provider calls.
+- `npm run test:unit`: 63/63 passed.
+- `npm run test:e2e`: 12/12 passed across desktop Chromium (1440×900) and mobile Chromium (390×844), including login check, safe returnTo, provider error/retry, session expiry, logout duplicate prevention, and back navigation.
+- `npm run build`: passed; Vite reports the existing application bundle slightly above the 500 kB warning threshold.
+- `git diff --check`: passed.
 
 ## Evidence
 
-PR에는 필요한 테스트 결과와 desktop/mobile 최종 화면 캡처, 독립 코드 리뷰와 QA 결과를 첨부한다.
+PR에는 필요한 테스트 결과와 desktop/mobile 최종 화면 캡처, 독립 코드 리뷰와 QA 결과를 첨부한다. 이 checkout에는 Google OAuth server-only environment가 없어 실제 Google 계정 인증은 실행하지 않는다. 테스트는 안정적인 mocked session/OAuth boundary를 이용한다. UI 명세에 개인정보 보호·고객 지원 링크가 있지만 저장소에는 공식 목적지가 없어 현재는 링크를 만들지 않고 labels만 표시한다.
+
+- Default login: [`desktop`](../../delivery/evidence/AUTH-PR-02/desktop-chromium-login.png), [`mobile`](../../delivery/evidence/AUTH-PR-02/mobile-chromium-login.png)
+- Session check: [`desktop`](../../delivery/evidence/AUTH-PR-02/desktop-chromium-auth-check.png), [`mobile`](../../delivery/evidence/AUTH-PR-02/mobile-chromium-auth-check.png)
+- Login error: [`desktop`](../../delivery/evidence/AUTH-PR-02/desktop-chromium-login-error.png), [`mobile`](../../delivery/evidence/AUTH-PR-02/mobile-chromium-login-error.png)
+- Session expired: [`desktop`](../../delivery/evidence/AUTH-PR-02/desktop-chromium-session-expired.png), [`mobile`](../../delivery/evidence/AUTH-PR-02/mobile-chromium-session-expired.png)
+- Account menu: [`desktop`](../../delivery/evidence/AUTH-PR-02/desktop-chromium-account-menu.png), [`mobile`](../../delivery/evidence/AUTH-PR-02/mobile-chromium-account-menu.png)
