@@ -1,6 +1,6 @@
 # FND-PR-03 — 테스트 기반 구성
 
-> **상태: ready.** FND-PR-02 PR #8(52410c37e5640e29fc5823f501c303a0a39acabb)이 origin/main에 병합됐고, 현재 main에는 Node.js 내장 node:test unit/contract suite와 Playwright Chromium desktop/mobile E2E suite가 이미 있다. 이 PR은 두 runner를 교체하지 않고 표준 명령·실패 증거·산출물 위치를 정리한다.
+> **상태: in_progress.** FND-PR-02 PR #8(52410c37e5640e29fc5823f501c303a0a39acabb)이 origin/main에 병합됐고, 현재 main에는 Node.js 내장 node:test unit/contract suite와 Playwright Chromium desktop/mobile E2E suite가 이미 있다. 이 PR은 두 runner를 교체하지 않고 표준 명령·실패 증거·산출물 위치를 정리한다. Implementation validation is recorded in `test-results.md`; independent review and QA remain pending.
 
 ## Overview
 

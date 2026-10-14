@@ -16,7 +16,7 @@
 | 4 | `AUTH-PR-03` 인증 identity 기반 owner context | 인증 선행 | merged (#6) | [plan](AUTH-PR-03/plan.md) |
 | 5 | `FND-PR-01` 런타임·화면 기반 | 0단계 | merged (#7) | [plan](FND-PR-01/plan.md) |
 | 6 | `FND-PR-02` 도메인·Agent 계약 | 0단계 | merged (#8) | [plan](FND-PR-02/plan.md) |
-| 7 | `FND-PR-03` 테스트 기반 | 0단계 | ready | [plan](FND-PR-03/plan.md) |
+| 7 | `FND-PR-03` 테스트 기반 | 0단계 | in_progress | [plan](FND-PR-03/plan.md) |
 | 8 | `PRJ-PR-01` 라우팅·프로젝트 생성 | 1단계 | planned | [plan](PRJ-PR-01/plan.md) |
 | 9 | `PRJ-PR-02` 저장·최근 목록 | 1단계 | planned | [plan](PRJ-PR-02/plan.md) |
 | 10 | `PRJ-PR-03` 작업 공간 셸 | 1단계 | planned | [plan](PRJ-PR-03/plan.md) |
