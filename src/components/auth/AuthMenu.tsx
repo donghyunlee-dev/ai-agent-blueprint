@@ -32,7 +32,7 @@ export function AuthMenu() {
         <section className="auth-menu-panel" aria-label="계정 메뉴">
           <p className="auth-menu-label">인증된 Google 이메일</p>
           <p className="auth-menu-full-email">{user.email || "이메일 정보 없음"}</p>
-          <p className="auth-menu-storage">프로젝트는 이 브라우저에 저장됩니다.</p>
+          <p className="auth-menu-storage">프로젝트 작업은 이 브라우저에서 진행됩니다.</p>
           <button className="auth-menu-logout" type="button" disabled={logoutPending} onClick={() => void handleLogout()}>
             {logoutPending ? "로그아웃 중…" : "Blueprint에서 로그아웃"}
           </button>

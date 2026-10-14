@@ -1,116 +1,43 @@
-.home-shell {
-  min-height: 100vh;
-  background: var(--color-page);
-}
-
+.home-shell { min-height: 100vh; background: var(--color-page); }
 .home-shell-header {
-  display: flex;
-  min-height: 64px;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 20px;
-  padding: 12px clamp(20px, 5vw, 64px);
-  border-bottom: 1px solid var(--color-border);
+  display: flex; min-height: 64px; align-items: center; justify-content: space-between;
+  padding: 10px clamp(20px, 5vw, 64px); border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
-
-.home-shell-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--color-text-strong);
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.home-shell-mark {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  border-radius: 10px;
-  background: #173e77;
-  color: #fff;
-  font-weight: 800;
-}
-
-.home-shell-main {
-  width: min(920px, calc(100% - 40px));
-  margin: 0 auto;
-  padding: clamp(56px, 12vh, 120px) 0 80px;
-}
-
-.home-shell-intro {
-  max-width: 680px;
-  margin: 0 auto 42px;
-  text-align: center;
-}
-
-.home-shell-eyebrow {
-  margin: 0 0 12px;
-  color: var(--color-primary);
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: .12em;
-}
-
-.home-shell-intro h1 {
-  margin: 0;
-  color: var(--color-text-strong);
-  font-size: clamp(30px, 4vw, 42px);
-  line-height: 1.15;
-  letter-spacing: -.04em;
-}
-
-.home-shell-intro > p:last-child {
-  margin: 14px 0 0;
-  color: var(--color-text-body);
-  font-size: 16px;
-  line-height: 1.6;
-}
-
-.home-shell-empty {
-  display: grid;
-  justify-items: center;
-  padding: 40px 28px;
-  border: 1px solid var(--color-border);
-  border-radius: 18px;
-  background: var(--color-surface);
-  text-align: center;
-}
-
-.home-shell-empty-mark {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  color: var(--color-primary);
-  font-size: 25px;
-  line-height: 1;
-}
-
-.home-shell-empty h2 {
-  margin: 18px 0 0;
-  color: var(--color-text-strong);
-  font-size: 18px;
-  line-height: 1.4;
-}
-
-.home-shell-empty p {
-  max-width: 480px;
-  margin: 8px 0 0;
-  color: var(--color-text-muted);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
+.home-shell-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--color-text-strong); font-size: 15px; font-weight: 700; text-decoration: none; }
+.home-shell-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 10px; background: #173e77; color: #fff; font-weight: 800; }
+.home-shell-guide { padding: 8px 12px; border-radius: 9px; color: var(--color-text-body); font-size: 14px; font-weight: 600; text-decoration: none; }
+.home-shell-guide:hover { background: var(--color-surface-strong); }
+.home-shell-main { width: min(920px, calc(100% - 40px)); margin: 0 auto; padding: 54px 0 76px; }
+.home-shell-intro { max-width: 820px; margin: 0 auto 28px; text-align: center; }
+.home-shell-eyebrow { margin: 0 0 10px; color: var(--color-primary); font-size: 11px; font-weight: 750; letter-spacing: .12em; }
+.home-shell-intro h1 { max-width: 820px; margin: 0 auto; color: var(--color-text-strong); font-size: clamp(30px, 3.2vw, 40px); line-height: 1.15; letter-spacing: -.04em; }
+.home-shell-intro > p:last-child { margin: 12px 0 0; color: var(--color-text-body); font-size: 16px; line-height: 1.6; }
+.home-workflow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 14px; margin: 30px 0 48px; padding: 20px 24px; border: 1px solid var(--color-border); border-radius: 16px; background: rgba(255,255,255,.62); }
+.home-workflow div { display: grid; grid-template-columns: 34px 1fr; column-gap: 8px; align-items: center; }
+.home-workflow div > span { grid-row: span 2; color: var(--color-primary); font: 700 11px var(--font-mono); }
+.home-workflow strong { color: var(--color-text-strong); font-size: 14px; }
+.home-workflow p { grid-column: 2; margin: 3px 0 0; color: var(--color-text-muted); font-size: 12px; }
+.home-workflow-arrow { color: var(--color-text-soft); }
+.home-shell-recent { margin-top: 0; }
+.home-recent-heading { margin-bottom: 14px; }
+.home-recent-heading h2 { margin: 0; color: var(--color-text-strong); font-size: 20px; }
+.home-recent-heading p { margin: 4px 0 0; color: var(--color-text-muted); font-size: 13px; }
+.home-shell-empty { display: grid; min-height: 142px; justify-items: center; padding: 22px; border: 1px dashed var(--color-border-strong); border-radius: 16px; background: var(--color-surface); text-align: center; }
+.home-shell-empty-mark { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--color-border); border-radius: 10px; color: var(--color-primary); font-size: 19px; }
+.home-shell-empty h3 { margin: 8px 0 0; color: var(--color-text-strong); font-size: 15px; }
+.home-shell-empty p { margin: 3px 0 0; color: var(--color-text-muted); font-size: 13px; }
+.home-shell-empty button { margin-top: 8px; padding: 3px; border: 0; background: transparent; color: var(--color-primary); cursor: pointer; font-size: 13px; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
+.home-shell-empty button:focus-visible,.home-shell-guide:focus-visible,.home-shell-brand:focus-visible { outline: 3px solid #78aaff; outline-offset: 3px; }
 @media (max-width: 600px) {
-  .home-shell-header { min-height: 106px; align-items: flex-end; padding: 58px 16px 12px; }
-  .home-shell-main { width: calc(100% - 32px); padding-top: 74px; }
-  .home-shell-intro { margin-bottom: 32px; }
-  .home-shell-intro > p:last-child { font-size: 15px; }
-  .home-shell-empty { padding: 32px 20px; }
+  .home-shell-header { min-height: 56px; padding: 10px 16px; }
+  .home-shell-main { width: calc(100% - 32px); padding: 38px 0 52px; }
+  .home-shell-intro { margin-bottom: 22px; text-align: left; }
+  .home-shell-intro h1 { font-size: 30px; max-width: 340px; }
+  .home-shell-intro > p:last-child { font-size: 14px; }
+  .home-workflow { grid-template-columns: 1fr; gap: 10px; margin: 22px 0 36px; padding: 16px; }
+  .home-workflow-arrow { display: none; }
+  .home-workflow div { grid-template-columns: 34px 1fr; }
+  .home-workflow div + .home-workflow-arrow + div { border-top: 1px solid var(--color-border); padding-top: 10px; }
+  .home-shell-empty { min-height: 125px; padding: 18px; }
 }

@@ -48,7 +48,7 @@ export function LoginPage({ mode = "login", returnTo: routeReturnTo }: { mode?: 
               <GoogleMark />
               {busy ? "Google 로그인 화면으로 이동하고 있습니다." : "Google로 계속"}
             </button>
-            <p className="auth-caption">프로젝트는 이 브라우저에 저장됩니다.</p>
+            <p className="auth-caption">프로젝트 작업은 이 브라우저에서 진행됩니다.</p>
           </>
         )}
       </section>

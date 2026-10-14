@@ -43,7 +43,8 @@
   .auth-page { padding: 18px 18px 22px; }
   .auth-card { padding: 28px 23px; }
   .auth-menu { top: 8px; right: 10px; }
-  .auth-menu-trigger { padding-right: 8px; font-size: 12px; }
+  .auth-menu-trigger { max-width: 210px; padding-right: 8px; font-size: 12px; }
+  .auth-menu-email { max-width: 128px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
