@@ -14,7 +14,7 @@
 | 2 | `BRD-PR-01` Windsoft 브랜드 표기 | 브랜딩 | merged (#4) | [plan](BRD-PR-01/plan.md) |
 | 3 | `AUTH-PR-02` Google 로그인·보호 라우트 | 인증 선행 | merged (#5) | [plan](AUTH-PR-02/plan.md) |
 | 4 | `AUTH-PR-03` 인증 identity 기반 owner context | 인증 선행 | merged (#6) | [plan](AUTH-PR-03/plan.md) |
-| 5 | `FND-PR-01` 런타임·화면 기반 | 0단계 | ready | [plan](FND-PR-01/plan.md) |
+| 5 | `FND-PR-01` 런타임·화면 기반 | 0단계 | in_progress | [plan](FND-PR-01/plan.md) |
 | 6 | `FND-PR-02` 도메인·Agent 계약 | 0단계 | planned | [plan](FND-PR-02/plan.md) |
 | 7 | `FND-PR-03` 테스트 기반 | 0단계 | planned | [plan](FND-PR-03/plan.md) |
 | 8 | `PRJ-PR-01` 라우팅·프로젝트 생성 | 1단계 | planned | [plan](PRJ-PR-01/plan.md) |

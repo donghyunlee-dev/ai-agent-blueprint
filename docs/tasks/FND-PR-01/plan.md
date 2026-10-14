@@ -2,7 +2,7 @@
 
 ## 상태
 
-**READY** — 선행 인증 계약, 구현 범위, UI 출처, 수용 기준과 검증 명령이 확정되어 있다.
+**IN_PROGRESS** — implementation is complete and self-validation passed; independent review and QA are running.
 
 ## 사용자/시스템 결과
 
@@ -88,6 +88,18 @@
 | Keyboard | Playwright Chromium; Agent Browser too if available | Tab/Enter/Space operation and visible focus for changed controls |
 | Reference/source mapping | implementation evidence | Names `image (17).png`, `image (16).png`, and login wireframe source; no template image shipped as product asset |
 | Patch hygiene | `git diff --check` | No whitespace errors |
+
+## 자체 검증 결과
+
+- `npm run build`: passed.
+- `npm run test:unit`: 76/76 passed.
+- `npm run test:e2e -- --workers=2`: 32/32 passed across desktop and mobile Chromium.
+- `npm ls --depth=0 react react-dom`: React and ReactDOM remain at 18.3.1.
+- `git diff --check`: passed; package/source/config scan found no `@sfood/ui` coupling or `ax-auth` entry.
+- Agent Browser was absent from the tool catalog and no executable was available; Playwright Chromium covered the same changed routes and keyboard/viewport checks.
+- Final screenshots: [evidence README](../../delivery/evidence/FND-PR-01/README.md), with `/` and `/login` at 1440×900 and 390×844.
+- Regression correction: loading the existing PRD session cleanup listener from app bootstrap preserves logout cleanup after retiring the old PRD page; the logout storage regression test passed.
+- Live Google sign-in was not tested; browser runs use deterministic mocked sessions.
 
 Agent Browser is preferred when available. If absent, record tool-catalog and executable checks and complete the same interaction/viewport QA in Playwright Chromium; its absence alone does not block QA.
 
