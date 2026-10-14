@@ -53,6 +53,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [proposalBulkAction, setProposalBulkAction] = useState<"approve" | "reject" | null>(null);
   const [selectedRejectIds, setSelectedRejectIds] = useState<string[]>([]);
   const [conflictChoices, setConflictChoices] = useState<Record<string, "keep_current" | "accept_proposed" | "edit">>({});
+  const proposalBulkDialogRef = useRef<HTMLDialogElement | null>(null);
+  const proposalBulkTriggerRef = useRef<HTMLButtonElement | null>(null);
   const operationGeneration = useRef(0);
   const ownerRef = useRef(ownerKey);
   const projectIdRef = useRef(projectId);
@@ -68,6 +70,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   ownerRef.current = ownerKey;
   projectIdRef.current = projectId;
   attemptRef.current = attempt;
+
+  useEffect(() => {
+    const dialog = proposalBulkDialogRef.current;
+    if (proposalBulkAction && dialog && !dialog.open) dialog.showModal();
+  }, [proposalBulkAction]);
 
   useEffect(() => {
     const generation = ++operationGeneration.current;
@@ -335,6 +342,15 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     finally { setProposalBusyId(null); }
   }
 
+  function closeBulkDialog() {
+    setProposalBulkAction(null);
+    window.requestAnimationFrame(() => {
+      const trigger = proposalBulkTriggerRef.current;
+      if (trigger && !trigger.disabled) trigger.focus();
+      else document.querySelector<HTMLElement>("#proposal-review-title")?.focus();
+    });
+  }
+
   async function resolveBulk(action: "approve" | "reject") {
     if (!ownerKey || !projectId || proposalBusyId) return;
     const latest = aggregateRef.current; if (!latest) return;
@@ -346,6 +362,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       const result = action === "approve" ? await bulkApproveProposals(input) : await bulkRejectProposals(input);
       if (result.aggregate) applyCommittedAggregate(result.aggregate);
       setProposalBulkAction(null); setSelectedRejectIds([]);
+      window.requestAnimationFrame(() => { const trigger = proposalBulkTriggerRef.current; if (trigger && !trigger.disabled) trigger.focus(); else document.querySelector<HTMLElement>("#workspace-work-panel h1")?.focus(); });
     } catch { setProposalError("일괄 저장에 실패했습니다. 제안과 확정 설계는 모두 처리 전 상태로 보존했습니다."); }
     finally { setProposalBusyId(null); }
   }
@@ -469,9 +486,9 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           <header className="workspace-panel-heading workspace-work-heading"><div><p className="workspace-eyebrow">{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</p><h1>{documentType === "requirements" ? "요구사항" : documentType === "prd" ? "제품 요구사항 문서" : documentType === "setup_guide" ? "설정 안내" : "설계"}</h1></div><button ref={inspectorTriggerRef} type="button" className="workspace-inspector-trigger" onClick={() => setInspectorOpen(true)}>상세 보기</button></header>
           <div className="workspace-work-content">
             {aggregate.proposals.some((proposal) => proposal.status === "pending") ? <section className="proposal-review" aria-labelledby="proposal-review-title">
-              <header className="proposal-review-heading"><div><p className="workspace-eyebrow">검토가 필요한 변경</p><h2 id="proposal-review-title">제안 {aggregate.proposals.filter((proposal) => proposal.status === "pending").length}개</h2></div><p>승인한 값만 확정 설계에 반영됩니다.</p></header>
-              {(() => { const review = classifyProposalConflicts(aggregate); return <div className="proposal-bulk-controls"><p>안전하게 승인 가능 {review.approvalCandidates.length}개 · 제외 {review.excluded.length}개{review.excluded.length ? ` (${review.excluded.map(({proposal,reason}) => `${proposal.id}: ${reason}`).join("; ")})` : ""}</p><button type="button" disabled={!review.approvalCandidates.length || Boolean(proposalBusyId)} onClick={() => setProposalBulkAction("approve")}>가능한 제안 일괄 승인</button><button type="button" disabled={!selectedRejectIds.length || Boolean(proposalBusyId)} onClick={() => setProposalBulkAction("reject")}>선택한 제안 일괄 거절 ({selectedRejectIds.length})</button></div>; })()}
-              {proposalBulkAction ? <div className="proposal-bulk-confirm" role="dialog" aria-modal="true" aria-labelledby="proposal-bulk-title"><h3 id="proposal-bulk-title">{proposalBulkAction === "approve" ? "충돌 없는 제안을 승인할까요?" : "선택한 제안을 거절할까요?"}</h3><p>{proposalBulkAction === "approve" ? `${classifyProposalConflicts(aggregate).approvalCandidates.length}개 승인, ${classifyProposalConflicts(aggregate).excluded.length}개 제외` : `${selectedRejectIds.length}개 제안 거절`}. 한 번의 저장 transaction으로 처리합니다.</p>{proposalError ? <p role="alert">{proposalError}</p> : null}<button type="button" onClick={() => setProposalBulkAction(null)}>취소</button><button type="button" disabled={Boolean(proposalBusyId)} onClick={() => void resolveBulk(proposalBulkAction)}>{proposalBulkAction === "approve" ? "승인" : "거절"} 확인</button></div> : null}
+              <header className="proposal-review-heading"><div><p className="workspace-eyebrow">검토가 필요한 변경</p><h2 id="proposal-review-title" tabIndex={-1}>제안 {aggregate.proposals.filter((proposal) => proposal.status === "pending").length}개</h2></div><p>승인한 값만 확정 설계에 반영됩니다.</p></header>
+              {(() => { const review = classifyProposalConflicts(aggregate); return <div className="proposal-bulk-controls"><p>안전하게 승인 가능 {review.approvalCandidates.length}개 · 제외 {review.excluded.length}개{review.excluded.length ? ` (${review.excluded.map(({proposal,reason}) => `${proposal.id}: ${reason}`).join("; ")})` : ""}</p><button type="button" disabled={!review.approvalCandidates.length || Boolean(proposalBusyId)} onClick={(event) => { proposalBulkTriggerRef.current = event.currentTarget; setProposalBulkAction("approve"); }}>가능한 제안 일괄 승인</button><button type="button" disabled={!selectedRejectIds.length || Boolean(proposalBusyId)} onClick={(event) => { proposalBulkTriggerRef.current = event.currentTarget; setProposalBulkAction("reject"); }}>선택한 제안 일괄 거절 ({selectedRejectIds.length})</button></div>; })()}
+              {proposalBulkAction ? <dialog ref={proposalBulkDialogRef} className="proposal-bulk-confirm" aria-labelledby="proposal-bulk-title" onCancel={(event) => { event.preventDefault(); closeBulkDialog(); }}><h3 id="proposal-bulk-title">{proposalBulkAction === "approve" ? "충돌 없는 제안을 승인할까요?" : "선택한 제안을 거절할까요?"}</h3><p>{proposalBulkAction === "approve" ? `${classifyProposalConflicts(aggregate).approvalCandidates.length}개 승인, ${classifyProposalConflicts(aggregate).excluded.length}개 제외` : `${selectedRejectIds.length}개 제안 거절`}. 한 번의 저장 transaction으로 처리합니다.</p>{proposalError ? <p role="alert">{proposalError}</p> : null}<button type="button" onClick={closeBulkDialog}>취소</button><button type="button" disabled={Boolean(proposalBusyId)} onClick={() => void resolveBulk(proposalBulkAction)}>{proposalBulkAction === "approve" ? "승인" : "거절"} 확인</button></dialog> : null}
               {proposalError ? <p className="proposal-review-error" role="alert">{proposalError}</p> : null}
               <ol className="proposal-review-list">{aggregate.proposals.filter((proposal) => proposal.status === "pending").map((proposal, index) => {
                 const value = (proposal.after ?? proposal.before ?? {}) as Record<string, unknown>;
