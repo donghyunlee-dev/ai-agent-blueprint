@@ -1,6 +1,6 @@
 # FND-PR-03 — 테스트 기반 구성
 
-> **상태: in_progress.** FND-PR-02 PR #8(52410c37e5640e29fc5823f501c303a0a39acabb)이 origin/main에 병합됐고, 현재 main에는 Node.js 내장 node:test unit/contract suite와 Playwright Chromium desktop/mobile E2E suite가 이미 있다. 이 PR은 두 runner를 교체하지 않고 표준 명령·실패 증거·산출물 위치를 정리한다. Implementation validation is recorded in `test-results.md`; independent review and QA remain pending.
+> **상태: ready_to_merge.** Implementation `d4e040e113ef52bf7ff4ea3b14ec5d82f3a2bee0`와 implementation validation이 완료됐다. 독립 review와 QA는 PR HEAD `f71f82e391d77c55466e3b6dcda265f97cbcea9a`에서 PASS다. 검증 기록은 `test-results.md`를 참조한다. PR merge 확인만 남았다.
 
 ## Overview
 
@@ -135,11 +135,11 @@ Given no CI workflow YAML is in scope, when the PR is reviewed, then the local t
 
 ## Done Checklist
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료 (해당 없음 — 화면 변경 없음)
+- [x] Requirements implemented
+- [x] Acceptance criteria verified
+- [x] 독립 코드 리뷰 pass (reviewed exact PR HEAD `f71f82e391d77c55466e3b6dcda265f97cbcea9a`)
+- [x] 독립 QA pass (exact PR HEAD `f71f82e391d77c55466e3b6dcda265f97cbcea9a`; product UI/browser screenshot evidence not applicable)
+- [x] 화면 변경 시 desktop/mobile 캡처 완료 (해당 없음 — 화면 변경 없음)
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서
