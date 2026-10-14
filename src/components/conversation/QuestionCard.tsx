@@ -7,7 +7,7 @@ import "../../styles/question-card.css";
 type AnswerAction = "answer" | "unknown" | "recommend" | "defer" | "skip";
 type Draft = { action: AnswerAction; selectedValues: string[]; customText: string; numberValue?: number; rangeValue?: { start: number; end: number }; rankedValues?: string[] };
 
-export function QuestionCard({ question, onSubmit }: { question: CatalogQuestion; onSubmit: (answer: Draft) => void }) {
+export function QuestionCard({ question, onSubmit }: { question: CatalogQuestion; onSubmit: (answer: Draft, effectiveAnswerMode: CatalogQuestion["answerMode"]) => void }) {
   const shown = useMemo(() => resolveQuestionForDisplay(question), [question]);
   const [draft, setDraft] = useState<Draft>({ action: "answer", selectedValues: [], customText: "" });
   const [error, setError] = useState("");
@@ -19,14 +19,14 @@ export function QuestionCard({ question, onSubmit }: { question: CatalogQuestion
     const checked = validateQuestionAnswer(shown, draft);
     if (!checked.valid) { setError(checked.error ?? "답변을 확인해 주세요."); return; }
     setError("");
-    onSubmit(draft.action === "defer" ? { action: "defer", selectedValues: [], customText: "" } : { ...draft, customText: draft.customText.trim() });
+    onSubmit(draft.action === "defer" ? { action: "defer", selectedValues: [], customText: "" } : { ...draft, customText: draft.customText.trim() }, shown.answerMode);
   };
   const chooseAction = (action: AnswerAction) => {
     const candidate = { ...draft, action };
     const checked = validateQuestionAnswer(shown, candidate);
     if (!checked.valid) { setError(checked.error ?? "응답을 확인해 주세요."); return; }
     setError("");
-    onSubmit(candidate);
+    onSubmit(candidate, shown.answerMode);
   };
   const toggleOption = (value: string, checked: boolean) => update({ selectedValues: checked ? [...draft.selectedValues, value] : draft.selectedValues.filter((item) => item !== value) });
 

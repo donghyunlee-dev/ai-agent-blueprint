@@ -28,3 +28,12 @@ export function rankQuestionCandidates(candidates: CatalogQuestion[], aggregate:
 export function selectNextQuestion(aggregate: unknown): CatalogQuestion | null;
 export function resolveQuestionForDisplay(spec: CatalogQuestion, displayedCatalogVersion?: string): CatalogQuestion;
 export function validateQuestionAnswer(spec: CatalogQuestion, answer: Record<string, any>): { valid: boolean; error?: string };
+export function createQuestionAnswerRecord(input: {
+  id: string;
+  projectId: string;
+  threadId: string;
+  question: CatalogQuestion;
+  answer: Record<string, any>;
+  effectiveAnswerMode?: QuestionSpec["answerMode"];
+  createdAt: string;
+}): import("../../domain/blueprint/types.js").QuestionAnswer;

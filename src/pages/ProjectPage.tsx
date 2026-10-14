@@ -12,7 +12,7 @@ import { clampConversationWidth, clampScrollOffset, getConversationScrollTop, ge
 import { AuthMenu } from "../components/auth/AuthMenu";
 import { QuestionCard } from "../components/conversation/QuestionCard";
 import type { CatalogQuestion } from "../features/conversation/questionEngine.js";
-import { getAnswerReviewState, QUESTION_CATALOG, selectNextQuestion } from "../features/conversation/questionEngine.js";
+import { createQuestionAnswerRecord, getAnswerReviewState, QUESTION_CATALOG, selectNextQuestion } from "../features/conversation/questionEngine.js";
 import { NotFoundPage } from "./NotFoundPage";
 import { ProjectNotFoundPage } from "./ProjectNotFoundPage";
 import "../styles/workspace-shell.css";
@@ -229,20 +229,14 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     saverRef.current?.schedule(updated);
   }
 
-  function saveQuestionAnswer(question: CatalogQuestion, answer: { action: "answer" | "unknown" | "recommend" | "defer" | "skip"; selectedValues: string[]; customText: string; numberValue?: number; rangeValue?: { start: number; end: number }; rankedValues?: string[] }) {
+  function saveQuestionAnswer(question: CatalogQuestion, answer: { action: "answer" | "unknown" | "recommend" | "defer" | "skip"; selectedValues: string[]; customText: string; numberValue?: number; rangeValue?: { start: number; end: number }; rankedValues?: string[] }, effectiveAnswerMode: CatalogQuestion["answerMode"]) {
     const latest = aggregateRef.current;
     if (!latest || !projectId) return;
     const now = new Date().toISOString();
     const id = crypto.randomUUID();
-    const savedAnswer: BlueprintAggregate["answers"][number] = {
-      id, projectId, threadId: latest.thread.id, questionId: question.id, logicalRequestId: id,
-      answerMode: question.answerMode, action: answer.action, createdAt: now,
-      ...(answer.selectedValues.length ? { selectedValues: answer.selectedValues } : {}),
-      ...(answer.customText.trim() ? { customText: answer.customText.trim() } : {}),
-      ...(answer.numberValue !== undefined ? { numberValue: answer.numberValue } : {}),
-      ...(answer.rangeValue ? { rangeValue: answer.rangeValue } : {}),
-      ...(answer.rankedValues?.length ? { rankedValues: answer.rankedValues } : {}),
-    };
+    const savedAnswer: BlueprintAggregate["answers"][number] = createQuestionAnswerRecord({
+      id, projectId, threadId: latest.thread.id, question, answer, effectiveAnswerMode, createdAt: now,
+    });
     const updated: BlueprintAggregate = {
       ...latest,
       answers: [...latest.answers, savedAnswer],
@@ -318,7 +312,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
               const value = answer.action === "defer" ? "나중에 결정" : answer.action === "skip" ? "건너뜀" : answer.action === "unknown" ? "잘 모르겠어요 · 설명 요청" : answer.action === "recommend" ? "추천 요청 · 검토 전" : [answer.customText, ...(answer.selectedValues ?? []).map((selected) => question?.options?.find((option) => option.value === selected)?.label ?? selected), answer.numberValue === undefined ? "" : String(answer.numberValue), answer.rangeValue ? `${answer.rangeValue.start}–${answer.rangeValue.end}` : "", ...(answer.rankedValues ?? []).map((ranked) => question?.options?.find((option) => option.value === ranked)?.label ?? ranked)].filter(Boolean).join(", ");
               return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{reviewRequired ? <p role="status">선행 답변 변경으로 다시 검토가 필요합니다.</p> : null}{answer.action === "defer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : answer.action === "answer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>수정</button> : null}</article>;
             })}</section> : null}
-            {activeQuestion ? <QuestionCard key={`${activeQuestion.id}-${reopenedQuestionAnswerId ?? "next"}`} question={activeQuestion} onSubmit={(answer) => saveQuestionAnswer(activeQuestion, answer)} /> : <p className="question-complete-state" role="status">{aggregate.project.readiness.pendingProposalCount ? "제안 검토를 마치면 다음 질문이 이어집니다." : "현재 필요한 질문에 답했습니다."}</p>}
+            {activeQuestion ? <QuestionCard key={`${activeQuestion.id}-${reopenedQuestionAnswerId ?? "next"}`} question={activeQuestion} onSubmit={(answer, effectiveAnswerMode) => saveQuestionAnswer(activeQuestion, answer, effectiveAnswerMode)} /> : <p className="question-complete-state" role="status">{aggregate.project.readiness.pendingProposalCount ? "제안 검토를 마치면 다음 질문이 이어집니다." : "현재 필요한 질문에 답했습니다."}</p>}
           </div>
         </section>
         <button className="workspace-resizer" type="button" role="separator" aria-orientation="vertical" aria-label="대화 패널 너비" aria-valuemin={320} aria-valuemax={420} aria-valuenow={conversationWidth} onKeyDown={(event) => {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { QUESTION_CATALOG, getAnswerReviewState, getQuestionCandidates, rankQuestionCandidates, resolveQuestionForDisplay, selectNextQuestion, validateQuestionAnswer } from '../../src/features/conversation/questionEngine.js';
+import { createQuestionAnswerRecord, QUESTION_CATALOG, getAnswerReviewState, getQuestionCandidates, rankQuestionCandidates, resolveQuestionForDisplay, selectNextQuestion, validateQuestionAnswer } from '../../src/features/conversation/questionEngine.js';
 
 const aggregate = (overrides = {}) => ({
   project: { readiness: { pendingProposalCount: 0 } }, answers: [], designItems: [],
@@ -126,4 +126,15 @@ test('each answer mode accepts valid values and rejects missing, invalid, or out
   assert.equal(staleFallback.answerMode, 'text');
   assert.deepEqual(staleFallback.allowedAnswerModes, ['text']);
   assert.equal(validateQuestionAnswer(staleFallback, { action: 'answer', customText: '안전한 직접 입력' }).valid, true);
+  assert.equal(staleMultiple.answerMode, 'multiple');
+  const savedFallbackAnswer = createQuestionAnswerRecord({
+    id: 'answer-fallback', projectId: 'project-1', threadId: 'thread-1', question: staleMultiple,
+    answer: { action: 'answer', selectedValues: [], customText: '  안전한 직접 입력  ' },
+    effectiveAnswerMode: staleFallback.answerMode, createdAt: '2026-10-14T00:00:00.000Z',
+  });
+  assert.deepEqual(savedFallbackAnswer, {
+    id: 'answer-fallback', projectId: 'project-1', threadId: 'thread-1', questionId: 'core-features',
+    logicalRequestId: 'answer-fallback', answerMode: 'text', action: 'answer',
+    createdAt: '2026-10-14T00:00:00.000Z', customText: '안전한 직접 입력',
+  });
 });

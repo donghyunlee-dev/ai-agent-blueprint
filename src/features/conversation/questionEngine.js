@@ -154,3 +154,21 @@ export function validateQuestionAnswer(spec, answer) {
   if (selected.length > (spec.maxSelections ?? Infinity)) return error(`최대 ${spec.maxSelections}개까지 선택할 수 있습니다.`);
   return { valid: true };
 }
+
+export function createQuestionAnswerRecord({ id, projectId, threadId, question: questionSpec, answer, effectiveAnswerMode, createdAt }) {
+  return {
+    id,
+    projectId,
+    threadId,
+    questionId: questionSpec.id,
+    logicalRequestId: id,
+    answerMode: effectiveAnswerMode ?? questionSpec.answerMode,
+    action: answer.action,
+    createdAt,
+    ...(answer.selectedValues?.length ? { selectedValues: answer.selectedValues } : {}),
+    ...(answer.customText?.trim() ? { customText: answer.customText.trim() } : {}),
+    ...(answer.numberValue !== undefined ? { numberValue: answer.numberValue } : {}),
+    ...(answer.rangeValue ? { rangeValue: answer.rangeValue } : {}),
+    ...(answer.rankedValues?.length ? { rankedValues: answer.rankedValues } : {}),
+  };
+}
