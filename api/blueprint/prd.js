@@ -1,4 +1,5 @@
 import { requestStructuredOutput, sendJson } from "../_lib/blueprint-openai.js";
+import { rejectCrossOriginMutation, rejectUnauthenticated } from "../_lib/require-session.js";
 
 const schema = {
   type: "object", additionalProperties: false,
@@ -6,10 +7,11 @@ const schema = {
   required: ["title", "summary", "prdMarkdown"],
 };
 
-export default async function handler(req, res) {
+export default async function handler(req, res, deps = {}) {
+  if (rejectUnauthenticated(req, res) || rejectCrossOriginMutation(req, res)) return;
   if (req.method !== "POST") return sendJson(res, 405, { error: "METHOD_NOT_ALLOWED" });
   try {
-    const result = await requestStructuredOutput({
+    const result = await (deps.requestStructuredOutput || requestStructuredOutput)({
       name: "blueprint_prd",
       schema,
       messages: [

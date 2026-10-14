@@ -2,6 +2,7 @@ import { normalizeMarkdownStructure, stripEmoji } from "../survey/textSanitizer"
 import { buildFallbackPrd } from "./fallbackPrd";
 import { buildPrdPromptMessages } from "./promptTemplates";
 import { PrdGenerationInput, StructuredPrd } from "./types";
+import { fetchBlueprintApi } from "../auth/sessionFetch";
 
 const prdSchema = {
   type: "object",
@@ -47,7 +48,7 @@ function sanitizePrd(value: StructuredPrd): StructuredPrd {
 }
 
 async function requestOpenAIPrd(input: PrdGenerationInput) {
-  const response = await fetch("/api/blueprint/prd", {
+  const response = await fetchBlueprintApi("/api/blueprint/prd", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),

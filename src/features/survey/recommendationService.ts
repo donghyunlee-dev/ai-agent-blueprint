@@ -8,6 +8,7 @@ import {
   StructuredRecommendation,
   SurveyFormData,
 } from "./types";
+import { fetchBlueprintApi } from "../auth/sessionFetch";
 
 const recommendationSchema = {
   type: "object",
@@ -109,7 +110,7 @@ function ensureGuideDocs(
 }
 
 async function requestOpenAIRecommendation(data: SurveyFormData) {
-  const response = await fetch("/api/blueprint/requirements", {
+  const response = await fetchBlueprintApi("/api/blueprint/requirements", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ formData: data }),

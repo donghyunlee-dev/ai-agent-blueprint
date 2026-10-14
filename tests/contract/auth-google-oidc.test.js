@@ -190,7 +190,7 @@ test("callback refuses unverified identities and leaks no credentials", async ()
 test("logout clears the session cookie idempotently", async () => {
   for (let call = 0; call < 2; call += 1) {
     const res = createMockRes();
-    await logoutHandler(createMockReq({ method: "POST", url: "/api/auth/logout" }), res);
+    await logoutHandler(createMockReq({ method: "POST", url: "/api/auth/logout", headers: { host: "app.example", origin: "http://app.example" } }), res);
     assert.equal(res.statusCode, 204);
     assert.match(res.headers["Set-Cookie"], /Max-Age=0/);
   }

@@ -1,4 +1,5 @@
 import { conversationSchema, requestStructuredOutput, sendJson } from "../_lib/blueprint-openai.js";
+import { rejectCrossOriginMutation, rejectUnauthenticated } from "../_lib/require-session.js";
 
 const phaseGuidance = {
   service: "서비스 이름, 해결 문제, 사용자, 핵심 기능을 파악한다.",
@@ -58,7 +59,8 @@ function normalizeResult(result, targetField, requestOptions = []) {
   };
 }
 
-export default async function handler(req, res) {
+export default async function handler(req, res, deps = {}) {
+  if (rejectUnauthenticated(req, res) || rejectCrossOriginMutation(req, res)) return;
   if (req.method !== "POST") return sendJson(res, 405, { error: "METHOD_NOT_ALLOWED" });
   const body = req.body || {};
   if (typeof body.message !== "string" || !body.message.trim() || body.message.length > 4000) {
@@ -71,7 +73,7 @@ export default async function handler(req, res) {
   const targetField = typeof body.targetField === "string" ? body.targetField : "serviceDesc";
   const allowedOptions = Array.isArray(body.allowedOptions) ? body.allowedOptions : [];
   try {
-    const result = await requestStructuredOutput({
+    const result = await (deps.requestStructuredOutput || requestStructuredOutput)({
       name: "conversational_blueprint_turn",
       schema: conversationSchema,
       messages: [

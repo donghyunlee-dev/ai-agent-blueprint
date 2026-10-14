@@ -13,6 +13,6 @@ export default function handler(req, res) {
     return;
   }
   const result = requireSession(req);
-  if (!result.ok) return sendJson(res, 401, { authenticated: false });
+  if (!result.ok) return sendJson(res, 401, { error: "AUTH_REQUIRED" });
   return sendJson(res, 200, { authenticated: true, user: result.user });
 }

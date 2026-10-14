@@ -1,5 +1,6 @@
 import { BlueprintQuestion, StageId } from "./blueprintQuestions";
 import { ChatMessage, ConfirmedDecision, ConversationReply } from "./types";
+import { fetchBlueprintApi } from "../auth/sessionFetch";
 
 export async function requestConversationTurn(input: {
   message: string;
@@ -9,7 +10,7 @@ export async function requestConversationTurn(input: {
   decisions: ConfirmedDecision[];
   signal?: AbortSignal;
 }): Promise<ConversationReply> {
-  const response = await fetch("/api/blueprint/chat", {
+  const response = await fetchBlueprintApi("/api/blueprint/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

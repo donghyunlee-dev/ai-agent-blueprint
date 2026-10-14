@@ -7,6 +7,11 @@ export function savePrdContext(context: PrdGenerationContext) {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(context));
 }
 
+export function clearPrdContext() {
+  sessionStorage.removeItem(STORAGE_KEY);
+  sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+}
+
 export function loadPrdContext(): PrdGenerationContext | null {
   const current = sessionStorage.getItem(STORAGE_KEY);
   if (current !== null) {
@@ -72,4 +77,8 @@ function parseContext(raw: string): PrdGenerationContext | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("blueprint:clear-session-state", clearPrdContext);
 }
