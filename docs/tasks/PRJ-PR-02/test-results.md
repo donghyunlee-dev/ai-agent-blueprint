@@ -31,3 +31,7 @@ Agent Browser was unavailable in this environment: no Agent Browser tool was exp
 ## Remaining workflow gates
 
 Independent code review and independent QA have not run in this implementation phase. This report records self-validation only; those gates remain with the coordinator workflow.
+
+## Screenshot raster correction
+
+All indexed Playwright captures are regenerated with `scale: 'css'` and `fullPage: false`, producing exact 1440×900 desktop and 390×844 mobile rasters regardless of device pixel ratio. The 19-project boundary, successful 19→20 creation, and debounced title-saved QA captures are included in the evidence index. The first full capture refresh had one transient mobile fixture-navigation timeout (23/24); the isolated case passed 2/2 and the subsequent complete PRJ-02 run passed 24/24 without changing timeout settings.

@@ -40,7 +40,7 @@ test('home shows an empty recent state and focuses the composer action', async (
   await expect(page.getByRole('heading', { name: '아직 프로젝트가 없습니다' })).toBeVisible();
   await page.getByRole('button', { name: '아이디어 입력하기' }).click();
   await expect(page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' })).toBeFocused();
-  await page.screenshot({ path: path.join(evidenceDirectory, `home-empty-${testInfo.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(evidenceDirectory, `home-empty-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
 });
 
 test('saving state remains visible while project creation is pending', async ({ page }, testInfo) => {
@@ -48,7 +48,7 @@ test('saving state remains visible while project creation is pending', async ({ 
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill('저장 중 상태를 확인합니다.');
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
   await expect(page.getByRole('status')).toContainText('저장 중');
-  await page.screenshot({ path: path.join(evidenceDirectory, `saving-${testInfo.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(evidenceDirectory, `saving-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
   await page.evaluate(() => window.releaseProjectCommand?.());
   await expect.poll(() => page.locator('[data-created-project]').getAttribute('data-created-project')).toMatch(/^[0-9a-f-]{36}$/i);
 });
@@ -97,7 +97,7 @@ test('recent projects sort by last opened and reveal six initially and at most t
   await expect(page.getByRole('list', { name: '최근 프로젝트 목록' }).getByRole('listitem')).toHaveCount(6);
   await expect(page.getByRole('link', { name: /저장된 프로젝트 6/ }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: /전체 보기/ })).toHaveCount(0);
-  await page.screenshot({ path: path.join(evidenceDirectory, `home-six-${testInfo.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(evidenceDirectory, `home-six-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
 
   await seedProjects(page, 20);
   await page.reload();
@@ -105,10 +105,10 @@ test('recent projects sort by last opened and reveal six initially and at most t
   await expect(list.getByRole('listitem')).toHaveCount(6);
   await expect(page.getByRole('button', { name: '전체 보기 (20)' })).toBeVisible();
   await list.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: path.join(evidenceDirectory, `home-twenty-collapsed-${testInfo.project.name}.png`), fullPage: false });
+  await page.screenshot({ path: path.join(evidenceDirectory, `home-twenty-collapsed-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
   await page.getByRole('button', { name: '전체 보기 (20)' }).click();
   await expect(list.getByRole('listitem')).toHaveCount(20);
-  await page.screenshot({ path: path.join(evidenceDirectory, `home-twenty-expanded-${testInfo.project.name}.png`), fullPage: false });
+  await page.screenshot({ path: path.join(evidenceDirectory, `home-twenty-expanded-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
 });
 
 test('project creation saves before navigation and recovers the canonical data after reload', async ({ page }, testInfo) => {
@@ -128,7 +128,7 @@ test('project creation saves before navigation and recovers the canonical data a
   await expect(page.getByRole('alert')).toContainText('프로젝트를 만들지 못했습니다.');
   await expect(page).toHaveURL('/');
   await expect(idea).toHaveValue('저장되기 전에는 작업 공간으로 이동하지 않습니다.');
-  await page.screenshot({ path: path.join(evidenceDirectory, `save-failed-${testInfo.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(evidenceDirectory, `save-failed-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
   await page.evaluate(() => {
     const prototype = IDBObjectStore.prototype as IDBObjectStore & { __originalPut?: IDBObjectStore['put'] };
     if (prototype.__originalPut) Object.defineProperty(prototype, 'put', { configurable: true, value: prototype.__originalPut });
@@ -136,7 +136,7 @@ test('project creation saves before navigation and recovers the canonical data a
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
   await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
   await expect(page.getByText(/^저장됨 ·/)).toBeVisible();
-  await page.screenshot({ path: path.join(evidenceDirectory, `saved-${testInfo.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(evidenceDirectory, `saved-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
   await page.reload();
   await expect(page.getByRole('heading', { name: '저장되기 전에는 작업 공간으로 이동하지 않습니다.' })).toBeVisible();
 });
@@ -160,14 +160,14 @@ test('editable canonical title preserves edits through save failure and retry', 
   await expect(page.getByRole('status')).toContainText('저장 중');
   await expect(page.getByRole('alert')).toContainText('저장하지 못했습니다');
   await expect(title).toHaveValue('수정한 프로젝트 제목');
-  await page.screenshot({ path: path.join(evidenceDirectory, `title-save-failed-${testInfo.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(evidenceDirectory, `title-save-failed-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
   await page.evaluate(() => {
     const prototype = IDBObjectStore.prototype as IDBObjectStore & { __originalPut?: IDBObjectStore['put'] };
     if (prototype.__originalPut) Object.defineProperty(prototype, 'put', { configurable: true, value: prototype.__originalPut });
   });
   await page.getByRole('button', { name: '저장 다시 시도' }).click();
   await expect(page.getByRole('status')).toContainText('저장됨');
-  await page.screenshot({ path: path.join(evidenceDirectory, `title-saved-${testInfo.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(evidenceDirectory, `title-saved-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
   await page.reload();
   await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue('수정한 프로젝트 제목');
 });
@@ -225,7 +225,7 @@ test('twenty-first request uses a keyboard-accessible confirmation and keeps twe
   const confirm = dialog.getByRole('button', { name: '삭제하고 만들기' });
   await expect(cancel).toBeFocused();
   expect(await dialog.evaluate((element) => getComputedStyle(element, '::backdrop').backdropFilter)).toBe('none');
-  await page.screenshot({ path: path.join(evidenceDirectory, `limit-modal-${testInfo.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(evidenceDirectory, `limit-modal-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
   await page.keyboard.press('Tab');
   await expect(confirm).toBeFocused();
   await page.keyboard.press('Tab');
