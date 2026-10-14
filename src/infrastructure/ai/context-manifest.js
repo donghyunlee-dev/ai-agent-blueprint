@@ -6,7 +6,7 @@ export function validateReferences(response, manifest, targetContext) {
  const requirementIds=new Set([...(targetContext?.requirementIds ?? []),...(targetContext?.requirements ?? []).map(item=>typeof item==='string'?item:item.id)]);
  const openIssueIds=new Set([...(targetContext?.openIssueIds ?? []),...(targetContext?.openIssues ?? []).map(item=>typeof item==='string'?item:item.id)]);
  const questionIds=new Set([manifest.currentQuestionId,...(targetContext?.questionIds??[]),...(targetContext?.questions??[]).map(item=>typeof item==='string'?item:item.id)].filter(Boolean));
- const sectionIds=new Set([...(targetContext?.sectionKeys??[]),...(targetContext?.documentSections??[]).flatMap(item=>typeof item==='string'?[item]:[item.id,item.key]),...(response.sections??[]).map(item=>item.key)].filter(Boolean));
+ const sectionIds=new Set([...(targetContext?.sectionKeys??[]),...(targetContext?.documentSections??[]).flatMap(item=>typeof item==='string'?[item]:[item.id,item.key])].filter(Boolean));
  const issueIds=new Set([...(targetContext?.issueIds??[]),...(targetContext?.issues??[]).map(item=>typeof item==='string'?item:item.id)]);
  const proposalIds=new Set([...(targetContext?.proposalIds??[]),...(targetContext?.proposals??[]).map(item=>typeof item==='string'?item:item.id),(response.proposals??[]).map(proposal=>proposal.id)].filter(Boolean));
  const itemReferenceFields=new Set(['referencedItemIds','affectedItemIds','relatedItemIds','itemIds','sourceItemIds']);

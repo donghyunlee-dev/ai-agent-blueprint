@@ -57,6 +57,21 @@ test('golden gate validates nested Requirements and PRD source IDs', () => {
   assert.ok(prd.errors.some((error) => error.includes('goals[0].sourceItemIds')));
 });
 
+test('PRD section links cannot establish their own canonical section IDs', () => {
+  const result = evaluateGoldenFixture({
+    id: 'prd-self-whitelisted-section', task: 'PRD_DRAFT', schemaVersion: 'v1',
+    response: {
+      sections: [{ key: 'invented', title: '범위', markdown: '내용', sourceItemIds: [] }],
+      requirementLinks: [{ sectionKey: 'invented', requirementIds: [] }],
+      goals: [], successMetrics: [], risks: [],
+    },
+    manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] },
+    targetContext: { sectionKeys: [], requirements: [] },
+  });
+  assert.equal(result.pass, false);
+  assert.ok(result.errors.some((error) => error.includes('requirementLinks[0].sectionKey: unknown section invented')));
+});
+
 test('golden gate rejects readiness decisions in model output', () => {
   const result = evaluateGoldenFixture({
     ...validFixture,
@@ -100,6 +115,22 @@ test('golden gate rejects assistant-authored confirmation language but ignores q
   });
   assert.equal(english.pass, false);
   assert.ok(english.errors.some((error) => error.includes('assistant text claims confirmation')));
+});
+
+test('golden gate catches varied Korean approval and final-confirmation claims', () => {
+  const claims = [
+    '요구사항이 승인된 상태입니다.',
+    '사용자가 이 항목을 승인했습니다.',
+    '이 항목은 최종 확정된 상태입니다.',
+  ];
+  for (const content of claims) {
+    const result = evaluateGoldenFixture({
+      ...validFixture,
+      response: { ...validFixture.response, blocks: [{ type: 'assistant_text', content }] },
+    });
+    assert.equal(result.pass, false, content);
+    assert.ok(result.errors.some((error) => error.includes('assistant text claims confirmation')), content);
+  }
 });
 
 test('golden runner is wired into the repository CI gate', async () => {

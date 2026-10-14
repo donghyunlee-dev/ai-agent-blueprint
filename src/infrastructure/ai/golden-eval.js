@@ -49,7 +49,7 @@ function assertsConfirmation(text) {
   const withoutQuotedText = text
     .replace(/“[^”]*”|‘[^’]*’|「[^」]*」|『[^』]*』|«[^»]*»|"[^"\n]*"|'[^'\n]*'|`[^`]*`/gs, ' ')
     .replace(/^\s*>.*$/gm, ' ');
-  const koreanClaim = /(?:확정(?:되었|됐)(?:습니다|어요|다)?|확정입니다|승인(?:되었|됐)(?:습니다|어요|다)?|승인되었습니다|승인됐습니다)/u;
+  const koreanClaim = /(?:확정(?:되었|됐)(?:습니다|어요|다)?|(?:최종\s*)?확정된\s*(?:상태(?:입니다|예요|다)|것입니다|것으로\s*(?:확정|결정)(?:되었습니다|됐습니다))?|확정입니다|승인(?:되었|됐)(?:습니다|어요|다)?|승인된\s*(?:상태(?:입니다|예요|다)|것입니다)?|승인(?:하였|했)(?:습니다|어요|다))/u;
   const englishClaim = /\b(?:(?:this|that|the\s+(?:item|requirement|proposal|design|feature|content))\s+)?(?:is|was|has been|has now been)\s+(?:confirmed|approved|finalized)\b/i;
   return koreanClaim.test(withoutQuotedText) || englishClaim.test(withoutQuotedText);
 }

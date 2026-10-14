@@ -119,6 +119,7 @@ flowchart TD
 - Given 프로젝트가 hard budget을 초과한 상태, when 새 AI 요청이 들어오면, then provider 호출 없이 즉시 차단되고 대안 신호가 반환된다.
 - Given golden eval에서 금지 결과(미승인 확정, 참조 ID 없음)가 발견된 상태, when 배포 파이프라인이 실행되면, then 해당 model/prompt 변경이 배포되지 않는다.
 - Given document payload의 section, requirement, acceptance criterion, evidence, issue, question, proposal, 또는 target 참조 ID가 manifest/canonical context에 없을 때, when API domain validation 또는 golden eval이 실행되면, then 해당 payload가 거절된다.
+- Given PRD `requirementLinks.sectionKey`가 응답 안의 section에는 있지만 canonical `targetContext.documentSections`/`sectionKeys`에는 없을 때, when 검증하면, then 자체 선언 section으로 링크를 허용하지 않고 거절한다.
 - Given 모델 응답이 readiness/completion/승인 결과를 정하거나 canonical answer mode/stable value를 바꿀 때, when golden eval이 실행되면, then 호출자가 제공한 fixture label과 무관하게 실패한다.
 - Given `assistant_text`가 한국어 또는 영어로 항목이 이미 확정/승인됐다고 주장할 때, when golden eval이 실행되면, then 인용/근거 텍스트는 제외하고 해당 응답을 실패시킨다.
 - Given token estimates가 있을 때, when budget/ledger 비용을 기록하면, then registered profile price로 비용을 재계산하며 위조된 0원 estimate는 provider 전에 거절된다.
