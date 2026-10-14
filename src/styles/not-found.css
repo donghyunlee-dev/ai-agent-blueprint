@@ -17,7 +17,10 @@
 }
 
 .not-found-page h1 { margin: 0; font-size: clamp(24px, 4vw, 32px); letter-spacing: -.03em; }
-.not-found-page > p:not(.not-found-code) { margin: 12px 0 22px; color: var(--color-text-muted); font-size: 15px; }
+.not-found-page > p:not(.not-found-code) { max-width: 480px; margin: 12px 0 22px; color: var(--color-text-muted); font-size: 15px; line-height: 1.6; }
+.not-found-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .not-found-page a { padding: 10px 14px; border: 1px solid var(--color-border-strong); border-radius: 10px; color: var(--color-text-strong); font-size: 14px; font-weight: 650; text-decoration: none; }
 .not-found-page a:hover { background: var(--color-surface-strong); }
+.not-found-page .not-found-primary { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
+.not-found-page .not-found-primary:hover { background: #1d4ed8; }
 .not-found-page a:focus-visible { outline: 3px solid #78aaff; outline-offset: 3px; }

@@ -1,24 +1,46 @@
+import { useNavigate } from "react-router-dom";
+import { ProjectComposer } from "../components/projects/ProjectComposer";
+import { useAuth } from "../features/auth/AuthProvider";
 import "../styles/home.css";
 
 export function HomePage() {
+  const { ownerKey } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <div className="home-shell">
       <header className="home-shell-header">
-        <div className="home-shell-brand">
+        <a className="home-shell-brand" href="/" aria-label="Blueprint 홈">
           <span className="home-shell-mark" aria-hidden="true">W</span>
-          <span>Windsoft Blueprint</span>
-        </div>
+          <span>Blueprint</span>
+        </a>
+        <a className="home-shell-guide" href="#workflow">사용 방법</a>
       </header>
       <main className="home-shell-main">
         <section className="home-shell-intro" aria-labelledby="home-shell-title">
           <p className="home-shell-eyebrow">PRODUCT BLUEPRINT</p>
-          <h1 id="home-shell-title">새 Blueprint 시작</h1>
-          <p>아이디어를 검토 가능한 제품 계획으로 구체화하는 공간입니다.</p>
+          <h1 id="home-shell-title">아이디어를 제품 설계로 구체화하세요</h1>
+          <p>AI와 함께 결정하고 Requirements와 PRD를 완성합니다.</p>
         </section>
-        <section className="home-shell-empty" aria-labelledby="home-shell-empty-title">
-          <span className="home-shell-empty-mark" aria-hidden="true">＋</span>
-          <h2 id="home-shell-empty-title">프로젝트 시작 화면을 준비하고 있습니다</h2>
-          <p>새 Blueprint와 최근 프로젝트 기능이 준비되면 이곳에서 이어서 작업할 수 있습니다.</p>
+        <ProjectComposer ownerKey={ownerKey} onCreated={(projectId) => navigate("/blueprints/" + projectId)} />
+        <figure className="home-workflow" id="workflow" aria-label="Blueprint 작업 흐름">
+          <div><span>01</span><strong>대화</strong><p>아이디어와 필요한 내용을 정리합니다.</p></div>
+          <span className="home-workflow-arrow" aria-hidden="true">→</span>
+          <div><span>02</span><strong>제안 검토</strong><p>변경할 설계 내용을 확인합니다.</p></div>
+          <span className="home-workflow-arrow" aria-hidden="true">→</span>
+          <div><span>03</span><strong>문서 완성</strong><p>Requirements와 PRD를 만듭니다.</p></div>
+        </figure>
+        <section className="home-shell-recent" aria-labelledby="home-recent-title">
+          <div className="home-recent-heading">
+            <h2 id="home-recent-title">최근 Blueprint</h2>
+            <p>최근 작업한 프로젝트를 이어서 진행할 수 있습니다.</p>
+          </div>
+          <div className="home-shell-empty">
+            <span className="home-shell-empty-mark" aria-hidden="true">＋</span>
+            <h3>아직 프로젝트가 없습니다</h3>
+            <p>위에서 첫 Blueprint를 시작하세요.</p>
+            <button type="button" onClick={() => document.getElementById("project-idea")?.focus()}>아이디어 입력하기</button>
+          </div>
         </section>
       </main>
     </div>

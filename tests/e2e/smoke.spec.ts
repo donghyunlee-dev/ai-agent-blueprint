@@ -21,14 +21,16 @@ test("/login은 공개 로그인 화면을 제공한다", async ({ page }, testI
   await page.screenshot({ path: path.join(evidenceDirectory, `login-${testInfo.project.name}.png`), scale: "css" });
 });
 
-test("/는 인증 확인 후 임시 보호 시작 화면을 제공한다", async ({ page }, testInfo) => {
+test("/는 인증 확인 후 프로젝트 시작 composer를 제공한다", async ({ page }, testInfo) => {
   await page.route("**/api/auth/session", (route) => route.fulfill({ status: 200, json: {
     authenticated: true,
     user: { issuer: "https://accounts.google.com", subject: "qa-user", email: "verified@example.test" },
   } }));
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "새 Blueprint 시작" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "프로젝트 시작 화면을 준비하고 있습니다" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "아이디어를 제품 설계로 구체화하세요" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "만들고 싶은 제품이나 해결할 문제" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Blueprint 시작" })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "아직 프로젝트가 없습니다" })).toBeVisible();
   await expect(page.locator(".auth-menu")).toBeVisible();
   const brand = await page.locator(".home-shell-brand").boundingBox();
   const menu = await page.locator(".auth-menu-trigger").boundingBox();

@@ -9,7 +9,7 @@ test("보호 화면은 로그인 후 안전한 returnTo로 복귀한다", async 
   await page.goto("/");
 
   await expect(page.getByRole("status")).toHaveText("로그인 상태를 확인하고 있습니다.");
-  await expect(page.getByRole("heading", { name: "새 Blueprint 시작" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "만들고 싶은 제품이나 해결할 문제" })).toHaveCount(0);
   await page.screenshot({ path: `.pr-artifacts/AUTH-PR-02/${testInfo.project.name}-auth-check.png`, fullPage: true, scale: "css" });
   releaseSession();
   await expect(page).toHaveURL(/\/login\?returnTo=%2F$/);
@@ -66,12 +66,12 @@ test("세션 만료 응답은 보호 내용을 가리고 재인증 안내를 보
     user: { issuer: "https://accounts.google.com", subject: "qa-user", email: "verified@example.test" },
   } }));
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "새 Blueprint 시작" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "아이디어를 제품 설계로 구체화하세요" })).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event("blueprint:session-expired")));
 
   await expect(page.getByRole("alert")).toContainText("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.");
   await expect(page.getByRole("alert")).toBeFocused();
-  await expect(page.getByRole("heading", { name: "새 Blueprint 시작" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "만들고 싶은 제품이나 해결할 문제" })).toHaveCount(0);
   await page.screenshot({ path: `.pr-artifacts/AUTH-PR-02/${testInfo.project.name}-session-expired.png`, fullPage: true, scale: "css" });
 });
 
@@ -87,7 +87,7 @@ test("Blueprint 로그아웃은 사용자 메뉴에서 한 번만 수행되고 �
     await route.fulfill({ status: 204, body: "" });
   });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "새 Blueprint 시작" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "아이디어를 제품 설계로 구체화하세요" })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
   await page.evaluate(() => {
@@ -112,5 +112,5 @@ test("Blueprint 로그아웃은 사용자 메뉴에서 한 번만 수행되고 �
   ])).toEqual([null, null, "preserve"]);
   await page.keyboard.press("Alt+ArrowLeft");
   await expect(page.getByRole("heading", { name: "Agent Blueprint" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "새 Blueprint 시작" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "만들고 싶은 제품이나 해결할 문제" })).toHaveCount(0);
 });
