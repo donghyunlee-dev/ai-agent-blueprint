@@ -174,13 +174,16 @@ Given 사용자가 19개 이하의 프로젝트를 가지고 있으면, when 새
 
 ## Done Checklist
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료
+- [x] Requirements implemented (code/evidence HEAD `69e63bd08437956b0b389a44cd93ef4f68c6f407`)
+- [x] Acceptance criteria verified
+- [x] 독립 코드 리뷰 pass (PASS at `69e63bd08437956b0b389a44cd93ef4f68c6f407`)
+- [x] 독립 QA pass (PASS at `69e63bd08437956b0b389a44cd93ef4f68c6f407`)
+- [x] 화면 변경 시 desktop/mobile 캡처 완료 (26 indexed PNGs; 1440×900 and 390×844)
 - [ ] 사용자 PR 머지 확인
 
-## 실행 시 추가 문서
+**Current delivery status: `ready_to_merge` (PR #11); merge has not occurred.** The review, QA, and implementation evidence refer to code/evidence HEAD `69e63bd08437956b0b389a44cd93ef4f68c6f407`; this documentation-only status update does not change that tested code.
 
-- 이 폴더에 구현 중/후 `test-results.md`, `review-notes.md`, `qa-report.md` 등을 추가로 생성한다(지금은 생성하지 않음).
+## 실행 증거 문서
+
+- [`test-results.md`](test-results.md)는 implementation validation, independent code review, independent QA 결과를 각각 기록한다.
+- PR #11은 `ready_to_merge`이며 아직 병합되지 않았다. 사용자 merge 확인 전까지 status docs에 `merged`를 쓰지 않는다.

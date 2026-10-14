@@ -22,15 +22,35 @@ The E2E default was reduced from two workers to one in `package.json`. The full 
 
 The correction pass's focused autosave unit suite passed 3/3, its delete race subset passed 4/4, and final literal `npm run test:ci` passed with 122 unit/contract tests and 84 Playwright tests plus production build.
 
+## Independent code review
+
+**PASS** on exact implementation/evidence HEAD `69e63bd08437956b0b389a44cd93ef4f68c6f407`.
+
+- Reviewer ran the owner-switch regression cases on desktop and mobile: 4/4 passed. These cover successful-delete owner-switch lock release and stale retry/save completion isolation.
+- Reviewer verified all 26 indexed PNG captures have the required CSS viewport dimensions (1440×900 desktop, 390×844 mobile), checked the E2E assertion for the exact 20-project expanded-list count, and ran `git diff --check` successfully.
+- Resolved findings on this HEAD: (1) release the project submission lock when a confirmed-delete operation becomes stale after owner switch; (2) guard project load, background save, and retry completion by owner/project/attempt/generation so stale A work cannot overwrite B state; (3) wire the canonical project-title editor to the 500ms autosave helper with invalid input/draft retention and saving/saved/failed/retry states; (4) clear stale owner A modal/error and release operation flags if delete rejects after switching to B. Regression coverage was added for each affected race or autosave behavior.
+
+## Independent QA
+
+**PASS** on exact implementation/evidence HEAD `69e63bd08437956b0b389a44cd93ef4f68c6f407`.
+
+| Command / check | Result |
+| --- | --- |
+| `npm run test:e2e:ci -- tests/e2e/prj-pr02.spec.ts --workers=1` | Passed, 24/24 across desktop and mobile Chromium. |
+| Browser flow at CSS viewports 1440×900 and 390×844, Vite `127.0.0.1:5184` | At 19 projects, creation to 20 showed no deletion dialog. Title remained unsaved at 350ms and persisted at 559ms desktop / 563ms mobile. Horizontal overflow was 0. |
+| Evidence links and raster dimensions | All indexed links resolved; desktop images were 1440×900 and mobile images 390×844. |
+
+The QA run also exercised the list count, modal and saved-title evidence on both viewports. Agent Browser was unavailable in the tool catalog and `agent-browser` was not on `PATH`; QA used Playwright Chromium as the repository fallback.
+
 ## Browser evidence
 
 Final Playwright Chromium screenshots for the required viewports and saving, saved, failed, recent-list, and deletion-modal states are indexed at [`docs/delivery/evidence/PRJ-PR-02/README.md`](../../delivery/evidence/PRJ-PR-02/README.md). The capture tests also check modal initial focus, Tab containment and Escape cancellation, and reduced-motion backdrop behavior.
 
 Agent Browser was unavailable in this environment: no Agent Browser tool was exposed and `agent-browser` was not on `PATH`. The browser paths were exercised directly in Playwright Chromium.
 
-## Remaining workflow gates
+## OAuth and gate scope
 
-Independent code review and independent QA have not run in this implementation phase. This report records self-validation only; those gates remain with the coordinator workflow.
+Live Google OAuth was not exercised. PRJ-02 authenticated browser cases use test session fixtures; the independent review and QA above cover the PRJ-02 persistence and UI behavior. Code review and QA are PASS at the exact code/evidence HEAD above. The PR remains `ready_to_merge`; it has not been merged.
 
 ## Screenshot raster correction
 
