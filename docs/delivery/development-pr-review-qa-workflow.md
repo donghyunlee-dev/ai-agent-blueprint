@@ -272,8 +272,8 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 | 6 | `FND-PR-02` 도메인·Agent 계약 | FND-003, 004 | 상태·schema·모델 registry 계약 테스트 | merged (#8) |
 | 7 | `FND-PR-03` 테스트 기반 | FND-005 | unit/contract/browser test 명령과 CI gate 실행 | merged (#9, `d3e56d5`) |
 | 8 | `PRJ-PR-01` 라우팅·프로젝트 생성 | PRJ-101, 102 | 홈에서 생성, 잘못된 경로 404 | merged (#10, `ef5aceb`) |
-| 9 | `PRJ-PR-02` 저장·최근 목록 | PRJ-103, 104 | 새로고침 복구, 20/21 경계와 실패 보존 | ready_to_merge (#11; implementation/review/QA PASS at `69e63bd08437956b0b389a44cd93ef4f68c6f407`) |
-| 10 | `PRJ-PR-03` 작업 공간 셸 | PRJ-105 | desktop/mobile 셸과 탭·저장 상태 복구 | planned |
+| 9 | `PRJ-PR-02` 저장·최근 목록 | PRJ-103, 104 | 새로고침 복구, 20/21 경계와 실패 보존 | merged (#11, `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`) |
+| 10 | `PRJ-PR-03` 작업 공간 셸 | PRJ-105 | desktop/mobile 셸과 탭·저장 상태 복구 | in_progress |
 | 11 | `AI-PR-01` 모델·prompt·budget 기반 | AI-001~003, 008, 009 | Luna/Mini/Terra routing, schema version, budget/eval gate | planned |
 | 12 | `CON-PR-01` turn 수명주기 | CON-201, 202, 206, AI-010 | 입력 보존, 인증, 중복 방지와 실패 재시도 | planned |
 | 13 | `CON-PR-02` 질문·선택 폼 | CON-203, 204, AI-005 | catalog 질문과 7개 form, 선택 경로 API 0회 | planned |
