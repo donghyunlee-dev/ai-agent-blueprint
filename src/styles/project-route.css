@@ -12,3 +12,9 @@
 .project-route-home { color: var(--color-primary); font-size: 14px; font-weight: 650; }
 .project-route-brand:focus-visible,.project-route-home:focus-visible { outline: 3px solid #78aaff; outline-offset: 3px; }
 @media (max-width:600px) { .project-route-header { min-height:56px; padding:10px 16px; } .project-route-header > span { display:none; } .project-handoff { width:calc(100% - 32px); padding-top:54px; } .project-first-message { padding:18px; } }
+.project-route-state { display: grid; min-height: 50vh; place-content: center; gap: 12px; padding: 24px; color: var(--color-text-body); text-align: center; }
+.project-route-error h1 { margin: 0; color: var(--color-text-strong); font-size: 24px; }
+.project-route-error p { max-width: 480px; margin: 0; line-height: 1.6; }
+.project-route-error button,.project-route-error a,.project-route-retry { justify-self: center; padding: 9px 13px; border: 1px solid var(--color-border-strong); border-radius: 9px; background: var(--color-surface); color: var(--color-primary); cursor: pointer; font-weight: 650; }
+.project-route-error :focus-visible,.project-route-retry:focus-visible { outline: 3px solid #78aaff; outline-offset: 3px; }
+.project-route-save-error { padding: 10px 12px; border: 1px solid #fecaca; border-radius: 10px; background: #fff7f7; color: #b42318; }

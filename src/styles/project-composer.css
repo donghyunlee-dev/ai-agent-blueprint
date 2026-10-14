@@ -26,6 +26,7 @@
 .project-selected-files li span { color: var(--color-text-muted); text-align: right; }
 .project-create-error { margin: 12px 0 0; padding: 10px 12px; border: 1px solid #fecaca; border-radius: 10px; background: #fff7f7; font-size: 13px; }
 .project-pending-status { margin: 10px 0 0; color: var(--color-primary); font-size: 13px; }
+.project-save-failed { margin: 10px 0 0; color: #a1261e; font-size: 13px; font-weight: 700; }
 .project-composer-shortcut { margin: 12px 0 8px; color: var(--color-text-muted); font-size: 12px; }
 .project-example-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .project-example-actions button { padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 99px; background: var(--color-surface-muted); color: var(--color-text-body); cursor: pointer; font-size: 12px; }

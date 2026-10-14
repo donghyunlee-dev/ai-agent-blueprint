@@ -453,6 +453,45 @@ interface ActivityEntry {
 
 MVP의 활동 기록은 사용자가 변경 원인을 확인하고 오류를 복구하는 데 필요한 수준으로 유지한다. 사용자 행동 분석용 원문 데이터는 별도 동의 없이 기록하지 않는다.
 
+## BlueprintAggregate와 ProjectSummary
+
+`BlueprintAggregate`는 한 프로젝트를 다시 열거나 다음 작업 단계에 전달하는 저장 단위다. 아래 필드는 이 문서의 canonical entity를 참조하며, entity의 의미를 바꾸거나 인증·프로필·UI 상태를 추가하지 않는다. 아직 생성되지 않은 collection은 빈 배열이다.
+
+```ts
+interface BlueprintAggregate {
+  project: BlueprintProject;
+  thread: ConversationThread;
+  messages: ConversationMessage[];
+  answers: QuestionAnswer[];
+  sources: SourceDocument[];
+  designItems: DesignItem[];
+  proposals: ChangeProposal[];
+  documents: GeneratedDocument[];
+  sections: DocumentSection[];
+  generationJobs: GenerationJob[];
+  requestLedgerEntries: AiRequestLedgerEntry[];
+  contextManifests: ContextManifest[];
+  activityEntries: ActivityEntry[];
+}
+```
+
+현재 단계의 생성 aggregate는 `project`, 하나의 `thread`, 첫 사용자 `message`, 생성 활동 기록을 포함하고 나머지 collection은 빈 배열이다. 저장 envelope에는 `ownerKey` 외 사용자 정보, 브라우저 UI 상태와 원문 복제 필드를 더하지 않는다. activity 기록은 IndexedDB에서 project 저장과 동일한 read-write transaction으로 반영한다.
+
+홈의 최근 목록은 aggregate를 복제하지 않고 다음 projection만 사용한다.
+
+```ts
+interface ProjectSummary {
+  id: BlueprintProject["id"];
+  title: BlueprintProject["title"];
+  updatedAt: BlueprintProject["updatedAt"];
+  lastOpenedAt: BlueprintProject["lastOpenedAt"];
+  readiness: BlueprintProject["readiness"];
+  activeDocumentType: BlueprintProject["activeDocumentType"];
+}
+```
+
+`readiness`와 `activeDocumentType`은 canonical `BlueprintProject` 값을 그대로 투영한다. 목록은 `lastOpenedAt` 내림차순이며 owner namespace마다 최대 20개다. localStorage에는 마지막 project ID와 UI preference만 저장하고 aggregate나 요약 목록은 저장하지 않는다.
+
 ## 저장 전략
 
 - 프로젝트와 구조화 엔터티는 사용자별 namespace의 IndexedDB에 저장한다.

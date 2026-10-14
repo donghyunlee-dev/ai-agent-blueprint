@@ -90,38 +90,39 @@ test('file attachment opens a multiple-file picker without creating a project', 
   await expect(page.locator('main')).toHaveAttribute('data-created-project', '');
 });
 
-test('submitting an idea creates a canonical in-memory project and supports browser history', async ({ page }, testInfo) => {
+test('submitting an idea persists one canonical project and supports browser history', async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill('고객 문의를 자동 분류하는 서비스를 시작하고 싶어요.');
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
   await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
   await expect(page.getByRole('heading', { name: '고객 문의를 자동 분류하는 서비스를 시작하고 싶어요.' })).toBeVisible();
-  await expect(page.getByText('프로젝트를 만들었습니다')).toBeVisible();
+  await expect(page.getByText(/^저장됨 ·/)).toBeVisible();
   await page.screenshot({ path: path.join(evidenceDirectory, `project-created-${testInfo.project.name}.png`), fullPage: true, scale: 'css' });
   await page.goBack();
   await expect(page).toHaveURL('/');
   await page.goForward();
-  await expect(page.getByText('프로젝트를 만들었습니다')).toBeVisible();
+  await expect(page.getByText(/^저장됨 ·/)).toBeVisible();
 });
 
-test('rapid duplicate submit navigates to one created project and never exposes owner data', async ({ page }) => {
+test('rapid duplicate submit navigates to one persisted project and never exposes owner data', async ({ page }) => {
   await page.goto('/blueprints/new');
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill('연속 제출도 프로젝트 하나만 만듭니다.');
   await page.getByRole('button', { name: 'Blueprint 시작' }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
   await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
   await expect(page.getByRole('heading', { name: '연속 제출도 프로젝트 하나만 만듭니다.' })).toBeVisible();
-  expect(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length }))).toEqual({ local: 0, session: 0 });
+  expect(await page.evaluate(() => ({ lastProjectId: localStorage.getItem('blueprint:lastProjectId'), session: sessionStorage.length }))).toEqual({ lastProjectId: new URL(page.url()).pathname.split('/').at(-1), session: 0 });
   expect(await page.locator('body').innerText()).not.toContain('prj-qa-user');
 });
 
-test('created project is memory-only and a new tab or reload reports a project miss', async ({ page, context }) => {
+test('created project recovers after reload and in a new tab, while another owner cannot read it', async ({ page, context }) => {
   await page.goto('/');
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill('이 프로젝트는 현재 탭에서만 찾아야 합니다.');
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
   await expect(page).toHaveURL(/\/blueprints\/([0-9a-f-]{36})$/i);
   const projectUrl = page.url();
   await page.reload();
-  await expect(page.getByRole('heading', { name: '프로젝트를 찾을 수 없습니다' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '프로젝트를 찾을 수 없습니다' })).toHaveCount(0);
+  await expect(page.getByText(/^저장됨 ·/)).toBeVisible();
 
   const newTab = await context.newPage();
   await newTab.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: {
@@ -129,7 +130,15 @@ test('created project is memory-only and a new tab or reload reports a project m
     user: { issuer: 'https://accounts.google.com', subject: 'prj-qa-user', email: 'verified@example.test' },
   } }));
   await newTab.goto(projectUrl);
+  await expect(newTab.getByText(/^저장됨 ·/)).toBeVisible();
+  await newTab.unroute('**/api/auth/session');
+  await newTab.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: {
+    authenticated: true,
+    user: { issuer: 'https://accounts.google.com', subject: 'different-owner', email: 'other@example.test' },
+  } }));
+  await newTab.reload();
   await expect(newTab.getByRole('heading', { name: '프로젝트를 찾을 수 없습니다' })).toBeVisible();
+  await expect(newTab.locator('body')).not.toContainText('이 브라우저에서 이어서 작업할 수 있습니다');
 });
 
 test('registered and retired paths distinguish a missing project from a generic 404', async ({ page }, testInfo) => {
@@ -160,7 +169,7 @@ test('pending create locks repeated activation until one project is created', as
   const submit = page.getByRole('button', { name: 'Blueprint 시작' });
   await submit.click();
   await expect(page.getByRole('button', { name: '프로젝트 만드는 중' })).toBeDisabled();
-  await expect(page.getByRole('status')).toContainText('프로젝트를 준비하고 있습니다');
+  await expect(page.getByRole('status')).toContainText('저장 중');
   await page.screenshot({ path: path.join(evidenceDirectory, `home-pending-${testInfo.project.name}.png`), fullPage: true, scale: 'css' });
   await page.evaluate(() => window.releaseProjectCommand?.());
   await expect.poll(() => page.locator('[data-created-project]').getAttribute('data-created-project')).toMatch(/^[0-9a-f-]{36}$/i);
