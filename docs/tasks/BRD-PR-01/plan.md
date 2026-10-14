@@ -91,9 +91,9 @@ Given sessionStorage의 이전 값이 손상된 JSON인 경우, when 이전을 �
 
 - Playwright, 로컬 `http://127.0.0.1:5174`: `/`와 `/survey`를 1440×900 및 390×844에서 확인. 네 조합 모두 HTTP 200, Windsoft 표시, 렌더된 본문에 이전 브랜드 없음, page error 없음, 가로 overflow 없음.
 - 시각 캡처는 한국어 글꼴(Malgun Gothic)을 추가한 환경에서 생성하고 직접 확인했다. desktop/mobile 홈·설문 이미지는 [`docs/delivery/evidence/BRD-PR-01/`](../../delivery/evidence/BRD-PR-01/)에 저장했다.
-- 자동 검증: `npm run test:unit` 59/59 통과, `npm run build` 통과, `git diff --check` 통과.
-- 이전 QA 기록 (head `2f0cf7b`): Agent Browser를 사용할 수 없어 당시 문서 기준으로 BLOCKED 처리했다. 아래 Playwright 결과는 새 fallback 정책에 따라 현재 HEAD에서 독립 QA를 다시 수행한 뒤 갱신한다.
-- 현재 HEAD QA 재검증: pending. Agent Browser 부재 여부와 실행 파일 확인 결과, Playwright Chromium의 동일 경로/viewport 결과를 기록한 뒤 pass/fail로 판정한다.
+- 자동 검증 (head `272eb4d`): `npm run test:unit` 60/60 통과, `npm run build` 통과, `npm run docs:check:mermaid` 42개 통과, `npm run test:e2e` 2/2 통과, `git diff --check` 통과. Mermaid 검사는 Playwright Chromium 실행 파일을 Puppeteer 경로로 지정해 수행했다.
+- 이전 QA 기록 (head `2f0cf7b`): 당시 Agent Browser 필수 규칙 때문에 BLOCKED였다. 정책 수정 후 동일 UI 코드의 현재 HEAD(`272eb4d26040140cb42d47c913422184424dcf06`)를 별도 QA 에이전트가 Playwright Chromium으로 재검증했다.
+- 현재 QA: **PASS**. Agent Browser 도구 목록 조회는 `[]`, `command -v agent-browser`는 결과 없음으로 확인해 fallback 사유를 기록했다. `/`와 `/survey`는 1440×900 및 390×844 모두 HTTP 200이며 Windsoft 표시, 렌더 본문에 `sfood` 없음, 페이지 오류와 가로 overflow가 없었다. 홈→설문 CTA, 키보드 첫 포커스 표시, 모바일 설문 보드 Enter 열기/닫기도 확인했다. 4개 최종 캡처는 `docs/delivery/evidence/BRD-PR-01/`에 있다.
 
 ## 리스크
 
