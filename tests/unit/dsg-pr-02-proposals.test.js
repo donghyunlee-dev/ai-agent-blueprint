@@ -16,3 +16,20 @@ test('bulk approve only eligible and reject only explicit selected pending atomi
 test('bulk failure rolls back proposals, design, revision and activity; retries are idempotent',async()=>{const a=state([proposal('p',{title:'새 값',description:'설명'})]);const before=structuredClone(a);await assert.rejects(bulkApproveProposals({...common,proposalIds:['p'],repository:repo(a,true)}),/STORAGE_FAILED/);assert.deepEqual(a,before);const repository=repo(a);await bulkApproveProposals({...common,proposalIds:['p'],repository});const snapshot=structuredClone(a);const retry=await bulkApproveProposals({...common,proposalIds:['p'],repository});assert.equal(retry.appliedIds.length,0);assert.deepEqual(a,snapshot);});
 
 test('revalidates the displayed current value before resolving a conflict',async()=>{const a=state([proposal('p',{title:'새 값',description:'설명'})],[item('item','최신으로 다시 변경')]);const before=structuredClone(a);const result=await resolveProposalConflict({...common,proposalId:'p',choice:'accept_proposed',expectedCurrent:{title:'현재'},repository:repo(a)});assert.equal(result.status,'changed_again');assert.deepEqual(a,before);assert.equal(result.aggregate.designItems[0].title,'최신으로 다시 변경');});
+
+test('bulk approval selects only one pending proposal per target and marks the other stale after applying',async()=>{
+  const first=proposal('first',{title:'첫 변경',description:'첫 설명'},{before:{title:'현재'}});
+  const second=proposal('second',{title:'두 번째 변경',description:'두 번째 설명'},{before:{title:'현재'}});
+  const a=state([first,second],[item('item','현재')]);
+  const candidates=classifyProposalConflicts(a);
+  assert.deepEqual(candidates.approvalCandidates.map((candidate)=>candidate.id),['first']);
+  assert.equal(candidates.excluded[0].proposal.id,'second');
+  assert.match(candidates.excluded[0].reason,/같은 대상을 변경/);
+  const result=await bulkApproveProposals({...common,proposalIds:['first','second'],repository:repo(a)});
+  assert.deepEqual(result.appliedIds,['first']);
+  assert.equal(a.designItems[0].title,'첫 변경');
+  assert.equal(a.proposals[0].status,'accepted');
+  assert.equal(a.proposals[1].status,'pending');
+  assert.equal(a.project.readiness.conflictCount,1);
+  assert.equal(a.project.designRevision,1);
+});

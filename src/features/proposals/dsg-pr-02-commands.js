@@ -4,7 +4,8 @@ function current(aggregate, proposal) { return proposal.operation === 'create' ?
 export function proposalCurrentSnapshot(aggregate, proposal) {
   const target = current(aggregate, proposal);
   if (!target || !proposal.before || typeof proposal.before !== 'object') return null;
-  return Object.fromEntries(Object.keys(proposal.before).map((key) => [key, target[key]]));
+  const displayKeys = proposal.targetType === 'design_item' ? ['title', 'description'] : proposal.targetType === 'acceptance_criterion' ? ['text'] : ['title', 'markdown'];
+  return Object.fromEntries([...new Set([...displayKeys, ...Object.keys(proposal.before)])].map((key) => [key, target[key]]));
 }
 function conflict(aggregate, proposal) { return proposal.status === 'pending' && ((proposal.operation === 'create' && Boolean(proposal.targetId)) || (proposal.operation !== 'create' && !matchesBefore(current(aggregate, proposal), proposal.before))); }
 function validValue(proposal) {
@@ -36,10 +37,18 @@ export function classifyProposalConflicts(aggregate) {
   const pending = aggregate.proposals.filter((item) => item.status === 'pending');
   const approvalCandidates = [];
   const excluded = [];
+  const claimedTargets = new Set();
   for (const proposal of pending) {
     if (conflict(aggregate, proposal)) excluded.push({ proposal, reason: '현재 확정값이 제안 작성 당시와 다릅니다.' });
     else if (!validValue(proposal)) excluded.push({ proposal, reason: '제안값이 필수 항목 또는 형식 검증을 통과하지 못했습니다.' });
-    else approvalCandidates.push(proposal);
+    else {
+      const targetKey = proposal.operation === 'create' ? null : `${proposal.targetType}:${proposal.targetId}`;
+      if (targetKey && claimedTargets.has(targetKey)) excluded.push({ proposal, reason: '같은 대상을 변경하는 다른 제안이 먼저 승인 대상으로 선택됐습니다.' });
+      else {
+        if (targetKey) claimedTargets.add(targetKey);
+        approvalCandidates.push(proposal);
+      }
+    }
   }
   return { approvalCandidates, excluded, conflictIds: excluded.filter((item) => conflict(aggregate, item.proposal)).map((item) => item.proposal.id) };
 }
@@ -80,16 +89,19 @@ export async function bulkApproveProposals({ ownerKey, projectId, proposalIds, r
     const chosen = [...new Set(proposalIds)].map((id) => candidates.find((item) => item.id === id)).filter(Boolean);
     if (!chosen.length) return { status: 'applied', appliedIds: [], aggregate };
     const at = now();
+    const appliedIds = [];
     for (const proposal of chosen) {
+      if (proposal.status !== 'pending' || conflict(aggregate, proposal) || !validValue(proposal)) continue;
       const changedId = proposal.targetType === 'design_item' && proposal.operation !== 'create' ? proposal.targetId : undefined;
       applyValue(aggregate, proposal, proposal.after, at, idFactory);
       proposal.status = 'accepted'; proposal.resolvedAt = at;
       reviewDependents(aggregate, changedId, proposal.rationale, at);
       aggregate.activityEntries.push({ id: idFactory(), projectId, action: 'proposal_bulk_accepted', targetType: proposal.targetType, targetId: proposal.targetId, logicalRequestId: proposal.logicalRequestId, summary: '일괄 승인 제안을 적용했습니다.', createdAt: at });
+      appliedIds.push(proposal.id);
     }
-    aggregate.project.designRevision = (aggregate.project.designRevision ?? 0) + 1;
+    if (appliedIds.length) aggregate.project.designRevision = (aggregate.project.designRevision ?? 0) + 1;
     stampState(aggregate, at);
-    return { status: 'applied', appliedIds: chosen.map((item) => item.id), aggregate };
+    return { status: 'applied', appliedIds, aggregate };
   });
 }
 export async function bulkRejectProposals({ ownerKey, projectId, proposalIds, repository, now = () => new Date().toISOString(), idFactory = () => globalThis.crypto.randomUUID() }) {
