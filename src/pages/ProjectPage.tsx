@@ -34,6 +34,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorOverlay, setInspectorOverlay] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches);
   const [modeTabsVisible, setModeTabsVisible] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches);
+  const [mobileLayout, setMobileLayout] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
   const operationGeneration = useRef(0);
   const ownerRef = useRef(ownerKey);
   const projectIdRef = useRef(projectId);
@@ -119,13 +120,17 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 1279px)");
     const tabsQuery = window.matchMedia("(max-width: 1023px)");
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
     const update = () => setInspectorOverlay(query.matches);
     const updateTabs = () => setModeTabsVisible(tabsQuery.matches);
+    const updateMobile = () => setMobileLayout(mobileQuery.matches);
     update();
     updateTabs();
+    updateMobile();
     query.addEventListener("change", update);
     tabsQuery.addEventListener("change", updateTabs);
-    return () => { query.removeEventListener("change", update); tabsQuery.removeEventListener("change", updateTabs); };
+    mobileQuery.addEventListener("change", updateMobile);
+    return () => { query.removeEventListener("change", update); tabsQuery.removeEventListener("change", updateTabs); mobileQuery.removeEventListener("change", updateMobile); };
   }, []);
 
   useEffect(() => {
@@ -161,7 +166,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     inspectorCloseRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { setInspectorOpen(false); return; }
+      if (event.key === "Escape") { closeInspector(); return; }
       if (event.key !== "Tab") return;
       const drawer = document.querySelector<HTMLElement>(".workspace-inspector");
       const controls = drawer ? [...drawer.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), [tabindex="0"]')] : [];
@@ -172,8 +177,12 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      if (previous?.isConnected) previous.focus();
-      else inspectorTriggerRef.current?.focus();
+      const selectedTab = document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+      if (previous?.isConnected && previous.getClientRects().length > 0 && (previous.getAttribute("role") !== "tab" || previous.getAttribute("aria-selected") === "true")) previous.focus();
+      else {
+        if (selectedTab) selectedTab.focus();
+        else inspectorTriggerRef.current?.focus();
+      }
     };
   }, [inspectorOpen, inspectorOverlay]);
 
@@ -181,6 +190,15 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     const width = clampConversationWidth(nextWidth);
     setConversationWidthState(width);
     setConversationWidth(projectId ?? "", width);
+  }
+
+  function selectMode(mode: "conversation" | "work" | "review") {
+    setMobileMode(mode);
+    setInspectorOpen(mode === "review" && modeTabsVisible && !mobileLayout);
+  }
+
+  function closeInspector() {
+    setInspectorOpen(false);
   }
 
   function editTitle(value: string) {
@@ -196,7 +214,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   }
 
   if (documentType && !documentTypes.has(documentType)) return <NotFoundPage />;
-  if (aggregate && aggregate.project.ownerKey !== ownerKey) return <main className="project-route-state" role="status">프로젝트를 불러오는 중입니다.</main>;
+  if (aggregate && (aggregate.project.ownerKey !== ownerKey || aggregate.project.id !== projectId)) return <main className="project-route-state" role="status">프로젝트를 불러오는 중입니다.</main>;
   if (loadStatus === 'loading') return <main className="project-route-state" role="status">프로젝트를 불러오는 중입니다.</main>;
   if (loadStatus === 'missing') return <ProjectNotFoundPage />;
   if (loadStatus === 'error' && !aggregate) return (
@@ -238,10 +256,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         else if (event.key === "End") next = modes.length - 1;
         else return;
         event.preventDefault();
-        setMobileMode(modes[next]);
+        selectMode(modes[next]);
         document.querySelector<HTMLButtonElement>(`[data-mode-tab="${modes[next]}"]`)?.focus();
       }}>
-        {([["conversation", "대화"], ["work", documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)], ["review", "검토"]] as const).map(([mode, label]) => <button key={mode} id={`workspace-mode-tab-${mode}`} type="button" role="tab" data-mode-tab={mode} aria-controls={`workspace-${mode}-panel`} aria-selected={mobileMode === mode} tabIndex={mobileMode === mode ? 0 : -1} onClick={() => setMobileMode(mode)}>{label}</button>)}
+        {([["conversation", "대화"], ["work", documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)], ["review", "검토"]] as const).map(([mode, label]) => <button key={mode} id={`workspace-mode-tab-${mode}`} type="button" role="tab" data-mode-tab={mode} aria-controls={`workspace-${mode}-panel`} aria-selected={mobileMode === mode} tabIndex={mobileMode === mode ? 0 : -1} onClick={() => selectMode(mode)}>{label}</button>)}
       </nav>
       <div className="workspace-panels">
         <section ref={conversationRef} id="workspace-conversation-panel" className="workspace-panel workspace-conversation" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-conversation" : undefined} aria-label={modeTabsVisible ? undefined : "대화"} tabIndex={0}>
@@ -262,10 +280,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           </div>
         </section>
         <aside id="workspace-review-panel" className={`workspace-panel workspace-inspector ${inspectorOpen ? "is-open" : ""}`} aria-label="상세 정보" aria-hidden={!inspectorOpen && inspectorOverlay && mobileMode !== "review"} aria-modal={inspectorOpen && inspectorOverlay ? true : undefined} role={inspectorOpen && inspectorOverlay ? "dialog" : modeTabsVisible && mobileMode === "review" ? "tabpanel" : "complementary"} aria-labelledby={modeTabsVisible && mobileMode === "review" && !inspectorOpen ? "workspace-mode-tab-review" : undefined}>
-          <header className="workspace-panel-heading"><h2>프로젝트 상세</h2><button ref={inspectorCloseRef} className="workspace-drawer-close" type="button" aria-label="상세 닫기" onClick={() => setInspectorOpen(false)}>×</button></header>
-          <div className="workspace-inspector-content"><p className="workspace-readiness-label">진행 상태</p><p className="workspace-readiness-value">{readinessLabel(aggregate.project.readiness.state)}</p><p>확인할 제안 {aggregate.project.readiness.pendingProposalCount}개 · 충돌 {aggregate.project.readiness.conflictCount}개</p><div className="workspace-inspector-next"><strong>다음 단계</strong><p>아이디어를 대화에서 구체화한 뒤 문서 작업을 이어가세요.</p></div><button type="button" onClick={() => setInspectorOpen(false)}>닫기</button></div>
+          <header className="workspace-panel-heading"><h2>프로젝트 상세</h2><button ref={inspectorCloseRef} className="workspace-drawer-close" type="button" aria-label="상세 닫기" onClick={closeInspector}>×</button></header>
+          <div className="workspace-inspector-content"><p className="workspace-readiness-label">진행 상태</p><p className="workspace-readiness-value">{readinessLabel(aggregate.project.readiness.state)}</p><p>확인할 제안 {aggregate.project.readiness.pendingProposalCount}개 · 충돌 {aggregate.project.readiness.conflictCount}개</p><div className="workspace-inspector-next"><strong>다음 단계</strong><p>아이디어를 대화에서 구체화한 뒤 문서 작업을 이어가세요.</p></div><button type="button" onClick={closeInspector}>닫기</button></div>
         </aside>
-        {inspectorOpen ? <div className="workspace-drawer-backdrop" aria-hidden="true" onClick={() => setInspectorOpen(false)} /> : null}
+        {inspectorOpen ? <div className="workspace-drawer-backdrop" aria-hidden="true" onClick={closeInspector} /> : null}
       </div>
     </main>
   );

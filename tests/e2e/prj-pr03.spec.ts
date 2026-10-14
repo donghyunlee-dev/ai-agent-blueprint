@@ -4,6 +4,9 @@ import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-mi
 
 const identity = { issuer: 'https://accounts.google.com', subject: 'prj-03-workspace-user', email: 'workspace@example.test' };
 const projectId = 'workspace-shell-project';
+const secondProjectId = 'workspace-shell-project-b';
+
+declare global { interface Window { releaseHeldProjectRead?: () => void } }
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: { authenticated: true, user: identity } }));
@@ -26,6 +29,75 @@ test('canonical document URL, history and base-route resume stay synchronized', 
   await page.reload();
   if (page.viewportSize()!.width < 1024) await expect(page.getByRole('tab', { name: 'PRD' })).toBeVisible();
   else await expect(page.getByRole('link', { name: 'PRD' })).toHaveAttribute('aria-current', 'page');
+});
+
+test('same-owner route switch never renders the previous project while the next project loads', async ({ page }) => {
+  await seedWorkspace(page, secondProjectId, '프로젝트 B 제목', '프로젝트 B 아이디어');
+  await page.goto(`/blueprints/${projectId}/design`);
+  await expect(page.getByRole('heading', { name: '작업 공간 테스트 프로젝트' })).toBeVisible();
+
+  await page.evaluate((nextProjectId) => {
+    const storePrototype = IDBObjectStore.prototype;
+    const originalGet = Object.getOwnPropertyDescriptor(storePrototype, 'get');
+    if (!originalGet?.value || !originalGet.configurable) throw new Error('IDB_GET_DESCRIPTOR_UNAVAILABLE');
+    storePrototype.get = function (key: IDBValidKey | IDBKeyRange) {
+      const request = originalGet.value.call(this, key) as IDBRequest;
+      if (this.name !== 'projects' || key !== nextProjectId) return request;
+      let prototype: object | null = Object.getPrototypeOf(request);
+      let successDescriptor: PropertyDescriptor | undefined;
+      while (prototype && !successDescriptor) {
+        successDescriptor = Object.getOwnPropertyDescriptor(prototype, 'onsuccess');
+        prototype = Object.getPrototypeOf(prototype);
+      }
+      if (!successDescriptor?.set) throw new Error('IDB_SUCCESS_DESCRIPTOR_UNAVAILABLE');
+      let release: (() => void) | undefined;
+      Object.defineProperty(request, 'onsuccess', {
+        configurable: true,
+        set(handler: ((event: Event) => void) | null) {
+          successDescriptor!.set!.call(request, (event: Event) => { release = () => handler?.call(request, event); });
+        },
+      });
+      window.releaseHeldProjectRead = () => {
+        Object.defineProperty(storePrototype, 'get', originalGet);
+        release?.();
+      };
+      return request;
+    };
+    history.pushState({}, '', `/blueprints/${nextProjectId}/design`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, secondProjectId);
+
+  await expect(page).toHaveURL(new RegExp(`/blueprints/${secondProjectId}/design$`));
+  await expect(page.getByRole('status')).toContainText('프로젝트를 불러오는 중입니다');
+  await expect(page.getByRole('heading', { name: '작업 공간 테스트 프로젝트' })).toHaveCount(0);
+  await expect(page.getByText(/첫 아이디어입니다/)).toHaveCount(0);
+  await page.evaluate(() => window.releaseHeldProjectRead?.());
+  await expect(page.getByRole('heading', { name: '프로젝트 B 제목' })).toBeVisible();
+  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
+  await expect(page.getByText('프로젝트 B 아이디어')).toBeVisible();
+});
+
+test('repository read error shows a styled retry state and a retry can recover', async ({ page }) => {
+  await page.addInitScript((targetProjectId) => {
+    const originalTransaction = IDBDatabase.prototype.transaction;
+    let shouldFail = true;
+    IDBDatabase.prototype.transaction = function (...args: Parameters<IDBDatabase['transaction']>) {
+      const [stores, mode] = args;
+      if (location.pathname.startsWith(`/blueprints/${targetProjectId}`) && shouldFail && mode === 'readonly' && Array.isArray(stores) && stores.includes('projects') && stores.includes('activities')) {
+        shouldFail = false;
+        IDBDatabase.prototype.transaction = originalTransaction;
+        throw new DOMException('Injected repository read failure', 'UnknownError');
+      }
+      return originalTransaction.apply(this, args);
+    };
+  }, projectId);
+
+  await page.goto(`/blueprints/${projectId}/design`);
+  const error = page.getByRole('alert');
+  await expect(error.getByRole('heading', { name: '프로젝트를 불러오지 못했습니다' })).toBeVisible();
+  await expect(page.locator('.project-route-error')).toHaveCSS('display', 'grid');
+  await page.getByRole('button', { name: '다시 시도' }).click();
+  await expect(page.getByRole('heading', { name: '작업 공간 테스트 프로젝트' })).toBeVisible();
 });
 
 test('project-scoped conversation scroll restores and body does not scroll', async ({ page }) => {
@@ -67,13 +139,20 @@ test('title draft and failed save state survive route navigation', async ({ page
   await expect(page.getByRole('alert')).toContainText('저장 실패');
 });
 
-test('workspace responds at the four layout families without page overflow', async ({ page }) => {
+test('workspace responds at breakpoint edges and the 320px overflow boundary', async ({ page }) => {
   await page.goto(`/blueprints/${projectId}/design`);
-  for (const [width, height, hasThreePanels] of [[1440, 900, true], [1100, 850, false], [900, 800, false], [390, 844, false]] as const) {
+  for (const [width, hasThreePanels, hasModeTabs, compact] of [[1280, true, false, false], [1279, false, false, false], [1024, false, false, false], [1023, false, true, false], [768, false, true, false], [767, false, true, true], [320, false, true, true]] as const) {
+    const height = 844;
     await page.setViewportSize({ width, height });
-    if (width < 1024) await expect(page.getByRole('tablist', { name: '작업 패널' })).toBeVisible();
+    if (hasModeTabs) await expect(page.getByRole('tablist', { name: '작업 패널' })).toBeVisible();
     else await expect(page.getByRole('tablist', { name: '작업 패널' })).toBeHidden();
-    if (hasThreePanels) await expect(page.getByRole('complementary', { name: '상세 정보' })).toBeVisible();
+    if (hasThreePanels) {
+      await expect(page.getByRole('complementary', { name: '상세 정보' })).toBeVisible();
+      expect(await page.locator('.workspace-inspector').evaluate((element) => getComputedStyle(element).position)).toBe('static');
+    } else if (width <= 1279 && width >= 1024) {
+      expect(await page.locator('.workspace-inspector').evaluate((element) => getComputedStyle(element).position)).toBe('fixed');
+    }
+    if (compact) expect(await page.locator('.workspace-mobile-tabs').evaluate((element) => getComputedStyle(element).gridRowStart)).toBe('3');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.setViewportSize({ width: 390, height: 844 });
@@ -96,6 +175,21 @@ test('inspector drawer manages focus and conversation resizer supports bounded k
   await page.keyboard.press('Escape');
   await expect(inspectorTrigger).toBeFocused();
 
+  await page.setViewportSize({ width: 900, height: 850 });
+  const reviewTab = page.getByRole('tab', { name: '검토' });
+  await reviewTab.click();
+  await expect(reviewTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('dialog', { name: '상세 정보' })).toBeVisible();
+  expect(await page.locator('.workspace-inspector-trigger').evaluate((element) => element.getClientRects().length)).toBe(0);
+  const tabletDrawerClose = page.getByRole('button', { name: '상세 닫기' }).first();
+  await expect(tabletDrawerClose).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(reviewTab).toBeFocused();
+  await expect(reviewTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('dialog', { name: '상세 정보' })).toHaveCount(0);
+  await expect(page.locator('.workspace-inspector')).toBeVisible();
+  expect(await page.locator('.workspace-work').evaluate((element) => getComputedStyle(element).display)).toBe('none');
+
   await page.setViewportSize({ width: 1440, height: 900 });
   const separator = page.getByRole('separator', { name: '대화 패널 너비' });
   await separator.focus();
@@ -105,11 +199,11 @@ test('inspector drawer manages focus and conversation resizer supports bounded k
   await expect(separator).toHaveAttribute('aria-valuenow', '420');
 });
 
-async function seedWorkspace(page: Page) {
+async function seedWorkspace(page: Page, id = projectId, title = '작업 공간 테스트 프로젝트', idea = '첫 아이디어입니다. '.repeat(700)) {
   await page.goto('/');
   const ownerKey = await deriveOwnerKey(identity);
   const databaseName = databaseNameForOwner(ownerKey);
-  await page.evaluate(async ({ databaseName, ownerKey, projectId }) => {
+  await page.evaluate(async ({ databaseName, ownerKey, projectId, title, idea }) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(databaseName, 1);
       request.onupgradeneeded = () => {
@@ -124,14 +218,14 @@ async function seedWorkspace(page: Page) {
       request.onerror = () => reject(request.error);
     });
     const timestamp = new Date().toISOString();
-    const project = { id: projectId, ownerKey, schemaVersion: 1, title: '작업 공간 테스트 프로젝트', status: 'active', activeDocumentType: 'prd', activeThreadId: 'workspace-thread', processState: 'intake', readiness: { state: 'insufficient', areas: [], pendingProposalCount: 0, conflictCount: 0 }, createdAt: timestamp, updatedAt: timestamp, lastOpenedAt: timestamp };
-    const aggregate = { project, thread: { id: 'workspace-thread', projectId, title: project.title, status: 'active', createdAt: timestamp, updatedAt: timestamp }, messages: [{ id: 'workspace-message', threadId: 'workspace-thread', logicalRequestId: 'workspace-request', role: 'user', kind: 'text', content: '첫 아이디어입니다. '.repeat(700), createdAt: timestamp }], answers: [], sources: [], designItems: [], proposals: [], documents: [], sections: [], generationJobs: [], requestLedgerEntries: [], contextManifests: [] };
+    const project = { id: projectId, ownerKey, schemaVersion: 1, title, status: 'active', activeDocumentType: 'prd', activeThreadId: `thread-${projectId}`, processState: 'intake', readiness: { state: 'insufficient', areas: [], pendingProposalCount: 0, conflictCount: 0 }, createdAt: timestamp, updatedAt: timestamp, lastOpenedAt: timestamp };
+    const aggregate = { project, thread: { id: project.activeThreadId, projectId, title: project.title, status: 'active', createdAt: timestamp, updatedAt: timestamp }, messages: [{ id: `message-${projectId}`, threadId: project.activeThreadId, logicalRequestId: `request-${projectId}`, role: 'user', kind: 'text', content: idea, createdAt: timestamp }], answers: [], sources: [], designItems: [], proposals: [], documents: [], sections: [], generationJobs: [], requestLedgerEntries: [], contextManifests: [] };
     const transaction = database.transaction(['projects', 'activities'], 'readwrite');
     transaction.objectStore('projects').put({ id: projectId, schemaVersion: 1, ...aggregate });
     transaction.objectStore('activities').put({ id: 'workspace-created', projectId, action: 'project_created', targetType: 'project', targetId: projectId, summary: '프로젝트 생성', createdAt: timestamp });
     await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(transaction.error); });
     database.close();
-  }, { databaseName, ownerKey, projectId });
+  }, { databaseName, ownerKey, projectId: id, title, idea });
 }
 
 async function persistedDocumentType(page: Page) {

@@ -3,8 +3,8 @@
 ## Scoped checks
 
 - `npm run build` — passed; Vite transformed 67 modules.
-- `node --test tests/unit/workspace-preferences.test.js` — passed, 4/4.
-- `npm run test:e2e:ci -- tests/e2e/prj-pr03.spec.ts` — passed, 10/10 across desktop and mobile Chromium projects. Covers canonical URL/history, persisted scroll, save state, four responsive layout families, drawer focus and bounded keyboard resize.
+- `npm run test:unit -- tests/unit/workspace-preferences.test.js` — passed, 126/126 (the repository script runs its configured unit and contract test set).
+- `npm run test:e2e:ci -- tests/e2e/prj-pr03.spec.ts` — passed, 14/14 across desktop and mobile Chromium projects. Covers canonical URL/history, same-owner project switching without stale content, repository read error and retry recovery, persisted scroll, save state, breakpoint edges through 320px, tablet drawer focus, and bounded keyboard resize.
 - `PUPPETEER_EXECUTABLE_PATH=<installed Playwright Chromium headless shell> ./node_modules/.bin/mmdc -i /tmp/prj03-workflow.mmd -o /tmp/prj03-workflow.svg --quiet` — passed for the modified workflow diagram.
 - `git diff --check` — passed.
 
