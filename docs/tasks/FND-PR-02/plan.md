@@ -1,6 +1,6 @@
 # FND-PR-02 — 도메인·Agent 계약 확정
 
-> **상태: ready.** 저장소 계약상 `docs/process/02-state-machine.md`와 `docs/process/07-process-test-spec.md`가 실행 가능한 aggregate transition/test 기준이며 `docs/product/04-conversation-process.md`의 표는 비영속 conversation/UI phase다. `BlueprintProject.processState`의 저장 enum을 프로세스 상태 머신의 project aggregate subset으로 명확히 했고 앱 인증·홈·프로젝트 생성 lifecycle 및 오류 overlay를 제외했다.
+> **상태: merged (#8, `52410c37e5640e29fc5823f501c303a0a39acabb`).** 저장소 계약상 `docs/process/02-state-machine.md`와 `docs/process/07-process-test-spec.md`가 실행 가능한 aggregate transition/test 기준이며 `docs/product/04-conversation-process.md`의 표는 비영속 conversation/UI phase다. `BlueprintProject.processState`의 저장 enum을 프로세스 상태 머신의 project aggregate subset으로 명확히 했고 앱 인증·홈·프로젝트 생성 lifecycle 및 오류 overlay를 제외했다.
 
 ## Overview
 
@@ -200,7 +200,7 @@ Given 한 응답에 `question` block이 2개 포함된 fixture가 주어졌을 �
 - [x] 독립 QA pass (PR HEAD `806272f4b95edc563524386338ae9dc465013bc1`; non-UI, browser evidence not applicable)
 - [x] 화면 변경 시 desktop/mobile 캡처 완료 (해당 없음 — 화면 변경 없음)
 - [x] 사용자 full PR lifecycle 요청으로 merge 권한 확인
-- [ ] 사용자 PR 머지 확인 (아직 merge 전)
+- [x] 사용자 PR 머지 확인 (PR #8, `52410c37e5640e29fc5823f501c303a0a39acabb`)
 
 ## 실행 시 추가 문서
 
