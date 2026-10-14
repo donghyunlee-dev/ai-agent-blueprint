@@ -158,7 +158,16 @@ test('workspace responds at breakpoint edges and the 320px overflow boundary', a
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('tab', { name: '검토' }).click();
   await expect(page.locator('.workspace-inspector')).toBeVisible();
-  await expect(page.getByRole('tab', { name: '검토' })).toHaveAttribute('aria-selected', 'true');
+  const reviewTab = page.getByRole('tab', { name: '검토' });
+  await expect(reviewTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.workspace-inspector')).not.toHaveAttribute('inert', '');
+  await expect(page.locator('.workspace-inspector')).toHaveAttribute('aria-hidden', 'false');
+  await expect(page.locator('.workspace-inspector-content').getByRole('button', { name: '닫기', exact: true })).toBeVisible();
+  await page.locator('.workspace-inspector-content').getByRole('button', { name: '닫기', exact: true }).click();
+  const workTab = page.getByRole('tab', { name: '설계' });
+  await expect(workTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.workspace-inspector')).toHaveAttribute('inert', '');
+  await expect(page.locator('.workspace-inspector')).toHaveAttribute('aria-hidden', 'true');
 });
 
 test('inspector drawer manages focus and conversation resizer supports bounded keyboard changes', async ({ page }) => {

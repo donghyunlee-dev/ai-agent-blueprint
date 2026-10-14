@@ -163,8 +163,9 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   }, [loadStatus, mobileMode, projectId]);
 
   useEffect(() => {
-    inspectorPanelRef.current?.toggleAttribute("inert", !inspectorOpen && inspectorOverlay);
-  }, [inspectorOpen, inspectorOverlay]);
+    const inlineReview = mobileLayout && mobileMode === "review";
+    inspectorPanelRef.current?.toggleAttribute("inert", !inspectorOpen && inspectorOverlay && !inlineReview);
+  }, [inspectorOpen, inspectorOverlay, mobileLayout, mobileMode]);
 
   useEffect(() => {
     if (!inspectorOpen || !inspectorOverlay) return;
@@ -204,7 +205,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
   function closeInspector() {
     setInspectorOpen(false);
-    if (modeTabsVisible && !mobileLayout) setMobileMode("work");
+    if (modeTabsVisible && mobileMode === "review") setMobileMode("work");
   }
 
   function editTitle(value: string) {
