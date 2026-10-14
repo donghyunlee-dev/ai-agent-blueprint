@@ -14,13 +14,13 @@ The implementer also reported a TDD red run with six expected regression failure
 
 The independent code reviewer reported **PASS** on PR HEAD `806272f4b95edc563524386338ae9dc465013bc1`, with implementation code at `91176def08db35d3998827be77cf5ce922db7742`. The reviewer confirmed the intervening change was documentation-only and found no source/test changes after the reviewed implementation.
 
-The independent QA agent reported **PASS** on the same PR HEAD and implementation code SHA. Reported validation:
+The independent QA agent reported **PASS** on the same PR HEAD and implementation code SHA. QA independently ran the following commands against implementation `91176def08db35d3998827be77cf5ce922db7742` (PR HEAD `806272f4b95edc563524386338ae9dc465013bc1`):
 
 | Command | Reported result |
 | --- | --- |
 | `TMPDIR=/home/donghyunlee/.cache/ai-agent-blueprint-fnd02-tmp node --test tests/contract/fnd-*.test.js` | Passed, 31/31 |
 | `TMPDIR=/home/donghyunlee/.cache/ai-agent-blueprint-fnd02-tmp npm run test:unit` | Passed, 107/107 |
-| `npm run build` | Passed |
+| `TMPDIR=/home/donghyunlee/.cache/ai-agent-blueprint-fnd02-tmp npm run build` | Passed |
 | `git diff --check` | Passed |
 
 QA also directly asserted failure preserves `resumeState`, retry returns to the matching generating state, duplicate PRD generation is rejected, and request context remains unchanged. Acceptance covered transitions/guards, budget limits, `/turn` context validation, proposal references, stable question options, and strict provider schemas. This is a non-UI contract change; browser checks and screenshots do not apply. No blocking residual issues were reported.
@@ -38,4 +38,4 @@ The implementation agent reported a second fix on commit `91176def08db35d3998827
 | Build | Passed |
 | `git diff --check` | Passed |
 
-These follow-up results were reported by the implementation agent and were not rerun while updating this record. Independent review re-review and QA remain pending.
+The focused 4/4 regression result and the TDD red-to-green run above were reported by the implementation agent. Independent QA subsequently reran the focused contract suite (31/31), full unit suite (107/107), build, and diff check using the exact commands listed in the Independent review and QA gates section. Review and QA are **PASS**, as recorded above; the documentation-only update itself did not rerun implementation checks.
