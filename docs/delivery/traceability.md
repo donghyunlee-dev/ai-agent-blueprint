@@ -4,20 +4,20 @@
 
 각 요구사항은 하나 이상의 개발 작업과 검증 증거를 가져야 한다. 구현 PR에서는 상태, PR unit, 코드 리뷰, QA와 기본 브랜치 병합 증거 링크를 갱신한다. 상세 상태와 순서는 [PR·리뷰·QA 반복 워크플로](development-pr-review-qa-workflow.md)를 따른다.
 
-FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01은 PR #10 merge commit `ef5acebb48f06808e622e0af8508a59326603e21`, PRJ-PR-02는 PR #11 merge commit `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`로 병합됐다. PRJ-PR-03은 PRJ-105 `ready_to_merge`이며 focused self-validation, 독립 코드 리뷰, scoped Playwright QA를 통과했다. 이 요구사항들이 연결된 NFR-001은 QLT-601 검증도 남아 있으므로 전체 요구사항 상태는 아직 `ready`다.
+FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01은 PR #10 merge commit `ef5acebb48f06808e622e0af8508a59326603e21`, PRJ-PR-02는 PR #11 merge commit `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`, PRJ-PR-03은 PR #12 merge commit `f5c1dc3b07304e23f650a020d2afd2d56df36a3b`로 병합됐다. PRJ-PR-03의 검증 gate도 통과했다. AI-PR-01은 사용자가 `DEFAULT=gpt-5-mini`와 기존 비용 한도를 유지하기로 결정했고, 구현·focused self-validation을 마쳐 독립 리뷰 중이다. 이 요구사항들이 연결된 NFR-001은 QLT-601 검증도 남아 있으므로 전체 요구사항 상태는 아직 `ready`다.
 
 | 요구사항 | 주 작업 | 핵심 검증 | 초기 상태 |
 | --- | --- | --- | --- |
 | BRD-001 | BRD-PR-01 | UI·앱 식별자의 Windsoft 표기, 기존 브라우저 데이터 보존 | done (PR #4) |
-| AI-001 | AI-001 | task/profile/model/reasoning routing | ready |
-| AI-002 | AI-002, AI-009 | prompt/schema version과 변경 gate | ready |
+| AI-001 | AI-001 | task/profile/model/reasoning routing | in_progress (AI-PR-01 code_review; user retained `gpt-5-mini`) |
+| AI-002 | AI-002, AI-009 | prompt/schema version과 변경 gate | in_progress (AI-PR-01 code_review) |
 | AI-003 | AI-004 | 6개 block, 8개 proposal 상한, 임의 UI 거절 | ready |
 | AI-004 | AI-004, AI-005 | 복수 atomic proposal과 근거 | ready |
 | AI-005 | AI-005 | 도움 LIGHT, 추천 DEFAULT, 미확정 | ready |
-| AI-006 | AI-003, AI-008 | context 순서, token/hard budget | ready |
+| AI-006 | AI-003, AI-008 | context 순서, token/hard budget | in_progress (AI-PR-01 code_review; current budget retained) |
 | AI-007 | AI-006, AI-007 | plan/draft/review/repair 상한 | ready |
-| AI-008 | AI-008 | usage·latency 원장, 원문 미기록 | ready |
-| AI-009 | AI-009 | golden eval과 금지 결과 0건 | ready |
+| AI-008 | AI-008 | usage·latency 원장, 원문 미기록 | in_progress (AI-PR-01 code_review) |
+| AI-009 | AI-009 | golden eval과 금지 결과 0건 | in_progress (AI-PR-01 code_review; live pairwise eval is a later user-key gate) |
 | AI-010 | AI-003, AI-010 | store=false, retry/circuit 복구 | ready |
 | AUTH-001 | AUTH-PR-02 | Google 로그인 시작, 보호 경로와 safe returnTo | done (PR #5) |
 | AUTH-002 | AUTH-PR-01 | OIDC claim 검증, state/nonce 오류, session cookie | done (PR #3) |
@@ -25,8 +25,8 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | AUTH-004 | AUTH-PR-02 | 사용자 표시, 만료, 멱등 logout | done (PR #5) |
 | AUTH-005 | AUTH-PR-03 (merged #6), PRJ-PR-02 | identity owner context/lifecycle와 IndexedDB list/get/save/delete 격리 | done (PRJ-PR-02 merged #11) |
 | PJT-001 | PRJ-102 | 제목 있음/없음, 중복 생성 | done (PRJ-PR-01 merged #10) |
-| PJT-002 | PRJ-103, PRJ-105 | 자동 저장, 실패, 새로고침 | in_progress (PRJ-103 done #11; PRJ-105 ready_to_merge) |
-| PJT-003 | PRJ-104, PRJ-105 | 최근 목록과 복구 | in_progress (PRJ-104 done #11; PRJ-105 ready_to_merge) |
+| PJT-002 | PRJ-103, PRJ-105 | 자동 저장, 실패, 새로고침 | done (PRJ-PR-03 merged #12) |
+| PJT-003 | PRJ-104, PRJ-105 | 최근 목록과 복구 | done (PRJ-PR-03 merged #12) |
 | PJT-004 | PRJ-104 | 20/21 경계, 취소/삭제 | done (PRJ-PR-02 merged #11) |
 | PJT-005 | PRJ-101, PRJ-103 | namespace 분리와 404 | done (PRJ-PR-01 #10, PRJ-PR-02 #11 merged) |
 | CONV-001 | CON-202, CON-203 | 첫 입력 복수 후보 | ready |
@@ -56,7 +56,7 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | SRC-002 | SRC-503 | 근거 preview와 제거 | ready |
 | EXP-001 | EXP-505 | 개별 복사·다운로드 | ready |
 | NFR-001 | FND-002, QLT-601 | 키보드, 이름, 대비 | ready |
-| NFR-002 | PRJ-105, QLT-602 | responsive desktop/tablet/mobile layout | in_progress (PRJ-105 ready_to_merge; QLT-602 pending) |
+| NFR-002 | PRJ-105, QLT-602 | responsive desktop/tablet/mobile layout | in_progress (PRJ-105 done #12; QLT-602 pending) |
 | NFR-003 | QLT-603 | 셸, 긴 콘텐츠, 입력 응답 | ready |
 | NFR-004 | CON-201, SRC-503, QLT-604 | 안내, 최소 전송, 비밀 보호 | ready |
 | NFR-005 | CON-202, QLT-604 | 비식별 오류와 지연 | ready |

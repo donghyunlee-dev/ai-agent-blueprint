@@ -1,3 +1,5 @@
+import { validateModelConfiguration } from "../../src/infrastructure/ai/model-registry.js";
+
 const fields = [
   "serviceName", "serviceDesc", "features", "env", "users", "os", "db", "dbExist", "dbType",
   "auth", "authTypes", "notif", "notifChannels", "automation", "aiAgent", "tools", "git", "deploy",
@@ -31,10 +33,16 @@ export const conversationSchema = {
   required: ["assistantMessage", "suggestions", "decisions", "nextQuestion", "nextPhase", "canComplete"],
 };
 
-export function getOpenAiConfig() {
+export function getOpenAiConfig(env = process.env) {
+  try {
+    validateModelConfiguration(env);
+  } catch (error) {
+    error.statusCode = 503;
+    throw error;
+  }
   return {
-    apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || "gpt-5-mini",
+    apiKey: env.OPENAI_API_KEY,
+    model: env.AI_MODEL_DEFAULT.trim(),
   };
 }
 

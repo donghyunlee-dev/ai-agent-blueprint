@@ -10,7 +10,7 @@ test('all documented AI tasks have exact profile and token limits', () => {
   assert.deepEqual(Object.keys(promptRegistry).sort(), Object.keys(expected).sort());
   for (const [task, [profile, maxInputTokens, maxOutputTokens]] of Object.entries(expected)) {
     const value = aiModelRegistry.tasks[task];
-    assert.deepEqual(value, { profile, reasoning: 'low', maxInputTokens, maxOutputTokens });
+    assert.deepEqual(value, { profile, reasoning: 'low', maxInputTokens, maxOutputTokens, timeoutMs: 45_000 });
     const prompt = promptRegistry[task];
     assert.deepEqual([prompt.promptId, prompt.promptVersion, prompt.schemaId, prompt.schemaVersion], [task.toLowerCase().replaceAll('_','.'), 'v1', `${task.toLowerCase().replaceAll('_','.')}.v1`, 'v1']);
   }

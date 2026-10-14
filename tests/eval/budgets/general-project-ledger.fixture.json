@@ -1,0 +1,22 @@
+{
+  "id": "general-project",
+  "tasks": [
+    { "task": "TURN_ANALYZE", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "TURN_ANALYZE", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "TURN_ANALYZE", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "TURN_ANALYZE", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "TURN_ANALYZE", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "TURN_ANALYZE", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "TURN_ANALYZE", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "TURN_ANALYZE", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "QUESTION_EXPLAIN", "inputTokens": 3000, "outputTokens": 500 },
+    { "task": "QUESTION_EXPLAIN", "inputTokens": 3000, "outputTokens": 500 },
+    { "task": "OPTION_RECOMMEND", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "OPTION_RECOMMEND", "inputTokens": 5000, "outputTokens": 1000 },
+    { "task": "CONTEXT_COMPACT", "inputTokens": 8000, "outputTokens": 900 },
+    { "task": "REQUIREMENTS_DRAFT", "inputTokens": 30000, "outputTokens": 6000 },
+    { "task": "REQUIREMENTS_REVIEW", "inputTokens": 30000, "outputTokens": 2500 },
+    { "task": "PRD_DRAFT", "inputTokens": 30000, "outputTokens": 6000 },
+    { "task": "PRD_REVIEW", "inputTokens": 32000, "outputTokens": 2000 }
+  ]
+}

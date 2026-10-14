@@ -3,12 +3,35 @@ export function validateReferences(response, manifest, targetContext) {
  if (!manifest || !response) return {valid:false,errors:['response or manifest missing']};
  const itemIds=new Set(manifest.designItemIds ?? []);
  const sourceIds=new Set([...(manifest.sourceExcerptIds ?? []),...(manifest.recentMessageIds ?? []),...(manifest.summaryIds ?? [])]);
- for (const id of response.referencedItemIds ?? []) if (!itemIds.has(id)) errors.push(`unknown referenced item ${id}`);
- for (const id of response.referencedSourceIds ?? []) if (!sourceIds.has(id)) errors.push(`unknown referenced source ${id}`);
- for (const proposal of response.proposals ?? []) {
-  for (const id of proposal.affectedItemIds ?? []) if (!itemIds.has(id)) errors.push(`unknown affected item ${id}`);
-  for (const ref of proposal.evidence ?? []) if (!sourceIds.has(ref.sourceId)) errors.push(`unknown evidence source ${ref.sourceId}`);
- }
+ const requirementIds=new Set([...(targetContext?.requirementIds ?? []),...(targetContext?.requirements ?? []).map(item=>typeof item==='string'?item:item.id)]);
+ const openIssueIds=new Set([...(targetContext?.openIssueIds ?? []),...(targetContext?.openIssues ?? []).map(item=>typeof item==='string'?item:item.id)]);
+ const questionIds=new Set([manifest.currentQuestionId,...(targetContext?.questionIds??[]),...(targetContext?.questions??[]).map(item=>typeof item==='string'?item:item.id)].filter(Boolean));
+ const sectionIds=new Set([...(targetContext?.sectionKeys??[]),...(targetContext?.documentSections??[]).flatMap(item=>typeof item==='string'?[item]:[item.id,item.key])].filter(Boolean));
+ const issueIds=new Set([...(targetContext?.issueIds??[]),...(targetContext?.issues??[]).map(item=>typeof item==='string'?item:item.id)]);
+ const proposalIds=new Set([...(targetContext?.proposalIds??[]),...(targetContext?.proposals??[]).map(item=>typeof item==='string'?item:item.id),(response.proposals??[]).map(proposal=>proposal.id)].filter(Boolean));
+ const itemReferenceFields=new Set(['referencedItemIds','affectedItemIds','relatedItemIds','itemIds','sourceItemIds']);
+ const sourceReferenceFields=new Set(['referencedSourceIds','sourceMessageIds']);
+ const visit=(value,path='$',parentKey='')=>{
+  if(Array.isArray(value)){value.forEach((child,index)=>visit(child,`${path}[${index}]`,parentKey));return;}
+  if(!value||typeof value!=='object')return;
+  for(const [key,child] of Object.entries(value)){
+   const childPath=`${path}.${key}`;
+   if(Array.isArray(child)&&itemReferenceFields.has(key)) for(const id of child) if(!itemIds.has(id)) errors.push(`${childPath}: unknown item ${id}`);
+   if(Array.isArray(child)&&sourceReferenceFields.has(key)) for(const id of child) if(!sourceIds.has(id)) errors.push(`${childPath}: unknown source ${id}`);
+   if(key==='sourceId'&&!sourceIds.has(child)) errors.push(`${childPath}: unknown source ${child}`);
+   if(key==='requirementIds'&&Array.isArray(child)) for(const id of child) if(!requirementIds.has(id)) errors.push(`${childPath}: unknown requirement ${id}`);
+   if(key==='openIssueIds'&&Array.isArray(child)) for(const id of child) if(!openIssueIds.has(id)) errors.push(`${childPath}: unknown open issue ${id}`);
+   if((key==='questionId'||key==='returnToQuestionId')&&!questionIds.has(child)) errors.push(`${childPath}: unknown question ${child}`);
+   if(key==='sectionKey'&&!sectionIds.has(child)) errors.push(`${childPath}: unknown section ${child}`);
+   if(key==='resolvedIssueIds'&&Array.isArray(child)) for(const id of child) if(!issueIds.has(id)) errors.push(`${childPath}: unknown issue ${id}`);
+   if(key==='targetId'&&parentKey==='coverage'&&!itemIds.has(child)&&!requirementIds.has(child)&&!sectionIds.has(child)) errors.push(`${childPath}: unknown target ${child}`);
+   if(key==='proposalIds'&&Array.isArray(child)){
+    for(const id of child) if(!proposalIds.has(id)) errors.push(`${childPath}: unknown proposal ${id}`);
+   }
+   visit(child,childPath,key);
+  }
+ };
+ visit(response);
  errors.push(...validateProposalTargets(response.proposals ?? [],targetContext).errors);
  return {valid:errors.length===0,errors};
 }

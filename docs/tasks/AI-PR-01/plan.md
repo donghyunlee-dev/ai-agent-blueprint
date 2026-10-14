@@ -1,12 +1,14 @@
 # AI-PR-01 — 모델·prompt·budget 기반
 
+**Current delivery status: `code_review`.** PRJ-PR-03 is merged as PR #12 (`f5c1dc3b07304e23f650a020d2afd2d56df36a3b`). The bounded review correction pass now covers nested references, deterministic prohibited-outcome checks, derived cost, compaction-before-provider, ledger usage sanitization, and Vercel function configuration. Exact-head independent code review and scoped QA are pending. Keep `gpt-5-mini` as `DEFAULT` and retain existing model profiles and project cost limits.
+
 ## Overview
 
 `AiModelRegistry`(LIGHT/DEFAULT/FINAL profile), versioned prompt/schema registry, token budgeter/context selector, request ledger, golden eval gate를 구현해 이후 모든 AI 호출(2단계 대화, 4단계 문서 생성)이 사용할 공통 기반을 완성한다.
 
 ## Background
 
-`docs/delivery/ai-model-prompt-and-evaluation.md`(AI-001~010)는 대화·문서 두 단계에 걸쳐 쓰이므로, 이 PR은 그중 "호출 전에 확정돼야 하는 계약"(AI-001, AI-002, AI-003, AI-008, AI-009)만 먼저 완성한다. 실제 task 호출(AI-004, AI-005는 `CON-PR-*`, AI-006, AI-007은 `DOC-PR-*`)은 각각의 PR에서 이 registry를 소비한다. 이 PR은 5개 요구사항(model registry, prompt/schema registry, token budgeter, request ledger, golden eval gate)을 한 PR로 묶고 있어 다른 PR 대비 크다 — 구현 중 실제 변경량이 크면 `AI-PR-01-A`(model+prompt registry)와 `AI-PR-01-B`(token budgeter+ledger+golden eval)로 분할하고 이 문서와 `docs/delivery/traceability.md`를 먼저 갱신한다.
+`docs/delivery/ai-model-prompt-and-evaluation.md`의 AI-001~010 delivery tasks는 대화·문서 두 단계에 걸쳐 쓰인다. 이 PR은 그중 호출 전에 확정되는 delivery tasks AI-001, AI-002, AI-003, AI-008, AI-009를 먼저 완성한다. 실제 task 호출(AI-004, AI-005는 `CON-PR-*`, AI-006, AI-007은 `DOC-PR-*`)은 각각의 PR에서 이 registry를 소비한다. 이 PR은 다섯 delivery tasks(model registry, prompt/schema registry, token budgeter, request ledger, golden eval gate)를 한 PR로 묶고 있어 다른 PR 대비 크다 — 구현 중 실제 변경량이 크면 `AI-PR-01-A`(model+prompt registry)와 `AI-PR-01-B`(token budgeter+ledger+golden eval)로 분할하고 이 문서와 `docs/delivery/traceability.md`를 먼저 갱신한다.
 
 ## Scope
 
@@ -26,7 +28,7 @@
 
 ## 연결 근거
 
-- 요구사항: `AI-001`, `AI-002`, `AI-003`, `AI-008`, `AI-009`
+- 요구사항: `AI-001`, `AI-002`, `AI-006`, `AI-008`, `AI-009`
 - Delivery 작업: `docs/delivery/ai-model-prompt-and-evaluation.md` AI-001, AI-002, AI-003, AI-008, AI-009
 - 결정: `DEC-025`, `DEC-029`, `DEC-030`, `DEC-031`, `DEC-033`
 - 제품 설계: `docs/product/12-ai-orchestration-and-model-policy.md`, `docs/product/13-prompt-and-response-contracts.md`, `docs/product/14-ai-budget-evaluation-and-operations.md`
@@ -36,8 +38,11 @@
 
 - `FND-PR-02`가 기본 브랜치에 병합돼 도메인 ID, Proposal, DocumentSection, GenerationJob schema가 확정됨
 - Google-backed session에서 비식별 `ownerKey` 발급 경로가 준비됨(`AUTH-PR-01`~`03` 머지 완료)
-- OpenAI project에서 Luna/Mini/Terra 접근 권한과 rate limit을 배포 전 재확인
+- User decision: keep `DEFAULT=gpt-5-mini` and retain current `$0.35` soft / `$0.60` hard project cost limits; do not change `DEC-031`, `DEC-033`, or the budget tables in this PR.
+- OpenAI project에서 선택한 모델 접근 권한과 rate limit을 live eval 전에 확인
 - 평가 fixture가 실제 사용자·프로젝트 원문을 포함하지 않음을 확인
+
+**Definition of Ready: READY.** The user resolved the model/cost decision: keep `DEFAULT=gpt-5-mini` and existing model profiles, cost values, and budget tables unchanged. Record the accepted migration risk: OpenAI's [GPT-5 Mini model page](https://developers.openai.com/api/docs/models/gpt-5-mini) marks the model deprecated and recommends [GPT-5.6 Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra) for most new low-latency/high-volume work. The [deprecations page](https://developers.openai.com/api/docs/deprecations) lists Dec 11, 2026 as the shutdown date for snapshot `gpt-5-mini-2025-08-07`; do not infer an earlier alias shutdown date. The currently published Mini input/output prices are $0.25/$2.00 per 1M tokens and Terra is $2/$12 (8×/6×), but no model or budget change is authorized. Recheck model availability, API parameters, project access and rate limits before any live evaluation or deployment.
 
 ## 작업 단위별 구현 개요
 
@@ -69,7 +74,7 @@
 
 - task별 synthetic fixture와 deterministic assertion(JSON Schema 통과, 참조 ID 존재, 금지 결과 0건) 작성
 - 명료성/유용성 지표만 rubric grader + 사람 검토 병행
-- 현재/후보 model·prompt를 동일 fixture로 pairwise 비교하는 CI 스크립트
+- provider 호출이 없는 synthetic fixture 평가를 CI에서 실행하고, current/candidate model·prompt의 provider-backed pairwise 비교는 명시적 pre-release 단계로 분리
 
 ## 프로세스 / 상태 전이
 
@@ -113,6 +118,13 @@ flowchart TD
 - Given token 추정이 예산을 초과하는 대화 상태, when context selector가 실행되면, then 조용한 잘림 없이 생략 범위가 `ContextManifest.omitted`에 기록되고 현재 대상과 confirmed 항목은 보존된다.
 - Given 프로젝트가 hard budget을 초과한 상태, when 새 AI 요청이 들어오면, then provider 호출 없이 즉시 차단되고 대안 신호가 반환된다.
 - Given golden eval에서 금지 결과(미승인 확정, 참조 ID 없음)가 발견된 상태, when 배포 파이프라인이 실행되면, then 해당 model/prompt 변경이 배포되지 않는다.
+- Given document payload의 section, requirement, acceptance criterion, evidence, issue, question, proposal, 또는 target 참조 ID가 manifest/canonical context에 없을 때, when API domain validation 또는 golden eval이 실행되면, then 해당 payload가 거절된다.
+- Given PRD `requirementLinks.sectionKey`가 응답 안의 section에는 있지만 canonical `targetContext.documentSections`/`sectionKeys`에는 없을 때, when 검증하면, then 자체 선언 section으로 링크를 허용하지 않고 거절한다.
+- Given 모델 응답이 readiness/completion/승인 결과를 정하거나 canonical answer mode/stable value를 바꿀 때, when golden eval이 실행되면, then 호출자가 제공한 fixture label과 무관하게 실패한다.
+- Given `assistant_text`가 한국어 또는 영어로 항목이 이미 확정/승인됐다고 주장할 때, when golden eval이 실행되면, then 인용/근거 텍스트는 제외하고 해당 응답을 실패시킨다.
+- Given token estimates가 있을 때, when budget/ledger 비용을 기록하면, then registered profile price로 비용을 재계산하며 위조된 0원 estimate는 provider 전에 거절된다.
+- Given budget 판정이 `compact_then_allow`일 때, when budgeted request가 실행되면, then context compaction과 새 estimate 검증 및 budget 재검사 완료 후에만 provider callback이 실행된다.
+- Given Vercel serverless AI route가 provider helper에 진입할 때, when profile environment가 누락되거나 registered mapping과 다르면, then provider request 전에 명확한 configuration error가 반환된다.
 
 ### Boundary
 
@@ -133,11 +145,23 @@ flowchart TD
 
 ## 테스트 계획
 
-- **model registry**: task/profile 매핑 unit test, 환경 변수 누락 시 부팅 실패 test
-- **prompt/schema registry**: 알 수 없는 promptVersion/schemaVersion 응답 거절 test, inline prompt 금지 lint/정적 검사
-- **context selector/token budgeter**: 예산 순서 보존 test, 85% threshold 경계 test, `store:false`/`truncation:disabled` 고정 적용 test
-- **request ledger**: soft/hard budget 초과 차단 test, FINAL hard 2회 제한 test, 원장에 원문/secret 미포함 검증 test
-- **golden eval**: 정상/오류 fixture 세트로 전체 gate 실행, pairwise 비교 스크립트 dry-run
+- Run only tests for AI-PR-01 behavior and directly affected contracts:
+  - focused model registry/profile-router tests, including missing config and the approved resolved model mapping
+  - prompt/schema registry tests for version lookup, unknown-version rejection and typed/untrusted context boundaries; static check for inline production prompts
+  - context selector/token-budget tests for ordering, 85% threshold, omission manifest and common Responses settings
+  - request-ledger/budget tests for cost arithmetic, soft/hard limits, the FINAL cap, provider-call suppression after a hard-limit decision, and exclusion of user text/secrets
+  - synthetic golden fixtures for deterministic schema/reference-ID/forbidden-result gates and the evaluation runner's fixture/dry-run path
+- Run the focused suite directly with `node --test tests/unit/ai/*.test.ts`; run any newly added prompt-registry static check by its focused command.
+- Run focused AI unit/contract tests, `npm run test:golden`, then `npm run build` because production code changes. The synthetic golden evaluator also runs in `npm run test:ci` and `.github/workflows/ai-golden-eval.yml`. Run docs/Mermaid checks only if those documents/diagrams change, and `git diff --check`.
+- Do not run `npm run test:ci` or unrelated suites by default. Use a deterministic fake provider for all local automated tests; tests/build must not make live OpenAI calls.
+
+## OpenAI API key and live-evaluation gate
+
+- Deterministic unit tests, fixture evaluation, and build do not need `OPENAI_API_KEY`. Actual Vercel AI function invocations now require server environment values `AI_MODEL_LIGHT=gpt-5.6-luna`, `AI_MODEL_DEFAULT=gpt-5-mini`, `AI_MODEL_FINAL=gpt-5.6-terra`, matching the registered profiles, plus server-only `OPENAI_API_KEY`. Set profile values in local `.env.local` and each Vercel environment used for API functions before deploying/using those routes; never place the key in browser/Vite-exposed configuration or tracked files.
+- AI-009's real current-vs-candidate model/prompt pairwise comparison requires provider calls. Before running that live evaluation, verify project access/rate limits and stop to tell the user to configure a server-only `OPENAI_API_KEY` in the active worktree root `.env.local` (`/tmp/ai-agent-blueprint-ai-pr-01/.env.local`). Never attempt a live call before the key is configured and project access is verified.
+- This is a live-evaluation gate, not permission to send real user/project content. Use only the synthetic fixtures defined for the eval.
+
+Do not request or print the key in chat, logs, screenshots, or tracked files.
 
 ## UI 증거 계획 (해당 시)
 
@@ -148,7 +172,7 @@ flowchart TD
 - 물리 모델명이 코드에 흩어져 있지 않고 registry 경유만 존재하는지 확인
 - inline production prompt가 없는지 grep 검증
 - budget/ledger에 사용자 원문·secret이 없는지 로그 검증
-- golden eval CI 스크립트가 실제로 실패를 감지하는지(의도적 실패 fixture로 확인)
+- synthetic fixture CI gate가 의도적 실패 fixture에서 실패하고 live pairwise runner는 명시적 pre-release 단계에서만 호출되는지 확인
 - QA는 UI가 없으므로 API/계약 QA로 대체: ledger·budget 계산 결과를 fixture와 대조
 
 ## Done Checklist
@@ -157,7 +181,7 @@ flowchart TD
 - [ ] Acceptance criteria verified
 - [ ] 독립 코드 리뷰 pass
 - [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료 (해당 없음 — UI 변경 없음)
+- [x] UI 캡처 gate 해당 없음 — UI 변경 없음
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서
