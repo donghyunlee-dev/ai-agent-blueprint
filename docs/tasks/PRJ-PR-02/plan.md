@@ -43,6 +43,8 @@
 **PRJ-103 IndexedDB 저장소**
 
 - `ownerKey` 기준 namespace와 `schemaVersion`을 가진 IndexedDB 스토어를 연다.
+- 모든 `list/get/save/delete`는 활성 인증 context의 `ownerKey`로 제한한다. 서로 다른 owner 간 프로젝트 ID를 공유하지 않으며 다른 owner의 직접 `get`은 `null`을 반환한다.
+- 계정 전환이 진행 중이거나 늦은 이전 owner 요청이 완료되어도 새 owner 화면에 이전 프로젝트를 열거나 표시하지 않는다.
 - 프로젝트 aggregate와 activity(최근 이벤트) 저장을 하나의 IndexedDB 트랜잭션으로 묶는다.
 - 편집 발생 시 500ms debounce 후 저장을 예약하고, 저장 중 추가 편집이 들어오면 최신 상태로 재예약한다.
 - quota 초과 또는 트랜잭션 실패 시 메모리의 작업 복사본을 유지하고 저장 실패 상태로 전환한다(자동 롤백하지 않음).
@@ -105,6 +107,10 @@ Given IndexedDB 트랜잭션이 quota 초과로 실패하면, when 저장이 시
 
 Given 삭제 확인 모달에서 삭제 요청이 실패하면, when 삭제 처리가 실패하면, then 새 프로젝트를 생성하지 않고 기존 20개 목록을 그대로 유지한다.
 
+Given owner A와 owner B가 같은 프로젝트 ID를 가진 데이터를 저장하면, when 각 owner가 목록과 프로젝트를 조회하면, then `list/get/save/delete`가 각 owner 범위에만 적용되고 다른 owner의 데이터는 반환되지 않는다.
+
+Given owner A의 프로젝트 조회가 지연된 상태에서 B로 계정을 전환하면, when 늦은 A 조회가 완료되면, then B 화면과 저장소에는 A의 프로젝트가 표시되거나 적용되지 않는다.
+
 ### Boundary
 
 Given 사용자가 정확히 20개의 프로젝트를 가지고 있으면, when 21번째 프로젝트를 생성 요청하면, then 삭제 확인 모달이 표시된다.
@@ -125,6 +131,8 @@ Given 사용자가 19개 이하의 프로젝트를 가지고 있으면, when 새
 - 단위: debounce 저장 타이밍, 저장 실패 시 메모리 상태 보존
 - 단위: 20/21개 경계 계산 로직(19→생성, 20→생성, 21→모달)
 - 통합: IndexedDB 트랜잭션 성공/실패 fixture, 스키마 마이그레이션 시나리오
+- 계약/통합: 두 owner의 같은 project ID에 대해 `list/get/save/delete` 범위 격리, cross-owner `get`의 `null` 반환
+- 통합/E2E: A 조회를 지연시킨 채 B로 전환한 뒤 늦은 A 결과가 표시·저장되지 않는 race 검증
 - E2E: 새로고침 후 마지막 상태 복구, 21번째 생성 시 취소/삭제 각각 검증
 - E2E: 저장 중 추가 편집이 유실되지 않는지 확인
 

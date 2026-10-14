@@ -16,8 +16,9 @@
 
 ```ts
 interface AuthUser {
+  issuer: string;
+  subject: string;
   email: string;
-  clientId: string;
 }
 
 interface LocalOwnerScope {
@@ -26,7 +27,8 @@ interface LocalOwnerScope {
 ```
 
 - `AuthUser`는 `/api/auth/session` 응답에서만 초기화하며 localStorage에 인증 근거로 저장하지 않는다.
-- `ownerKey`는 정규화한 email과 client ID를 일방향 해시한 안정적 값이다.
+- `ownerKey`는 서버가 검증한 정규화된 `(issuer, subject)` identity에서 결정론적으로 도출한 불투명한 일방향 namespace 값이다. email, client ID, token 및 다른 profile 정보는 입력으로 사용하지 않는다.
+- `email`은 표시·연락 정보이며 저장 namespace 식별자가 아니다. 같은 `(issuer, subject)`의 email이 변경되어도 `ownerKey`는 유지한다.
 - 프로젝트, thread, message, source, document와 activity의 모든 repository 작업은 현재 `ownerKey` 범위 안에서 수행한다.
 - login token, session cookie, Google OAuth client secret과 session secret은 이 데이터 모델과 IndexedDB에 포함하지 않는다.
 - 로그아웃과 사용자 전환 시 React 작업 복사본, 최근 프로젝트 cache와 repository 연결을 폐기한다.

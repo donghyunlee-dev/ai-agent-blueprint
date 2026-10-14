@@ -55,7 +55,7 @@ Google OIDC로 사용자를 인증하고 Blueprint session, 보호 API와 사용
 1. Google Cloud consent screen과 OAuth client를 설정하고 각 환경의 exact callback URI 및 서버 전용 secret을 등록한다.
 2. `AUTH-PR-01`: authorization-code callback, state/nonce/ID-token 검증, verified email, HttpOnly session과 session/logout API를 구현한다.
 3. `AUTH-PR-02`: `Google로 계속` 로그인 화면, safe `returnTo`, route guard와 모든 Blueprint API의 `requireSession`을 구현한다.
-4. `AUTH-PR-03`: `(issuer, sub)`에 기반한 IndexedDB owner namespace와 사용자 전환 정리를 구현한다.
+4. `AUTH-PR-03`: 서버 검증된 `(issuer, sub)`에서 안정적인 `ownerKey`와 안전한 owner context lifecycle을 제공한다.
 5. 이후 `FND-PR-01`~`03` foundation work를 시작한다.
 
 ### 완료 조건
@@ -63,7 +63,7 @@ Google OIDC로 사용자를 인증하고 Blueprint session, 보호 API와 사용
 - 검증된 `iss`, `sub`, `email_verified`만 Blueprint session을 발급한다.
 - state/nonce, signature, issuer, audience, expiry 검증 실패는 session을 발급하지 않는다.
 - 비인증 화면/API 접근이 차단되고 로그인 후 안전한 원래 경로로 돌아간다.
-- 로그아웃과 account switch 뒤 이전 사용자의 프로젝트가 노출되지 않는다.
+- 로그아웃·account switch 뒤 이전 owner context와 임시 메모리 데이터가 노출되지 않는다. 실제 IndexedDB list/get/save/delete 소유권 격리는 `PRJ-PR-02`의 acceptance gate에서 확인한다.
 - Gmail API scope, authorization code, token과 secret은 브라우저 저장소·로그에 남지 않는다.
 
 ## 0단계: 구현 기반과 계약 확정
@@ -120,6 +120,7 @@ Google OIDC로 사용자를 인증하고 Blueprint session, 보호 API와 사용
 - `/blueprints/new`, `/blueprints/:projectId` 라우트 구성
 - Blueprint aggregate와 repository 인터페이스 구현
 - IndexedDB 저장소, schemaVersion과 마이그레이션 기반 구현
+- `AUTH-PR-03`의 `ownerKey`를 모든 IndexedDB list/get/save/delete 작업에 적용하고, 계정 A와 B 간 persistent data isolation을 검증
 - 최근 사용 프로젝트 20개 제한과 초과 시 삭제 확인 구현
 - 새 저장소 namespace 적용, 이전 데이터 미마이그레이션과 이전 경로 404 구현
 - 새 프로젝트 생성과 최근 프로젝트 목록 구현
