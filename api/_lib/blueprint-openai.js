@@ -42,7 +42,7 @@ export function getOpenAiConfig(env = process.env) {
   }
   return {
     apiKey: env.OPENAI_API_KEY,
-    model: env.AI_MODEL_DEFAULT,
+    model: env.AI_MODEL_DEFAULT.trim(),
   };
 }
 

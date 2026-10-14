@@ -20,7 +20,7 @@ export function validateReferences(response, manifest, targetContext) {
    if(Array.isArray(child)&&sourceReferenceFields.has(key)) for(const id of child) if(!sourceIds.has(id)) errors.push(`${childPath}: unknown source ${id}`);
    if(key==='sourceId'&&!sourceIds.has(child)) errors.push(`${childPath}: unknown source ${child}`);
    if(key==='requirementIds'&&Array.isArray(child)) for(const id of child) if(!requirementIds.has(id)) errors.push(`${childPath}: unknown requirement ${id}`);
-   if(key==='openIssueIds'&&Array.isArray(child)) for(const id of child) if(!openIssueIds.has(id)&&!itemIds.has(id)) errors.push(`${childPath}: unknown open issue ${id}`);
+   if(key==='openIssueIds'&&Array.isArray(child)) for(const id of child) if(!openIssueIds.has(id)) errors.push(`${childPath}: unknown open issue ${id}`);
    if((key==='questionId'||key==='returnToQuestionId')&&!questionIds.has(child)) errors.push(`${childPath}: unknown question ${child}`);
    if(key==='sectionKey'&&!sectionIds.has(child)) errors.push(`${childPath}: unknown section ${child}`);
    if(key==='resolvedIssueIds'&&Array.isArray(child)) for(const id of child) if(!issueIds.has(id)) errors.push(`${childPath}: unknown issue ${id}`);

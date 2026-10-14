@@ -72,6 +72,20 @@ test('PRD section links cannot establish their own canonical section IDs', () =>
   assert.ok(result.errors.some((error) => error.includes('requirementLinks[0].sectionKey: unknown section invented')));
 });
 
+test('open issue references require canonical open-issue membership, not general design-item membership', () => {
+  const result = evaluateGoldenFixture({
+    id: 'requirements-non-issue-reference', task: 'REQUIREMENTS_DRAFT', schemaVersion: 'v1',
+    response: {
+      sections: [],
+      requirements: [{ id: 'REQ-1', category: 'functional', title: '기능', description: '설명', priority: 'P1', sourceItemIds: [], acceptanceCriteria: [], openIssueIds: ['i1'] }],
+    },
+    manifest: { designItemIds: ['i1'], sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] },
+    targetContext: { openIssueIds: [], issues: [] },
+  });
+  assert.equal(result.pass, false);
+  assert.ok(result.errors.some((error) => error.includes('unknown open issue i1')));
+});
+
 test('golden gate rejects readiness decisions in model output', () => {
   const result = evaluateGoldenFixture({
     ...validFixture,

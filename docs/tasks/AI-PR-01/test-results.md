@@ -12,8 +12,8 @@
 
 | Command | Result |
 | --- | --- |
-| `node --test tests/unit/ai/*.test.js tests/contract/fnd-model-registry.test.js tests/contract/fnd-budget.test.js` | Pass, 42/42 (including both exact-head review regressions) |
-| `node --test tests/unit/ai/golden-eval.test.js` | Pass, 11/11; covers canonical section links and varied assistant-authored Korean/English confirmation claims while ignoring quoted and evidence text |
+| `node --test tests/unit/ai/*.test.js tests/contract/fnd-model-registry.test.js tests/contract/fnd-budget.test.js` | Pass, 44/44 (including the latest exact-head review regressions) |
+| `node --test tests/unit/ai/golden-eval.test.js` | Pass, 12/12; covers canonical section/open-issue references and varied assistant-authored Korean/English confirmation claims while ignoring quoted and evidence text |
 | `npm run test:golden` | Pass, 13/13 synthetic fixtures; no provider calls |
 | `npm run build` | Pass, TypeScript and Vite build (67 modules) |
 | `git diff --check` | Pass |
@@ -26,6 +26,7 @@ Build initially could not start because this worktree had no `node_modules`. It 
 - Review correction regressions cover nested Requirements/PRD/document references and canonical question targets; deterministic checks reject model-authored readiness, confirmation, completion, answer-mode, and stable-value decisions without trusting fixture-supplied forbidden labels.
 - The golden evaluator also scans only `assistant_text` content for narrowly phrased completed confirmation/approval claims. Quoted spans, Markdown blockquotes, and evidence excerpts are excluded from that detector.
 - PRD `requirementLinks.sectionKey` must now resolve against canonical target context; a response cannot make its own invented section key trusted merely by returning that section.
+- `openIssueIds` must match canonical issue IDs in `targetContext`; a generic design item ID cannot be used as an open issue reference. Vercel config returns the trimmed, validated model ID so whitespace in environment values is not sent upstream.
 - Budgeting derives projected cost from the registered model price and input/cache/output estimates, rejects caller-forged cost, and runs/rechecks compaction before the provider callback. Ledger usage keeps only finite nonnegative integer token fields, deep-copies them, and freezes the copy.
 - The synthetic gate is available as `npm run test:golden`, included in `npm run test:ci`, and runs in `.github/workflows/ai-golden-eval.yml`. Repository ruleset configuration must require the emitted `AI synthetic golden eval` check if merge blocking is desired.
 - Vercel deploy gate: each environment serving `api/` functions must set `AI_MODEL_LIGHT=gpt-5.6-luna`, `AI_MODEL_DEFAULT=gpt-5-mini`, and `AI_MODEL_FINAL=gpt-5.6-terra`; `OPENAI_API_KEY` is server-only for actual provider use. The shared API helper validates all three model mappings before sending a provider request. This was inspected from the repository's `api/` serverless layout; no Vercel environment was changed or inspected.
