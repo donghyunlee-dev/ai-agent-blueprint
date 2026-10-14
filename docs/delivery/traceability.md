@@ -21,7 +21,7 @@
 | AUTH-002 | AUTH-PR-01 | OIDC claim 검증, state/nonce 오류, session cookie | done (PR #3) |
 | AUTH-003 | AUTH-PR-02 | 보호 화면과 직접 API 401 | done (PR #5) |
 | AUTH-004 | AUTH-PR-02 | 사용자 표시, 만료, 멱등 logout | done (PR #5) |
-| AUTH-005 | AUTH-PR-03, PRJ-PR-02 | identity owner context와 lifecycle; IndexedDB list/get/save/delete 격리 | in_progress |
+| AUTH-005 | AUTH-PR-03 (merged #6), PRJ-PR-02 | identity owner context와 lifecycle (AUTH-PR-03 완료); IndexedDB list/get/save/delete 격리 (PRJ-PR-02 대기) | in_progress |
 | PJT-001 | PRJ-102 | 제목 있음/없음, 중복 생성 | ready |
 | PJT-002 | PRJ-103, PRJ-105 | 자동 저장, 실패, 새로고침 | ready |
 | PJT-003 | PRJ-104, PRJ-105 | 최근 목록과 복구 | ready |

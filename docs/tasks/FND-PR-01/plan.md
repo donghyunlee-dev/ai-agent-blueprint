@@ -1,71 +1,108 @@
 # FND-PR-01 — 런타임·화면 기반 정리
 
+## 상태
+
+**READY** — 선행 인증 계약, 구현 범위, UI 출처, 수용 기준과 검증 명령이 확정되어 있다.
+
 ## 사용자/시스템 결과
 
-앱이 React 18 기준으로 빌드되고, 신규 Blueprint 화면의 기본 구조와 시각 기준이 `docs/template/` 캡처 및 semantic HTML/CSS 계약으로 고정된다. 레거시 UI library 의존성과 import는 이 PR에서 함께 제거한다.
+앱이 React 18.3.1 기준으로 계속 빌드되고, 로그인 화면과 임시 보호 `/` shell이 `@sfood/ui` 없이 Blueprint 소유 semantic HTML/CSS로 렌더링된다. 후속 UI 구현이 재사용할 app shell과 접근성·반응형 규약을 정한다. 제품 결정 DEC-018에 따라 리빌드 이전 `/survey`, `/prd` prototype 경로는 공통 404로 처리하며, 기존 prototype 기능을 새 화면으로 옮기지 않는다.
+
+## 요구사항·결정 추적
+
+- Delivery: `FND-001` 런타임 고정, `FND-002` UI reference 및 semantic HTML/CSS 계약
+- Architecture: `docs/product/06-architecture.md` — React 18.3.1, 계층 경계, source structure, current routes and DEC-018 legacy route behavior
+- UI contracts: `docs/product/07-ui-design.md`, `docs/product/09-ui-reference-integration.md`
+- References: `docs/template/README.md`; login behavior/layout uses `docs/ui/screens/00-login-and-session.md`
+- Accessibility: `NFR-001`; required desktop/mobile evidence follows `AGENTS.md` and delivery workflow.
+- Prerequisite: AUTH-PR-01, AUTH-PR-02, AUTH-PR-03 are merged; PR #6 merged at the base commit `e89122036596b7dc516d54ce088e24a7984affd8`.
+
+## 근거가 된 현재 저장소 상태
+
+- `package.json` and lockfile already pin React and ReactDOM to `18.3.1`; this PR retains those versions and does not upgrade the runtime.
+- `@sfood/ui` is still in `package.json`; imports remain in `src/main.tsx`, `src/pages/HomePage.tsx`, `src/pages/SurveyPage.tsx`, `src/pages/PrdPage.tsx`, and `src/components/survey/{BlueprintSidebar,ResultPanel,SurveyHeader}.tsx`.
+- `tailwind.config.js` imports `@sfood/ui/tailwind.config.js` and scans its package distribution; `src/main.tsx` imports `@sfood/ui/global.css`.
+- `.mcp.json` contains `ax-auth` at `https://ax-auth.s-food.ai/mcp`. No current product contract references this service; Google authentication is implemented through the app's `/api/auth/*` routes. Treat this as obsolete integration configuration and remove it in this migration.
+- Current router still mounts legacy `SurveyPage` at `/survey` and `PrdPage` at `/prd`, although DEC-018 says both prior routes return the common 404 without redirect. This PR must align the router with that decision and remove the obsolete screens/imports instead of preserving their prototype flows.
 
 ## 범위
 
-- React 18 및 TypeScript 기반 확인
-- `legacy external UI package` 의존성, import, 전역 stylesheet, Tailwind preset과 MCP 설정 제거
-- 기존 prototype 화면을 앱 소유 semantic HTML/CSS로 전환하여 전체 build 유지
-- `docs/template/README.md` reference map에 연결된 기본 app shell 샘플 구현
-- 접근성, CSS custom property, responsive layout conventions 정리
+### 포함
 
-제외: 완성된 대화·설계·문서 기능, 도메인 저장, 외부 UI library 도입, template screenshot을 제품 asset으로 사용하는 것.
+- Remove `@sfood/ui` from package manifest and lockfile, all source imports, global stylesheet imports, Tailwind preset, and package-specific Tailwind content paths.
+- Replace the imported controls used by the current pages/components with minimal Blueprint-owned semantic HTML and local CSS, preserving existing route behavior and user actions.
+- Keep React/ReactDOM at `18.3.1`, current Vite/TypeScript setup, and the existing route/provider structure.
+- Remove the obsolete `ax-auth` `.mcp.json` server entry; do not add a replacement MCP or UI framework.
+- Establish only the shared app-shell, Button/FormField/Alert patterns, CSS custom-property conventions, visible focus, and responsive behavior required by current screens.
+- Keep `/login` public and `/` protected by the existing `ProtectedRoute`; `/survey` and `/prd` resolve to the common 404 without redirect, as required by DEC-018. The root is a temporary authenticated shell until project-home work lands in a later PR.
+- Remove obsolete survey/PRD prototype screens and components that are no longer reachable under the product route contract; do not recreate their functionality.
+- Record relevant template references and semantic control mappings in the implementation evidence.
 
-## 연결 기준
+### 제외
 
-- Delivery: `FND-001`, `FND-002`
-- Product: [Architecture](../../product/06-architecture.md), [UI design](../../product/07-ui-design.md), [UI reference integration](../../product/09-ui-reference-integration.md)
-- Screen: [UI reference index](../../template/README.md), [UI specifications](../../ui/README.md)
-- Validation: `npm run build`, `npm run test:unit`, `git diff --check`
+- React, ReactDOM, Vite, TypeScript, Tailwind or Playwright version upgrades.
+- New project repository, IndexedDB, domain state, AI calls, or completed Blueprint workspace features.
+- Product-wide redesign or rewriting retired prototype page flows; new project-home and workspace functionality.
+- New component library, external design system, MCP integration, or using screenshot images as app assets/backgrounds.
 
-## 선행 조건
+## Definition of Ready
 
-- Authentication contract is fixed; unrelated Google OAuth configuration is not changed.
-- `.mcp.json` retains only MCP servers required by active product contracts.
-- The reference image for the app shell and login state is identified in the task implementation report.
+- Latest main is `e89122036596b7dc516d54ce088e24a7984affd8`; AUTH-PR-03 PR #6 is merged.
+- FND-001/FND-002 and their source documents define React 18.3.1 plus Blueprint-owned semantic HTML/CSS as the target; DEC-018 unambiguously retires `/survey` and `/prd` as 404 routes.
+- Legacy package imports and Tailwind/global stylesheet coupling are enumerated above; the package is used only by the current UI files in this scope.
+- Test/build/browser scripts exist in `package.json`; `.mcp.json` has no active product-contract dependency on `ax-auth`.
+- Visual evidence sources are identified: `docs/template/image (17).png` for the project start/home hierarchy; `image (16).png` for the workspace/conversation shell; `docs/ui/screens/00-login-and-session.md` for the login screen's wireframe, copy, states, and interaction. The template reference set has no login screenshot, so the screen specification is the authoritative login visual source.
+- No product behavior or technology decision remains unresolved.
 
 ## Acceptance criteria
 
-1. `package.json`, lockfile, Vite, Tailwind, and source contain no `legacy external UI package` dependency, alias, preset, or global stylesheet import.
-2. `.mcp.json` has no legacy UI integration MCP entry.
-3. `npm run build` succeeds and existing routes render without runtime component import errors.
-4. The base shell follows the relevant template screenshot while preserving semantic landmarks, keyboard focus, and 1440×900/390×844 layouts.
-5. No reference screenshot is imported into the application bundle or rendered as a background.
-6. The PR includes current implementation screenshots and Playwright plus Agent Browser evidence for the changed visible flow.
+1. React and ReactDOM remain at version `18.3.1`, with one dependency line for each.
+2. `@sfood/ui` is absent from `package.json`, lockfile, source imports, Vite aliases, Tailwind preset/content configuration, and built output.
+3. No external design-system global stylesheet is imported; `.mcp.json` contains no obsolete `ax-auth` integration, and no replacement UI MCP is added.
+4. `/login` remains public and `/` remains protected; both render without missing component imports. `/survey` and `/prd` return the common 404 without redirect, matching DEC-018; retired prototype actions are not migrated.
+5. Current UI controls use appropriate semantic elements, accessible labels/descriptions, visible keyboard focus, and Blueprint-owned local CSS/custom properties.
+6. `/`, `/login`, `/survey`, and `/prd` have no horizontal overflow at 1440×900 and 390×844; no product reference screenshot is included in the app bundle or rendered as UI.
+7. PR evidence lists reference filenames and semantic mappings, and includes final-HEAD Playwright screenshots at both required viewport sizes. Verify changed loading/error states as applicable.
+
+## 구현 순서
+
+1. Confirm imports and route behavior against DEC-018; map current login controls and temporary `/` shell elements to semantic controls.
+2. Add/update smoke coverage for `/`, `/login`, and the `/survey`/`/prd` 404 behavior before removing legacy screen imports.
+3. Remove the retired survey/PRD route elements and obsolete prototype screens/components; preserve the auth provider and protected root shell.
+4. Replace remaining `@sfood/ui` controls/global styling in the in-scope login/root surfaces with local semantic markup and CSS.
+5. Remove `@sfood/ui` from manifest/lockfile, Tailwind preset/source scan and all imports; remove the obsolete `ax-auth` MCP configuration.
+6. Build, run unit and browser tests, inspect the dependency tree and scan tracked source/config for remaining package references.
+7. Verify desktop/mobile routes and keyboard focus. Capture `/` and `/login` on final HEAD and attach evidence to the PR.
 
 ## Validation matrix
 
-| Scenario | Evidence |
-| --- | --- |
-| Fresh install dependency tree | `npm ls react react-dom` has one React 18 line and no `legacy external UI package` |
-| Build and unit tests | Exact command and output in PR |
-| Desktop shell | Playwright image at 1440×900 |
-| Mobile shell | Playwright image at 390×844; no horizontal overflow |
-| Keyboard flow | Agent Browser verifies focus, navigation, controls, and focus visibility |
-| Design references | Report lists relevant `docs/template/` image filenames |
+| Scenario | Command/evidence | Pass condition |
+| --- | --- | --- |
+| Dependency tree | `npm ls react react-dom` | One React 18.3.1 and ReactDOM 18.3.1 line; no `@sfood/ui` |
+| Package/config/source cleanup | focused `rg` over `package.json`, lockfile, `src`, Vite/Tailwind and `.mcp.json` | No `@sfood/ui`, its preset/global CSS paths, or obsolete `ax-auth` config |
+| Build | `npm run build` | Typecheck and Vite production build succeed |
+| Unit/contract regression | `npm run test:unit` | All current tests pass |
+| Browser smoke | `npm run test:e2e` | `/` is protected, `/login` is public, `/survey` and `/prd` return the common 404 with no redirect; no console/page errors |
+| Desktop visual | Playwright Chromium 1440×900 | Temporary protected shell and login hierarchy render without overflow |
+| Mobile visual | Playwright Chromium 390×844 | Shell/login controls fit, no horizontal overflow, primary login action remains usable |
+| Keyboard | Playwright Chromium; Agent Browser too if available | Tab/Enter/Space operation and visible focus for changed controls |
+| Reference/source mapping | implementation evidence | Names `image (17).png`, `image (16).png`, and login wireframe source; no template image shipped as product asset |
+| Patch hygiene | `git diff --check` | No whitespace errors |
 
-## Implementation sequence
-
-1. Confirm the actual runtime files importing the legacy package and map current screen elements to semantic controls.
-2. Add/update tests or smoke checks for retained route behavior before removing components.
-3. Replace imports and global CSS with local React/HTML/CSS implementations; keep behavior and accessibility contracts.
-4. Remove package, lockfile entry, Tailwind preset/source scan, MCP entry, and obsolete documentation together.
-5. Build, run focused tests, and verify desktop/mobile behavior.
-6. Attach current screenshots, submit the PR, then let independent code review and QA gates run through `$pr-development-loop`.
+Agent Browser is preferred when available. If absent, record tool-catalog and executable checks and complete the same interaction/viewport QA in Playwright Chromium; its absence alone does not block QA.
 
 ## Risks and handling
 
-- Legacy UI components may hide existing layout or state behavior. Inventory props and render states before replacing each import.
-- Removing a global stylesheet may expose latent app assumptions. Capture before/after and validate all current routes.
-- If reference imagery conflicts with product behavior or accessibility, follow product behavior/accessibility and record the visual deviation.
+- Removing the shared global stylesheet may reveal hidden visual assumptions. Replace only styles needed by current surfaces and verify all listed routes.
+- Legacy controls may carry implicit semantics or pending/disabled behavior. Inventory each usage before replacing it and preserve keyboard/action behavior.
+- DEC-018 conflicts with the current router's old `/survey` and `/prd` routes; the product decision is authoritative. Retire these prototype screens and test 404 behavior rather than carrying the old flows forward.
+- The login screen has no dedicated `docs/template/` bitmap. Follow the exact layout, copy, state and focus contract in `docs/ui/screens/00-login-and-session.md`; use the template index only for applicable broader shell patterns.
+- `.mcp.json`'s `ax-auth` endpoint has no active product-contract reference and is obsolete after the app-owned OIDC implementation; if implementation discovers a current required consumer, stop and report the exact reference rather than silently retaining or replacing it.
 
 ## Done checklist
 
-- [ ] Product, package, Tailwind, and MCP config contain no legacy external UI integration.
-- [ ] Relevant reference image filenames are linked in the implementation evidence.
-- [ ] Desktop, mobile, keyboard, Playwright, and Agent Browser checks pass.
-- [ ] Build, targeted tests, and `git diff --check` pass.
-- [ ] Independent code review and independent QA pass on final HEAD.
+- [ ] FND-001/FND-002 acceptance criteria verified.
+- [ ] React 18.3.1, package cleanup, local CSS, and MCP cleanup verified.
+- [ ] Build, unit tests, browser smoke, keyboard, desktop/mobile checks pass.
+- [ ] Final-HEAD evidence identifies references and screenshots.
+- [ ] Independent code review and independent QA pass.
