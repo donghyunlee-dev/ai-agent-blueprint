@@ -89,11 +89,11 @@ Given sessionStorage의 이전 값이 손상된 JSON인 경우, when 이전을 �
 
 ## 독립 QA 결과
 
-- Playwright, 로컬 `http://localhost:5173`: `/`와 `/survey`를 1440×900 및 390×844에서 확인. 네 조합 모두 200, Windsoft 표시, 렌더된 본문에서 이전 제품명 없음, page error 없음, 가로 overflow 없음.
-- 자동 검증: `npm run test:unit` 59/59 통과.
-- 캡처: `.pr-artifacts/BRD-PR-01/`의 desktop/mobile 홈·설문 이미지.
-- QA gate는 **BLOCKED**: 이 세션에 Agent Browser 도구/실행 파일이 없어 저장소 계약상 독립 브라우저 확인을 완료하지 못함. Linux QA 컨테이너에 한국어 폰트도 없어 캡처에서 한국어 글리프가 대체 표시됨. DOM 문구와 레이아웃 수치는 확인했지만 글꼴 렌더링은 시각 승인하지 않음.
-- 재개 조건: Agent Browser 사용 가능 세션에서 같은 로컬 URL과 viewport를 확인하고, 한국어 글꼴이 있는 환경에서 desktop/mobile 캡처를 다시 생성한다.
+- Playwright, 로컬 `http://127.0.0.1:5174`: `/`와 `/survey`를 1440×900 및 390×844에서 확인. 네 조합 모두 HTTP 200, Windsoft 표시, 렌더된 본문에 이전 브랜드 없음, page error 없음, 가로 overflow 없음.
+- 시각 캡처는 한국어 글꼴(Malgun Gothic)을 추가한 환경에서 생성하고 직접 확인했다. desktop/mobile 홈·설문 이미지는 [`docs/delivery/evidence/BRD-PR-01/`](../../delivery/evidence/BRD-PR-01/)에 저장했다.
+- 자동 검증: `npm run test:unit` 59/59 통과, `npm run build` 통과, `git diff --check` 통과.
+- QA gate는 **BLOCKED**: 현재 Codex 세션에 Agent Browser 도구나 실행 파일이 노출되지 않아 저장소 계약상 필수인 별도 Agent Browser 검증을 아직 수행하지 못했다. Playwright 결과만으로 QA를 pass 처리하지 않는다.
+- 재개 조건: Agent Browser가 활성화된 Codex 세션에서 동일 로컬 URL과 viewport를 확인하고, 결과를 이 계획과 PR에 기록한다.
 
 ## 리스크
 
