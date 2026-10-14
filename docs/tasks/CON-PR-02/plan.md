@@ -34,8 +34,10 @@
 ## 선행 조건 (Definition of Ready)
 
 - `CON-PR-01` 기본 브랜치 병합 완료
+- `AI-PR-01` 기본 브랜치 병합 완료; CON-PR-02는 AI-005의 호출 경계를 따르되 provider 호출을 구현하지 않는다.
 - `FND-PR-01`에서 Blueprint 소유 semantic form controls와 `docs/template/` 시각 기준 확정 완료
 - 질문 카탈로그 12개 영역의 콘텐츠(문구, 옵션)가 `FND-PR-01`/`02`에서 데이터로 확정됨
+- 선행 PR의 merge 상태와 필요한 catalog/schema 산출물을 구현 착수 때 기본 브랜치에서 확인한다. 누락된 선행 산출물이 있으면 해당 항목을 특정해 `blocked`로 보고한다.
 
 ## 작업 단위별 구현 개요
 
@@ -55,6 +57,7 @@
 
 - 표준 선택/skip/defer 제출 시 AI 호출 없이 도메인 command로 직접 처리
 - 제출 즉시 반영하지 않고 사용자가 별도 제출 행동을 완료해야 반영(선택만으로 자동 제출 금지)
+- `잘 모르겠어요`/`추천해 주세요`는 PR-03이 처리할 명시적 요청으로 보존하고 전달한다. 이 PR에서 agent/API/provider를 호출하거나 설명·추천·proposal을 꾸며내지 않는다.
 
 ## 프로세스 / 상태 전이
 
@@ -96,13 +99,21 @@ flowchart TD
 
 ### Failure Case
 
-- Given 알려지지 않은 answer mode가 카탈로그에 있는 상태, when 폼을 렌더링하면, then 오류 없이 안전한 text 폼으로 대체된다.
+- Given 클라이언트 catalog의 표시 전용 버전 불일치가 있는 상태, when 질문을 렌더링하면, then 답변을 자동 제출하지 않는 안전한 text control을 사용한다. Agent가 지원하지 않는 answerMode를 반환하면 질문 schema를 거부한다.
 - Given 필수 항목을 선택하지 않은 상태, when 제출을 시도하면, then 제출이 차단되고 해당 필드에 오류가 연결된다.
 
 ### Boundary
 
 - Given 이미 확정된 의미와 동일한 질문 후보가 남아있는 극단 케이스, when 후보를 재계산하면, then 해당 후보가 제외되어 반복 질문이 발생하지 않는다.
 - Given 선택 옵션을 클릭만 하고 제출 버튼을 누르지 않은 상태, when 다른 화면으로 이동하면, then 자동 제출되지 않고 선택 상태만 유지된다.
+- Given `잘 모르겠어요` 또는 `추천해 주세요`를 요청한 상태, when 해당 행동을 처리하면, then 의도가 보존되어 후속 PR로 전달되고 이 PR에서는 turn API/AI를 호출하지 않는다.
+- Given 선행 질문 답이 바뀌어 종속 질문의 조건이 달라진 상태, when 후보를 다시 계산하면, then 종속 응답을 자동 삭제하지 않고 재검토가 필요한 상태로 둔다.
+
+## 범위 경계
+
+- 표준 답변·skip·defer 및 질문 상태는 현재 프로젝트 저장소 계약을 사용한다. 별도 backend/API 또는 AI provider 호출을 추가하지 않는다.
+- 사용자 정의 답변/도움/추천의 실제 AI 처리와 block 표시, 그리고 refresh 뒤 미전송 composer draft 복구는 `CON-PR-03` 범위다. 이 PR은 후속 요청을 잃지 않는 데이터 경계까지만 제공한다.
+- 제안 승인과 confirmed design 반영은 `DSG-PR-01`~`03`에서 처리한다. pending proposal이 있으면 다음 시스템 질문을 막는다.
 
 ## 예상 변경 파일
 
@@ -116,34 +127,36 @@ flowchart TD
 
 ## 테스트 계획
 
-- 질문 선택 규칙 단위 테스트: 필수성/후속영향/위험/불확실성/피로도 정렬, 동점 처리
-- 조건부 활성화 테스트: 로그인 불필요 시 로그인 질문 비활성, 데이터 불필요 시 DB 질문 비활성
-- 7종 answer mode 컴포넌트 테스트: default/selected/error/disabled 상태 각각
-- 표준 선택/skip/defer AI 호출 0회 확인(request ledger 카운트 검증)
-- 키보드만으로 입력·순위 변경·제출 완료 E2E
+- 질문 엔진 단위 테스트: 12개 영역의 catalog coverage, 후보 우선순위/동점, confirmed 의미 중복 방지, 조건부 로그인·저장 질문, pending proposal gate.
+- 각 answer mode의 정상 입력과 관련 경계/오류만 단위 테스트: multiple min/max, text required/trim, number bounds, range 역전, rank 중복·누락, confirm 명시 선택, 미지원 Agent mode 거부 및 catalog 표시 버전 차이의 비제출 text 처리. 폼 입력은 키보드로 완료할 수 있어야 한다.
+- 상호작용 테스트: 선택만으로 자동 제출되지 않음; 제출 후 값 저장; required 오류가 해당 입력과 연결됨; defer와 optional skip이 서로 다른 이력으로 남고 재검토 가능.
+- 호출 경계 테스트: standard answer/skip/defer는 turn API 및 AI 호출 0회; unknown/recommend intent는 보존·전달되고 이 PR에서 호출 0회.
+- UI에 대해서는 변경된 대표 폼 흐름 하나를 브라우저에서 검증하고, keyboard 제출 및 관련 viewport에서 입력/오류 가시성만 확인한다. 전체 viewport/state 매트릭스나 무관한 E2E는 실행하지 않는다.
+- `git diff --check`; production/build 설정을 변경하면 `npm run build`도 실행한다.
 
 ## UI 증거 계획 (해당 시)
 
-- desktop 1440×900, mobile 390×844에서 7종 answer mode 각각의 default/selected/error 상태 캡처
-- 조건부 질문 비활성 화면 캡처 1세트
-- 파일명 예: `CON-PR-02-question-card-1440x900-single-selected.png`
+- `docs/template/README.md`의 매핑에 따라 `docs/template/image (16).png`와 `image (15).png`를 대화/질문 패널 참고 자료로 사용한다.
+- 캡처는 선택 증거다. 필요할 때 변경된 대표 폼 상호작용만 기록하며 모든 mode·상태별 캡처를 merge gate로 요구하지 않는다.
 
 ## 코드 리뷰·QA 체크리스트
 
 - 질문 카탈로그 데이터와 선택 엔진 로직이 분리돼 있는지(하드코딩된 순서 없는지)
 - 표준 선택 제출 시 실제로 AI 호출이 발생하지 않는지 request ledger로 확인
-- semantic form controls, reference images, accessibility, responsive states 검증 여부
-- QA: 데스크톱/모바일 키보드 내비게이션 수동 확인, screen reader 이름/오류 연결 확인
+- semantic form controls와 template reference 준수, 변경된 interaction의 keyboard/focus/오류 연결 및 영향받는 viewport만 확인
+- QA는 구현자와 분리된 agent가 수행하고 직접 관련된 수용 기준 및 경계 테스트의 증거를 기록한다. 화면 캡처는 선택이다.
 
 ## Done Checklist
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료
+- [x] Requirements implemented
+- [x] Acceptance criteria verified by focused unit and browser checks
+- [x] 독립 코드 리뷰 pass
+- [x] 독립 QA pass
+- [x] 변경된 interaction과 직접 영향받는 접근성/반응형 동작 확인(캡처 선택)
 - [ ] 사용자 PR 머지 확인
 
-## 실행 시 추가 문서
+## 실행 결과 문서
 
-- 이 폴더에 구현 중/후 `test-results.md`, `review-notes.md`, `qa-report.md` 등을 추가로 생성한다(지금은 생성하지 않음).
+- [test-results.md](./test-results.md): 구현자 자체 검증 결과
+- [review-notes.md](./review-notes.md): 독립 코드 리뷰 결과와 수정 사항
+- [qa-report.md](./qa-report.md): 독립 QA 결과와 검증한 소스 SHA
