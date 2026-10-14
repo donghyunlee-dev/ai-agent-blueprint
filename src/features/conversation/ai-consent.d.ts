@@ -1,0 +1,3 @@
+export const AI_CONSENT_VERSION: string;
+export function hasCurrentProjectAiConsent(consent: { acceptedAt: string; consentVersion: string } | null | undefined, version?: string): boolean;
+export function ensureProjectAiConsent<T>(options: { consent?: { acceptedAt: string; consentVersion: string } | null; version?: string; decide?: (input: {version:string}) => Promise<boolean>; accept?: (value: {acceptedAt:string;consentVersion:string}) => Promise<{acceptedAt:string;consentVersion:string}>; send: () => Promise<T> }): Promise<{sent:false;reason:'declined'|'persistence_failed'}|{sent:true;consent:{acceptedAt:string;consentVersion:string};result:T}>;

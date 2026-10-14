@@ -265,8 +265,8 @@ QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`�
 | 10 | `PRJ-PR-03` 작업 공간 셸 | PRJ-105 | desktop/mobile 셸과 탭·저장 상태 복구 | merged (#12, `f5c1dc3b07304e23f650a020d2afd2d56df36a3b`) |
 | 11 | `AI-PR-01` 모델·prompt·budget 기반 | AI-001, 002, 006, 008, 009 | profile routing, schema version, budget/eval foundation | merged (#13; DEFAULT=gpt-5-mini; existing budget retained) |
 | 12 | `CON-PR-01` turn 수명주기 | CON-202, 206, AI-010 | 인증된 turn, TTL 기반 중복 방지·circuit breaker, 입력 보존과 bounded retry | merged (#14) |
-| 13 | `CON-PR-02` 질문·선택 폼 | CON-203, 204, AI-005 | catalog 질문과 7개 form, 선택 경로 API 0회 | in_progress |
-| 14 | `CON-PR-03` 메시지·AI block | CON-201, 205, AI-004 | 프로젝트 AI 데이터 동의, 허용 block 렌더, 진행·취소·compaction | planned |
+| 13 | `CON-PR-02` 질문·선택 폼 | CON-203, 204, AI-005 | catalog 질문과 7개 form, 선택 경로 API 0회 | merged (#15, `4335ca1`) |
+| 14 | `CON-PR-03` 메시지·AI block | CON-201, 205, AI-004 | 프로젝트 AI 데이터 동의, 허용 block 렌더, 진행·취소·compaction | in_progress |
 | 15 | `DSG-PR-01` 제안 검토·확정 | DSG-301~303 | 복수 제안 개별 수정·승인·거절 | planned |
 | 16 | `DSG-PR-02` 충돌·의존·일괄 처리 | DSG-304, 305, 307 | stale proposal 차단과 atomic 일괄 처리 | planned |
 | 17 | `DSG-PR-03` 설계 보드·readiness | DSG-306 | 영역별 상태와 document-ready gate | planned |

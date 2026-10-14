@@ -1,0 +1,2 @@
+import type { ConversationMessage, ConversationSummary } from '../../domain/blueprint/types.js';
+export function compactConversationContext(input: {messages:ConversationMessage[];summary?:ConversationSummary;threshold?:number}): {compacted:boolean;trigger:'CONTEXT_COMPACT'|null;summary:(ConversationSummary & {kind:'structured_summary';visuallyDistinct:true})|null;originalMessages:ConversationMessage[];compactedMessageIds?:string[]};
