@@ -9,7 +9,7 @@ export function validateReferences(response, manifest, targetContext) {
   for (const id of proposal.affectedItemIds ?? []) if (!itemIds.has(id)) errors.push(`unknown affected item ${id}`);
   for (const ref of proposal.evidence ?? []) if (!sourceIds.has(ref.sourceId)) errors.push(`unknown evidence source ${ref.sourceId}`);
  }
- if (targetContext) errors.push(...validateProposalTargets(response.proposals ?? [],targetContext).errors);
+ errors.push(...validateProposalTargets(response.proposals ?? [],targetContext).errors);
  return {valid:errors.length===0,errors};
 }
 export function validateTurnContext(request, canonical) {
@@ -29,6 +29,14 @@ export function validateTurnContext(request, canonical) {
  return {valid:errors.length===0,errors};
 }
 export function validateProposalTargets(proposals, context) {
+ if (!context) {
+  const errors=[];
+  for (const [index,proposal] of (proposals ?? []).entries()) {
+   if (proposal.targetId) errors.push(`proposal[${index}]: target context required`);
+   else if (proposal.operation!=='create') errors.push(`proposal[${index}]: targetId required for ${proposal.operation}`);
+  }
+  return {valid:errors.length===0,errors};
+ }
  const allowed={
   design_item:new Set((context?.designItems ?? []).map(item=>item.id)),
   acceptance_criterion:new Set((context?.acceptanceCriteria ?? []).map(item=>typeof item==='string'?item:item.id)),
