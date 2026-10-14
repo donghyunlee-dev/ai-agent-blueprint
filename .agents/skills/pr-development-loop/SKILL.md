@@ -44,7 +44,7 @@ Dispatch `blueprint-task-planner` with the task unit, dependencies, requirements
 
 ### 2. Implement and self-validate
 
-Dispatch one implementer with exclusive file ownership. Follow test-first development for changed business behavior. Run focused tests, relevant integration or browser checks, `npm run build`, documentation checks when relevant, and `git diff --check`. For UI work, capture final-HEAD screens at 1440×900 and 390×844 plus every affected required state; use both Playwright and Agent Browser.
+Dispatch one implementer with exclusive file ownership. Follow test-first development for changed business behavior. Run focused tests, relevant integration or browser checks, `npm run build`, documentation checks when relevant, and `git diff --check`. For UI work, capture final-HEAD screens at 1440×900 and 390×844 plus every affected required state. Verify the flow with Playwright Chromium and Agent Browser when both are available. If Agent Browser is unavailable in this execution environment, inspect the available tool catalog and check for its executable once, record that evidence, then use Playwright Chromium for the complete independent QA flow. Missing Agent Browser alone does not block QA when Playwright Chromium can exercise the app; missing runtime, fixtures, or all usable browser automation remains blocked. Do not claim Agent Browser was used when it was not.
 
 Do not create the PR until self-validation passes. Record exact commands and results. Do not report an unrun check as passing.
 
@@ -58,7 +58,7 @@ Review result must be `pass` or `pass_with_non_blocking`; all non-blocking items
 
 Only after code review passes, dispatch a separate `blueprint-qa-reviewer` with the acceptance criteria, PR diff, runtime instructions, and review verdict. QA validates user behavior and process state, including applicable error, empty, retry, refresh, duplicate-request, keyboard, responsive, and screenshot states.
 
-If QA fails, combine findings into one correction pass, rerun implementation validation, and repeat independent review and QA on the new HEAD. If the same blocking QA finding remains after that pass, set `blocked` and replan. Missing runtime, fixture, Playwright, or Agent Browser capability is `blocked`, never `pass`.
+If QA fails, combine findings into one correction pass, rerun implementation validation, and repeat independent review and QA on the new HEAD. If the same blocking QA finding remains after that pass, set `blocked` and replan. Missing runtime, required fixture, or all usable browser automation is `blocked`, never `pass`. When Agent Browser is unavailable but Playwright Chromium is usable, the independent QA reviewer must exercise the same required user flows and responsive states in Playwright Chromium, record the Agent Browser unavailability evidence, and report Playwright as the tool used.
 
 ### 5. Ready and gated merge
 

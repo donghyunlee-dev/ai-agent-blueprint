@@ -152,7 +152,7 @@ PR 생성 전 최소 검증:
 
 - 해당 작업의 단위·통합·계약 테스트
 - `npm run build`
-- UI 변경 시 Playwright와 Agent Browser의 동일 핵심 경로 검증
+- UI 변경 시 Playwright Chromium으로 동일 핵심 경로를 검증하고, Agent Browser가 있으면 같은 경로의 독립 검증도 수행한다. 사용할 수 없는 경우 도구 목록과 실행 파일 확인 결과를 기록하며, 그 부재만으로 QA를 차단하지 않는다.
 - desktop과 mobile 필수 viewport 확인
 - 오류·빈 상태·loading·재시도 확인
 - secret, token, 사용자 원문과 임시 결과 파일 미포함 확인
@@ -252,7 +252,7 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 - 해당 task가 바꾼 정상 상태와 적용 가능한 loading, empty, error, validation, overlay, completed 상태를 포함한다.
 - 기존 화면 변경을 비교하는 데 의미가 있으면 before/after를 함께 올린다.
 - 파일명은 `<pr-unit>-<screen>-<viewport>-<state>.png` 형식이다.
-- Playwright로 캡처하고 Agent Browser로 같은 상태의 DOM·interaction을 별도 검증한다.
+- Playwright Chromium으로 캡처하고 같은 상태의 DOM·interaction을 확인한다. Agent Browser를 사용할 수 있으면 동일 상태를 별도로 검증한다. 사용할 수 없는 환경에서는 도구 목록과 실행 파일 확인 결과를 기록하고 Playwright Chromium에서 같은 상태 검증을 수행한다.
 - secret, token, 개인 이메일, 운영 데이터, 로컬 경로와 관련 없는 창을 포함하지 않는다.
 - PR 본문에서 route, viewport, state와 fixture를 설명한다.
 
@@ -265,32 +265,33 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 | 순서 | PR unit | 포함 작업 | 검증 가능한 결과 | 상태 |
 | ---: | --- | --- | --- | --- |
 | 1 | `AUTH-PR-01` Google OIDC 서버 인증 경계 | AUTH-002 | 검증된 OIDC identity에만 session 발급 | blocked: Google OAuth client/callback 설정 확인 필요 |
-| 2 | `AUTH-PR-02` Google 로그인·보호 라우트 | AUTH-001, 003, 004 | Google 로그인 UI, 비인증 API 차단, returnTo와 logout | planned |
-| 3 | `AUTH-PR-03` Google subject 기반 저장 격리 | AUTH-005 | subject별 로컬 프로젝트 교차 노출 0건 | planned |
-| 4 | `FND-PR-01` 런타임·화면 기반 | FND-001, 002 | React 18과 `docs/template` 기반 Blueprint 소유 semantic HTML/CSS | planned |
-| 5 | `FND-PR-02` 도메인·Agent 계약 | FND-003, 004 | 상태·schema·모델 registry 계약 테스트 | planned |
-| 6 | `FND-PR-03` 테스트 기반 | FND-005 | unit/contract/browser test 명령과 CI gate 실행 | planned |
-| 7 | `PRJ-PR-01` 라우팅·프로젝트 생성 | PRJ-101, 102 | 홈에서 생성, 잘못된 경로 404 | planned |
-| 8 | `PRJ-PR-02` 저장·최근 목록 | PRJ-103, 104 | 새로고침 복구, 20/21 경계와 실패 보존 | planned |
-| 9 | `PRJ-PR-03` 작업 공간 셸 | PRJ-105 | desktop/mobile 셸과 탭·저장 상태 복구 | planned |
-| 10 | `AI-PR-01` 모델·prompt·budget 기반 | AI-001~003, 008, 009 | Luna/Mini/Terra routing, schema version, budget/eval gate | planned |
-| 11 | `CON-PR-01` turn 수명주기 | CON-201, 202, 206, AI-010 | 입력 보존, 인증, 중복 방지와 실패 재시도 | planned |
-| 12 | `CON-PR-02` 질문·선택 폼 | CON-203, 204, AI-005 | catalog 질문과 7개 form, 선택 경로 API 0회 | planned |
-| 13 | `CON-PR-03` 메시지·AI block | CON-205, AI-004 | 허용 block 렌더, 진행·취소·compaction | planned |
-| 14 | `DSG-PR-01` 제안 검토·확정 | DSG-301~303 | 복수 제안 개별 수정·승인·거절 | planned |
-| 15 | `DSG-PR-02` 충돌·의존·일괄 처리 | DSG-304, 305, 307 | stale proposal 차단과 atomic 일괄 처리 | planned |
-| 16 | `DSG-PR-03` 설계 보드·readiness | DSG-306 | 영역별 상태와 document-ready gate | planned |
-| 17 | `DOC-PR-01` Requirements | DOC-401, 402, AI-006 | 코드 plan, Mini draft/review, 추적 가능한 요구사항 | planned |
-| 18 | `DOC-PR-02` Requirements ready·PRD | DOC-403, 404, AI-007 | ready 잠금과 Terra PRD, Mini review | planned |
-| 19 | `DOC-PR-03` 부분 보완·정합성 | DOC-406, 407 | 선택 section만 patch, 불일치 proposal | planned |
-| 20 | `DOC-PR-04` 직접 편집 영향 | DOC-405 | 영향 preview 후 항목별 제외·원자 적용과 stale 계산 | planned |
-| 21 | `SRC-PR-01` 파일 제한·추출 | SRC-501, 502 | 지원 파일 추출과 제한·실패 UI | planned |
-| 22 | `SRC-PR-02` 근거 연결 | SRC-503 | 발췌 preview와 자료 제거 영향 | planned |
-| 23 | `EXP-PR-01` 문서 복사·다운로드 | EXP-505 | 안전한 개별 Markdown 내보내기 | planned |
-| 24 | `GDE-PR-01` 설정 가이드 | GDE-504 | 근거 있는 전체 가이드 생성·검토, 면책 문구 포함 | planned |
-| 25 | `QLT-PR-01` 접근성·반응형·성능 | QLT-601~603 | 지정 viewport와 키보드·성능 gate | planned |
-| 26 | `QLT-PR-02` 보안·전체 회귀·AI eval | QLT-604, 605, 608 | 전체 프로세스와 보안·모델 회귀 통과 | planned |
-| 27 | `QLT-PR-03` 사용자 검증·출시 정리 | QLT-606, 607 | P0 결함 0건과 release checklist | planned |
+| 2 | `BRD-PR-01` Windsoft 브랜드 표기 | BRD-001 | 앱 소유 브랜드 변경과 기존 브라우저 데이터 보존 | in_progress |
+| 3 | `AUTH-PR-02` Google 로그인·보호 라우트 | AUTH-001, 003, 004 | Google 로그인 UI, 비인증 API 차단, returnTo와 logout | planned |
+| 4 | `AUTH-PR-03` Google subject 기반 저장 격리 | AUTH-005 | subject별 로컬 프로젝트 교차 노출 0건 | planned |
+| 5 | `FND-PR-01` 런타임·화면 기반 | FND-001, 002 | React 18과 `docs/template` 기반 Blueprint 소유 semantic HTML/CSS | planned |
+| 6 | `FND-PR-02` 도메인·Agent 계약 | FND-003, 004 | 상태·schema·모델 registry 계약 테스트 | planned |
+| 7 | `FND-PR-03` 테스트 기반 | FND-005 | unit/contract/browser test 명령과 CI gate 실행 | planned |
+| 8 | `PRJ-PR-01` 라우팅·프로젝트 생성 | PRJ-101, 102 | 홈에서 생성, 잘못된 경로 404 | planned |
+| 9 | `PRJ-PR-02` 저장·최근 목록 | PRJ-103, 104 | 새로고침 복구, 20/21 경계와 실패 보존 | planned |
+| 10 | `PRJ-PR-03` 작업 공간 셸 | PRJ-105 | desktop/mobile 셸과 탭·저장 상태 복구 | planned |
+| 11 | `AI-PR-01` 모델·prompt·budget 기반 | AI-001~003, 008, 009 | Luna/Mini/Terra routing, schema version, budget/eval gate | planned |
+| 12 | `CON-PR-01` turn 수명주기 | CON-201, 202, 206, AI-010 | 입력 보존, 인증, 중복 방지와 실패 재시도 | planned |
+| 13 | `CON-PR-02` 질문·선택 폼 | CON-203, 204, AI-005 | catalog 질문과 7개 form, 선택 경로 API 0회 | planned |
+| 14 | `CON-PR-03` 메시지·AI block | CON-205, AI-004 | 허용 block 렌더, 진행·취소·compaction | planned |
+| 15 | `DSG-PR-01` 제안 검토·확정 | DSG-301~303 | 복수 제안 개별 수정·승인·거절 | planned |
+| 16 | `DSG-PR-02` 충돌·의존·일괄 처리 | DSG-304, 305, 307 | stale proposal 차단과 atomic 일괄 처리 | planned |
+| 17 | `DSG-PR-03` 설계 보드·readiness | DSG-306 | 영역별 상태와 document-ready gate | planned |
+| 18 | `DOC-PR-01` Requirements | DOC-401, 402, AI-006 | 코드 plan, Mini draft/review, 추적 가능한 요구사항 | planned |
+| 19 | `DOC-PR-02` Requirements ready·PRD | DOC-403, 404, AI-007 | ready 잠금과 Terra PRD, Mini review | planned |
+| 20 | `DOC-PR-03` 부분 보완·정합성 | DOC-406, 407 | 선택 section만 patch, 불일치 proposal | planned |
+| 21 | `DOC-PR-04` 직접 편집 영향 | DOC-405 | 영향 preview 후 항목별 제외·원자 적용과 stale 계산 | planned |
+| 22 | `SRC-PR-01` 파일 제한·추출 | SRC-501, 502 | 지원 파일 추출과 제한·실패 UI | planned |
+| 23 | `SRC-PR-02` 근거 연결 | SRC-503 | 발췌 preview와 자료 제거 영향 | planned |
+| 24 | `EXP-PR-01` 문서 복사·다운로드 | EXP-505 | 안전한 개별 Markdown 내보내기 | planned |
+| 25 | `GDE-PR-01` 설정 가이드 | GDE-504 | 근거 있는 전체 가이드 생성·검토, 면책 문구 포함 | planned |
+| 26 | `QLT-PR-01` 접근성·반응형·성능 | QLT-601~603 | 지정 viewport와 키보드·성능 gate | planned |
+| 27 | `QLT-PR-02` 보안·전체 회귀·AI eval | QLT-604, 605, 608 | 전체 프로세스와 보안·모델 회귀 통과 | planned |
+| 28 | `QLT-PR-03` 사용자 검증·출시 정리 | QLT-606, 607 | P0 결함 0건과 release checklist | planned |
 
 `blocked` 행은 필요한 제품 결정이 기록되기 전까지 건너뛰고 다음 비의존 PR로 순서를 재계획할 수 있다. 단, 의존하는 후속 PR은 시작할 수 없다. 실제 개발 중 PR이 너무 크면 수용 기준을 보존한 채 `-A`, `-B`로 분할하고 이 표와 추적표를 먼저 갱신한다.
 
@@ -313,14 +314,14 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 1. `blueprint-task-planner`가 plan과 화면·상태 acceptance를 작성한다.
 2. `blueprint-implementer`가 TDD 구현과 self-check를 수행한다.
 3. `blueprint-code-reviewer`가 별도 context에서 diff와 spec을 검토한다.
-4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 Playwright·Agent Browser로 desktop/mobile을 검증한다.
+4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 Playwright Chromium으로 desktop/mobile을 검증한다. Agent Browser를 사용할 수 있으면 같은 경로도 검증하며, 사용할 수 없으면 해당 확인 근거를 남기고 Playwright로 완료한다.
 5. QA가 최종 HEAD 캡처를 만들고 PR `Screenshots`에 노출한다.
 6. 전체 PR lifecycle 요청이면 gate 통과 후 Agent가 PR을 병합하고 결과를 확인한다. 요청이 없으면 `ready_to_merge`에서 멈춘다.
 
 ### Agent 또는 QA 실패
 
-- 필요한 agent나 도구를 사용할 수 없으면 정확한 누락을 기록하고 해당 gate를 `blocked`로 둔다.
-- UI 런타임, Playwright 또는 Agent Browser 중 하나라도 실행할 수 없으면 QA를 `blocked`로 기록한다. 캡처만 올리고 `pass`로 처리하지 않는다.
+- 필수 QA agent, UI runtime, fixture 또는 사용 가능한 모든 브라우저 자동화를 사용할 수 없으면 정확한 누락을 기록하고 해당 gate를 `blocked`로 둔다. Agent Browser 부재 시 허용되는 Playwright Chromium 대체 검증은 위 조건에 해당하지 않는다.
+- UI 런타임이나 사용 가능한 브라우저 자동화가 없으면 QA를 `blocked`로 기록한다. Playwright Chromium으로 같은 흐름과 viewport를 검증할 수 있고 Agent Browser만 사용할 수 없는 경우, 도구 목록·실행 파일 확인을 기록한 뒤 Playwright 결과로 QA를 판정한다. 캡처만 올리고 `pass`로 처리하지 않는다.
 - QA correction pass 뒤에도 같은 차단 finding이 남으면 PR을 머지 대기로 보내지 않고 task 범위나 설계를 다시 정한다.
 
 ## 완료 판정

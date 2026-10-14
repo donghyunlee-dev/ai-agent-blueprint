@@ -6,6 +6,7 @@
 
 | 요구사항 | 주 작업 | 핵심 검증 | 초기 상태 |
 | --- | --- | --- | --- |
+| BRD-001 | BRD-PR-01 | UI·앱 식별자의 Windsoft 표기, 기존 브라우저 데이터 보존 | in_progress |
 | AI-001 | AI-001 | task/profile/model/reasoning routing | ready |
 | AI-002 | AI-002, AI-009 | prompt/schema version과 변경 gate | ready |
 | AI-003 | AI-004 | 6개 block, 8개 proposal 상한, 임의 UI 거절 | ready |

@@ -14,7 +14,7 @@ test("signSession then verifySession round-trips the user", () => {
   assert.ok(session);
   assert.equal(session.user.issuer, "https://accounts.google.com");
   assert.equal(session.user.subject, "subject-1");
-  assert.equal(session.audience, "sfood-agent-blueprint");
+  assert.equal(session.audience, "windsoft-agent-blueprint");
 });
 
 test("verifySession rejects a tampered signature", () => {
@@ -32,7 +32,7 @@ test("verifySession rejects a tampered payload", () => {
     user: { issuer: "https://accounts.google.com", subject: "attacker" },
     issuedAt: Date.now(),
     expiresAt: Date.now() + 1000,
-    audience: "sfood-agent-blueprint",
+    audience: "windsoft-agent-blueprint",
   })).toString("base64url");
   assert.equal(verifySession(`${forgedPayload}.${signature}`), null);
 });
@@ -43,7 +43,7 @@ test("verifySession rejects an expired session", () => {
     user: { issuer: "https://accounts.google.com", subject: "subject-1" },
     issuedAt: Date.now() - 10_000,
     expiresAt: Date.now() - 1_000,
-    audience: "sfood-agent-blueprint",
+    audience: "windsoft-agent-blueprint",
   };
   const payload = Buffer.from(JSON.stringify(session)).toString("base64url");
   const signature = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
@@ -54,4 +54,16 @@ test("verifySession rejects malformed input", () => {
   assert.equal(verifySession(""), null);
   assert.equal(verifySession(undefined), null);
   assert.equal(verifySession("not-a-valid-cookie-value"), null);
+});
+
+test("verifySession rejects a correctly signed session for the previous audience", () => {
+  const secret = process.env.APP_SESSION_SECRET;
+  const payload = Buffer.from(JSON.stringify({
+    user: { issuer: "https://accounts.google.com", subject: "subject-1" },
+    issuedAt: Date.now(),
+    expiresAt: Date.now() + 1000,
+    audience: "sfood-agent-blueprint",
+  })).toString("base64url");
+  const signature = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+  assert.equal(verifySession(`${payload}.${signature}`), null);
 });

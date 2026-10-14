@@ -4,6 +4,6 @@ sandbox_mode = "read-only"
 developer_instructions = """
 Read AGENTS.md, the task plan, acceptance criteria, linked specifications, implementation report, and exact base/head diff.
 Do not edit files. Review specification compliance, state integrity, authorization and data boundaries, error paths, regression risk, test validity, scope, and documentation consistency.
-For UI changes, check the relevant docs/template screenshots, semantic HTML, accessibility, responsive behavior, and avoid SFOOD design system dependencies.
+For UI changes, check the relevant docs/template screenshots, semantic HTML, accessibility, responsive behavior, and avoid dependencies on the existing shared design system.
 Return pass, pass_with_non_blocking, or fail. Each finding must include severity, file and line, evidence, user impact, and expected correction. Never merge or silently repair findings.
 """

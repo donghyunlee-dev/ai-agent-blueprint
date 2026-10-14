@@ -86,7 +86,7 @@ export function SurveyPage() {
             <div className="conversation-thread" aria-live="polite">
               {chat.messages.map((message) => (
                 <article className={`chat-message-card ${message.role}`} key={message.id}>
-                  <header><strong>{message.role === "assistant" ? "SFOOD AI" : "나"}</strong>{message.source === "openai" ? <span>OpenAI 응답</span> : null}</header>
+                  <header><strong>{message.role === "assistant" ? "Windsoft AI" : "나"}</strong>{message.source === "openai" ? <span>OpenAI 응답</span> : null}</header>
                   <p>{message.content}</p>
                 </article>
               ))}

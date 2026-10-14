@@ -19,10 +19,10 @@ function LandingNav() {
 
   return (
     <header className="landing-nav">
-      <nav className="landing-nav-inner" aria-label="SFOOD Blueprint 전역 탐색">
+      <nav className="landing-nav-inner" aria-label="Windsoft Blueprint 전역 탐색">
         <Link className="landing-brand" to="/">
-          <span className="landing-logo" aria-hidden="true">S</span>
-          <span><small>SFOOD</small><strong>Blueprint</strong></span>
+          <span className="landing-logo" aria-hidden="true">W</span>
+          <span><small>Windsoft</small><strong>Blueprint</strong></span>
         </Link>
         <div className="landing-nav-links"><a href="#workflow">진행 방식</a><a href="#outcomes">결과물</a></div>
         <Button onClick={() => navigate("/survey")}>Blueprint 시작</Button>
@@ -76,7 +76,7 @@ export function HomePage() {
         <section className="landing-final"><Badge>READY TO DESIGN</Badge><h2>지금 만들고 싶은 것을 알려주세요.</h2><p>첫 질문부터 PRD 다운로드까지 하나의 워크벤치에서 진행합니다.</p><Button className="landing-final-button" size="lg" onClick={start}>새 Blueprint 시작하기</Button></section>
       </main>
 
-      <footer className="landing-footer"><div><span className="landing-logo" aria-hidden="true">S</span><strong>SFOOD Blueprint</strong></div><p>AI와 함께 만드는 실행 가능한 제품 설계</p><nav><Link to="/survey">Blueprint 시작</Link></nav></footer>
+      <footer className="landing-footer"><div><span className="landing-logo" aria-hidden="true">W</span><strong>Windsoft Blueprint</strong></div><p>AI와 함께 만드는 실행 가능한 제품 설계</p><nav><Link to="/survey">Blueprint 시작</Link></nav></footer>
     </div>
   );
 }

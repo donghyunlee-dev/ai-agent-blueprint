@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 const COOKIE_BASE_NAME = "sfb_session";
-const SESSION_AUDIENCE = "sfood-agent-blueprint";
+const SESSION_AUDIENCE = "windsoft-agent-blueprint";
 const DEFAULT_TTL_SECONDS = 28800;
 
 function isProduction() { return process.env.NODE_ENV === "production"; }
