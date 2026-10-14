@@ -10,6 +10,9 @@ import type { ProjectRepository } from "../infrastructure/storage/indexeddb-proj
 import { setLastProjectId } from "../features/projects/persistProjectCreation.js";
 import { clampConversationWidth, clampScrollOffset, getConversationScrollTop, getConversationWidth, setConversationScrollTop, setConversationWidth } from "../features/projects/workspacePreferences.js";
 import { AuthMenu } from "../components/auth/AuthMenu";
+import { QuestionCard } from "../components/conversation/QuestionCard";
+import type { CatalogQuestion } from "../features/conversation/questionEngine.js";
+import { QUESTION_CATALOG, selectNextQuestion } from "../features/conversation/questionEngine.js";
 import { NotFoundPage } from "./NotFoundPage";
 import { ProjectNotFoundPage } from "./ProjectNotFoundPage";
 import "../styles/workspace-shell.css";
@@ -28,6 +31,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [titleInvalid, setTitleInvalid] = useState(false);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading');
   const [saveState, setSaveState] = useState<ProjectSaveState>({ status: 'saved', savedAt: null });
+  const [reopenedQuestionAnswerId, setReopenedQuestionAnswerId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [conversationWidth, setConversationWidthState] = useState(() => getConversationWidth(projectId ?? "") ?? 360);
   const [mobileMode, setMobileMode] = useState<"conversation" | "work" | "review">("work");
@@ -38,6 +42,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const operationGeneration = useRef(0);
   const ownerRef = useRef(ownerKey);
   const projectIdRef = useRef(projectId);
+  const aggregateRef = useRef<BlueprintAggregate | null>(null);
   const attemptRef = useRef(attempt);
   const saverRef = useRef<ProjectSaver | null>(null);
   const conversationRef = useRef<HTMLElement | null>(null);
@@ -65,6 +70,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     saverRef.current?.dispose();
     saverRef.current = null;
     setAggregate(null);
+    aggregateRef.current = null;
     setTitleDraft('');
     setTitleInvalid(false);
     setLoadStatus('loading');
@@ -90,6 +96,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       result.project.lastOpenedAt = new Date().toISOString();
       setLastProjectId(result.project.id);
       setAggregate(result);
+      aggregateRef.current = result;
       setTitleDraft(result.project.title);
       setLoadStatus('ready');
       saver = createDebouncedProjectSaver({
@@ -212,11 +219,39 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     setTitleDraft(value);
     if (!aggregate || !value.trim()) { setTitleInvalid(true); return; }
     setTitleInvalid(false);
+    const latest = aggregateRef.current ?? aggregate;
     const updated: BlueprintAggregate = {
-      ...aggregate,
-      project: { ...aggregate.project, title: value, updatedAt: new Date().toISOString() },
+      ...latest,
+      project: { ...latest.project, title: value, updatedAt: new Date().toISOString() },
     };
+    aggregateRef.current = updated;
     setAggregate(updated);
+    saverRef.current?.schedule(updated);
+  }
+
+  function saveQuestionAnswer(question: CatalogQuestion, answer: { action: "answer" | "unknown" | "recommend" | "defer" | "skip"; selectedValues: string[]; customText: string; numberValue?: number; rangeValue?: { start: number; end: number }; rankedValues?: string[] }) {
+    const latest = aggregateRef.current;
+    if (!latest || !projectId) return;
+    const now = new Date().toISOString();
+    const id = crypto.randomUUID();
+    const savedAnswer: BlueprintAggregate["answers"][number] = {
+      id, projectId, threadId: latest.thread.id, questionId: question.id, logicalRequestId: id,
+      answerMode: question.answerMode, action: answer.action, createdAt: now,
+      ...(answer.selectedValues.length ? { selectedValues: answer.selectedValues } : {}),
+      ...(answer.customText.trim() ? { customText: answer.customText.trim() } : {}),
+      ...(answer.numberValue !== undefined ? { numberValue: answer.numberValue } : {}),
+      ...(answer.rangeValue ? { rangeValue: answer.rangeValue } : {}),
+      ...(answer.rankedValues?.length ? { rankedValues: answer.rankedValues } : {}),
+    };
+    const updated: BlueprintAggregate = {
+      ...latest,
+      answers: [...latest.answers, savedAnswer],
+      project: { ...latest.project, updatedAt: now },
+      thread: { ...latest.thread, updatedAt: now },
+    };
+    aggregateRef.current = updated;
+    setAggregate(updated);
+    setReopenedQuestionAnswerId(null);
     saverRef.current?.schedule(updated);
   }
 
@@ -233,6 +268,9 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     </main>
   );
   if (!aggregate) return <ProjectNotFoundPage />;
+
+  const reopenedAnswer = aggregate.answers.find((answer) => answer.id === reopenedQuestionAnswerId && answer.action === "defer");
+  const activeQuestion = reopenedAnswer ? QUESTION_CATALOG.find((question) => question.id === reopenedAnswer.questionId) ?? null : selectNextQuestion(aggregate);
 
   return (
     <main className="workspace-shell" style={{ "--workspace-conversation-width": `${conversationWidth}px` } as CSSProperties} data-mobile-mode={mobileMode}>
@@ -274,6 +312,12 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           <div className="workspace-conversation-content">
             <article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{aggregate.messages.find((message) => message.role === "user")?.content ?? "아직 대화가 없습니다."}</p></article>
             <p className="workspace-next-hint">이 대화에서 요구사항을 구체화할 수 있습니다.</p>
+            {aggregate.answers.length ? <section className="question-answer-history" aria-label="질문 답변 이력"><h2>이전 답변</h2>{aggregate.answers.map((answer) => {
+              const question = QUESTION_CATALOG.find((item) => item.id === answer.questionId);
+              const value = answer.action === "defer" ? "나중에 결정" : answer.action === "skip" ? "건너뜀" : answer.action === "unknown" ? "잘 모르겠어요 · 설명 요청" : answer.action === "recommend" ? "추천 요청 · 검토 전" : [answer.customText, ...(answer.selectedValues ?? []).map((selected) => question?.options?.find((option) => option.value === selected)?.label ?? selected), answer.numberValue === undefined ? "" : String(answer.numberValue), answer.rangeValue ? `${answer.rangeValue.start}–${answer.rangeValue.end}` : "", ...(answer.rankedValues ?? []).map((ranked) => question?.options?.find((option) => option.value === ranked)?.label ?? ranked)].filter(Boolean).join(", ");
+              return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{answer.action === "defer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : null}</article>;
+            })}</section> : null}
+            {activeQuestion ? <QuestionCard key={`${activeQuestion.id}-${reopenedQuestionAnswerId ?? "next"}`} question={activeQuestion} onSubmit={(answer) => saveQuestionAnswer(activeQuestion, answer)} /> : <p className="question-complete-state" role="status">{aggregate.project.readiness.pendingProposalCount ? "제안 검토를 마치면 다음 질문이 이어집니다." : "현재 필요한 질문에 답했습니다."}</p>}
           </div>
         </section>
         <button className="workspace-resizer" type="button" role="separator" aria-orientation="vertical" aria-label="대화 패널 너비" aria-valuemin={320} aria-valuemax={420} aria-valuenow={conversationWidth} onKeyDown={(event) => {

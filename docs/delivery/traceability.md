@@ -4,7 +4,7 @@
 
 각 요구사항은 하나 이상의 개발 작업과 검증 증거를 가져야 한다. 구현 PR에서는 상태, PR unit, 코드 리뷰, QA와 기본 브랜치 병합 증거 링크를 갱신한다. 상세 상태와 순서는 [PR·리뷰·QA 반복 워크플로](development-pr-review-qa-workflow.md)를 따른다.
 
-FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01은 PR #10 merge commit `ef5acebb48f06808e622e0af8508a59326603e21`, PRJ-PR-02는 PR #11 merge commit `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`, PRJ-PR-03은 PR #12 merge commit `f5c1dc3b07304e23f650a020d2afd2d56df36a3b`로 병합됐다. PRJ-PR-03의 검증 gate도 통과했다. AI-PR-01 merged as PR #13 (`e97d04c`); the user retained `DEFAULT=gpt-5-mini` and current budget limits. The model/prompt/schema registry, budget/ledger foundation and deterministic golden gate are available; live provider pairwise evaluation remains a later user-key gate. CON-PR-01 is now in progress and consumes those merged contracts. NFR-001 still awaits QLT-601, so its overall requirement remains `ready`.
+FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01은 PR #10 merge commit `ef5acebb48f06808e622e0af8508a59326603e21`, PRJ-PR-02는 PR #11 merge commit `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`, PRJ-PR-03은 PR #12 merge commit `f5c1dc3b07304e23f650a020d2afd2d56df36a3b`로 병합됐다. PRJ-PR-03의 검증 gate도 통과했다. AI-PR-01 merged as PR #13 (`e97d04c`); the user retained `DEFAULT=gpt-5-mini` and current budget limits. The model/prompt/schema registry, budget/ledger foundation and deterministic golden gate are available; live provider pairwise evaluation remains a later user-key gate. CON-PR-01 merged as PR #14. CON-PR-02 is now in progress on its merged contracts. NFR-001 still awaits QLT-601, so its overall requirement remains `ready`.
 
 | 요구사항 | 주 작업 | 핵심 검증 | 초기 상태 |
 | --- | --- | --- | --- |
@@ -18,7 +18,7 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | AI-007 | AI-006, AI-007 | plan/draft/review/repair 상한 | ready |
 | AI-008 | AI-008 | usage·latency 원장, 원문 미기록 | ledger foundation merged (AI-PR-01 #13); CON-PR-01 stores sanitized lifecycle attempt metadata only; durable lifetime usage/latency ledger integration needs a trusted server usage source |
 | AI-009 | AI-009 | golden eval과 금지 결과 0건 | synthetic deterministic gate merged (AI-PR-01 #13); live pairwise eval is a later user-key gate |
-| AI-010 | AI-003, AI-010 | store=false, retry/circuit 복구 | in_progress (CON-PR-01; Redis TTL state, fake-provider tests) |
+| AI-010 | AI-003, AI-010 | store=false, retry/circuit 복구 | foundation merged (CON-PR-01 #14; Redis TTL state, fake-provider tests) |
 | AUTH-001 | AUTH-PR-02 | Google 로그인 시작, 보호 경로와 safe returnTo | done (PR #5) |
 | AUTH-002 | AUTH-PR-01 | OIDC claim 검증, state/nonce 오류, session cookie | done (PR #3) |
 | AUTH-003 | AUTH-PR-02 | 보호 화면과 직접 API 401 | done (PR #5) |
@@ -33,7 +33,7 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | CONV-002 | CON-203, DSG-302 | 반복 방지와 제안 gate | ready |
 | CONV-003 | CON-202, CON-205 | 단일 thread와 요약 | ready |
 | CONV-004 | CON-202, CON-205 | 작업 상태와 취소 | ready |
-| CONV-005 | CON-206 | 입력 보존과 중복 없는 재시도 | in_progress (CON-PR-01) |
+| CONV-005 | CON-206 | 입력 보존과 중복 없는 재시도 | foundation merged (CON-PR-01 #14; full conversation UI remains in CON-PR-03) |
 | FORM-001 | CON-204 | 7개 answer mode | ready |
 | FORM-002 | CON-204 | value/label, 추천 미선택 | ready |
 | FORM-003 | CON-204 | 직접 입력, 추천, 미정 | ready |
