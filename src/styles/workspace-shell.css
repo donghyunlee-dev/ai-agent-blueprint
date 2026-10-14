@@ -110,3 +110,17 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-mobile-tabs button { min-width: 0; padding-inline: 4px; font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .workspace-inspector { transition: none; } }
+
+.conversation-summary { margin: 1rem 0; padding: 1rem; border: 1px solid var(--color-border, #d8dbe2); border-left: 3px solid var(--color-accent, #5969a8); border-radius: 0.75rem; background: var(--color-surface-muted, #f7f8fa); }
+.conversation-summary h2, .conversation-summary h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+.conversation-summary p, .conversation-summary ul { margin: 0.4rem 0; }
+.workspace-message { max-width: 90%; margin: 1rem 0; padding: 0.75rem 1rem; border-radius: 0.75rem; }
+.workspace-message-assistant, .workspace-message-system { padding-left: 0; }
+.workspace-message-user { margin-left: auto; background: var(--color-surface-muted, #f4f5f7); }
+.conversation-job-status { margin: 1rem 0; padding: 1rem; border: 1px solid var(--color-border, #d8dbe2); border-radius: 0.75rem; }
+.conversation-job-status ol { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; padding-left: 1.25rem; }
+
+.ai-turn-composer { display: grid; gap: 0.75rem; margin: 1.25rem 0; padding: 1rem; border: 1px solid var(--color-border, #d8dbe2); border-radius: 0.75rem; }
+.ai-turn-composer textarea { width: 100%; resize: vertical; }
+.ai-consent-dialog { position: fixed; z-index: 120; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: min(34rem, calc(100vw - 2rem)); max-height: min(80vh, 48rem); overflow: auto; padding: 1.5rem; border: 1px solid var(--color-border, #d8dbe2); border-radius: 1rem; background: var(--color-surface, #fff); box-shadow: 0 1rem 4rem #15213a33; }
+.ai-consent-dialog button { margin: 0.5rem 0.5rem 0 0; }
