@@ -39,7 +39,7 @@ export function LoginPage({ mode = "login", returnTo: routeReturnTo }: { mode?: 
           <p className="auth-checking" role="status" aria-live="polite">로그인 상태를 확인하고 있습니다.</p>
         ) : (
           <>
-            <span className="auth-eyebrow">WINSOFT · PRODUCT BLUEPRINT</span>
+            <span className="auth-eyebrow">WINDSOFT · PRODUCT BLUEPRINT</span>
             <h1 id="auth-title">Agent Blueprint</h1>
             <p className="auth-lede">아이디어를 검토 가능한 제품 계획으로 구체화하세요.</p>
             <p className="auth-description">Google 계정으로 로그인하세요.</p>
