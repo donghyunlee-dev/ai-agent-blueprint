@@ -99,4 +99,4 @@
 - `git diff --check`: 통과.
 - 독립 코드 리뷰: `pass_with_non_blocking` on HEAD `3d2242f22a4bafbfeff52ba3e7bf2eff11c5c037`. P2 stale E2E count 지적은 해당 HEAD에서 재실행한 20/20 결과와 이 문서 갱신으로 해소했다.
 - `node_modules`가 없는 격리 worktree에서 의존성을 설치하기 위해 `npm ci`를 실행했다. manifest/lockfile 변경은 없으며 기존 dependency audit finding 14개가 보고됐다.
-- UI 외관 변경은 없다. 실제 Google 계정 인증은 mock session 경계와 OAuth 환경 부재로 검증하지 않았다.
+- Independent QA: PASS on implementation HEAD `4cc977549ad23ba460a3102a8c939b6575efdb51`. Playwright Chromium desktop (1440×900) and mobile (390×844) verified stale A responses after logout/expiry cannot restore state or replace B, and derivation failure fails closed. Owner key absent from DOM, URL, local/session storage, IndexedDB, and console. Agent Browser tool and executable were unavailable; Playwright fallback used. No screenshots were required because UI appearance did not change. Actual Google sign-in was not exercised.
