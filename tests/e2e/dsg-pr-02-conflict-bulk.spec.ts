@@ -44,3 +44,24 @@ test('requires an explicit conflict choice, excludes stale proposals, and atomic
   await expect(page.getByRole('heading',{name:'선행 변경으로 재검토가 필요한 항목'})).toBeVisible();
   await expect(page.getByText(/선행 항목 item 변경/)).toBeVisible();
 });
+
+test('keeps every bulk approval target unchanged when the repository transaction fails',async({page})=>{
+  await page.goto(`/blueprints/${projectId}/design`);
+  await expect(page.locator('#project-save-state')).toContainText('저장됨');
+  await page.getByRole('button',{name:'가능한 제안 일괄 승인'}).click();
+  await page.evaluate(()=>{
+    const original=IDBDatabase.prototype.transaction;
+    Object.defineProperty(IDBDatabase.prototype,'transaction',{configurable:true,value:function(storeNames:string|string[],mode?:IDBTransactionMode,options?:IDBTransactionOptions){
+      if(mode==='readwrite') throw new DOMException('simulated storage failure','QuotaExceededError');
+      return original.call(this,storeNames,mode,options);
+    }});
+  });
+  await page.getByRole('button',{name:'승인 확인'}).click();
+  await expect(page.getByRole('dialog')).toContainText('일괄 저장에 실패했습니다');
+  await expect(page.getByRole('heading',{name:'제안 3개'})).toBeVisible();
+  const ownerKey=await deriveOwnerKey(identity);
+  const persisted=await page.evaluate(async({databaseName,projectId})=>{const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});const request=db.transaction('projects','readonly').objectStore('projects').get(projectId);const value=await new Promise<any>((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});db.close();return value;},{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(persisted.project.designRevision).toBe(0);
+  expect(persisted.proposals.every((proposal:any)=>proposal.status==='pending')).toBe(true);
+  expect(persisted.designItems[0].title).toBe('현재 확정값');
+});
