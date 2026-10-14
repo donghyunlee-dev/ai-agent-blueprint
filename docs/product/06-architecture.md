@@ -197,6 +197,41 @@ interface QuestionEngine {
 요청:
 
 ```ts
+interface ProjectContext {
+  projectId: BlueprintProject["id"];
+  title: BlueprintProject["title"];
+  designRevision: ContextManifest["designRevision"];
+}
+
+type UserAnswer = Pick<
+  QuestionAnswer,
+  | "questionId"
+  | "answerMode"
+  | "action"
+  | "selectedValues"
+  | "customText"
+  | "numberValue"
+  | "rangeValue"
+  | "rankedValues"
+>;
+
+type ContextMessage = Pick<ConversationMessage, "id" | "role" | "kind" | "content"> & {
+  role: "user" | "assistant";
+  kind: "text" | "question";
+};
+
+type DesignItemContext = Pick<
+  DesignItem,
+  "id" | "type" | "key" | "title" | "description" | "attributes"
+>;
+
+interface SourceExcerpt {
+  id: string;
+  sourceId: SourceDocument["id"];
+  text: string;
+  location?: string;
+}
+
 interface TurnRequest {
   logicalRequestId: string;
   attemptId: string;
@@ -208,6 +243,8 @@ interface TurnRequest {
   sources: SourceExcerpt[];
 }
 ```
+
+These are transport projections of the canonical types in [data spec](05-data-spec.md), not new persisted entities. The server includes only confirmed design items and excerpts from `SourceDocument` records with `extractionStatus: "ready"`; `sourceId` identifies that source record. `ContextMessage` excludes system/error/job-status messages. `ProjectContext` deliberately contains only project identity, title, and design revision. Do not include `ownerKey`, OAuth/session tokens, secrets, or other authentication fields in any model context. The API validator rejects fields outside these projections.
 
 응답:
 

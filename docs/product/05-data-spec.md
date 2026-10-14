@@ -77,8 +77,9 @@ type BlueprintProcessState =
   | "intake"
   | "extracting"
   | "proposal_review"
-  | "discovering"
   | "conflict_review"
+  | "evaluating"
+  | "discovering"
   | "document_ready"
   | "requirements_generating"
   | "requirements_draft"
@@ -86,6 +87,8 @@ type BlueprintProcessState =
   | "prd_generating"
   | "prd_draft";
 ```
+
+`BlueprintProject.processState` stores only the project aggregate state from [프로세스 상태 머신](../process/02-state-machine.md), using the lowercase persisted literals above (for example, `PS_INTAKE` → `intake`, `PS_EVALUATING` → `evaluating`, and `PS_REQ_READY` → `requirements_ready`). App lifecycle states (`PS_AUTH_CHECK`, `PS_LOGIN`, `PS_AUTH_REDIRECT`, `PS_HOME`, `PS_PROJECT_CREATING`) are not project data. `PS_ERROR` is an operation/error overlay with a `resumeState`, not a persisted project state. Conversation/UI phases such as `document_editing` and `completed` are not `BlueprintProcessState`; document editing is represented by its current requirements/PRD draft state, and a generated PRD draft does not mean the project is completed.
 
 검증 규칙:
 

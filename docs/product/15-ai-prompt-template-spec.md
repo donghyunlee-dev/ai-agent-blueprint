@@ -130,9 +130,9 @@ Proposal 규칙:
 
 표시 규칙:
 - 사용자의 답을 짧게 확인하는 assistant_text를 제공할 수 있다.
-- proposal이 있으면 영역과 개수를 proposal_summary로 제공한다.
-- 명확한 충돌이 있으면 conflict_notice를 제공한다.
-- 최대 6개 block을 반환한다.
+- provider 응답에는 허용된 assistant_text block과 proposal/ambiguity 데이터만 포함한다. proposal_summary와 conflict_notice block은 반환하지 않는다.
+- 애플리케이션은 proposal 검증 후 ID를 할당하고, 현재 confirmed 값과 before-value 충돌을 확인한 다음 proposal_summary 및 충돌이 검증된 경우 conflict_notice를 생성한다.
+- provider와 애플리케이션이 결합한 normalized 표시 응답은 최대 6개 block이다. 이 상한은 애플리케이션이 최종 조립 후 적용한다.
 - 다음 QuestionSpec, readiness와 process state를 결정하지 않는다.
 ```
 
