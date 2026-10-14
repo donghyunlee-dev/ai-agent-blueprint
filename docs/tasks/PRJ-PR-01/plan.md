@@ -1,6 +1,6 @@
 # PRJ-PR-01 — 라우팅·프로젝트 생성
 
-> **현재 상태: in_progress.** Implementation self-validation은 `test-results.md`의 exact HEAD 결과로 기록됐다. 독립 code review와 QA는 pending이다.
+> **현재 상태: ready_to_merge.** 구현 검증, 독립 code review와 QA가 PR HEAD `1249a031b5fab94918cae89defbee82512c519a8`에서 PASS다. 세부 증거는 `test-results.md`에 기록했다. PR merge는 아직 확인되지 않았다.
 
 ## Overview
 
@@ -147,20 +147,20 @@ Given 인증 사용자에게 owner context가 없거나 폐기되었으면, when
 
 ## 코드 리뷰·QA 체크리스트
 
-- [ ] `/survey`, `/prd` 접근 시 리다이렉트 없이 404인지 확인 (DEC-018)
-- [ ] 임시 제목 생성 시 HTML/제어문자가 섞이지 않는지 확인
-- [ ] 중복 클릭 방지가 네트워크 지연 상황에서도 유지되는지 확인
-- [ ] 관련 template images 반영, semantic controls, CSS consistency, keyboard/responsive 검증
-- [ ] 프로젝트 없음 화면과 일반 404 화면이 시각적으로 구분되는지 확인
+- [x] `/survey`, `/prd` 접근 시 리다이렉트 없이 404인지 확인 (DEC-018)
+- [x] 임시 제목 생성 시 HTML/제어문자가 섞이지 않는지 확인
+- [x] 중복 클릭 방지가 지연 상황에서도 유지되는지 확인
+- [x] 관련 template image 반영, semantic controls, 키보드/반응형 검증
+- [x] 프로젝트 없음 화면과 일반 404 화면이 시각적으로 구분되는지 확인
 
 ## Done Checklist
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] `npm run test:ci` and `git diff --check` pass on final implementation HEAD
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] desktop/mobile final-HEAD screenshots attached (1440×900, 390×844; required states)
+- [x] Requirements implemented
+- [x] Acceptance criteria verified
+- [x] `npm run test:ci` and `git diff --check` pass on final PR HEAD `1249a031b5fab94918cae89defbee82512c519a8`
+- [x] 독립 코드 리뷰 pass (same exact PR HEAD)
+- [x] 독립 QA pass (same exact PR HEAD; live Google OAuth not exercised, Agent Browser unavailable and Playwright Chromium used)
+- [x] desktop/mobile final-HEAD screenshots attached (1440×900, 390×844; required states)
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서
