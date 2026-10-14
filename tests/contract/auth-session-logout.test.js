@@ -1,5 +1,6 @@
 import { test, before } from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import sessionHandler from "../../api/auth/session.js";
 import logoutHandler from "../../api/auth/logout.js";
 import { signSession, buildSessionCookieHeader, sessionCookieName } from "../../api/_lib/session.js";
@@ -27,6 +28,27 @@ test("GET /api/auth/session returns 401 for a tampered session cookie", async ()
   const res = createMockRes();
   await sessionHandler(req, res);
   assert.equal(res.statusCode, 401);
+});
+
+test("GET /api/auth/session returns 401 for a correctly signed legacy-audience session cookie", async () => {
+  const payload = Buffer.from(JSON.stringify({
+    user: { issuer: "https://accounts.google.com", subject: "subject-1", email: "user@example.com" },
+    issuedAt: Date.now(),
+    expiresAt: Date.now() + 60_000,
+    audience: "sfood-agent-blueprint",
+  })).toString("base64url");
+  const signature = crypto.createHmac("sha256", process.env.APP_SESSION_SECRET).update(payload).digest("base64url");
+  const value = `${payload}.${signature}`;
+  const req = createMockReq({
+    url: "/api/auth/session",
+    cookie: `${sessionCookieName()}=${encodeURIComponent(value)}`,
+  });
+  const res = createMockRes();
+
+  await sessionHandler(req, res);
+
+  assert.equal(res.statusCode, 401);
+  assert.deepEqual(JSON.parse(res.body), { authenticated: false });
 });
 
 test("GET /api/auth/session returns 200 and the user for a valid session cookie", async () => {

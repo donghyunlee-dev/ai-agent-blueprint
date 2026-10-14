@@ -4,10 +4,10 @@ import { Badge } from "@sfood/ui";
 export function SurveyHeader() {
   return (
     <header className="survey-header">
-      <nav className="header-inner" aria-label="SFOOD Blueprint 전역 탐색">
+      <nav className="header-inner" aria-label="Windsoft Blueprint 전역 탐색">
         <Link className="header-brand" to="/">
-          <span className="logo-mark" aria-hidden="true">S</span>
-          <span><small>SFOOD</small><strong>Blueprint</strong></span>
+          <span className="logo-mark" aria-hidden="true">W</span>
+          <span><small>Windsoft</small><strong>Blueprint</strong></span>
         </Link>
         <div className="header-product-copy">
           <strong>AI 설계 워크벤치</strong>
