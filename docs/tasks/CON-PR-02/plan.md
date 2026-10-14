@@ -155,6 +155,8 @@ flowchart TD
 - [x] 변경된 interaction과 직접 영향받는 접근성/반응형 동작 확인(캡처 선택)
 - [ ] 사용자 PR 머지 확인
 
-## 실행 시 추가 문서
+## 실행 결과 문서
 
-- 이 폴더에 구현 중/후 `test-results.md`, `review-notes.md`, `qa-report.md` 등을 추가로 생성한다(지금은 생성하지 않음).
+- [test-results.md](./test-results.md): 구현자 자체 검증 결과
+- [review-notes.md](./review-notes.md): 독립 코드 리뷰 결과와 수정 사항
+- [qa-report.md](./qa-report.md): 독립 QA 결과와 검증한 소스 SHA
