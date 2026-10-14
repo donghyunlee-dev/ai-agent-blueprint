@@ -31,13 +31,13 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
   const [error, setError] = useState<string|null>(null);
   const [job, setJob] = useState<GenerationJob|null>(null);
   const [recoveryNow, setRecoveryNow] = useState(Date.now());
-  const [confirmedCurrentState, setConfirmedCurrentState] = useState(false);
+  const [confirmedUnknownJobId, setConfirmedUnknownJobId] = useState<string|null>(null);
   useEffect(() => { const timer=window.setInterval(()=>setRecoveryNow(Date.now()),60_000); return ()=>window.clearInterval(timer); }, []);
   const controllerRef = useRef<AbortController|null>(null);
   const aggregateRef = useRef(aggregate);
   aggregateRef.current = aggregate;
   const unknownJob = aggregate.generationJobs.filter((item)=>item.errorCode==='AI_REQUEST_UNKNOWN').sort((a,b)=>(b.finishedAt??'').localeCompare(a.finishedAt??''))[0];
-  const recovery = getUnknownRequestRecovery(unknownJob, recoveryNow, confirmedCurrentState);
+  const recovery = getUnknownRequestRecovery(unknownJob, recoveryNow, confirmedUnknownJobId);
 
   function updateJob(next: GenerationJob) {
     setJob(next);
@@ -74,7 +74,7 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
       const succeededJob: GenerationJob = {...nextJob,status:'succeeded',finishedAt:new Date().toISOString()};
       const updated: BlueprintAggregate = {...latest,messages:[...latest.messages,message],proposals:[...latest.proposals,...proposals],generationJobs:[...latest.generationJobs.filter((item)=>item.id!==nextJob.id),succeededJob]};
       aggregateRef.current = updated; onAggregateChange(updated);
-      setDraft(''); setConfirmedCurrentState(false);
+      setDraft(''); setConfirmedUnknownJobId(null);
     } catch (cause) {
       if (controller.signal.aborted) {
         updateJob({...nextJob,status:'cancelled',errorCode:'AI_CANCELLED',finishedAt:new Date().toISOString()});
@@ -105,7 +105,7 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
   return <section className="ai-turn-composer" aria-label="AI에게 자유 답변 분석 요청">
     <label htmlFor="ai-turn-draft">AI에 보낼 자유 답변</label>
     <textarea id="ai-turn-draft" value={draft} onChange={(event)=>setDraft(event.target.value)} rows={3} disabled={busy} />
-    {unknownJob ? <div className="ai-unknown-recovery" role="alert"><p>요청 결과를 확인할 수 없습니다. 서버에는 결과 조회 API가 없으며, unknown 요청 ID는 24시간 tombstone으로 보호됩니다.</p>{recovery.expired ? <label><input type="checkbox" checked={confirmedCurrentState} onChange={(event)=>setConfirmedCurrentState(event.target.checked)} />현재 프로젝트 상태를 직접 확인했고, 결과가 반영되지 않은 것을 확인했습니다.</label> : <p>새 요청은 {new Date(recovery.expiresAt ?? 0).toLocaleString()} 이후에만 만들 수 있습니다. 초안은 유지됩니다.</p>}</div> : null}
+    {unknownJob ? <div className="ai-unknown-recovery" role="alert"><p>요청 결과를 확인할 수 없습니다. 서버에는 결과 조회 API가 없으며, unknown 요청 ID는 24시간 tombstone으로 보호됩니다.</p>{recovery.expired ? <label><input type="checkbox" checked={confirmedUnknownJobId===unknownJob.id} onChange={(event)=>setConfirmedUnknownJobId(event.target.checked?unknownJob.id:null)} />현재 프로젝트 상태를 직접 확인했고, 결과가 반영되지 않은 것을 확인했습니다.</label> : <p>새 요청은 {new Date(recovery.expiresAt ?? 0).toLocaleString()} 이후에만 만들 수 있습니다. 초안은 유지됩니다.</p>}</div> : null}
     {error ? <p role="alert">{error}</p> : null}
     {job?.status==='running' ? <button type="button" onClick={()=>controllerRef.current?.abort()}>AI 요청 취소</button> : null}
     <AiConsentGate consent={aggregate.project.aiConsent} persistConsent={saveConsent} send={sendDraft}>{({run,busy:gateBusy}) => <button type="button" disabled={busy||gateBusy||!draft.trim()||recovery.blocked} onClick={()=>void run()}>{busy?'분석 중…':'AI로 답변 분석'}</button>}</AiConsentGate>

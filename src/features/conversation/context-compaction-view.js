@@ -7,6 +7,11 @@ function isSourceAwareSummary(summary) {
 export function compactConversationContext({ messages, summary, threshold = 20 }) {
   const list = Array.isArray(messages) ? messages : [];
   if (list.length <= threshold || !isSourceAwareSummary(summary)) return { compacted: false, originalMessages: list, summary: null, trigger: null };
+  const currentMessageIds = new Set(list.map((message) => message.id));
+  if (summary.sourceMessageIds.some((id) => !currentMessageIds.has(id))
+    || factGroups.some((group) => summary[group].some((fact) => fact.sourceMessageIds.some((id) => !currentMessageIds.has(id))))) {
+    return { compacted: false, originalMessages: list, summary: null, trigger: null };
+  }
   const sourceMessageIds = new Set(summary?.sourceMessageIds ?? []);
   const compactSummary = Object.fromEntries(factGroups.map((key) => [key, (summary?.[key] ?? []).map((fact) => {
     for (const id of fact.sourceMessageIds ?? []) sourceMessageIds.add(id);

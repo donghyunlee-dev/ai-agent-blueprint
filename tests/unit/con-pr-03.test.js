@@ -56,11 +56,11 @@ test('context compaction never truncates messages without a source-aware summary
 
 test('unknown requests stay blocked through tombstone TTL and require state confirmation after expiry', async () => {
   const {getUnknownRequestRecovery,UNKNOWN_REQUEST_TTL_MS}=await import('../../src/features/conversation/generation-job-view.js');
-  const job={status:'failed',errorCode:'AI_REQUEST_UNKNOWN',finishedAt:'2026-10-14T00:00:00.000Z'};
+  const job={id:'unknown-job',status:'failed',errorCode:'AI_REQUEST_UNKNOWN',finishedAt:'2026-10-14T00:00:00.000Z'};
   const started=Date.parse(job.finishedAt);
-  assert.equal(getUnknownRequestRecovery(job,started+UNKNOWN_REQUEST_TTL_MS-1,true).canStartNewIntent,false);
-  assert.equal(getUnknownRequestRecovery(job,started+UNKNOWN_REQUEST_TTL_MS,false).canStartNewIntent,false);
-  assert.equal(getUnknownRequestRecovery(job,started+UNKNOWN_REQUEST_TTL_MS,true).canStartNewIntent,true);
+  assert.equal(getUnknownRequestRecovery(job,started+UNKNOWN_REQUEST_TTL_MS-1,job.id).canStartNewIntent,false);
+  assert.equal(getUnknownRequestRecovery(job,started+UNKNOWN_REQUEST_TTL_MS,null).canStartNewIntent,false);
+  assert.equal(getUnknownRequestRecovery(job,started+UNKNOWN_REQUEST_TTL_MS,job.id).canStartNewIntent,true);
 });
 
 test('context compaction refuses a summary missing source IDs', () => {
@@ -69,4 +69,22 @@ test('context compaction refuses a summary missing source IDs', () => {
   const result=compactConversationContext({messages,summary:invalid,threshold:2});
   assert.equal(result.compacted,false);
   assert.equal(result.originalMessages.length,30);
+});
+
+test('context compaction refuses internally consistent summary sources absent from current messages', () => {
+  const messages=Array.from({length:30},(_,index)=>({id:`m${index}`,role:'user',content:`x${index}`}));
+  const invalid={confirmedFacts:[{text:'known',sourceMessageIds:['gone']}],explicitUnknowns:[],rejectedDirections:[],unresolvedQuestions:[],sourceMessageIds:['gone']};
+  const result=compactConversationContext({messages,summary:invalid,threshold:2});
+  assert.equal(result.compacted,false);
+  assert.deepEqual(result.originalMessages,messages);
+});
+
+test('unknown recovery confirmation is bound to the specific tombstoned job', async () => {
+  const {getUnknownRequestRecovery,UNKNOWN_REQUEST_TTL_MS}=await import('../../src/features/conversation/generation-job-view.js');
+  const job={id:'unknown-1',status:'failed',errorCode:'AI_REQUEST_UNKNOWN',finishedAt:'2026-10-14T00:00:00.000Z'};
+  const now=Date.parse(job.finishedAt)+UNKNOWN_REQUEST_TTL_MS;
+  assert.equal(getUnknownRequestRecovery(job,now,'unknown-1').canStartNewIntent,true);
+  const nextUnknown={...job,id:'unknown-2',finishedAt:new Date(now).toISOString()};
+  assert.equal(getUnknownRequestRecovery(nextUnknown,now+UNKNOWN_REQUEST_TTL_MS,'unknown-1').canStartNewIntent,false);
+  assert.equal(getUnknownRequestRecovery(nextUnknown,now+UNKNOWN_REQUEST_TTL_MS,'unknown-2').canStartNewIntent,true);
 });

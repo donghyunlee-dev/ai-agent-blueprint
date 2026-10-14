@@ -94,7 +94,7 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
   let calls=0;
   await page.route('**/api/blueprint/turn', async (route) => {
     ids.push(route.request().postDataJSON()); calls++;
-    if(calls===1) await route.fulfill({status:503,json:{error:'AI_REQUEST_UNKNOWN'}});
+    if(calls<=2) await route.fulfill({status:503,json:{error:'AI_REQUEST_UNKNOWN'}});
     else await route.fulfill({status:200,json:{assistantMessage:'새 intent로 받은 응답',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
   });
   await page.goto(`/blueprints/${projectId}/design`);
@@ -114,9 +114,18 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
   await confirmation.check();
   await expect(sendButton).toBeEnabled();
   await sendButton.click();
-  await expect(page.locator('.workspace-message-assistant').filter({hasText:'새 intent로 받은 응답'})).toBeVisible();
+  await expect(page.locator('.ai-unknown-recovery')).toContainText('24시간 tombstone');
   expect(calls).toBe(2);
+  await page.clock.fastForward(24*60*60*1000+1000);
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation).not.toBeChecked();
+  await expect(sendButton).toBeDisabled();
+  await confirmation.check();
+  await sendButton.click();
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:'새 intent로 받은 응답'})).toBeVisible();
+  expect(calls).toBe(3);
   expect(ids[1].logicalRequestId).not.toBe(ids[0].logicalRequestId);
+  expect(ids[2].logicalRequestId).not.toBe(ids[1].logicalRequestId);
 });
 
 test('canceling an in-flight turn aborts it, keeps its draft, and renders no partial response', async ({ page }) => {
