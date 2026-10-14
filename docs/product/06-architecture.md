@@ -390,6 +390,16 @@ IndexedDB는 인증에서 파생한 현재 ownerKey마다 별도 namespace를 �
 | `AI_NOT_CONFIGURED` | API 설정 없음 | 관리자 설정 안내 |
 | `AI_RATE_LIMITED` | 요청 제한 | 대기 후 재시도 |
 | `AI_INVALID_OUTPUT` | 구조화 응답 실패 | 상태 미반영, 재시도 |
+| `AI_REQUEST_UNKNOWN` | 요청 timeout 뒤 provider 처리 여부를 확인할 수 없음 | 입력을 보존하고 성공으로 표시하지 않는다. 동일 `logicalRequestId`는 24시간 tombstone TTL 동안 재호출하지 않는다. 현재 상태를 확인한 뒤 사용자가 새 요청으로 다시 시작할지 결정한다. 24시간 뒤에는 클라이언트가 기존 intent를 폐기하고 같은 ID로 재전송하지 않는다. |
+| `AI_REQUEST_CONFLICT` | 같은 논리 요청 ID가 다른 입력 또는 attempt 재사용과 충돌 | 기존 결과를 덮어쓰지 않고 입력을 보존한다. 새 사용자 의도는 새 ID로 시작한다. |
+| `AI_REQUEST_IN_PROGRESS` | 같은 논리 요청이 처리 중 | 입력을 보존하고 현재 요청 완료를 기다린다. |
+| `AI_CANCELLED` | 사용자가 진행 중인 요청을 취소 | 부분 결과를 적용하지 않고 입력과 확정 설계를 유지한다. |
+| `AI_CIRCUIT_OPEN` | provider 실패가 연속되어 호출을 잠시 차단 | 입력을 보존하고 60초 뒤 새 attempt ID로 재시도한다. |
+| `AI_PROVIDER_ERROR` | provider가 일시적인 서버 오류를 반환 | 입력을 보존하고 새 attempt ID로 재시도한다. |
+| `AI_UNAVAILABLE` | 서버 모델/API 설정이 준비되지 않았거나 provider 요청이 거절됨 | 관리자에게 서버 설정을 확인하도록 안내한다. |
+| `AI_BUDGET_EXCEEDED` | 요청의 task/token/cost 한도가 초과됨 | provider 호출 없이 입력을 보존하고 범위를 줄인다. |
+| `AUTH_STORE_NOT_CONFIGURED` | production 공유 transient store 설정 없음 | 설정을 복구할 때까지 요청을 처리하지 않는다. |
+| `AUTH_STORE_UNAVAILABLE` | 요청 수명주기 상태 저장소에 연결할 수 없음 | 입력을 보존하고 서버 저장소 복구 후 상태를 확인한다. |
 | `CONTEXT_TOO_LARGE` | 입력 한도 초과 | 대상 범위 축소 안내 |
 | `FILE_UNSUPPORTED` | 지원하지 않는 파일 | 다른 형식 또는 직접 입력 |
 | `STORAGE_FAILED` | 로컬 저장 실패 | 재시도와 문서 내보내기 |

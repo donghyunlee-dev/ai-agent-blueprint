@@ -54,7 +54,7 @@ function extractOutputText(payload) {
   return values.join("\n");
 }
 
-export async function requestStructuredOutput({ name, schema, messages }) {
+export async function requestStructuredOutput({ name, schema, messages, signal }) {
   const { apiKey, model } = getOpenAiConfig();
   if (!apiKey) {
     const error = new Error("OPENAI_NOT_CONFIGURED");
@@ -62,6 +62,9 @@ export async function requestStructuredOutput({ name, schema, messages }) {
     throw error;
   }
   const controller = new AbortController();
+  const abort = () => controller.abort(signal?.reason);
+  if (signal?.aborted) abort();
+  else signal?.addEventListener("abort", abort, { once: true });
   const timeout = setTimeout(() => controller.abort(), 45_000);
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -72,14 +75,25 @@ export async function requestStructuredOutput({ name, schema, messages }) {
     });
     if (!response.ok) {
       const error = new Error(`OpenAI request failed (${response.status})`);
-      error.statusCode = response.status === 429 ? 429 : 502;
+      error.statusCode = response.status === 429 ? 429 : response.status >= 500 ? 502 : 503;
+      if (response.status < 500 && response.status !== 429) error.code = "AI_PROVIDER_REJECTED";
       throw error;
     }
     const text = extractOutputText(await response.json());
-    if (!text) throw new Error("OpenAI response was empty");
-    return JSON.parse(text);
+    if (!text) {
+      const error = new Error("AI output was empty");
+      error.code = "AI_INVALID_OUTPUT";
+      throw error;
+    }
+    try { return JSON.parse(text); }
+    catch {
+      const error = new Error("AI output was not valid JSON");
+      error.code = "AI_INVALID_OUTPUT";
+      throw error;
+    }
   } finally {
     clearTimeout(timeout);
+    signal?.removeEventListener("abort", abort);
   }
 }
 

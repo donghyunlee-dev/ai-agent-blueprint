@@ -1,6 +1,8 @@
 # AI-PR-01 — 모델·prompt·budget 기반
 
-**Current delivery status: `code_review`.** PRJ-PR-03 is merged as PR #12 (`f5c1dc3b07304e23f650a020d2afd2d56df36a3b`). The bounded review correction pass now covers nested references, deterministic prohibited-outcome checks, derived cost, compaction-before-provider, ledger usage sanitization, and Vercel function configuration. Exact-head independent code review and scoped QA are pending. Keep `gpt-5-mini` as `DEFAULT` and retain existing model profiles and project cost limits.
+**Status: merged as PR #13** (`e97d04c13991c03c179471a6bc2a9d3a26aa2841`). The user retained `DEFAULT=gpt-5-mini` and the existing budget limits. Live provider pairwise evaluation remains a later user-key gate.
+
+**Delivery scope:** AI-PR-01's model/prompt/schema registry, budget/ledger foundation, and synthetic golden gate are merged as PR #13. Runtime task integrations continue in the mapped CON/DOC units; live provider pairwise evaluation remains a later user-key gate. Keep `gpt-5-mini` as `DEFAULT` and retain existing model profiles and project cost limits.
 
 ## Overview
 
