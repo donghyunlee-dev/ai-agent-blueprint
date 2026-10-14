@@ -28,6 +28,19 @@ test.describe("AuthProvider identity race integration", () => {
     await viteServer?.close();
   });
 
+  test("clear-session-state event removes a created project from the memory registry", async ({ page }) => {
+    await page.route("**/api/auth/session", (route) => fulfillSession(route, "user-a"));
+
+    await mountProvider(page);
+    await expectProvider(page, "authenticated", "user-a", true, "user-a");
+    await expect(page.getByTestId("memory-project-status")).toContainText("user-a:present");
+
+    await page.evaluate(() => window.dispatchEvent(new Event("blueprint:clear-session-state")));
+    await page.getByRole("button", { name: "Refresh memory registry" }).click();
+
+    await expect(page.getByTestId("memory-project-status")).toContainText("user-a:missing");
+  });
+
   test("late A session cannot restore owner, user, status, or memory project after logout starts", async ({ page }) => {
     let sessionCalls = 0;
     let releaseLateA!: () => void;
@@ -51,12 +64,14 @@ test.describe("AuthProvider identity race integration", () => {
 
     await mountProvider(page);
     await expectProvider(page, "authenticated", "user-a", true, "user-a");
+    await expect(page.getByTestId("memory-project-status")).toContainText("user-a:present");
     await page.getByRole("button", { name: "Check session" }).click();
     await expect.poll(() => sessionCalls).toBe(2);
     await expectProvider(page, "checking", "", false, "");
 
     await page.getByRole("button", { name: "Logout" }).click();
     await expectProvider(page, "redirecting", "", false, "");
+    await expect(page.getByTestId("memory-project-status")).toContainText("user-a:missing");
     releaseLateA();
     await expect.poll(() => lateAFinished).toBe(true);
     await expectProvider(page, "redirecting", "", false, "");
@@ -79,11 +94,13 @@ test.describe("AuthProvider identity race integration", () => {
 
     await mountProvider(page);
     await expectProvider(page, "authenticated", "user-a", true, "user-a");
+    await expect(page.getByTestId("memory-project-status")).toContainText("user-a:present");
     await page.getByRole("button", { name: "Check session" }).click();
     await expect.poll(() => sessionCalls).toBe(2);
     await expectProvider(page, "checking", "", false, "");
     await page.getByRole("button", { name: "Expire session" }).click();
     await expectProvider(page, "expired", "", false, "");
+    await expect(page.getByTestId("memory-project-status")).toContainText("user-a:missing");
 
     releaseLateA();
     await expect.poll(() => lateAFinished).toBe(true);
@@ -108,12 +125,14 @@ test.describe("AuthProvider identity race integration", () => {
 
     await mountProvider(page);
     await expectProvider(page, "authenticated", "user-a", true, "user-a");
+    await expect(page.getByTestId("memory-project-status")).toContainText("user-a:present");
     await page.getByRole("button", { name: "Check session" }).click();
     await expect.poll(() => sessionCalls).toBe(2);
     await expectProvider(page, "checking", "", false, "");
     await page.getByRole("button", { name: "Check session" }).click();
     await expect.poll(() => sessionCalls).toBe(3);
     await expectProvider(page, "authenticated", "user-b", true, "user-b");
+    await expect(page.getByTestId("memory-project-status")).toContainText("user-a:missing,user-b:present");
 
     releaseLateA();
     await expect.poll(() => lateAFinished).toBe(true);
