@@ -81,7 +81,7 @@ Given sessionStorage의 이전 값이 손상된 JSON인 경우, when 이전을 �
 | 시나리오 | 검증 |
 | --- | --- |
 | 브랜드 정적 검색 | tracked text 대상 case-insensitive `rg` 결과 확인; 허용 예외마다 소유자/사유 명시 |
-| 사용자 UI | Playwright로 관련 경로 및 화면 문구 확인; UI 변경이면 1440×900, 390×844 캡처와 Agent Browser 검증 |
+| 사용자 UI | Playwright Chromium으로 관련 경로 및 화면 문구 확인; UI 변경이면 1440×900, 390×844 캡처; Agent Browser를 사용할 수 없을 때는 확인 근거를 기록하고 Playwright Chromium에서 동일 흐름 검증 |
 | 저장 key 호환 | 이전 key 단독, 새 key 단독, 두 key 동시, 잘못된 이전 값을 검증 |
 | session audience | 새 audience 허용, 구 audience 거부 및 보호 API 401 검증 |
 | package | lockfile 동기화 및 `npm run build` |

@@ -152,7 +152,7 @@ PR 생성 전 최소 검증:
 
 - 해당 작업의 단위·통합·계약 테스트
 - `npm run build`
-- UI 변경 시 Playwright와 Agent Browser의 동일 핵심 경로 검증
+- UI 변경 시 Playwright Chromium으로 동일 핵심 경로를 검증하고, Agent Browser가 있으면 같은 경로의 독립 검증도 수행한다. 사용할 수 없는 경우 도구 목록과 실행 파일 확인 결과를 기록하며, 그 부재만으로 QA를 차단하지 않는다.
 - desktop과 mobile 필수 viewport 확인
 - 오류·빈 상태·loading·재시도 확인
 - secret, token, 사용자 원문과 임시 결과 파일 미포함 확인
@@ -252,7 +252,7 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 - 해당 task가 바꾼 정상 상태와 적용 가능한 loading, empty, error, validation, overlay, completed 상태를 포함한다.
 - 기존 화면 변경을 비교하는 데 의미가 있으면 before/after를 함께 올린다.
 - 파일명은 `<pr-unit>-<screen>-<viewport>-<state>.png` 형식이다.
-- Playwright로 캡처하고 Agent Browser로 같은 상태의 DOM·interaction을 별도 검증한다.
+- Playwright Chromium으로 캡처하고 같은 상태의 DOM·interaction을 확인한다. Agent Browser를 사용할 수 있으면 동일 상태를 별도로 검증한다. 사용할 수 없는 환경에서는 도구 목록과 실행 파일 확인 결과를 기록하고 Playwright Chromium에서 같은 상태 검증을 수행한다.
 - secret, token, 개인 이메일, 운영 데이터, 로컬 경로와 관련 없는 창을 포함하지 않는다.
 - PR 본문에서 route, viewport, state와 fixture를 설명한다.
 
@@ -314,14 +314,14 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 1. `blueprint-task-planner`가 plan과 화면·상태 acceptance를 작성한다.
 2. `blueprint-implementer`가 TDD 구현과 self-check를 수행한다.
 3. `blueprint-code-reviewer`가 별도 context에서 diff와 spec을 검토한다.
-4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 Playwright·Agent Browser로 desktop/mobile을 검증한다.
+4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 Playwright Chromium으로 desktop/mobile을 검증한다. Agent Browser를 사용할 수 있으면 같은 경로도 검증하며, 사용할 수 없으면 해당 확인 근거를 남기고 Playwright로 완료한다.
 5. QA가 최종 HEAD 캡처를 만들고 PR `Screenshots`에 노출한다.
 6. 전체 PR lifecycle 요청이면 gate 통과 후 Agent가 PR을 병합하고 결과를 확인한다. 요청이 없으면 `ready_to_merge`에서 멈춘다.
 
 ### Agent 또는 QA 실패
 
-- 필요한 agent나 도구를 사용할 수 없으면 정확한 누락을 기록하고 해당 gate를 `blocked`로 둔다.
-- UI 런타임, Playwright 또는 Agent Browser 중 하나라도 실행할 수 없으면 QA를 `blocked`로 기록한다. 캡처만 올리고 `pass`로 처리하지 않는다.
+- 필수 QA agent, UI runtime, fixture 또는 사용 가능한 모든 브라우저 자동화를 사용할 수 없으면 정확한 누락을 기록하고 해당 gate를 `blocked`로 둔다. Agent Browser 부재 시 허용되는 Playwright Chromium 대체 검증은 위 조건에 해당하지 않는다.
+- UI 런타임이나 사용 가능한 브라우저 자동화가 없으면 QA를 `blocked`로 기록한다. Playwright Chromium으로 같은 흐름과 viewport를 검증할 수 있고 Agent Browser만 사용할 수 없는 경우, 도구 목록·실행 파일 확인을 기록한 뒤 Playwright 결과로 QA를 판정한다. 캡처만 올리고 `pass`로 처리하지 않는다.
 - QA correction pass 뒤에도 같은 차단 finding이 남으면 PR을 머지 대기로 보내지 않고 task 범위나 설계를 다시 정한다.
 
 ## 완료 판정
