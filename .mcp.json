@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "ax-auth": {
-      "type": "http",
-      "url": "https://ax-auth.s-food.ai/mcp"
-    }
-  }
-}
