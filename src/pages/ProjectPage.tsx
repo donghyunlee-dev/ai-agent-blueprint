@@ -41,6 +41,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const attemptRef = useRef(attempt);
   const saverRef = useRef<ProjectSaver | null>(null);
   const conversationRef = useRef<HTMLElement | null>(null);
+  const inspectorPanelRef = useRef<HTMLElement | null>(null);
   const inspectorTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inspectorCloseRef = useRef<HTMLButtonElement | null>(null);
   const isResizing = useRef(false);
@@ -162,6 +163,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   }, [loadStatus, mobileMode, projectId]);
 
   useEffect(() => {
+    inspectorPanelRef.current?.toggleAttribute("inert", !inspectorOpen && inspectorOverlay);
+  }, [inspectorOpen, inspectorOverlay]);
+
+  useEffect(() => {
     if (!inspectorOpen || !inspectorOverlay) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     inspectorCloseRef.current?.focus();
@@ -199,6 +204,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
   function closeInspector() {
     setInspectorOpen(false);
+    if (modeTabsVisible && !mobileLayout) setMobileMode("work");
   }
 
   function editTitle(value: string) {
@@ -279,7 +285,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
             <div className="workspace-empty-state"><div className="workspace-empty-mark" aria-hidden="true">✦</div><h2>{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)} 작업을 시작해 보세요</h2><p>첫 아이디어를 바탕으로 내용을 정리하고 필요한 결정을 이어갈 수 있습니다.</p><span>현재 문서: {documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</span></div>
           </div>
         </section>
-        <aside id="workspace-review-panel" className={`workspace-panel workspace-inspector ${inspectorOpen ? "is-open" : ""}`} aria-label="상세 정보" aria-hidden={!inspectorOpen && inspectorOverlay && mobileMode !== "review"} aria-modal={inspectorOpen && inspectorOverlay ? true : undefined} role={inspectorOpen && inspectorOverlay ? "dialog" : modeTabsVisible && mobileMode === "review" ? "tabpanel" : "complementary"} aria-labelledby={modeTabsVisible && mobileMode === "review" && !inspectorOpen ? "workspace-mode-tab-review" : undefined}>
+      <aside ref={inspectorPanelRef} id="workspace-review-panel" className={`workspace-panel workspace-inspector ${inspectorOpen ? "is-open" : ""}`} aria-label="상세 정보" aria-hidden={!inspectorOpen && inspectorOverlay && mobileMode !== "review"} aria-modal={inspectorOpen && inspectorOverlay ? true : undefined} role={inspectorOpen && inspectorOverlay ? "dialog" : modeTabsVisible && mobileMode === "review" ? "tabpanel" : "complementary"} aria-labelledby={modeTabsVisible && mobileMode === "review" && !inspectorOpen ? "workspace-mode-tab-review" : undefined}>
           <header className="workspace-panel-heading"><h2>프로젝트 상세</h2><button ref={inspectorCloseRef} className="workspace-drawer-close" type="button" aria-label="상세 닫기" onClick={closeInspector}>×</button></header>
           <div className="workspace-inspector-content"><p className="workspace-readiness-label">진행 상태</p><p className="workspace-readiness-value">{readinessLabel(aggregate.project.readiness.state)}</p><p>확인할 제안 {aggregate.project.readiness.pendingProposalCount}개 · 충돌 {aggregate.project.readiness.conflictCount}개</p><div className="workspace-inspector-next"><strong>다음 단계</strong><p>아이디어를 대화에서 구체화한 뒤 문서 작업을 이어가세요.</p></div><button type="button" onClick={closeInspector}>닫기</button></div>
         </aside>

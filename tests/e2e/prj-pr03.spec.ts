@@ -184,11 +184,13 @@ test('inspector drawer manages focus and conversation resizer supports bounded k
   const tabletDrawerClose = page.getByRole('button', { name: '상세 닫기' }).first();
   await expect(tabletDrawerClose).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(reviewTab).toBeFocused();
-  await expect(reviewTab).toHaveAttribute('aria-selected', 'true');
+  const workTab = page.getByRole('tab', { name: '설계' });
+  await expect(workTab).toHaveAttribute('aria-selected', 'true');
+  await expect(workTab).toBeFocused();
   await expect(page.getByRole('dialog', { name: '상세 정보' })).toHaveCount(0);
-  await expect(page.locator('.workspace-inspector')).toBeVisible();
-  expect(await page.locator('.workspace-work').evaluate((element) => getComputedStyle(element).display)).toBe('none');
+  await expect(page.locator('.workspace-inspector')).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.locator('.workspace-inspector')).toHaveAttribute('inert', '');
+  expect(await page.locator('.workspace-work').evaluate((element) => getComputedStyle(element).display)).not.toBe('none');
 
   await page.setViewportSize({ width: 1440, height: 900 });
   const separator = page.getByRole('separator', { name: '대화 패널 너비' });
