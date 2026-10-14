@@ -4,6 +4,42 @@ import assert from "node:assert/strict";
 const STORAGE_KEY = "windsoft-agent-blueprint:prd-context";
 const LEGACY_STORAGE_KEY = "sfood-agent-blueprint:prd-context";
 
+function createContext(serviceName = "Windsoft") {
+  return {
+    formData: {
+      serviceName,
+      serviceDesc: "",
+      features: [],
+      env: "",
+      users: "",
+      os: "",
+      db: "",
+      dbExist: "",
+      dbType: "",
+      auth: "",
+      authTypes: [],
+      notif: "",
+      notifChannels: [],
+      automation: [],
+      aiAgent: "",
+      tools: [],
+      git: "",
+      deploy: "",
+      security: [],
+      test: "",
+      timeline: "",
+      devExist: "",
+      extraNote: "",
+    },
+    recommendation: {
+      title: "",
+      summary: "",
+      reportMarkdown: "",
+      guideDocs: [],
+    },
+  };
+}
+
 function installSessionStorage(entries = []) {
   const values = new Map(entries);
   globalThis.sessionStorage = {
@@ -15,7 +51,7 @@ function installSessionStorage(entries = []) {
 }
 
 test("loadPrdContext migrates the legacy context and removes the old key", async () => {
-  const context = { formData: { serviceName: "Windsoft" }, recommendation: {} };
+  const context = createContext();
   const values = installSessionStorage([[LEGACY_STORAGE_KEY, JSON.stringify(context)]]);
   const { loadPrdContext } = await import("../../src/features/prd/contextStorage.ts");
 
@@ -25,8 +61,8 @@ test("loadPrdContext migrates the legacy context and removes the old key", async
 });
 
 test("loadPrdContext prefers an existing new context and removes legacy data", async () => {
-  const current = { formData: { serviceName: "Current" }, recommendation: {} };
-  const legacy = { formData: { serviceName: "Legacy" }, recommendation: {} };
+  const current = createContext("Current");
+  const legacy = createContext("Legacy");
   const values = installSessionStorage([
     [STORAGE_KEY, JSON.stringify(current)],
     [LEGACY_STORAGE_KEY, JSON.stringify(legacy)],
@@ -39,16 +75,32 @@ test("loadPrdContext prefers an existing new context and removes legacy data", a
 });
 
 test("loadPrdContext preserves valid legacy context when the new value is malformed", async () => {
-  const legacy = { formData: { serviceName: "Legacy" }, recommendation: {} };
+  const legacy = createContext("Legacy");
+  const legacyRaw = JSON.stringify(legacy);
   const values = installSessionStorage([
     [STORAGE_KEY, "{"],
-    [LEGACY_STORAGE_KEY, JSON.stringify(legacy)],
+    [LEGACY_STORAGE_KEY, legacyRaw],
   ]);
   const { loadPrdContext } = await import("../../src/features/prd/contextStorage.ts");
 
   assert.deepEqual(loadPrdContext(), legacy);
-  assert.equal(values.get(STORAGE_KEY), JSON.stringify(legacy));
-  assert.equal(values.has(LEGACY_STORAGE_KEY), false);
+  assert.equal(values.get(STORAGE_KEY), "{");
+  assert.equal(values.get(LEGACY_STORAGE_KEY), legacyRaw);
+});
+
+test("loadPrdContext preserves valid legacy data when the new JSON has an invalid context shape", async () => {
+  const invalidCurrent = JSON.stringify({ formData: { serviceName: "Current" }, recommendation: {} });
+  const legacy = createContext("Legacy");
+  const legacyRaw = JSON.stringify(legacy);
+  const values = installSessionStorage([
+    [STORAGE_KEY, invalidCurrent],
+    [LEGACY_STORAGE_KEY, legacyRaw],
+  ]);
+  const { loadPrdContext } = await import("../../src/features/prd/contextStorage.ts");
+
+  assert.deepEqual(loadPrdContext(), legacy);
+  assert.equal(values.get(STORAGE_KEY), invalidCurrent);
+  assert.equal(values.get(LEGACY_STORAGE_KEY), legacyRaw);
 });
 
 test("loadPrdContext ignores malformed legacy context without copying it", async () => {
@@ -62,7 +114,7 @@ test("loadPrdContext ignores malformed legacy context without copying it", async
 
 test("savePrdContext writes only to the Windsoft context key", async () => {
   const values = installSessionStorage();
-  const context = { formData: { serviceName: "Windsoft" }, recommendation: {} };
+  const context = createContext();
   const { savePrdContext } = await import("../../src/features/prd/contextStorage.ts");
 
   savePrdContext(context);
