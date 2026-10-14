@@ -70,7 +70,7 @@
 | 도메인 규칙 | 단위 테스트 이름과 통과 결과 |
 | API 계약 | 정상·오류 fixture와 계약 테스트 결과 |
 | 저장 | 새로고침·마이그레이션·실패 복구 결과 |
-| UI | 최종 HEAD의 데스크톱·모바일 캡처를 PR에서 직접 볼 수 있는 링크, Playwright·Agent Browser와 키보드 검증 결과 |
+| UI | 최종 HEAD의 데스크톱·모바일 캡처를 PR에서 직접 볼 수 있는 링크, Playwright Chromium·키보드 검증 결과; Agent Browser를 사용할 수 있으면 같은 흐름의 추가 검증 결과 |
 | Agent 동작 | 요청/응답 스키마 fixture, 잘못된 응답 거절 결과 |
 | 다운로드 | 생성 파일명과 Markdown 내용 검증 결과 |
 

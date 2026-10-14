@@ -92,8 +92,8 @@ Given sessionStorage의 이전 값이 손상된 JSON인 경우, when 이전을 �
 - Playwright, 로컬 `http://127.0.0.1:5174`: `/`와 `/survey`를 1440×900 및 390×844에서 확인. 네 조합 모두 HTTP 200, Windsoft 표시, 렌더된 본문에 이전 브랜드 없음, page error 없음, 가로 overflow 없음.
 - 시각 캡처는 한국어 글꼴(Malgun Gothic)을 추가한 환경에서 생성하고 직접 확인했다. desktop/mobile 홈·설문 이미지는 [`docs/delivery/evidence/BRD-PR-01/`](../../delivery/evidence/BRD-PR-01/)에 저장했다.
 - 자동 검증: `npm run test:unit` 59/59 통과, `npm run build` 통과, `git diff --check` 통과.
-- QA gate는 **BLOCKED**: 현재 Codex 세션에 Agent Browser 도구나 실행 파일이 노출되지 않아 저장소 계약상 필수인 별도 Agent Browser 검증을 아직 수행하지 못했다. Playwright 결과만으로 QA를 pass 처리하지 않는다.
-- 재개 조건: Agent Browser가 활성화된 Codex 세션에서 동일 로컬 URL과 viewport를 확인하고, 결과를 이 계획과 PR에 기록한다.
+- 이전 QA 기록 (head `2f0cf7b`): Agent Browser를 사용할 수 없어 당시 문서 기준으로 BLOCKED 처리했다. 아래 Playwright 결과는 새 fallback 정책에 따라 현재 HEAD에서 독립 QA를 다시 수행한 뒤 갱신한다.
+- 현재 HEAD QA 재검증: pending. Agent Browser 부재 여부와 실행 파일 확인 결과, Playwright Chromium의 동일 경로/viewport 결과를 기록한 뒤 pass/fail로 판정한다.
 
 ## 리스크
 
