@@ -8,6 +8,7 @@ import { aiModelRegistry, promptRegistry } from '../../infrastructure/ai/model-r
 import { AiConsentGate } from './AiConsentGate.js';
 import type { MutableRefObject } from 'react';
 import type { CatalogQuestion } from '../../features/conversation/questionEngine.js';
+import { normalizeProposals } from '../../features/proposals/normalize-proposals.js';
 
 type QuestionAnswerDraft = { action:'answer'|'unknown'|'recommend'|'defer'|'skip'; selectedValues:string[]; customText:string; numberValue?:number; rangeValue?:{start:number;end:number}; rankedValues?:string[] };
 type AiTurnComposerProps = {
@@ -48,7 +49,7 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
   }
   async function send(payload: Record<string, unknown>, logicalRequestId: string, attemptId: string) {
     const now = new Date().toISOString();
-    const nextJob: GenerationJob = { id: crypto.randomUUID(), projectId, logicalRequestId, attemptId, type:'TURN_ANALYZE', promptVersion:promptRegistry.TURN_ANALYZE.promptVersion, schemaVersion:promptRegistry.TURN_ANALYZE.schemaVersion, modelProfile:'DEFAULT', resolvedModel:aiModelRegistry.profiles.DEFAULT.model, reasoningEffort:aiModelRegistry.tasks.TURN_ANALYZE.reasoning, designRevision:(aggregate.contextManifests.at(-1)?.designRevision ?? 0), status:'running', targetIds:[], startedAt:now };
+    const nextJob: GenerationJob = { id: crypto.randomUUID(), projectId, logicalRequestId, attemptId, type:'TURN_ANALYZE', promptVersion:promptRegistry.TURN_ANALYZE.promptVersion, schemaVersion:promptRegistry.TURN_ANALYZE.schemaVersion, modelProfile:'DEFAULT', resolvedModel:aiModelRegistry.profiles.DEFAULT.model, reasoningEffort:aiModelRegistry.tasks.TURN_ANALYZE.reasoning, designRevision:(aggregate.project.designRevision ?? 0), status:'running', targetIds:[], startedAt:now };
     updateJob(nextJob);
     const controller = new AbortController(); controllerRef.current = controller; activeTurnCancellationRef.current = {jobId:nextJob.id,abort:()=>controller.abort()}; setBusy(true); setError(null);
     try {
@@ -64,12 +65,13 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
         setError(code === 'AI_REQUEST_UNKNOWN' ? '요청 결과가 불명확합니다. 24시간 동안 새 요청은 잠기며, 만료 후 현재 프로젝트 상태를 확인해야 새 요청을 만들 수 있습니다.' : code === 'AI_CANCELLED' ? '요청을 취소했습니다. 초안은 유지됩니다.' : `요청을 완료하지 못했습니다 (${code}). 초안은 유지됩니다.`);
         return;
       }
-      const ids = (Array.isArray(data.proposals) ? data.proposals : []).map(() => crypto.randomUUID());
+      const latest = aggregateRef.current;
+      const normalized = normalizeProposals({ projectId, logicalRequestId, proposals: Array.isArray(data.proposals) ? data.proposals : [], existingProposals: latest.proposals, designItems: latest.designItems, sections: latest.sections, messages: latest.messages, sources: latest.sources.filter((source) => source.extractionStatus === 'ready'), createdAt: new Date().toISOString() });
+      const proposals = normalized.proposals as ChangeProposal[];
+      const ids = proposals.map((proposal) => proposal.id);
       const nextBlocks: DisplayBlock[] = [{type:'assistant_text',content:data.assistantMessage}, ...(ids.length ? [{type:'proposal_summary' as const,proposalIds:ids}] : [])];
       const valid = prepareDisplayBlocks(nextBlocks, { proposalIds: ids });
       if (!valid.valid) throw new Error('AI_INVALID_OUTPUT');
-      const proposals: ChangeProposal[] = (data.proposals ?? []).map((proposal: Omit<ChangeProposal,'id'|'projectId'|'logicalRequestId'|'status'|'createdAt'>, index: number) => ({...proposal,id:ids[index],projectId,logicalRequestId,status:'pending',createdAt:new Date().toISOString()}));
-      const latest = aggregateRef.current;
       const message: ConversationMessage = { id:crypto.randomUUID(), threadId:latest.thread.id, logicalRequestId, role:'assistant',kind:'text',content:data.assistantMessage,blocks:nextBlocks,createdAt:new Date().toISOString() };
       const succeededJob: GenerationJob = {...nextJob,status:'succeeded',finishedAt:new Date().toISOString()};
       const updated: BlueprintAggregate = {...latest,messages:[...latest.messages,message],proposals:[...latest.proposals,...proposals],generationJobs:[...latest.generationJobs.filter((item)=>item.id!==nextJob.id),succeededJob]};
@@ -89,9 +91,13 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
     const current = aggregateRef.current;
     const text = draft.trim(); if (!text || busy || recovery.blocked) return;
     const logicalRequestId = crypto.randomUUID();
-    const context = compactConversationContext({messages:current.messages,summary:current.thread.summary,threshold:20});
+    const now = new Date().toISOString();
+    const userMessage: ConversationMessage = { id:crypto.randomUUID(), threadId:current.thread.id, logicalRequestId, role:'user', kind:'text', content:text, createdAt:now };
+    const withUserMessage = { ...current, messages:[...current.messages,userMessage], project:{ ...current.project, updatedAt:now } };
+    aggregateRef.current = withUserMessage; onAggregateChange(withUserMessage);
+    const context = compactConversationContext({messages:withUserMessage.messages,summary:withUserMessage.thread.summary,threshold:20});
     const contextMessages = context.compacted ? [{id:`summary-${projectId}`,role:'assistant' as const,kind:'text' as const,content:JSON.stringify(context.summary)},...context.originalMessages] : context.originalMessages.filter((message)=>message.role!=='system');
-    const payload = { projectSummary:{projectId,title:current.project.title,designRevision:current.contextManifests.at(-1)?.designRevision ?? 0}, ...(question ? {question:requestQuestion(question)} : {}), answer:{questionId:question?.id ?? `free_${projectId}`,answerMode:'text',action:'answer',customText:text}, recentMessages:contextMessages.map(({id,role,kind,content})=>({id,role,kind:kind==='question'?'question':'text',content})), relevantDesignItems:current.designItems.filter((item)=>item.status==='confirmed').map(({id,type,key,title,description,attributes})=>({id,type,...(key?{key}:{}),title,description,attributes})), sources:[] };
+    const payload = { projectSummary:{projectId,title:current.project.title,designRevision:current.project.designRevision ?? 0}, ...(question ? {question:requestQuestion(question)} : {}), answer:{questionId:question?.id ?? `free_${projectId}`,answerMode:'text',action:'answer',customText:text}, recentMessages:contextMessages.map(({id,role,kind,content})=>({id,role,kind:kind==='question'?'question':'text',content})), relevantDesignItems:current.designItems.filter((item)=>item.status==='confirmed').map(({id,type,key,title,description,attributes})=>({id,type,...(key?{key}:{}),title,description,attributes})), sources:[] };
     await send(payload,logicalRequestId,crypto.randomUUID());
   }
   async function saveConsent(value: {acceptedAt:string;consentVersion:string}) {

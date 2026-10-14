@@ -1,0 +1,2 @@
+import type { ChangeProposal, DesignItem, SourceDocument, ConversationMessage, DocumentSection } from '../../domain/blueprint/types.js';
+export function normalizeProposals(input: { projectId:string; logicalRequestId:string; proposals:unknown[]; existingProposals?:ChangeProposal[]; designItems:DesignItem[]; sections:DocumentSection[]; messages:ConversationMessage[]; sources:SourceDocument[]; idFactory?:()=>string; createdAt?:string }): {proposals:ChangeProposal[]};

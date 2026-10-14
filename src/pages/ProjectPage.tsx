@@ -20,6 +20,7 @@ import type { CatalogQuestion } from "../features/conversation/questionEngine.js
 import { createQuestionAnswerRecord, getAnswerReviewState, QUESTION_CATALOG, selectNextQuestion } from "../features/conversation/questionEngine.js";
 import { NotFoundPage } from "./NotFoundPage";
 import { ProjectNotFoundPage } from "./ProjectNotFoundPage";
+import { approveProposal, editAndApproveProposal, rejectProposal } from "../features/proposals/proposal-commands.js";
 import "../styles/workspace-shell.css";
 
 const documentTypes = new Set(["design", "requirements", "prd", "setup_guide"]);
@@ -44,6 +45,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [inspectorOverlay, setInspectorOverlay] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches);
   const [modeTabsVisible, setModeTabsVisible] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches);
   const [mobileLayout, setMobileLayout] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
+  const [proposalBusyId, setProposalBusyId] = useState<string | null>(null);
+  const [proposalError, setProposalError] = useState<string | null>(null);
+  const [editingProposalId, setEditingProposalId] = useState<string | null>(null);
+  const [proposalEdit, setProposalEdit] = useState({ title: "", description: "" });
   const operationGeneration = useRef(0);
   const ownerRef = useRef(ownerKey);
   const projectIdRef = useRef(projectId);
@@ -246,6 +251,33 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     saverRef.current?.schedule(snapshot);
   }
 
+  async function resolveProposal(proposalId: string, action: "approve" | "reject" | "edit") {
+    if (!ownerKey || !projectId || proposalBusyId) return;
+    const latest = aggregateRef.current;
+    if (!latest) return;
+    const pending = latest.proposals.filter((proposal) => proposal.status === "pending");
+    const nextProposalId = pending[pending.findIndex((proposal) => proposal.id === proposalId) + 1]?.id;
+    setProposalBusyId(proposalId);
+    setProposalError(null);
+    try {
+      await saverRef.current?.flush();
+      if (saverRef.current?.getState().status === "failed") throw new Error("STORAGE_FAILED");
+      const repository = repositoryFactory();
+      const input = { ownerKey, projectId, proposalId, repository };
+      const currentProposal = latest.proposals.find((proposal) => proposal.id === proposalId);
+      const editedValue = currentProposal?.targetType === "acceptance_criterion" ? { text: proposalEdit.title } : currentProposal?.targetType === "document_section" ? { title: proposalEdit.title, markdown: proposalEdit.description } : proposalEdit;
+      const result = action === "reject" ? await rejectProposal(input) : action === "edit" ? await editAndApproveProposal({ ...input, editedValue }) : await approveProposal(input);
+      if (result.status === "stale") { setProposalError("확정된 값이 제안 작성 당시와 달라졌습니다. 기존 값은 유지됐으며 이 항목은 충돌 검토가 필요합니다."); return; }
+      if (result.status === "not_found") throw new Error("PROPOSAL_NOT_FOUND");
+      if (result.status === "invalid_value") { setProposalError("제목과 설명을 입력해 주세요."); return; }
+      if (result.aggregate) applyAggregate(result.aggregate);
+      setEditingProposalId(null);
+      if (nextProposalId) window.requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-proposal-card="${CSS.escape(nextProposalId)}"]`)?.focus());
+    } catch {
+      setProposalError("저장하지 못했습니다. 제안과 확정 설계는 보존했습니다. 다시 시도해 주세요.");
+    } finally { setProposalBusyId(null); }
+  }
+
   function cancelGenerationJob(job: BlueprintAggregate["generationJobs"][number]) {
     const latest = aggregateRef.current;
     if (!latest || job.status !== "running") return;
@@ -364,7 +396,26 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         <section id="workspace-work-panel" className="workspace-panel workspace-work" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-work" : undefined} aria-label={modeTabsVisible ? undefined : "작업 영역"} tabIndex={0}>
           <header className="workspace-panel-heading workspace-work-heading"><div><p className="workspace-eyebrow">{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</p><h1>{documentType === "requirements" ? "요구사항" : documentType === "prd" ? "제품 요구사항 문서" : documentType === "setup_guide" ? "설정 안내" : "설계"}</h1></div><button ref={inspectorTriggerRef} type="button" className="workspace-inspector-trigger" onClick={() => setInspectorOpen(true)}>상세 보기</button></header>
           <div className="workspace-work-content">
-            <div className="workspace-empty-state"><div className="workspace-empty-mark" aria-hidden="true">✦</div><h2>{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)} 작업을 시작해 보세요</h2><p>첫 아이디어를 바탕으로 내용을 정리하고 필요한 결정을 이어갈 수 있습니다.</p><span>현재 문서: {documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</span></div>
+            {aggregate.proposals.some((proposal) => proposal.status === "pending") ? <section className="proposal-review" aria-labelledby="proposal-review-title">
+              <header className="proposal-review-heading"><div><p className="workspace-eyebrow">검토가 필요한 변경</p><h2 id="proposal-review-title">제안 {aggregate.proposals.filter((proposal) => proposal.status === "pending").length}개</h2></div><p>승인한 값만 확정 설계에 반영됩니다.</p></header>
+              {proposalError ? <p className="proposal-review-error" role="alert">{proposalError}</p> : null}
+              <ol className="proposal-review-list">{aggregate.proposals.filter((proposal) => proposal.status === "pending").map((proposal, index) => {
+                const value = (proposal.after ?? proposal.before ?? {}) as Record<string, unknown>;
+                const editing = editingProposalId === proposal.id;
+                return <li key={proposal.id} className="proposal-review-item" tabIndex={-1} data-proposal-card={proposal.id}>
+                  <div className="proposal-review-card-heading"><span>제안 {index + 1} · {proposal.operation === "create" ? "추가" : proposal.operation === "update" ? "수정" : "삭제"}</span><span>확정 전</span></div>
+                  {proposal.operation === "update" ? <div className="proposal-diff"><div><small>변경 전</small><p>{String((proposal.before as Record<string, unknown> | undefined)?.title ?? (proposal.before as Record<string, unknown> | undefined)?.text ?? "기존 값")}</p></div><div><small>제안값</small><p>{String(value.title ?? value.text ?? "삭제 제안")}</p></div></div> : null}
+                  {editing ? <form className="proposal-edit-form" onSubmit={(event) => { event.preventDefault(); void resolveProposal(proposal.id, "edit"); }}>
+                    <label>{proposal.targetType === "acceptance_criterion" ? "수용 기준" : proposal.targetType === "document_section" ? "섹션 제목" : "제목"}<input autoFocus value={proposalEdit.title} onChange={(event) => setProposalEdit((current) => ({ ...current, title: event.target.value }))} aria-required={proposal.targetType !== "document_section"} /></label>
+                    {proposal.targetType !== "acceptance_criterion" ? <label>{proposal.targetType === "document_section" ? "문서 내용" : "설명"}<textarea value={proposalEdit.description} onChange={(event) => setProposalEdit((current) => ({ ...current, description: event.target.value }))} rows={3} /></label> : null}
+                    <div className="proposal-review-actions"><button type="button" onClick={() => setEditingProposalId(null)}>수정 취소</button><button type="submit" disabled={proposalBusyId === proposal.id}>수정값 승인</button></div>
+                  </form> : <><h3>{String(value.title ?? value.text ?? "제안된 변경")}</h3><p className="proposal-review-value">{String(value.description ?? value.markdown ?? value.text ?? "")}</p></>}
+                  <p className="proposal-review-rationale">{proposal.rationale}</p>
+                  <div className="proposal-evidence"><strong>근거</strong>{proposal.evidence.map((ref) => <p key={ref.id}>{ref.sourceType === "agent_inference" ? "Agent 추론 · 검토 필요" : ref.excerpt ?? ref.sourceId}</p>)}</div>
+                  <div className="proposal-review-actions"><button type="button" disabled={Boolean(proposalBusyId)} onClick={() => void resolveProposal(proposal.id, "reject")}>거절</button>{!editing ? <button type="button" disabled={Boolean(proposalBusyId)} onClick={() => { setProposalError(null); setEditingProposalId(proposal.id); setProposalEdit({ title: String(value.title ?? value.text ?? ""), description: String(value.description ?? value.markdown ?? "") }); }}>수정 후 승인</button> : null}<button type="button" disabled={Boolean(proposalBusyId) || editing} onClick={() => void resolveProposal(proposal.id, "approve")}>{proposalBusyId === proposal.id ? "저장 중…" : "승인"}</button></div>
+                </li>;
+              })}</ol>
+            </section> : <div className="workspace-empty-state"><div className="workspace-empty-mark" aria-hidden="true">✦</div><h2>{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)} 작업을 시작해 보세요</h2><p>첫 아이디어를 바탕으로 내용을 정리하고 필요한 결정을 이어갈 수 있습니다.</p><span>현재 문서: {documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</span></div>}
           </div>
         </section>
       <aside ref={inspectorPanelRef} id="workspace-review-panel" className={`workspace-panel workspace-inspector ${inspectorOpen ? "is-open" : ""}`} aria-label="상세 정보" aria-hidden={!inspectorOpen && inspectorOverlay && mobileMode !== "review"} aria-modal={inspectorOpen && inspectorOverlay ? true : undefined} role={inspectorOpen && inspectorOverlay ? "dialog" : modeTabsVisible && mobileMode === "review" ? "tabpanel" : "complementary"} aria-labelledby={modeTabsVisible && mobileMode === "review" && !inspectorOpen ? "workspace-mode-tab-review" : undefined}>

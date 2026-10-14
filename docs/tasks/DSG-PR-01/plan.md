@@ -1,5 +1,7 @@
 # DSG-PR-01 — 제안 검토·확정
 
+**Status: in_progress.** Started from `main` at CON-PR-03 merge commit `ecbb7e0402f4a81f5fa1c184916a776a0723a38c` (PR #16, `Add consented AI conversation blocks`).
+
 ## Overview
 
 한 사용자 답변이나 첨부 자료에서 추출된 여러 ChangeProposal을 사용자가 카드 단위로 개별 검토하고, 승인·수정 후 승인·거절할 수 있게 한다. 승인된 값만 확정 설계(DesignItem)에 반영하고, 승인 전 제안값이 확정값처럼 보이지 않게 한다.
@@ -26,22 +28,24 @@
 
 - 요구사항: `PROP-001`, `PROP-002`
 - Delivery 작업: `DSG-301`, `DSG-302`, `DSG-303` (`docs/delivery/03-proposals-and-design.md:28-73`)
-- 결정: `DEC-002`(미정 허용), `DEC-004`(문서 편집 자동 반영과의 경계), `DEC-006`(현재 질문 관련 제안 처리 후 다음 질문)
+- 데이터/API 계약: `docs/product/05-data-spec.md` (`DesignItem`, `EvidenceRef`, `ChangeProposal`, `ActivityEntry`, aggregate transaction), `docs/product/13-prompt-and-response-contracts.md` (`ProposalPayload` strict schema and application-owned fields), `docs/process/04-proposal-and-readiness.md` (proposal transitions and atomic apply), `docs/product/15-ai-prompt-template-spec.md#turn_analyze--turnanalyzev1` (single-target proposals, evidence and pending-only)
+- 결정: `DEC-002`(미정 허용), `DEC-004`(문서 편집 자동 반영과의 경계), `DEC-006`(현재 질문 관련 제안 처리 후 다음 질문), `DEC-026`(승인은 코드와 사용자 행동으로 결정)
 - 화면 설계: `docs/ui/03-design-board-and-inspector.md` (`UI-PROP-001`), `docs/ui/screens/03-proposal-and-conflict.md` (F-PROPOSAL, P01~P11)
 - 선행 PR: `CON-PR-03`(메시지·AI block, 제안 요약 block과 proposal payload 수신)
 
 ## 선행 조건 (Definition of Ready)
 
-- `CON-PR-03`이 기본 브랜치에 병합된 상태(`docs/delivery/development-pr-review-qa-workflow.md`)
+- `CON-PR-03` PR #16이 main에 병합됐으며 이 작업 기준 commit은 `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`
 - `ProposalPayload`, `DesignItem` 타입 계약이 `FND-PR-02`에서 확정됨
-- 미결정 차단 항목 없음(이 PR 범위 내 blocked 요구사항 없음)
+- `PROP-001`, `PROP-002`, `DEC-002`, `DEC-004`, `DEC-006`, `DEC-026`와 UI-PROP-001이 작업 범위를 결정하기에 충분함
+- 미결정 차단 항목 없음(충돌 해결·의존 재검토·일괄 처리는 제외 범위이며 DSG-PR-02가 담당)
 
 ## 작업 단위별 구현 개요
 
 | 작업 | 내용 |
 | --- | --- |
 | DSG-301 | Agent 응답의 `proposals: ProposalPayload[]`를 받아 target/operation 단일 제안으로 분리·검증하는 정규화 계층 구현. `requestId`+target 조합 중복 제거. |
-| DSG-302 | `docs/ui/03-design-board-and-inspector.md`의 Inspector `proposed` footer(거절 ghost / 수정 후 승인 secondary / 승인 primary)와 `docs/ui/screens/03-proposal-and-conflict.md`의 F-PROPOSAL 레이아웃(P01~P11)을 구현. 단일 제안은 Inspector, 다중/충돌은 전체 높이 Drawer/Modal. |
+| DSG-302 | `docs/ui/03-design-board-and-inspector.md`의 Inspector `proposed` footer(거절 ghost / 수정 후 승인 secondary / 승인 primary)와 `docs/ui/screens/03-proposal-and-conflict.md`의 F-PROPOSAL 레이아웃(P01~P11)을 구현. 단일 제안은 Inspector, 복수 제안은 전체 높이 Drawer/Modal. stale 감지는 mutation을 막고 DSG-PR-02의 conflict review로 넘기며 충돌 해결 UI는 여기서 만들지 않는다. |
 | DSG-303 | 승인 command: before 재비교 → confirmed 저장. 수정 후 승인 command: 수정값만 저장. 거절 command: proposal을 `rejected`로 표시하고 confirmed 설계에 영향 없음. 삭제 승인은 `archivedAt` 기록 후 소프트 삭제. 저장은 상태 변경 + activity 기록을 하나의 repository transaction으로 처리. |
 
 ## 프로세스 / 상태 전이
@@ -73,8 +77,8 @@ sequenceDiagram
         REPO-->>UI: 성공, revision 1 증가
         UI-->>U: 다음 미처리 제안으로 포커스 이동
     else before != 현재값 (stale)
-        CMD-->>UI: 충돌 상태 반환
-        UI-->>U: DSG-304(충돌 해결)로 전환 안내
+        CMD-->>UI: 저장 없이 stale 결과 반환
+        UI-->>U: 기존 확정값 유지, DSG-PR-02에서 처리할 충돌로 표시
     end
 ```
 
@@ -98,6 +102,16 @@ Given 제안 승인 저장 중 repository transaction이 실패한 상태, when 
 
 Given 같은 proposal에 대해 승인 command가 중복 실행된 상태(더블 클릭 등), when 두 번째 요청이 처리되면, then confirmed item의 revision은 한 번만 증가한다(`DSG-303` 성공 조건).
 
+Given proposal의 `before`가 현재 confirmed 값과 다른 상태, when 승인 또는 수정 후 승인이 실행되면, then 어떤 proposal·DesignItem·revision·activity도 변경하지 않고 stale 결과를 반환한다. 충돌 비교·선택 해결은 DSG-PR-02 범위다.
+
+## 실패·경계 조건 및 범위 경계
+
+- ProposalPayload schema/ID/evidence 검증 실패는 저장하지 않고 안전한 오류로 반환한다. 존재하지 않는 대상의 update/delete도 확정 상태를 바꾸지 않는다.
+- IndexedDB project aggregate transaction 실패는 proposal 상태, DesignItem, revision 및 ActivityEntry 변경을 모두 rollback하고 사용자가 재시도할 수 있게 오류를 표시한다.
+- 이미 처리된 proposal에 대한 중복 command는 멱등 처리한다. 재시도에 따른 중복 적용·revision 증가·activity 생성이 없어야 한다.
+- 승인 전 제안은 pending 상태로만 표시하고 DesignItem/document confirmed 값으로 투영하지 않는다. reject는 revision을 증가시키지 않는다.
+- 이 단위에서는 여러 항목의 의존성 계산, 충돌 해결 선택, atomic bulk action 및 readiness board를 구현하지 않는다.
+
 ## 예상 변경 파일
 
 - `src/domain/blueprint/proposal.ts` (신규): ChangeProposal 상태 모델과 정규화 규칙
@@ -115,9 +129,9 @@ Given 같은 proposal에 대해 승인 command가 중복 실행된 상태(더블
 
 ## UI 증거 계획 (해당 시)
 
-- desktop 1440×900: F-PROPOSAL 3-column 레이아웃(대화/설계/Inspector), 카드 승인 전/후
-- mobile 390×844: `검토 N` 모드 목록 → WorkspaceDrawer 진입 → 승인 후 다음 항목 교체
-- 상태: 제안 카드(pending), 수정 후 승인 편집 상태, 승인 완료, 저장 실패 오류
+- `docs/template/README.md`의 설계/검토 관련 mapped reference를 구현 전에 확인한다.
+- 검증은 변경된 검토·수정·승인/거절 흐름과 직접 영향받는 keyboard/focus 및 desktop/mobile 배치만 대상으로 한다. 캡처는 설명에 도움이 될 때 최종 HEAD의 선택 증거로 첨부하며 고정 캡처 세트는 요구하지 않는다.
+- 관련 상태: pending 제안, 수정 유효성 오류, 저장 실패, stale 승인 차단, 승인/거절 완료.
 
 ## 코드 리뷰·QA 체크리스트
 
@@ -132,9 +146,17 @@ Given 같은 proposal에 대해 승인 command가 중복 실행된 상태(더블
 - [ ] Acceptance criteria verified
 - [ ] 독립 코드 리뷰 pass
 - [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료
+- [ ] 직접 영향받는 desktop/mobile 동작 및 접근성 검증 완료(캡처 선택)
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서
 
 - 이 폴더에 구현 중/후 `test-results.md`, `review-notes.md`, `qa-report.md` 등을 추가로 생성한다(지금은 생성하지 않음).
+
+## 집중 검증 순서
+
+- 정규화/command/repository 변경: 해당 신규 unit 및 project aggregate transaction 관련 contract 테스트만 실행한다. 최소 대상은 proposal 정규화, 개별 승인·수정·거절, stale 차단, duplicate command, rollback이다.
+- schema/reference 검증 변경 시 `node --test tests/contract/fnd-ai-schema.test.js tests/contract/fnd-display-references.test.js`를 포함한다.
+- UI 변경 시 proposal 전용 Playwright Chromium spec을 추가해 승인 전 비확정 표시, 수정/검증 오류, 승인·거절, keyboard/focus, 저장 오류를 검증하고 relevant desktop/mobile layout을 확인한다. UI와 production code 변경이면 `npm run build`도 실행한다.
+- 항상 `git diff --check`; 전체 suite/golden eval은 직접 변경 계약이 요구하지 않는 한 실행하지 않는다.
+- OpenAI live key/provider call은 필요하지 않다. Proposal data는 schema-valid fake fixtures를 사용하며 AI 호출/출력은 DSG-PR-01 대상이 아니다.

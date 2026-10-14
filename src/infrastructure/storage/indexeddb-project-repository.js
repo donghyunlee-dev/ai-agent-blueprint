@@ -196,6 +196,50 @@ export function createIndexedDbProjectRepository() {
       } catch (error) { throw mapStorageError(error, generation); }
     },
 
+    async transact(ownerKey, projectId, mutate) {
+      const generation = ownerGeneration;
+      try {
+        const database = await prepare(ownerKey, generation);
+        const transaction = database.transaction([PROJECT_STORE, ACTIVITY_STORE], 'readwrite');
+        const done = waitForTransaction(transaction, generation);
+        const projects = transaction.objectStore(PROJECT_STORE);
+        const activities = transaction.objectStore(ACTIVITY_STORE);
+        const projectRequest = projects.get(projectId);
+        const activityRequest = activities.index('projectId').getAll(projectId);
+        let result;
+        let operationError;
+        let loaded = 0;
+        const apply = () => {
+          loaded += 1;
+          if (loaded !== 2) return;
+          try {
+            if (!projectRequest.result) { result = { status: 'not_found' }; return; }
+            const aggregate = restoreProjectAggregate(projectRequest.result, activityRequest.result);
+            validateBlueprintAggregate(ownerKey, aggregate);
+            result = mutate(aggregate);
+            if (!result?.aggregate) return;
+            const stored = storedProjectRecord(ownerKey, result.aggregate);
+            projects.put(stored);
+            const oldKeys = activities.index('projectId').getAllKeys(projectId);
+            oldKeys.onsuccess = () => {
+              try {
+                for (const key of oldKeys.result) activities.delete(key);
+                for (const entry of result.aggregate.activityEntries) activities.put(entry);
+              } catch (error) { operationError = error; try { transaction.abort(); } catch { /* Already aborted. */ } }
+            };
+            oldKeys.onerror = () => { operationError = oldKeys.error; try { transaction.abort(); } catch { /* Already aborted. */ } };
+          } catch (error) { operationError = error; try { transaction.abort(); } catch { /* Already aborted. */ } }
+        };
+        projectRequest.onsuccess = apply;
+        activityRequest.onsuccess = apply;
+        projectRequest.onerror = () => { operationError = projectRequest.error; try { transaction.abort(); } catch { /* Already aborted. */ } };
+        activityRequest.onerror = () => { operationError = activityRequest.error; try { transaction.abort(); } catch { /* Already aborted. */ } };
+        await done.catch((error) => { throw operationError ?? error; });
+        assertCurrent(generation);
+        return result;
+      } catch (error) { throw mapStorageError(error, generation); }
+    },
+
     async delete(ownerKey, projectId) {
       const generation = ownerGeneration;
       try {
