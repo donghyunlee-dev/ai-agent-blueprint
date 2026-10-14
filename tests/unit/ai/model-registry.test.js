@@ -17,6 +17,7 @@ test('fails clearly when required model environment mappings are absent', () => 
   assert.throws(() => validateModelConfiguration({ ...env, AI_MODEL_DEFAULT: '' }), /AI_MODEL_DEFAULT/);
   assert.throws(() => resolveModelProfile('DEFAULT', {}), /AI_MODEL_DEFAULT/);
   assert.throws(() => resolveTaskModel('UNKNOWN', env), /UNKNOWN/);
+  assert.throws(() => validateModelConfiguration({ ...env, AI_MODEL_DEFAULT: 'unpriced-model' }), /Unsupported AI model configured in AI_MODEL_DEFAULT/);
 });
 
 test('retains approved default profile mapping and current project budget limits', () => {

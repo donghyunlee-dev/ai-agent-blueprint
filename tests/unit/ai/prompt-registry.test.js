@@ -38,6 +38,22 @@ test('typed input is serialized as user context with source excerpts explicitly 
   assert.deepEqual(prompt.validateDomain({ blocks: [], proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, { manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] } }), { valid: true, errors: [] });
 });
 
+test('document task nested source and item references must exist in the manifest', () => {
+  const prompt = getPromptDefinition('REQUIREMENTS_DRAFT');
+  const manifest = { designItemIds: ['item-1'], sourceExcerptIds: ['source-1'], recentMessageIds: ['message-1'], summaryIds: [] };
+  const output = {
+    sections: [{ key: 'scope', title: '범위', markdown: '내용', sourceItemIds: ['missing-section-item'] }],
+    requirements: [{
+      id: 'REQ-1', category: 'functional', title: '기능', description: '설명', priority: 'P1',
+      sourceItemIds: ['item-1'], acceptanceCriteria: [{ text: '검증', sourceItemIds: ['missing-ac-item'] }], openIssueIds: [],
+    }],
+  };
+  const result = prompt.validateDomain(output, { manifest, targetContext: {} });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) => error.includes('sections[0].sourceItemIds')));
+  assert.ok(result.errors.some((error) => error.includes('acceptanceCriteria[0].sourceItemIds')));
+});
+
 test('Blueprint API route files do not define inline production prompt constants', async () => {
   const routesDirectory = fileURLToPath(new URL('../../../api/blueprint/', import.meta.url));
   const files = (await readdir(routesDirectory)).filter((file) => file.endsWith('.js'));

@@ -1,3 +1,5 @@
+import { isRegisteredAiModel } from './model-pricing.js';
+
 const taskRows = {
   QUESTION_COMPOSE: ['LIGHT', 3000, 500], QUESTION_EXPLAIN: ['LIGHT', 4000, 700], TURN_ANALYZE: ['DEFAULT', 8000, 1800], OPTION_RECOMMEND: ['DEFAULT', 10000, 2000], CONTEXT_COMPACT: ['LIGHT', 12000, 1200],
   REQUIREMENTS_DRAFT: ['DEFAULT', 30000, 8000], REQUIREMENTS_REVIEW: ['DEFAULT', 36000, 3000], REQUIREMENTS_REPAIR: ['DEFAULT', 24000, 5000], PRD_DRAFT: ['FINAL', 40000, 10000], PRD_REVIEW: ['DEFAULT', 48000, 4000], PRD_REPAIR: ['FINAL', 28000, 6000], DOCUMENT_PATCH: ['DEFAULT', 20000, 4000], CONSISTENCY_REVIEW: ['DEFAULT', 32000, 4000],
@@ -15,8 +17,11 @@ export const promptRegistry = Object.freeze(Object.fromEntries(Object.entries(pr
 const modelEnvironmentKeys = Object.freeze({ LIGHT: 'AI_MODEL_LIGHT', DEFAULT: 'AI_MODEL_DEFAULT', FINAL: 'AI_MODEL_FINAL' });
 
 export function validateModelConfiguration(env = process.env) {
-  for (const key of Object.values(modelEnvironmentKeys)) {
+  for (const [profile, key] of Object.entries(modelEnvironmentKeys)) {
     if (typeof env[key] !== 'string' || !env[key].trim()) throw new Error(`Missing required AI model configuration: ${key}`);
+    const modelId=env[key].trim();
+    if (!isRegisteredAiModel(modelId)) throw new Error(`Unsupported AI model configured in ${key}: ${modelId}`);
+    if (modelId!==aiModelRegistry.profiles[profile].model) throw new Error(`AI model configuration ${key} does not match the registered ${profile} profile`);
   }
   return true;
 }

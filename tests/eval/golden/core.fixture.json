@@ -3,104 +3,243 @@
     "id": "question-compose-baseline",
     "task": "QUESTION_COMPOSE",
     "schemaVersion": "v1",
-    "response": { "type": "question", "prompt": "이번 단계의 가장 중요한 목표는 무엇인가요?" },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "type": "question",
+      "prompt": "이번 단계의 가장 중요한 목표는 무엇인가요?"
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   },
   {
     "id": "question-explain-baseline",
     "task": "QUESTION_EXPLAIN",
     "schemaVersion": "v1",
-    "response": { "block": { "type": "explanation", "title": "선택 안내", "summary": "각 항목은 운영 책임 범위가 다릅니다.", "comparisons": [], "returnToQuestionId": "question-goal" } },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "block": {
+        "type": "explanation",
+        "title": "선택 안내",
+        "summary": "각 항목은 운영 책임 범위가 다릅니다.",
+        "comparisons": [],
+        "returnToQuestionId": "question-goal"
+      }
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    },
+    "targetContext": {
+      "questionIds": [
+        "question-goal"
+      ]
+    }
   },
   {
     "id": "turn-analyze-basic",
     "task": "TURN_ANALYZE",
     "schemaVersion": "v1",
-    "response": { "blocks": [{ "type": "assistant_text", "content": "자동 저장이 필요하다고 이해했습니다." }], "proposals": [], "answerInterpretation": { "directAnswer": "자동 저장", "additionalFacts": [], "ambiguities": [] } },
-    "manifest": { "designItemIds": ["goal-1"], "sourceExcerptIds": [], "recentMessageIds": ["message-1"], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "blocks": [
+        {
+          "type": "assistant_text",
+          "content": "자동 저장이 필요하다고 이해했습니다."
+        }
+      ],
+      "proposals": [],
+      "answerInterpretation": {
+        "directAnswer": "자동 저장",
+        "additionalFacts": [],
+        "ambiguities": []
+      }
+    },
+    "manifest": {
+      "designItemIds": [
+        "goal-1"
+      ],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [
+        "message-1"
+      ],
+      "summaryIds": []
+    }
   },
   {
     "id": "option-recommend-baseline",
     "task": "OPTION_RECOMMEND",
     "schemaVersion": "v1",
-    "response": { "block": { "type": "recommendation", "questionId": "storage", "recommendedValue": "local", "rationale": "단일 사용자 환경에 맞습니다.", "tradeoffs": ["기기 간 동기화가 없습니다."], "assumptions": [] }, "proposal": { "operation": "create", "targetType": "design_item", "rationale": "사용자 검토용 추천입니다.", "evidence": [], "affectedItemIds": [] } },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "block": {
+        "type": "recommendation",
+        "questionId": "storage",
+        "recommendedValue": "local",
+        "rationale": "단일 사용자 환경에 맞습니다.",
+        "tradeoffs": [
+          "기기 간 동기화가 없습니다."
+        ],
+        "assumptions": []
+      },
+      "proposal": {
+        "operation": "create",
+        "targetType": "design_item",
+        "rationale": "사용자 검토용 추천입니다.",
+        "evidence": [],
+        "affectedItemIds": []
+      }
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    },
+    "targetContext": {
+      "questionIds": [
+        "storage"
+      ]
+    }
   },
   {
     "id": "context-compact-baseline",
     "task": "CONTEXT_COMPACT",
     "schemaVersion": "v1",
-    "response": { "confirmedFacts": [], "explicitUnknowns": [], "rejectedDirections": [], "unresolvedQuestions": [], "sourceMessageIds": [] },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "confirmedFacts": [],
+      "explicitUnknowns": [],
+      "rejectedDirections": [],
+      "unresolvedQuestions": [],
+      "sourceMessageIds": []
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   },
   {
     "id": "requirements-draft-baseline",
     "task": "REQUIREMENTS_DRAFT",
     "schemaVersion": "v1",
-    "response": { "sections": [], "requirements": [] },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "sections": [],
+      "requirements": []
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   },
   {
     "id": "requirements-review-baseline",
     "task": "REQUIREMENTS_REVIEW",
     "schemaVersion": "v1",
-    "response": { "verdict": "pass", "issues": [], "coverage": [] },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "verdict": "pass",
+      "issues": [],
+      "coverage": []
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   },
   {
     "id": "requirements-repair-baseline",
     "task": "REQUIREMENTS_REPAIR",
     "schemaVersion": "v1",
-    "response": { "sections": [], "resolvedIssueIds": [] },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "sections": [],
+      "resolvedIssueIds": []
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   },
   {
     "id": "prd-draft-baseline",
     "task": "PRD_DRAFT",
     "schemaVersion": "v1",
-    "response": { "sections": [], "requirementLinks": [], "goals": [], "successMetrics": [], "risks": [] },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "sections": [],
+      "requirementLinks": [],
+      "goals": [],
+      "successMetrics": [],
+      "risks": []
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   },
   {
     "id": "prd-review-baseline",
     "task": "PRD_REVIEW",
     "schemaVersion": "v1",
-    "response": { "verdict": "pass", "issues": [], "coverage": [] },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "verdict": "pass",
+      "issues": [],
+      "coverage": []
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   },
   {
     "id": "prd-repair-baseline",
     "task": "PRD_REPAIR",
     "schemaVersion": "v1",
-    "response": { "sections": [], "resolvedIssueIds": [] },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "sections": [],
+      "resolvedIssueIds": []
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   },
   {
     "id": "document-patch-baseline",
     "task": "DOCUMENT_PATCH",
     "schemaVersion": "v1",
-    "response": { "proposals": [] },
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "response": {
+      "proposals": []
+    },
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   },
   {
     "id": "consistency-review-baseline",
     "task": "CONSISTENCY_REVIEW",
     "schemaVersion": "v1",
     "response": [],
-    "manifest": { "designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": [] },
-    "forbiddenResults": []
+    "manifest": {
+      "designItemIds": [],
+      "sourceExcerptIds": [],
+      "recentMessageIds": [],
+      "summaryIds": []
+    }
   }
 ]

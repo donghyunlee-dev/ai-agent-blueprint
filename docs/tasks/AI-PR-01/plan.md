@@ -1,6 +1,6 @@
 # AI-PR-01 — 모델·prompt·budget 기반
 
-**Current delivery status: `code_review`.** PRJ-PR-03 is merged as PR #12 (`f5c1dc3b07304e23f650a020d2afd2d56df36a3b`). The user explicitly chose to keep `gpt-5-mini` as `DEFAULT`; retain the existing model profile mapping and project cost limits. Focused self-validation passed; independent code review and scoped QA are pending.
+**Current delivery status: `code_review`.** PRJ-PR-03 is merged as PR #12 (`f5c1dc3b07304e23f650a020d2afd2d56df36a3b`). The bounded review correction pass now covers nested references, deterministic prohibited-outcome checks, derived cost, compaction-before-provider, ledger usage sanitization, and Vercel function configuration. Exact-head independent code review and scoped QA are pending. Keep `gpt-5-mini` as `DEFAULT` and retain existing model profiles and project cost limits.
 
 ## Overview
 
@@ -118,6 +118,12 @@ flowchart TD
 - Given token 추정이 예산을 초과하는 대화 상태, when context selector가 실행되면, then 조용한 잘림 없이 생략 범위가 `ContextManifest.omitted`에 기록되고 현재 대상과 confirmed 항목은 보존된다.
 - Given 프로젝트가 hard budget을 초과한 상태, when 새 AI 요청이 들어오면, then provider 호출 없이 즉시 차단되고 대안 신호가 반환된다.
 - Given golden eval에서 금지 결과(미승인 확정, 참조 ID 없음)가 발견된 상태, when 배포 파이프라인이 실행되면, then 해당 model/prompt 변경이 배포되지 않는다.
+- Given document payload의 section, requirement, acceptance criterion, evidence, issue, question, proposal, 또는 target 참조 ID가 manifest/canonical context에 없을 때, when API domain validation 또는 golden eval이 실행되면, then 해당 payload가 거절된다.
+- Given 모델 응답이 readiness/completion/승인 결과를 정하거나 canonical answer mode/stable value를 바꿀 때, when golden eval이 실행되면, then 호출자가 제공한 fixture label과 무관하게 실패한다.
+- Given `assistant_text`가 한국어 또는 영어로 항목이 이미 확정/승인됐다고 주장할 때, when golden eval이 실행되면, then 인용/근거 텍스트는 제외하고 해당 응답을 실패시킨다.
+- Given token estimates가 있을 때, when budget/ledger 비용을 기록하면, then registered profile price로 비용을 재계산하며 위조된 0원 estimate는 provider 전에 거절된다.
+- Given budget 판정이 `compact_then_allow`일 때, when budgeted request가 실행되면, then context compaction과 새 estimate 검증 및 budget 재검사 완료 후에만 provider callback이 실행된다.
+- Given Vercel serverless AI route가 provider helper에 진입할 때, when profile environment가 누락되거나 registered mapping과 다르면, then provider request 전에 명확한 configuration error가 반환된다.
 
 ### Boundary
 
@@ -145,12 +151,12 @@ flowchart TD
   - request-ledger/budget tests for cost arithmetic, soft/hard limits, the FINAL cap, provider-call suppression after a hard-limit decision, and exclusion of user text/secrets
   - synthetic golden fixtures for deterministic schema/reference-ID/forbidden-result gates and the evaluation runner's fixture/dry-run path
 - Run the focused suite directly with `node --test tests/unit/ai/*.test.ts`; run any newly added prompt-registry static check by its focused command.
-- Run focused unit tests for the new/changed AI files, then `npm run build` because production code changes. Run docs/Mermaid checks only if those documents/diagrams change, and `git diff --check`.
+- Run focused AI unit/contract tests, `npm run test:golden`, then `npm run build` because production code changes. The synthetic golden evaluator also runs in `npm run test:ci` and `.github/workflows/ai-golden-eval.yml`. Run docs/Mermaid checks only if those documents/diagrams change, and `git diff --check`.
 - Do not run `npm run test:ci` or unrelated suites by default. Use a deterministic fake provider for all local automated tests; tests/build must not make live OpenAI calls.
 
 ## OpenAI API key and live-evaluation gate
 
-- `OPENAI_API_KEY` is not needed for the deterministic unit tests, fixture evaluation, or build in this PR. Do not place it in browser/Vite-exposed configuration or tracked files.
+- Deterministic unit tests, fixture evaluation, and build do not need `OPENAI_API_KEY`. Actual Vercel AI function invocations now require server environment values `AI_MODEL_LIGHT=gpt-5.6-luna`, `AI_MODEL_DEFAULT=gpt-5-mini`, `AI_MODEL_FINAL=gpt-5.6-terra`, matching the registered profiles, plus server-only `OPENAI_API_KEY`. Set profile values in local `.env.local` and each Vercel environment used for API functions before deploying/using those routes; never place the key in browser/Vite-exposed configuration or tracked files.
 - AI-009's real current-vs-candidate model/prompt pairwise comparison requires provider calls. Before running that live evaluation, verify project access/rate limits and stop to tell the user to configure a server-only `OPENAI_API_KEY` in the active worktree root `.env.local` (`/tmp/ai-agent-blueprint-ai-pr-01/.env.local`). Never attempt a live call before the key is configured and project access is verified.
 - This is a live-evaluation gate, not permission to send real user/project content. Use only the synthetic fixtures defined for the eval.
 
