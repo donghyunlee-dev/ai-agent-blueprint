@@ -135,18 +135,18 @@ Given proposal의 `before`가 현재 confirmed 값과 다른 상태, when 승인
 
 ## 코드 리뷰·QA 체크리스트
 
-- [ ] Blueprint semantic HTML/CSS와 관련 `docs/template/` references를 사용하고 접근성 및 상태를 검증함
-- [ ] 승인 전 제안값이 확정값 화면에 노출되지 않음
-- [ ] 저장 실패 시 proposal/confirmed item 상태 보존 확인
-- [ ] 키보드만으로 카드 선택 → 승인/거절/수정 전체 흐름 가능
+- [x] Blueprint semantic HTML/CSS와 관련 `docs/template/` references를 사용하고 접근성 및 상태를 검증함
+- [x] 승인 전 제안값이 확정값 화면에 노출되지 않음
+- [x] 저장 실패 시 proposal/confirmed item 상태 보존 확인
+- [x] 키보드만으로 카드 선택 → 승인/거절/수정 전체 흐름 가능
 
 ## Done Checklist
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 직접 영향받는 desktop/mobile 동작 및 접근성 검증 완료(캡처 선택)
+- [x] Requirements implemented
+- [x] Acceptance criteria verified
+- [x] 독립 코드 리뷰 pass
+- [x] 독립 QA pass
+- [x] 직접 영향받는 desktop/mobile 동작 및 접근성 검증 완료(캡처 선택)
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서

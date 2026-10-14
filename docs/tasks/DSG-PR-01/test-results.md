@@ -1,5 +1,7 @@
 # DSG-PR-01 implementation validation
 
+Source verification SHA: `d9ce3ea56db544fd87032439cf4aca6cfd51e2d6`.
+
 ## Scope exercised
 
 - Proposal normalization: atomic target/operation shape, project/source references, duplicate request-target removal, and inference evidence.
@@ -11,6 +13,7 @@
 | Check | Result |
 | --- | --- |
 | `node --test tests/unit/dsg-pr-01-proposals.test.js` | PASS — 10 tests |
+| Unit + affected contracts `node --test tests/unit/dsg-pr-01-proposals.test.js tests/contract/fnd-ai-schema.test.js tests/contract/fnd-display-references.test.js` | PASS — 16 tests |
 | `npm run build` | PASS — TypeScript and Vite production build (86 modules) |
 | `npx playwright test tests/e2e/dsg-pr-01-proposal-review.spec.ts --workers=1` | PASS — 6 tests, Desktop Chromium and Mobile Chromium |
 | `git diff --check` | PASS |
@@ -20,3 +23,6 @@ Playwright persisted one edited-and-approved DesignItem as `confirmed`, kept a r
 Delete proposals expose only `거절` and `승인`; edit-and-approve commands return `edit_not_supported` without mutation. Playwright confirmed ordinary approval archives the target and preserves its previous values.
 
 Proposal normalization excludes acceptance criteria under archived DesignItems. Approval rechecks the active parent inside the aggregate transaction; if that parent was archived after proposal creation, update/delete returns `stale` and leaves the criterion, revision, proposal, and activity unchanged.
+
+
+Independent review and QA at this source SHA both passed. QA additionally ran the archived-parent regression directly (1/1) and proposal Playwright (6/6 on desktop/mobile).
