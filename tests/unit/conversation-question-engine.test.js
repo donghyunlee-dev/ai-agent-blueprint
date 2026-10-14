@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { QUESTION_CATALOG, getQuestionCandidates, resolveQuestionForDisplay, selectNextQuestion, validateQuestionAnswer } from '../../src/features/conversation/questionEngine.js';
+import { QUESTION_CATALOG, getAnswerReviewState, getQuestionCandidates, rankQuestionCandidates, resolveQuestionForDisplay, selectNextQuestion, validateQuestionAnswer } from '../../src/features/conversation/questionEngine.js';
 
 const aggregate = (overrides = {}) => ({
   project: { readiness: { pendingProposalCount: 0 } }, answers: [], designItems: [],
@@ -20,6 +20,31 @@ test('selection is deterministic, excludes answered meanings, and prioritizes re
   assert.notEqual(selectNextQuestion(aggregate({ answers: [{ questionId: 'problem', action: 'answer', customText: '중복 예약' }] })).id, 'problem');
 });
 
+test('confirmed semantic target suppresses only its matching question, not a sibling topic', () => {
+  const candidates = getQuestionCandidates(aggregate({ designItems: [
+    { status: 'confirmed', key: 'data.persistence', attributes: {} },
+  ] }));
+  assert.ok(!candidates.some(({ id }) => id === 'data-needed'));
+  assert.ok(candidates.some(({ id }) => id === 'database-type') === false);
+  const topicSibling = getQuestionCandidates(aggregate({
+    answers: [{ questionId: 'data-needed', action: 'answer', selectedValues: ['yes'] }],
+    designItems: [{ status: 'confirmed', key: 'data.persistence', attributes: {} }],
+  }));
+  assert.ok(!topicSibling.some(({ id }) => id === 'data-needed'));
+  assert.ok(topicSibling.some(({ id }) => id === 'database-type'));
+});
+
+test('recent message context ranks matching areas and fatigue lowers recently repeated areas', () => {
+  const problem = QUESTION_CATALOG.find(({ id }) => id === 'problem');
+  const user = QUESTION_CATALOG.find(({ id }) => id === 'user-role');
+  const goal = QUESTION_CATALOG.find(({ id }) => id === 'goal');
+  assert.deepEqual(rankQuestionCandidates([goal, problem, user], aggregate()).map(({ id }) => id), ['problem', 'user-role', 'goal']);
+  assert.equal(rankQuestionCandidates([problem, user, goal], aggregate({ messages: [{ role: 'user', content: '고객 사용자 역할을 알려드립니다.' }] }))[0].id, 'user-role');
+  const priority = QUESTION_CATALOG.find(({ id }) => id === 'feature-priority');
+  const integrations = QUESTION_CATALOG.find(({ id }) => id === 'integrations');
+  assert.equal(rankQuestionCandidates([priority, integrations], aggregate({ answers: [{ questionId: 'core-features', action: 'answer' }] }))[0].id, 'integrations');
+});
+
 test('conditional login and database questions only appear when needed', () => {
   assert.ok(!getQuestionCandidates(aggregate()).some(({ id }) => ['login-method', 'database-type'].includes(id)));
   const yes = aggregate({ answers: [
@@ -30,6 +55,33 @@ test('conditional login and database questions only appear when needed', () => {
   assert.ok(getQuestionCandidates(yes).some(({ id }) => id === 'database-type'));
   const noLogin = aggregate({ answers: [{ questionId: 'login-needed', action: 'answer', selectedValues: ['no'] }] });
   assert.ok(!getQuestionCandidates(noLogin).some(({ id }) => id === 'login-method'));
+  const latestDeferredLogin = aggregate({ answers: [
+    { questionId: 'login-needed', action: 'answer', selectedValues: ['yes'] },
+    { questionId: 'login-needed', action: 'defer' },
+  ] });
+  assert.ok(!getQuestionCandidates(latestDeferredLogin).some(({ id }) => id === 'login-method'));
+});
+
+test('prerequisite changes preserve dependent answers and reoffer an active dependent question for review', () => {
+  const now = new Date().toISOString();
+  const aggregateWithDependency = aggregate({ answers: [
+    { id: 'login-answer-old', questionId: 'login-needed', action: 'answer', selectedValues: ['yes'], createdAt: '2026-01-01T00:00:00.000Z' },
+    { id: 'login-method-old', questionId: 'login-method', action: 'answer', selectedValues: ['google'], createdAt: '2026-01-02T00:00:00.000Z' },
+    { id: 'login-answer-new', questionId: 'login-needed', action: 'answer', selectedValues: ['no'], createdAt: now },
+  ] });
+  assert.equal(getAnswerReviewState(aggregateWithDependency, aggregateWithDependency.answers[1]).reviewRequired, true);
+  assert.equal(aggregateWithDependency.answers.length, 3);
+  assert.ok(!getQuestionCandidates(aggregateWithDependency).some(({ id }) => id === 'login-method'));
+  aggregateWithDependency.answers.push({ id: 'login-answer-latest', questionId: 'login-needed', action: 'answer', selectedValues: ['yes'], createdAt: new Date(Date.now() + 1000).toISOString() });
+  assert.equal(getAnswerReviewState(aggregateWithDependency, aggregateWithDependency.answers[1]).reviewRequired, true);
+  assert.ok(getQuestionCandidates(aggregateWithDependency).some(({ id }) => id === 'login-method'));
+  assert.equal(selectNextQuestion(aggregateWithDependency).id, 'login-method');
+  const unchangedPrerequisite = aggregate({ answers: [
+    { questionId: 'login-needed', action: 'answer', selectedValues: ['yes'] },
+    { questionId: 'login-method', action: 'answer', selectedValues: ['google'] },
+    { questionId: 'login-needed', action: 'answer', selectedValues: ['yes'] },
+  ] });
+  assert.equal(getAnswerReviewState(unchangedPrerequisite, unchangedPrerequisite.answers[1]).reviewRequired, false);
 });
 
 test('pending proposals gate system question selection', () => {
@@ -58,12 +110,15 @@ test('each answer mode accepts valid values and rejects missing, invalid, or out
   assert.equal(validateQuestionAnswer(range, { action: 'answer', rangeValue: { start: 0, end: 100 } }).valid, true);
   assert.equal(validateQuestionAnswer(range, { action: 'answer', rangeValue: { start: 10, end: 2 } }).valid, false);
   const confirm = QUESTION_CATALOG.find(({ id }) => id === 'scope');
+  assert.ok(!confirm.options.some(({ label }) => label.includes('결정하지 않음')));
   assert.equal(validateQuestionAnswer(confirm, { action: 'answer', selectedValues: ['핵심 업무만'] }).valid, true);
   assert.equal(validateQuestionAnswer(confirm, { action: 'answer' }).valid, false);
   assert.equal(validateQuestionAnswer(base, { action: 'unknown' }).valid, true);
   assert.equal(validateQuestionAnswer(base, { action: 'recommend' }).valid, true);
   assert.equal(validateQuestionAnswer(base, { action: 'defer' }).valid, true);
   assert.equal(validateQuestionAnswer(base, { action: 'skip' }).valid, false);
+  const optional = QUESTION_CATALOG.find(({ id }) => id === 'usage-volume');
+  assert.equal(validateQuestionAnswer(optional, { action: 'skip' }).valid, true);
   assert.throws(() => getQuestionCandidates(aggregate(), { answerMode: 'agent_custom' }), /QUESTION_SCHEMA_INVALID/);
   assert.throws(() => resolveQuestionForDisplay({ ...base, answerMode: 'agent_custom' }), /QUESTION_SCHEMA_INVALID/);
   assert.equal(resolveQuestionForDisplay({ ...base, catalogVersion: 'old' }).answerMode, 'text');

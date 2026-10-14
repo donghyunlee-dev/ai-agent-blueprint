@@ -74,6 +74,10 @@ test('question form validates and keyboard-submits a local answer without callin
     }, { databaseName: databaseNameForOwner(ownerKey), projectId });
   }).toBe('회의실 중복 예약을 줄이고 싶습니다.');
   await page.getByRole('button', { name: '나중에 결정' }).click();
+  await expect(page.locator('.question-card').getByRole('status')).toContainText('질문을 미정으로 답변 이력에 남기고');
+  await expect(page.getByRole('region', { name: '질문 답변 이력' })).not.toContainText('나중에 결정');
+  await expect(page.getByRole('button', { name: '나중에 결정 확인' })).toBeVisible();
+  await page.getByRole('button', { name: '나중에 결정 확인' }).click();
   await expect(page.getByRole('region', { name: '질문 답변 이력' })).toContainText('나중에 결정');
   await page.getByRole('button', { name: '다시 결정' }).click();
   await expect(page.locator('.question-card h2', { hasText: '주요 사용자는 누구인가요?' })).toBeVisible();
@@ -119,4 +123,50 @@ test('question form validates and keyboard-submits a local answer without callin
     }, { databaseName: databaseNameForOwner(ownerKey), projectId });
   }).toEqual(['answer', 'defer', 'answer', 'unknown', 'recommend']);
   expect(turnRequests).toBe(0);
+});
+
+test('rank validation links its error to the ranking fieldset', async ({ page }) => {
+  const ownerKey = await deriveOwnerKey(identity);
+  await page.goto('/');
+  await page.evaluate(async ({ databaseName, projectId }) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(databaseName, 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const project = await new Promise<any>((resolve, reject) => {
+      const request = database.transaction('projects', 'readonly').objectStore('projects').get(projectId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const validAnswers = [
+      ['problem', 'text', { customText: '예약 중복' }], ['user-role', 'multiple', { selectedValues: ['운영 담당자'] }],
+      ['goal', 'text', { customText: '중복을 줄임' }], ['scope', 'confirm', { selectedValues: ['핵심 업무만'] }],
+      ['core-features', 'multiple', { selectedValues: ['chart', 'table'] }], ['data-needed', 'single', { selectedValues: ['no'] }],
+      ['login-needed', 'single', { selectedValues: ['no'] }],
+    ];
+    const skipIds = ['usage-volume', 'volume-range', 'security', 'integrations', 'delivery'];
+    const now = Date.now();
+    const build = (questionId: string, answerMode: string, action: string, value: object, index: number) => ({ id: `seed-${questionId}`, projectId, threadId: project.thread.id, questionId, logicalRequestId: `seed-request-${questionId}`, answerMode, action, createdAt: new Date(now + index).toISOString(), ...value });
+    project.answers = [
+      ...validAnswers.map(([id, mode, value], index) => build(id as string, mode as string, 'answer', value as object, index)),
+      ...skipIds.map((id, index) => build(id, id === 'delivery' ? 'text' : 'multiple', 'skip', {}, validAnswers.length + index)),
+    ];
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction('projects', 'readwrite');
+      transaction.objectStore('projects').put(project);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  }, { databaseName: databaseNameForOwner(ownerKey), projectId });
+  await page.goto(`/blueprints/${projectId}/design`);
+  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
+  await expect(page.locator('.question-card h2')).toContainText('우선순위를');
+  const ranking = page.locator('.question-card-rank');
+  await page.getByRole('button', { name: '답변 제출' }).click();
+  await expect(ranking).toHaveAttribute('aria-invalid', 'true');
+  const errorId = await ranking.getAttribute('aria-describedby');
+  expect(errorId).toBe('question-error-feature-priority');
+  await expect(page.locator(`#${errorId}`)).toContainText('필수 항목을 선택해 주세요');
 });

@@ -12,7 +12,7 @@ import { clampConversationWidth, clampScrollOffset, getConversationScrollTop, ge
 import { AuthMenu } from "../components/auth/AuthMenu";
 import { QuestionCard } from "../components/conversation/QuestionCard";
 import type { CatalogQuestion } from "../features/conversation/questionEngine.js";
-import { QUESTION_CATALOG, selectNextQuestion } from "../features/conversation/questionEngine.js";
+import { getAnswerReviewState, QUESTION_CATALOG, selectNextQuestion } from "../features/conversation/questionEngine.js";
 import { NotFoundPage } from "./NotFoundPage";
 import { ProjectNotFoundPage } from "./ProjectNotFoundPage";
 import "../styles/workspace-shell.css";
@@ -269,7 +269,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   );
   if (!aggregate) return <ProjectNotFoundPage />;
 
-  const reopenedAnswer = aggregate.answers.find((answer) => answer.id === reopenedQuestionAnswerId && answer.action === "defer");
+  const reopenedAnswer = aggregate.answers.find((answer) => answer.id === reopenedQuestionAnswerId);
   const activeQuestion = reopenedAnswer ? QUESTION_CATALOG.find((question) => question.id === reopenedAnswer.questionId) ?? null : selectNextQuestion(aggregate);
 
   return (
@@ -314,8 +314,9 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
             <p className="workspace-next-hint">이 대화에서 요구사항을 구체화할 수 있습니다.</p>
             {aggregate.answers.length ? <section className="question-answer-history" aria-label="질문 답변 이력"><h2>이전 답변</h2>{aggregate.answers.map((answer) => {
               const question = QUESTION_CATALOG.find((item) => item.id === answer.questionId);
+              const reviewRequired = getAnswerReviewState(aggregate, answer).reviewRequired;
               const value = answer.action === "defer" ? "나중에 결정" : answer.action === "skip" ? "건너뜀" : answer.action === "unknown" ? "잘 모르겠어요 · 설명 요청" : answer.action === "recommend" ? "추천 요청 · 검토 전" : [answer.customText, ...(answer.selectedValues ?? []).map((selected) => question?.options?.find((option) => option.value === selected)?.label ?? selected), answer.numberValue === undefined ? "" : String(answer.numberValue), answer.rangeValue ? `${answer.rangeValue.start}–${answer.rangeValue.end}` : "", ...(answer.rankedValues ?? []).map((ranked) => question?.options?.find((option) => option.value === ranked)?.label ?? ranked)].filter(Boolean).join(", ");
-              return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{answer.action === "defer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : null}</article>;
+              return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{reviewRequired ? <p role="status">선행 답변 변경으로 다시 검토가 필요합니다.</p> : null}{answer.action === "defer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : answer.action === "answer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>수정</button> : null}</article>;
             })}</section> : null}
             {activeQuestion ? <QuestionCard key={`${activeQuestion.id}-${reopenedQuestionAnswerId ?? "next"}`} question={activeQuestion} onSubmit={(answer) => saveQuestionAnswer(activeQuestion, answer)} /> : <p className="question-complete-state" role="status">{aggregate.project.readiness.pendingProposalCount ? "제안 검토를 마치면 다음 질문이 이어집니다." : "현재 필요한 질문에 답했습니다."}</p>}
           </div>

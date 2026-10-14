@@ -23,6 +23,7 @@
 .question-card-rank li button { min-height: 32px; margin-left: 6px; border: 1px solid var(--color-border, #d7d9df); border-radius: 6px; background: white; color: inherit; cursor: pointer; }
 .question-card-rank li button:disabled { opacity: .5; cursor: default; }
 .question-card-error { margin: 0; color: #a3222b; font-size: 13px; }
+.question-card-defer-impact { margin: 0; padding: 10px 12px; border-radius: 7px; background: #f3f5fa; color: var(--color-text-muted, #626774); font-size: 12px; line-height: 1.5; }
 .question-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding-top: 12px; border-top: 1px solid var(--color-border-subtle, #e5e6eb); }
 .question-card-actions button { min-height: 36px; padding: 7px 10px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--color-text-muted, #555); font: inherit; font-size: 12px; cursor: pointer; }
 .question-card-actions button:focus-visible, .question-card-rank button:focus-visible, .question-card input:focus-visible, .question-card textarea:focus-visible { outline: 3px solid #6554c080; outline-offset: 2px; }
