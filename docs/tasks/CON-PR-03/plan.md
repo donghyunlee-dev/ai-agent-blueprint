@@ -175,9 +175,9 @@ Screenshots are optional. Verify only the changed consent gate, block rendering,
 
 - [x] Requirements implemented
 - [x] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] Changed interaction QA pass; screenshots optional and only when they materially support a finding
+- [x] 독립 코드 리뷰 pass
+- [x] 독립 QA pass
+- [x] Changed interaction QA pass; screenshots optional and only when they materially support a finding
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서
