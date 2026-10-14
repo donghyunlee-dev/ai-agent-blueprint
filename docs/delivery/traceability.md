@@ -4,7 +4,7 @@
 
 각 요구사항은 하나 이상의 개발 작업과 검증 증거를 가져야 한다. 구현 PR에서는 상태, PR unit, 코드 리뷰, QA와 기본 브랜치 병합 증거 링크를 갱신한다. 상세 상태와 순서는 [PR·리뷰·QA 반복 워크플로](development-pr-review-qa-workflow.md)를 따른다.
 
-FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01은 PR #10 merge commit `ef5acebb48f06808e622e0af8508a59326603e21`, PRJ-PR-02는 PR #11 merge commit `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`, PRJ-PR-03은 PR #12 merge commit `f5c1dc3b07304e23f650a020d2afd2d56df36a3b`로 병합됐다. PRJ-PR-03의 검증 gate도 통과했다. AI-PR-01 merged as PR #13 (`e97d04c`); the user retained `DEFAULT=gpt-5-mini` and current budget limits. The model/prompt/schema registry, budget/ledger foundation and deterministic golden gate are available; live provider pairwise evaluation remains a later user-key gate. CON-PR-01 merged as PR #14 and CON-PR-02 as PR #15 (`4335ca1`). CON-PR-03 merged as PR #16 at `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`; DSG-PR-01 is in progress from that base. NFR-001 still awaits QLT-601, so its overall requirement remains `ready`.
+FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01은 PR #10 merge commit `ef5acebb48f06808e622e0af8508a59326603e21`, PRJ-PR-02는 PR #11 merge commit `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`, PRJ-PR-03은 PR #12 merge commit `f5c1dc3b07304e23f650a020d2afd2d56df36a3b`로 병합됐다. PRJ-PR-03의 검증 gate도 통과했다. AI-PR-01 merged as PR #13 (`e97d04c`); the user retained `DEFAULT=gpt-5-mini` and current budget limits. The model/prompt/schema registry, budget/ledger foundation and deterministic golden gate are available; live provider pairwise evaluation remains a later user-key gate. CON-PR-01 merged as PR #14 and CON-PR-02 as PR #15 (`4335ca1`). CON-PR-03 merged as PR #16 at `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`. DSG-PR-01 merged as PR #17 at `e33212d2de305f571db287631fb9256eda0196eb`; DSG-PR-02 is in progress from that base. NFR-001 still awaits QLT-601, so its overall requirement remains `ready`.
 
 | 요구사항 | 주 작업 | 핵심 검증 | 초기 상태 |
 | --- | --- | --- | --- |
@@ -30,7 +30,7 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | PJT-004 | PRJ-104 | 20/21 경계, 취소/삭제 | done (PRJ-PR-02 merged #11) |
 | PJT-005 | PRJ-101, PRJ-103 | namespace 분리와 404 | done (PRJ-PR-01 #10, PRJ-PR-02 #11 merged) |
 | CONV-001 | CON-202, CON-203 | 첫 입력 복수 후보 | ready |
-| CONV-002 | CON-203, DSG-302 | 반복 방지와 제안 gate | in_progress (DSG-PR-01; proposal review gate) |
+| CONV-002 | CON-203, DSG-302, DSG-305 | 반복 방지, 의존 기반 우선순위와 제안 gate | in_progress (question forms merged #15, proposal review gate merged #17; dependency prioritization remains DSG-PR-02) |
 | CONV-003 | CON-202, CON-205 | 단일 thread와 요약 | done (CON-PR-03 merged #16, `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`; source-aware compaction and one-thread UI) |
 | CONV-004 | CON-202, CON-205 | 작업 상태와 취소 | done (CON-PR-03 merged #16, `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`; GenerationJob progress and cancel UI) |
 | CONV-005 | CON-206 | 입력 보존과 중복 없는 재시도 | foundation merged (CON-PR-01 #14; full conversation UI remains in CON-PR-03) |
@@ -38,11 +38,11 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | FORM-002 | CON-204 | value/label, 추천 미선택 | ready |
 | FORM-003 | CON-204 | 직접 입력, 추천, 미정 | ready |
 | FORM-004 | CON-203 | 조건부 활성과 재검토 | ready |
-| PROP-001 | DSG-301 | 복수 제안 분리 | in_progress (DSG-PR-01) |
-| PROP-002 | DSG-302, DSG-303 | 개별 승인·수정·거절 | in_progress (DSG-PR-01) |
-| PROP-003 | DSG-304 | before 재검증과 충돌 해결 | ready |
-| PROP-004 | DSG-307 | 제외 수와 atomic 처리 | ready |
-| DES-001 | FND-003, DSG-303 | item 상태와 근거 | in_progress (DSG-PR-01) |
+| PROP-001 | DSG-301 | 복수 제안 분리 | done (DSG-PR-01 merged #17) |
+| PROP-002 | DSG-302, DSG-303 | 개별 승인·수정·거절 | done (DSG-PR-01 merged #17) |
+| PROP-003 | DSG-304 | before 재검증과 충돌 해결 | in_progress (DSG-PR-02) |
+| PROP-004 | DSG-307 | 충돌/오류 제외, 일괄 승인·거절 수와 atomic 처리 | in_progress (DSG-PR-02) |
+| DES-001 | FND-003, DSG-303 | item 상태와 근거 | done (DSG-PR-01 merged #17; dependency review remains DSG-PR-02) |
 | DES-002 | DSG-306, DOC-402 | 요구사항과 수용 기준 | ready |
 | DES-003 | DSG-306, DOC-403 | 상태 기반 준비도 | ready |
 | DOC-001 | DOC-401, DOC-402, DOC-404 | 동일 revision | ready |

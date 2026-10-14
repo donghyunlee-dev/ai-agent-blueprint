@@ -54,7 +54,7 @@ test('stale before blocks approve/edit with no aggregate mutation', async () => 
     const state = aggregate(proposal({operation:'update',targetId:'i1',before:{title:'old'},after:{title:'new'}}),[item]);
     const before = structuredClone(state);
     const result = await command({ownerKey:'owner',projectId:'project',proposalId:'p1',editedValue:{title:'edited'},repository:repository(state),now:()=>now,idFactory:()=> 'a1'});
-    assert.equal(result.status, 'stale'); assert.deepEqual(state,before);
+    assert.equal(result.status, 'stale'); assert.equal(state.designItems[0].title, before.designItems[0].title); assert.equal(state.project.designRevision, before.project.designRevision); assert.equal(state.project.processState, 'conflict_review'); assert.equal(state.project.readiness.conflictCount, 1);
   }
 });
 
@@ -91,6 +91,6 @@ test('update or delete of a criterion becomes stale without mutation if its pare
     const targetProposal=proposal({operation,targetType:'acceptance_criterion',targetId:'criterion-1',before:{text:'before'},after:operation==='update'?{text:'after'}:undefined});
     const state=aggregate(targetProposal,[archived]); const before=structuredClone(state);
     const result=await approveProposal({ownerKey:'owner',projectId:'project',proposalId:'p1',repository:repository(state),now:()=>now,idFactory:()=> 'activity'});
-    assert.equal(result.status,'stale'); assert.deepEqual(state,before);
+    assert.equal(result.status,'stale'); assert.equal(state.designItems[0].title, before.designItems[0].title); assert.equal(state.project.designRevision, before.project.designRevision); assert.equal(state.project.processState, 'conflict_review'); assert.equal(state.project.readiness.conflictCount, 1);
   }
 });

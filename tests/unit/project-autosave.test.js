@@ -104,3 +104,31 @@ test('queues edits made while retry is saving and persists the latest value', as
   assert.equal(saver.getState().status, 'saved');
   saver.dispose();
 });
+
+test('awaiting flush includes a newer queued snapshot instead of racing a transactional write', async () => {
+  const clock = createFakeClock();
+  let releaseFirst;
+  let releaseSecond;
+  const saved = [];
+  const saver = createDebouncedProjectSaver({
+    ...clock,
+    save: async (value) => {
+      saved.push(value);
+      if (value.revision === 1) await new Promise((resolve) => { releaseFirst = resolve; });
+      if (value.revision === 2) await new Promise((resolve) => { releaseSecond = resolve; });
+    },
+  });
+  saver.schedule({ revision: 1 });
+  await clock.advance(500);
+  saver.schedule({ revision: 2 });
+  let flushCompleted = false;
+  const flushing = saver.flush().then(() => { flushCompleted = true; });
+  releaseFirst();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(flushCompleted, false);
+  releaseSecond();
+  await flushing;
+  assert.deepEqual(saved, [{ revision: 1 }, { revision: 2 }]);
+  assert.equal(saver.getState().status, 'saved');
+  saver.dispose();
+});
