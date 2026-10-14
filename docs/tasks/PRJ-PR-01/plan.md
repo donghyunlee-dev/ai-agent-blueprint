@@ -98,7 +98,7 @@ flowchart TD
 
 ### Happy Path
 
-Given ownerKey가 준비된 인증 사용자가 홈에 있고, when 유효한 첫 설명을 제출하면, then canonical aggregate 하나가 `intake`로 생성되고 `/blueprints/:projectId`로 이동하며 첫 설명은 단일 사용자 메시지로 기록된다.
+Given ownerKey가 준비된 인증 사용자가 홈에 있고, when 유효한 첫 설명을 제출하면, then canonical `BlueprintProject`, `ConversationThread`, 첫 `ConversationMessage`가 각각 하나씩 생성되고 프로젝트 `processState`는 `intake`가 되며 `/blueprints/:projectId`로 이동한다.
 
 Given 제목 없이 첫 설명만 입력한 경우, when 프로젝트가 생성되면, then markup/control character가 제거되고 공백이 정리된 100자 이하 임시 제목이 부여된다.
 
@@ -108,7 +108,7 @@ Given 사용자가 빈 입력으로 제출을 시도하면, when 검증이 실�
 
 Given 사용자가 등록되지 않은 URL에 직접 접근하면, when 라우트가 매칭되지 않으면, then 공통 404 화면을 표시하고 자동 리다이렉트하지 않는다.
 
-Given 사용자가 존재하지 않는 `projectId`로 접근하면, when 리포지토리 조회가 실패하면, then 일반 404가 아니라 "프로젝트 없음" 화면을 표시한다.
+Given 사용자가 존재하지 않는 `projectId`로 접근하면, when ephemeral in-memory lookup이 miss이면, then 일반 404가 아니라 "프로젝트 없음" 화면을 표시한다.
 
 Given 새로고침이나 새 탭에서 이전 ephemeral `projectId`로 접근하면, when memory lookup이 miss이면, then 프로젝트 없음 화면으로 처리하고 영속 복구를 약속하지 않는다(PRJ-PR-02에서 구현).
 
