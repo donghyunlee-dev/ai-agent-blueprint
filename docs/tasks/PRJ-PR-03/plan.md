@@ -45,7 +45,7 @@
 
 **Definition of Ready: READY.** PRJ-02의 persisted aggregate/repository와 owner isolation 계약은 기본 브랜치에 있고, active document는 canonical project field와 URL로, scroll/width는 UI preference로 보존한다. 그 결과 새 IndexedDB 필드, schema migration, product decision 없이 구현을 시작할 수 있다.
 
-**Current delivery status: `code_review` (implementation and focused self-validation are complete; independent code review and scoped QA are pending on the exact current head).**
+**Current delivery status: `ready_to_merge` (focused implementation validation, independent code review, and scoped independent Playwright QA passed on the current PR head).**
 
 ## 작업 단위별 구현 개요
 
@@ -213,10 +213,10 @@ Given user opens the inspector Drawer or adjusts the conversation resizer by key
 
 ## Done Checklist
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 관련 동작의 focused validation 및 독립 QA pass (캡처는 필요할 때만 선택적으로 첨부)
+- [x] Requirements implemented
+- [x] Acceptance criteria verified
+- [x] 독립 코드 리뷰 pass
+- [x] 관련 동작의 focused validation 및 독립 QA pass (캡처는 필요할 때만 선택적으로 첨부)
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 증거 문서

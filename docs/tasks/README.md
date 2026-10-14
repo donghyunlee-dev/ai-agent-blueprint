@@ -19,7 +19,7 @@
 | 7 | `FND-PR-03` 테스트 기반 | 0단계 | merged (#9) | [plan](FND-PR-03/plan.md) |
 | 8 | `PRJ-PR-01` 라우팅·프로젝트 생성 | 1단계 | merged (#10) | [plan](PRJ-PR-01/plan.md) |
 | 9 | `PRJ-PR-02` 저장·최근 목록 | 1단계 | merged (#11, `4581d46`) | [plan](PRJ-PR-02/plan.md) |
-| 10 | `PRJ-PR-03` 작업 공간 셸 | 1단계 | code_review | [plan](PRJ-PR-03/plan.md) |
+| 10 | `PRJ-PR-03` 작업 공간 셸 | 1단계 | ready_to_merge | [plan](PRJ-PR-03/plan.md) |
 | 11 | `AI-PR-01` 모델·prompt·budget 기반 | 2단계 | planned | [plan](AI-PR-01/plan.md) |
 | 12 | `CON-PR-01` turn 수명주기 | 2단계 | planned | [plan](CON-PR-01/plan.md) |
 | 13 | `CON-PR-02` 질문·선택 폼 | 2단계 | planned | [plan](CON-PR-02/plan.md) |
