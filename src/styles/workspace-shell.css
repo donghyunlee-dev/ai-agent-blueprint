@@ -48,6 +48,32 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .workspace-readiness-value { margin: 4px 0 14px; color: var(--color-text-strong); font-size: 16px; font-weight: 700; }
 .workspace-inspector-next { margin: 20px 0; padding: 14px; border-radius: 10px; background: var(--color-page); }
 .workspace-inspector-next p { margin-bottom: 0; color: var(--color-text-muted); }
+.proposal-review { width: min(760px, 100%); margin: 0 auto; align-self: start; }
+.proposal-review-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.proposal-review-heading h2 { margin: 3px 0 0; color: var(--color-text-strong); font-size: 20px; }
+.proposal-review-heading > p,.proposal-review-rationale,.proposal-evidence p { color: var(--color-text-muted); font-size: 13px; line-height: 1.55; }
+.proposal-review-list { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.proposal-review-item { padding: 20px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); box-shadow: var(--shadow-sm); outline-color: var(--color-brand); }
+.proposal-review-card-heading { display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 12px; }
+.proposal-review-card-heading span:last-child { color: var(--color-warning-text, #775600); }
+.proposal-review-item h3 { margin: 16px 0 6px; color: var(--color-text-strong); font-size: 16px; }
+.proposal-review-value { margin: 0; line-height: 1.6; white-space: pre-wrap; }
+.proposal-diff { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.proposal-diff > div { min-width: 0; padding: 12px; border-radius: 8px; background: var(--color-page); }
+.proposal-diff small,.proposal-evidence strong { color: var(--color-text-muted); font-size: 11px; }
+.proposal-diff p { margin: 5px 0 0; overflow-wrap: anywhere; }
+.proposal-review-rationale { margin: 14px 0; }
+.proposal-evidence { padding-top: 12px; border-top: 1px solid var(--color-border); }
+.proposal-evidence p { margin: 6px 0 0; }
+.proposal-review-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.proposal-review-actions button { min-height: 38px; padding: 7px 12px; border: 1px solid var(--color-border); border-radius: 7px; background: var(--color-surface); color: var(--color-text-body); font: inherit; cursor: pointer; }
+.proposal-review-actions button:last-child { border-color: var(--color-brand); background: var(--color-brand); color: var(--color-on-brand, white); }
+.proposal-review-actions button:disabled { opacity: .6; cursor: wait; }
+.proposal-edit-form { display: grid; gap: 12px; margin-top: 14px; }
+.proposal-edit-form label { display: grid; gap: 5px; color: var(--color-text-muted); font-size: 12px; }
+.proposal-edit-form input,.proposal-edit-form textarea { width: 100%; padding: 9px; border: 1px solid var(--color-border); border-radius: 7px; background: var(--color-surface); color: var(--color-text-body); font: inherit; font-size: 14px; }
+.proposal-review-error { padding: 12px; border: 1px solid var(--color-danger, #b83232); border-radius: 8px; color: var(--color-danger, #b83232); }
+@media (max-width: 767px) { .proposal-review-heading { align-items: start; flex-direction: column; gap: 4px; } .proposal-review-item { padding: 16px; } .proposal-diff { grid-template-columns: 1fr; } }
 .workspace-drawer-backdrop { display: none; }
 .workspace-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 .auth-menu-inline { position: relative; top: auto; right: auto; flex: none; }

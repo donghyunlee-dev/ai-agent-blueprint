@@ -23,8 +23,8 @@
 | 11 | `AI-PR-01` 모델·prompt·budget 기반 | 2단계 | merged (#13; DEFAULT=gpt-5-mini; existing budget retained) | [plan](AI-PR-01/plan.md) |
 | 12 | `CON-PR-01` turn 수명주기 | 2단계 | merged (#14) | [plan](CON-PR-01/plan.md) |
 | 13 | `CON-PR-02` 질문·선택 폼 | 2단계 | merged (#15, `4335ca1`) | [plan](CON-PR-02/plan.md) |
-| 14 | `CON-PR-03` 메시지·AI block and consent | 2단계 | in_progress | [plan](CON-PR-03/plan.md) |
-| 15 | `DSG-PR-01` 제안 검토·확정 | 3단계 | planned | [plan](DSG-PR-01/plan.md) |
+| 14 | `CON-PR-03` 메시지·AI block and consent | 2단계 | merged (#16, `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`) | [plan](CON-PR-03/plan.md) |
+| 15 | `DSG-PR-01` 제안 검토·확정 | 3단계 | in_progress (base `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`) | [plan](DSG-PR-01/plan.md) |
 | 16 | `DSG-PR-02` 충돌·의존·일괄 처리 | 3단계 | planned | [plan](DSG-PR-02/plan.md) |
 | 17 | `DSG-PR-03` 설계 보드·readiness | 3단계 | planned | [plan](DSG-PR-03/plan.md) |
 | 18 | `DOC-PR-01` Requirements | 4단계 | planned | [plan](DOC-PR-01/plan.md) |

@@ -4,6 +4,7 @@ export interface ProjectRepository {
   list(ownerKey: string): Promise<ProjectSummary[]>;
   get(ownerKey: string, projectId: string): Promise<BlueprintAggregate | null>;
   save(ownerKey: string, aggregate: BlueprintAggregate): Promise<void>;
+  transact(ownerKey: string, projectId: string, mutate: (aggregate: BlueprintAggregate) => { status: string; aggregate?: BlueprintAggregate; [key: string]: unknown }): Promise<{ status: string; aggregate?: BlueprintAggregate; [key: string]: unknown }>;
   delete(ownerKey: string, projectId: string): Promise<void>;
   migrate(ownerKey: string): Promise<void>;
 }

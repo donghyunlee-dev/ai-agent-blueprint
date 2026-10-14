@@ -66,6 +66,7 @@ interface BlueprintProject {
   activeThreadId: string;
   processState: BlueprintProcessState;
   readiness: ReadinessSummary;
+  designRevision?: number;
   createdAt: string;
   updatedAt: string;
   lastOpenedAt: string;
@@ -95,6 +96,7 @@ type BlueprintProcessState =
 - `title`은 공백을 제거한 1~100자다.
 - `activeThreadId`는 존재하는 대화 스레드를 가리킨다.
 - `ready`는 필수 준비 조건을 만족할 때만 설정한다.
+- `designRevision`은 승인된 공통 설계 변경마다 원자적으로 1씩 증가한다. 필드가 없는 기존 aggregate는 `0`으로 취급한다.
 - 프로젝트마다 하나의 `ConversationThread`만 생성한다.
 - `ownerKey`는 현재 인증 사용자 범위와 일치해야 하며 다른 범위의 프로젝트는 존재하지 않는 것처럼 처리한다.
 
