@@ -15,6 +15,7 @@ test("/login은 공개 로그인 화면을 제공한다", async ({ page }, testI
   await page.goto("/login");
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("heading", { name: "Agent Blueprint" })).toBeVisible();
+  await expect(page.locator(".auth-eyebrow")).toHaveText("WINDSOFT · PRODUCT BLUEPRINT");
   await expect(page.getByRole("button", { name: "Google로 계속" })).toBeVisible();
   await mkdir(evidenceDirectory, { recursive: true });
   await page.screenshot({ path: path.join(evidenceDirectory, `login-${testInfo.project.name}.png`), scale: "css" });
@@ -65,3 +66,10 @@ for (const retiredPath of ["/survey", "/prd"]) {
     await expect(page.getByRole("heading", { name: "페이지를 찾을 수 없습니다" })).toBeVisible();
   });
 }
+
+test("공통 404 화면의 데스크톱·모바일 시각 증거를 캡처한다", async ({ page }, testInfo) => {
+  await page.goto("/unknown-route");
+  await expect(page.getByRole("heading", { name: "페이지를 찾을 수 없습니다" })).toBeVisible();
+  await mkdir(evidenceDirectory, { recursive: true });
+  await page.screenshot({ path: path.join(evidenceDirectory, `not-found-${testInfo.project.name}.png`), scale: "css" });
+});
