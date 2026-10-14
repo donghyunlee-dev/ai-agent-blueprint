@@ -5,13 +5,13 @@ function matchesBefore(current, before) {
 
 function currentTarget(aggregate, proposal) {
   if (proposal.targetType === 'design_item') return aggregate.designItems.find((item) => item.id === proposal.targetId && !item.archivedAt);
-  if (proposal.targetType === 'acceptance_criterion') return aggregate.designItems.flatMap((item) => item.acceptanceCriteria).find((item) => item.id === proposal.targetId);
+  if (proposal.targetType === 'acceptance_criterion') return aggregate.designItems.filter((item) => !item.archivedAt).flatMap((item) => item.acceptanceCriteria).find((item) => item.id === proposal.targetId);
   return aggregate.sections.find((item) => item.id === proposal.targetId);
 }
 
 function updateTarget(aggregate, proposal, apply) {
   if (proposal.targetType === 'design_item') aggregate.designItems = apply(aggregate.designItems, (item) => item.id === proposal.targetId);
-  else if (proposal.targetType === 'acceptance_criterion') aggregate.designItems = aggregate.designItems.map((item) => ({ ...item, acceptanceCriteria: apply(item.acceptanceCriteria, (criterion) => criterion.id === proposal.targetId) }));
+  else if (proposal.targetType === 'acceptance_criterion') aggregate.designItems = aggregate.designItems.map((item) => item.archivedAt ? item : ({ ...item, acceptanceCriteria: apply(item.acceptanceCriteria, (criterion) => criterion.id === proposal.targetId) }));
   else aggregate.sections = apply(aggregate.sections, (section) => section.id === proposal.targetId);
 }
 

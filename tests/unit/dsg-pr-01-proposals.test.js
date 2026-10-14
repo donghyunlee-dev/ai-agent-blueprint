@@ -28,6 +28,11 @@ test('rejects a nonexistent update target and unreferenced evidence', () => {
   assert.throws(()=>normalizeProposals({...base,proposals:[{operation:'create',targetType:'design_item',after:{type:'goal',title:'goal'},rationale:'change',evidence:[{sourceType:'message',sourceId:'outside'}],affectedItemIds:[]}]}),/PROPOSAL_EVIDENCE_INVALID/);
 });
 
+test('normalizer rejects acceptance criteria owned by archived design items', () => {
+  const archived={...item,archivedAt:now,acceptanceCriteria:[{id:'criterion-1',text:'before',status:'confirmed',evidence,createdAt:now,updatedAt:now}]};
+  assert.throws(()=>normalizeProposals({projectId:'project',logicalRequestId:'request',proposals:[{operation:'update',targetType:'acceptance_criterion',targetId:'criterion-1',before:{text:'before'},after:{text:'after'},rationale:'edit',evidence:[],affectedItemIds:[]}],designItems:[archived],sections:[],messages:[],sources:[]}),/PROPOSAL_TARGET_INVALID/);
+});
+
 test('approval atomically confirms a create and duplicate command has no extra revision or activity', async () => {
   const state = aggregate(); const repo = repository(state);
   assert.equal((await approveProposal({ownerKey:'owner',projectId:'project',proposalId:'p1',repository:repo,now:()=>now,idFactory:()=> 'i2'})).status, 'applied');
@@ -77,4 +82,15 @@ test('edit-and-approve refuses delete proposals without changing them; plain app
   assert.equal(editResult.status,'edit_not_supported'); assert.deepEqual(state,before);
   const approval=await approveProposal({ownerKey:'owner',projectId:'project',proposalId:'p1',repository:repo,now:()=>now,idFactory:()=> 'a2'});
   assert.equal(approval.status,'applied'); assert.equal(state.designItems[0].archivedAt,now); assert.equal(state.designItems[0].title,'Old title');
+});
+
+test('update or delete of a criterion becomes stale without mutation if its parent is archived', async () => {
+  const criterion={id:'criterion-1',text:'before',status:'confirmed',evidence,createdAt:now,updatedAt:now};
+  const archived={...item,id:'archived-parent',archivedAt:now,acceptanceCriteria:[criterion]};
+  for (const operation of ['update','delete']) {
+    const targetProposal=proposal({operation,targetType:'acceptance_criterion',targetId:'criterion-1',before:{text:'before'},after:operation==='update'?{text:'after'}:undefined});
+    const state=aggregate(targetProposal,[archived]); const before=structuredClone(state);
+    const result=await approveProposal({ownerKey:'owner',projectId:'project',proposalId:'p1',repository:repository(state),now:()=>now,idFactory:()=> 'activity'});
+    assert.equal(result.status,'stale'); assert.deepEqual(state,before);
+  }
 });

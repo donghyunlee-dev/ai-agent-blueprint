@@ -13,7 +13,7 @@ export function normalizeProposals({ projectId, logicalRequestId, proposals, exi
   const sourceIds = new Set(sources.map((item) => item.id));
   const knownTargets = {
     design_item: new Set(designItems.filter((item) => !item.archivedAt).map((item) => item.id)),
-    acceptance_criterion: new Set(designItems.flatMap((item) => item.acceptanceCriteria.map((criterion) => criterion.id))),
+    acceptance_criterion: new Set(designItems.filter((item) => !item.archivedAt).flatMap((item) => item.acceptanceCriteria.map((criterion) => criterion.id))),
     document_section: new Set(sections.map((item) => item.id)),
   };
   const seen = new Set(existingProposals.map(keyFor));
