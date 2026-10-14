@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { ProjectComposer } from "../components/projects/ProjectComposer";
+import { RecentProjects } from "../components/projects/RecentProjects";
 import { useAuth } from "../features/auth/AuthProvider";
 import "../styles/home.css";
 
@@ -30,18 +31,7 @@ export function HomePage() {
           <span className="home-workflow-arrow" aria-hidden="true">→</span>
           <div><span>03</span><strong>문서 완성</strong><p>Requirements와 PRD를 만듭니다.</p></div>
         </figure>
-        <section className="home-shell-recent" aria-labelledby="home-recent-title">
-          <div className="home-recent-heading">
-            <h2 id="home-recent-title">최근 Blueprint</h2>
-            <p>최근 작업한 프로젝트를 이어서 진행할 수 있습니다.</p>
-          </div>
-          <div className="home-shell-empty">
-            <span className="home-shell-empty-mark" aria-hidden="true">＋</span>
-            <h3>아직 프로젝트가 없습니다</h3>
-            <p>위에서 첫 Blueprint를 시작하세요.</p>
-            <button type="button" onClick={() => document.getElementById("project-idea")?.focus()}>아이디어 입력하기</button>
-          </div>
-        </section>
+        <RecentProjects ownerKey={ownerKey} />
       </main>
     </div>
   );

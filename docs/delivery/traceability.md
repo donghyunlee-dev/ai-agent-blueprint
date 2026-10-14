@@ -4,7 +4,7 @@
 
 각 요구사항은 하나 이상의 개발 작업과 검증 증거를 가져야 한다. 구현 PR에서는 상태, PR unit, 코드 리뷰, QA와 기본 브랜치 병합 증거 링크를 갱신한다. 상세 상태와 순서는 [PR·리뷰·QA 반복 워크플로](development-pr-review-qa-workflow.md)를 따른다.
 
-FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01 implementation validation, independent review, QA는 모두 동일 PR HEAD `1249a031b5fab94918cae89defbee82512c519a8`에서 PASS이며 `ready_to_merge`다; merge는 아직 확인되지 않았다. 하위 작업의 진행 상태는 delivery workflow/task index에서 추적한다. 이 작업들이 연결된 NFR-001은 QLT-601 검증도 남아 있으므로 전체 요구사항 상태는 아직 `ready`다.
+FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01은 PR #10 merge commit `ef5acebb48f06808e622e0af8508a59326603e21`로 병합됐다. PRJ-PR-02 PR #11은 implementation, independent review, QA가 code/evidence HEAD `69e63bd08437956b0b389a44cd93ef4f68c6f407`에서 PASS이며 `ready_to_merge`다; merge는 아직 확인되지 않았다. 하위 작업의 진행 상태는 delivery workflow/task index에서 추적한다. 이 작업들이 연결된 NFR-001은 QLT-601 검증도 남아 있으므로 전체 요구사항 상태는 아직 `ready`다.
 
 | 요구사항 | 주 작업 | 핵심 검증 | 초기 상태 |
 | --- | --- | --- | --- |
@@ -23,12 +23,12 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | AUTH-002 | AUTH-PR-01 | OIDC claim 검증, state/nonce 오류, session cookie | done (PR #3) |
 | AUTH-003 | AUTH-PR-02 | 보호 화면과 직접 API 401 | done (PR #5) |
 | AUTH-004 | AUTH-PR-02 | 사용자 표시, 만료, 멱등 logout | done (PR #5) |
-| AUTH-005 | AUTH-PR-03 (merged #6), PRJ-PR-02 | identity owner context와 lifecycle (AUTH-PR-03 완료); IndexedDB list/get/save/delete 격리 (PRJ-PR-02 대기) | in_progress |
-| PJT-001 | PRJ-102 | 제목 있음/없음, 중복 생성 | ready |
-| PJT-002 | PRJ-103, PRJ-105 | 자동 저장, 실패, 새로고침 | ready |
-| PJT-003 | PRJ-104, PRJ-105 | 최근 목록과 복구 | ready |
-| PJT-004 | PRJ-104 | 20/21 경계, 취소/삭제 | ready |
-| PJT-005 | PRJ-101, PRJ-103 | namespace 분리와 404 | ready |
+| AUTH-005 | AUTH-PR-03 (merged #6), PRJ-PR-02 | identity owner context와 lifecycle (AUTH-PR-03 완료); IndexedDB list/get/save/delete 격리 (PRJ-PR-02 #11 ready_to_merge, merge pending) | in_progress |
+| PJT-001 | PRJ-102 | 제목 있음/없음, 중복 생성 | done (PRJ-PR-01 merged #10) |
+| PJT-002 | PRJ-103, PRJ-105 | 자동 저장, 실패, 새로고침 | in_progress (PRJ-PR-02 #11 ready_to_merge; PRJ-105 pending) |
+| PJT-003 | PRJ-104, PRJ-105 | 최근 목록과 복구 | in_progress (PRJ-PR-02 #11 ready_to_merge; PRJ-105 pending) |
+| PJT-004 | PRJ-104 | 20/21 경계, 취소/삭제 | ready_to_merge (PRJ-PR-02 #11, merge pending) |
+| PJT-005 | PRJ-101, PRJ-103 | namespace 분리와 404 | in_progress (PRJ-PR-01 merged #10; PRJ-02 namespace change ready_to_merge) |
 | CONV-001 | CON-202, CON-203 | 첫 입력 복수 후보 | ready |
 | CONV-002 | CON-203, DSG-302 | 반복 방지와 제안 gate | ready |
 | CONV-003 | CON-202, CON-205 | 단일 thread와 요약 | ready |

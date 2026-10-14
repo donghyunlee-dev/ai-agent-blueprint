@@ -12,7 +12,7 @@
     "test:watch": "node --test --watch \"tests/unit/**/*.test.js\" \"tests/contract/**/*.test.js\"",
     "test:unit": "node --test \"tests/unit/**/*.test.js\" \"tests/contract/**/*.test.js\"",
     "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test --reporter=line,html --workers=2",
+    "test:e2e:ci": "playwright test --reporter=line,html --workers=1",
     "test:ci": "npm run test:unit && npm run test:e2e:ci && npm run build"
   },
   "dependencies": {

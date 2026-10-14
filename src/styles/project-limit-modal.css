@@ -1,0 +1,20 @@
+.project-limit-dialog { width: min(520px, calc(100% - 32px)); max-height: calc(100% - 32px); padding: 0; overflow: auto; border: 1px solid var(--color-border); border-radius: 18px; background: var(--color-surface); color: var(--color-text-body); box-shadow: 0 24px 80px rgba(11, 31, 56, .28); }
+.project-limit-dialog::backdrop { background: rgba(16, 30, 48, .54); backdrop-filter: blur(3px); }
+.project-limit-content { padding: 28px; }
+.project-limit-eyebrow { margin: 0 0 8px; color: var(--color-primary); font-size: 11px; font-weight: 750; letter-spacing: .1em; }
+.project-limit-content h2 { margin: 0; color: var(--color-text-strong); font-size: 22px; line-height: 1.35; }
+.project-limit-content > p { line-height: 1.6; }
+.project-limit-target { display: grid; gap: 4px; margin: 18px 0; padding: 14px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-page); }
+.project-limit-target strong { color: var(--color-text-strong); overflow-wrap: anywhere; }
+.project-limit-target span { color: var(--color-text-muted); font-size: 12px; }
+.project-limit-warning { padding: 12px; border-left: 3px solid #bd342e; background: #fff4f2; color: #8f1b15; font-size: 13px; }
+.project-limit-error { padding: 10px 12px; border: 1px solid #fecaca; border-radius: 9px; background: #fff7f7; color: #a1261e; font-size: 13px; }
+.project-limit-progress { color: var(--color-primary); font-size: 13px; }
+.project-limit-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.project-limit-actions button { min-height: 44px; padding: 0 15px; border-radius: 10px; cursor: pointer; font-weight: 700; }
+.project-limit-cancel { border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text-body); }
+.project-limit-confirm { border: 1px solid #a92b26; background: #b8322b; color: #fff; }
+.project-limit-actions button:disabled { opacity: .6; cursor: wait; }
+.project-limit-actions button:focus-visible { outline: 3px solid #78aaff; outline-offset: 3px; }
+@media (max-width: 600px) { .project-limit-content { padding: 21px 17px; } .project-limit-content h2 { font-size: 19px; } .project-limit-actions { display: grid; grid-template-columns: 1fr 1fr; } }
+@media (prefers-reduced-motion: reduce) { .project-limit-dialog::backdrop { backdrop-filter: none; } }

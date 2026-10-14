@@ -347,7 +347,9 @@ interface ProjectRepository {
 }
 ```
 
-IndexedDB 구현은 프로젝트 단위 트랜잭션과 스키마 마이그레이션을 제공한다. 저장소 실패는 도메인 오류 코드로 변환한다.
+`BlueprintAggregate`와 `ProjectSummary`의 canonical shape은 [데이터 명세](05-data-spec.md#blueprintaggregate와-projectsummary)를 따른다. Aggregate는 project, 단일 thread, messages 및 project-owned canonical entity collection을 포함한다. summary는 홈 카드에 필요한 여섯 필드만 project에서 투영한다.
+
+IndexedDB는 인증에서 파생한 현재 ownerKey마다 별도 namespace를 사용한다. project envelope와 ActivityEntry records는 동일한 project 단위 read-write transaction에서 저장·삭제하며, 저장된 aggregate 조회 시 activity collection을 다시 결합한다. 모든 async UI 반영은 요청을 시작한 owner context가 여전히 활성인지 확인한다. 이전 owner의 완료된 조회는 현재 화면에 적용하지 않고, 이미 시작된 저장은 캡처한 owner namespace 안에서만 끝나도록 한다. 저장소 실패는 도메인 오류 코드로 변환한다.
 
 ## 파일 처리
 
