@@ -93,13 +93,15 @@
 
 - `npm run build`: passed.
 - `npm run test:unit`: 76/76 passed.
-- `npm run test:e2e -- --workers=2`: 32/32 passed across desktop and mobile Chromium.
+- `npm run test:e2e -- --workers=2`: 34/34 passed across desktop and mobile Chromium on implementation HEAD `e342d8de6dbed3508f00d430f5cf7b6bf6946c41`.
 - `npm ls --depth=0 react react-dom`: React and ReactDOM remain at 18.3.1.
 - `git diff --check`: passed; package/source/config scan found no `@sfood/ui` coupling or `ax-auth` entry.
 - Agent Browser was absent from the tool catalog and no executable was available; Playwright Chromium covered the same changed routes and keyboard/viewport checks.
-- Final screenshots: [evidence README](../../delivery/evidence/FND-PR-01/README.md), with `/` and `/login` at 1440×900 and 390×844.
+- Final screenshots: [evidence README](../../delivery/evidence/FND-PR-01/README.md), with `/`, `/login`, and shared 404 at 1440×900 and 390×844.
 - Regression correction: loading the existing PRD session cleanup listener from app bootstrap preserves logout cleanup after retiring the old PRD page; the logout storage regression test passed.
 - Live Google sign-in was not tested; browser runs use deterministic mocked sessions.
+- Independent code review: `pass` on final evidence HEAD `3f4c4db57aa363534891b7c7ef01fd9f7382b060`; all P2 findings (brand spelling and stale/missing captures) were corrected and re-reviewed.
+- Independent QA: `pass` on implementation HEAD `3f4c4db57aa363534891b7c7ef01fd9f7382b060`; see `qa-report.md`.
 
 Agent Browser is preferred when available. If absent, record tool-catalog and executable checks and complete the same interaction/viewport QA in Playwright Chromium; its absence alone does not block QA.
 
