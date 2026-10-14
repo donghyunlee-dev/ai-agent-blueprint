@@ -3,7 +3,7 @@
 ## Traceability
 
 - Requirement: `BRD-001` — 앱과 저장소가 소유한 제품 브랜드 식별자를 Windsoft로 일관되게 표시한다.
-- Delivery task: `BRD-001`.
+- Delivery task: `BRD-PR-01`.
 - Source: 사용자가 요청한 사명 변경; 제품 동작과 데이터 계약은 기존 PRD 범위를 유지한다.
 
 ## 사용자/시스템 결과
@@ -25,7 +25,7 @@
 - 제품 정의: [Product Definition](../../product/01-product-definition.md) — 현재 제품명은 Agent Blueprint이며 소유 브랜드 변경 요구사항은 명시되어 있지 않음
 - PRD: [PRD](../../product/02-prd.md) — 사용자 UI 언어, 인증 및 로컬 저장 요구사항
 - 보안 계약: [Google OAuth authentication](../../product/11-google-oauth-authentication.md) — session은 앱 경계에서 검증
-- delivery traceability: 신규 요구사항/작업 ID 등록 필요 (현재 대응 항목 없음)
+- delivery traceability: `docs/delivery/traceability.md`에서 요구사항 `BRD-001`의 주 작업을 `BRD-PR-01`로 연결함
 - UI reference: 로그인/홈 표기가 영향을 받는다면 [template index](../../template/README.md)와 해당 UI 명세를 연결할 것
 
 ## 구현 합의
