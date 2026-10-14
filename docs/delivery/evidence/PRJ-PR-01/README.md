@@ -1,6 +1,6 @@
 # PRJ-PR-01 UI evidence
 
-Final implementation screenshots captured by Playwright Chromium on 2026-10-14 after the full `npm run test:ci` run. Desktop viewport is 1440×900 and mobile viewport is 390×844. These screenshots are stored in the repository so they can be reviewed from the PR.
+Final implementation screenshots captured by Playwright Chromium on 2026-10-14. Home empty, input example, and validation images are exact viewport captures at desktop 1440×900 and mobile 390×844. The remaining states are full-page captures taken at those same viewport widths. These screenshots are stored in the repository so they can be reviewed from the PR.
 
 | State | Desktop | Mobile |
 | --- | --- | --- |

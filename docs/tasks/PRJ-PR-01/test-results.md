@@ -17,7 +17,7 @@ The independent reviewer reported **PASS** on exact PR HEAD `1249a031b5fab94918c
 
 | Command | Result |
 | --- | --- |
-| `npx playwright test tests/e2e/auth-provider.spec.ts --workers=1` | Passed, 5/5 |
+| `npx --no-install playwright test tests/e2e/auth-provider.spec.ts --workers=1 --project=desktop-chromium` | Passed, 5/5 desktop Chromium tests. The Playwright configuration has desktop and mobile projects; the explicit project flag makes the 5-test result scope unambiguous. |
 | `npm run test:unit` | Passed, 111/111 |
 | `git diff --check` | Passed |
 
