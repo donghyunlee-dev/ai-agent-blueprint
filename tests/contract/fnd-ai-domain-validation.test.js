@@ -20,3 +20,8 @@ test('question composition can recommend at most one option and supplies its rea
  assert.equal(validateQuestionComposition({type:'question',prompt:'질문',options:[{value:'a',label:'A',recommended:true},{value:'b',label:'B',recommended:true}]},candidate).valid,false);
  assert.equal(validateQuestionComposition({type:'question',prompt:'질문',options:[{value:'a',label:'A',recommended:true},{value:'b',label:'B'}]},candidate).valid,false);
 });
+
+test('question composition cannot omit catalog options when the selected question has stable options', () => {
+ const candidate={id:'q1',topic:'goal',prompt:'?',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:false,allowDefer:false,targetItemTypes:['goal'],options:[{value:'a',label:'A'},{value:'b',label:'B'}]};
+ assert.equal(validateQuestionComposition({type:'question',prompt:'질문'},candidate).valid,false);
+});

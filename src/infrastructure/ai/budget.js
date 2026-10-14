@@ -4,6 +4,10 @@ const hard = { foregroundCalls:40, finalCalls:2, inputTokens:500000, outputReaso
 export function canRequestAi(project = {}, request = {}) {
  if (request.task?.endsWith('_DRAFT') && request.planValid === false) return {allowed:false,reason:'plan_invalid',decision:'block'};
  const taskLimit=aiModelRegistry.tasks[request.task];
+ if (!taskLimit) return {allowed:false,reason:'unknown_task',decision:'block'};
+ if (request.profile !== taskLimit.profile) return {allowed:false,reason:'profile_mismatch',decision:'block'};
+ if ((request.estimatedInputTokens??0)>taskLimit.maxInputTokens) return {allowed:false,reason:'task_input_limit',decision:'block'};
+ if ((request.maxOutputTokens??taskLimit.maxOutputTokens)>taskLimit.maxOutputTokens) return {allowed:false,reason:'task_output_limit',decision:'block'};
  const totals={
   foregroundCalls:(project.foregroundCalls??0)+1,
   finalCalls:(project.finalCalls??0)+(request.profile==='FINAL'?1:0),
@@ -13,8 +17,8 @@ export function canRequestAi(project = {}, request = {}) {
  };
  const exceeded=Object.entries(hard).find(([key,limit])=>totals[key]>limit);
  if(exceeded)return{allowed:false,reason:`hard_${exceeded[0]}`,decision:'block'};
- const taskInputLimit=taskLimit?.maxInputTokens;
- const needsCompaction=Object.entries(soft).some(([key,limit])=>totals[key]>=limit) || (taskInputLimit!==undefined && (request.estimatedInputTokens??0)>=taskInputLimit*0.85);
+ const taskInputLimit=taskLimit.maxInputTokens;
+ const needsCompaction=Object.entries(soft).some(([key,limit])=>totals[key]>=limit) || (request.estimatedInputTokens??0)>=taskInputLimit*0.85;
  return {allowed:true,decision:needsCompaction?'compact_then_allow':'allow'};
 }
 export function canRepairDocument({repairCount=0}={}) {return repairCount<1?{allowed:true}:{allowed:false,reason:'repair_limit'};}

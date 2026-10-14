@@ -22,7 +22,7 @@ export function validateQuestionComposition(composition, candidate) {
  if (!candidate || composition?.type!=='question') errors.push('question contract missing');
  const allowed=(candidate?.options ?? []).map(option=>option.value);
  const supplied=(composition?.options ?? []).map(option=>option.value);
- if (supplied.length && (new Set(supplied).size!==supplied.length || supplied.length!==allowed.length || supplied.some((value,index)=>value!==allowed[index]))) errors.push('stable option values changed');
+ if (new Set(supplied).size!==supplied.length || supplied.length!==allowed.length || supplied.some((value,index)=>value!==allowed[index])) errors.push('stable option values changed');
  const recommended=(composition?.options ?? []).filter(option=>option.recommended);
  if (recommended.length>1) errors.push('at most one option may be recommended');
  if (recommended.length===1 && !recommended[0].recommendationReason) errors.push('recommended option reason required');

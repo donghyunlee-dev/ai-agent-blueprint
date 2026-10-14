@@ -61,3 +61,7 @@ test('a project allows at most one conversation thread', () => {
   assert.equal(validateThreadCount([{id:'t1'}]), true);
   assert.equal(validateThreadCount([{id:'t1'},{id:'t2'}]), false);
 });
+
+test('requirements generation rejects a duplicate logical request already running', () => {
+ assert.equal(transition('document_ready','EV_GENERATE_REQUIREMENTS',{pendingProposalCount:0,conflictCount:0,sameLogicalRequestRunning:true}).ok,false);
+});

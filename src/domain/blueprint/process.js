@@ -25,7 +25,7 @@ export function transition(state, event, context = {}) {
   if (event === 'EV_ALL_PROPOSALS_RESOLVED' && context.pendingProposalCount !== 0) return { ok:false, reason:'guard_failed' };
   if (event === 'EV_CONFLICT_RESOLVED' && context.conflictCount !== 0) return { ok:false, reason:'guard_failed' };
   if (event === 'EV_REQUIREMENTS_ALLOWED' && (context.coreMissingCount !== 0 || context.conflictCount !== 0 || context.pendingProposalCount !== 0 || context.everyCoreFeatureHasAcceptanceCriterion !== true || context.dependentAreasResolved !== true)) return { ok:false, reason:'guard_failed' };
-  if (event === 'EV_GENERATE_REQUIREMENTS' && (context.pendingProposalCount !== 0 || context.conflictCount !== 0)) return { ok:false, reason:'guard_failed' };
+  if (event === 'EV_GENERATE_REQUIREMENTS' && (context.pendingProposalCount !== 0 || context.conflictCount !== 0 || context.sameLogicalRequestRunning === true)) return { ok:false, reason:'guard_failed' };
   if (event === 'EV_REQUIREMENTS_MARKED_READY' && context.requirementsValid !== true) return { ok:false, reason:'guard_failed' };
   if (event === 'EV_GENERATE_PRD' && (context.requirementsReady !== true || context.requirementsRevision !== context.designRevision || context.requirementsStale === true || context.requirementsConflict === true || context.sameLogicalRequestRunning === true)) return { ok:false, reason:'guard_failed' };
   return { ok: true, state: next };
