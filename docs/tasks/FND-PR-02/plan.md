@@ -17,8 +17,9 @@
 - `BlueprintProject`, `ConversationThread`, `ConversationMessage`, `QuestionAnswer`, `SourceDocument`, `DesignItem`, `EvidenceRef`, `AcceptanceCriterion`, `ChangeProposal`, `GeneratedDocument`, `DocumentSection`, `GenerationJob`, `AiRequestLedgerEntry`, `ContextManifest`, `ReadinessSummary`, `ActivityEntry` TypeScript 타입
 - 상태 전이 검증 함수(UI·저장 구현에 비의존)
 - product/13에 지정된 provider task별 strict JSON Schema와 8종 normalized DisplayBlock payload contract
-- 이미 field가 지정된 `/turn`, `/documents/generate`, `/documents/patch`, `/review` HTTP request/response DTO의 strict schema/validation. 문서에 없는 HTTP field는 추가하지 않으며, public transport DTO와 provider payload schema를 분리
+- `/turn`의 중첩 transport projection(`ProjectContext`, `UserAnswer`, `ContextMessage`, `DesignItemContext`, `SourceExcerpt`)을 product/06에 정의된 정확한 field set으로 strict schema/validation; 다른 문서 API는 기존 명명 field만 검증하며 public transport DTO와 provider payload schema를 분리
 - `AiTaskType`, `LIGHT/DEFAULT/FINAL` model registry, task별 token 상한 정의
+- 현재 product/13에 정의된 13개 `AiTaskType`만 provider registry에 포함. `setup_guide`는 `DocumentType` enum과 generate API에서 허용 가능한 문서 유형이지만, `SETUP_GUIDE_DRAFT` task/schema/prompt는 GDE-PR-01이 registry 등록을 완료할 때까지 제외
 - 허용 `DisplayBlock` 8종 타입과 렌더링 검증용 판별 로직(실제 UI 렌더러는 이후 PR)
 - 정상/부분 응답/빈 제안/잘못된 응답 fixture와 계약 테스트
 
@@ -79,7 +80,7 @@
 ### FND-004 Agent 계약
 
 1. `src/infrastructure/ai/schemas/`에 `QUESTION_COMPOSE`, `QUESTION_EXPLAIN`, `TURN_ANALYZE`, `OPTION_RECOMMEND`, `REQUIREMENTS_DRAFT`, `PRD_DRAFT`, `DOCUMENT_PATCH`, `CONSISTENCY_REVIEW`의 provider JSON Schema를 `additionalProperties: false`로 작성
-2. `AiTaskType` 전체 13종과 `promptId`/`promptVersion`/`schemaId`/`schemaVersion`/`modelProfile` 필드를 가진 `PromptDefinition<TInput, TOutput>` registry 골격 작성(`docs/product/13-prompt-and-response-contracts.md:31-40` 참고)
+2. 현재 product/13 `AiTaskType` 13종과 `promptId`/`promptVersion`/`schemaId`/`schemaVersion`/`modelProfile` 필드를 가진 `PromptDefinition<TInput, TOutput>` registry 골격 작성(`docs/product/13-prompt-and-response-contracts.md:31-40` 참고). `SETUP_GUIDE_DRAFT`는 GDE-PR-01에서 task/schema/prompt가 정식 등록된 뒤 후속 범위로 추가
 3. `AiModelRegistry`에 `LIGHT`/`DEFAULT`/`FINAL` profile과 `docs/product/12-ai-orchestration-and-model-policy.md`의 작업별 `maxInput`/`maxOutputTokens`/`reasoning` 표를 그대로 값으로 이식
 4. `DisplayBlock` 8종 유니온 타입(`assistant_text`, `question`, `explanation`, `recommendation`, `proposal_summary`, `conflict_notice`, `readiness_notice`, `next_action`)과 응답당 최대 6개 block, `question` block 최대 1개 제약을 검증하는 함수 작성
 5. provider block과 normalized UI block을 구분해 validator가 task별 허용 producer block만 받게 함. `question`의 immutable QuestionSpec ID/topic/form/stable value는 catalog에서 결합하고 AI가 수정할 수 없음
@@ -125,12 +126,16 @@ Given each documented HTTP operation's request and response fixture is validated
 
 | HTTP operation | Exact source contract used by tests |
 | --- | --- |
-| `POST /api/blueprint/turn` | `TurnRequest` / `TurnResponse` fields in product/06 architecture |
+| `POST /api/blueprint/turn` | `TurnRequest` / `TurnResponse` and exact nested projection fields in product/06 architecture; reject `ownerKey`, credentials, unknown fields, and unconfirmed DesignItems/system/error/job-status ContextMessages |
 | `POST /api/blueprint/documents/generate` | `documentType`, `designRevision` from DOC-PR-01/02; response `AiResponseEnvelope` and typed draft payload from DOC-PR-01/product/13 |
 | `POST /api/blueprint/documents/patch` | `{documentId, targetSectionIds[] or targetRequirementIds[], instruction?}` request and `ProposalPayload[]` response from DOC-PR-03 |
 | `POST /api/blueprint/review` | `{requirementsDocumentId, prdDocumentId}` request and `{type, location, sourceItemIds[], proposal?}[]` response from DOC-PR-03 |
 
 FND-PR-02 does not create unnamed transport fields or revise endpoint business behavior. Any additional provider payload field is permitted only when product/13 records the source contract; this plan's sources are product/04–06, 13, 15; process/01–05; UI/02 and the owning DOC task plans.
+
+The `AiResponseEnvelope` is application-owned: provider schemas reject envelope metadata (`task`, versions, revision, references, and warnings). `AiWarning` fixtures validate only sanitized `{code, severity, message}` values. `documentType` validation uses the existing `DocumentType` enum, including `setup_guide`, without inventing a `SETUP_GUIDE_DRAFT` provider task in this PR.
+
+The `/turn` contract tests validate each nested projection against its named source fields: `ProjectContext` contains only project ID/title and the request's `ContextManifest.designRevision`; `UserAnswer` contains the user-authored `QuestionAnswer` fields but no storage/server metadata; `ContextMessage` permits only user/assistant text/question messages; `DesignItemContext` is built only from confirmed items and its six declared fields; `SourceExcerpt` contains an excerpt ID, ready source document ID, text, and optional location. Each schema rejects additional properties, especially `ownerKey`, credentials, and secrets.
 
 ### Failure Case
 

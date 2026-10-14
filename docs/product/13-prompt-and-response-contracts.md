@@ -82,7 +82,15 @@ interface ContextManifest {
 
 ## 공통 응답 envelope
 
+`AiResponseEnvelope` is assembled by the application after provider payload validation; envelope metadata is never provider output. `AiWarning` is sanitized, display-safe application metadata. The application maps internal conditions to a stable code and message and must not copy provider error text, prompts, secrets, tokens, or stack traces into it.
+
 ```ts
+interface AiWarning {
+  code: string;
+  severity: "info" | "warning";
+  message: string;
+}
+
 interface AiResponseEnvelope<TPayload> {
   task: AiTaskType;
   promptVersion: string;
@@ -95,7 +103,7 @@ interface AiResponseEnvelope<TPayload> {
 }
 ```
 
-서버는 요청에 사용한 task와 version을 알고 있으므로 모델이 반환한 값과 대조한다. version이 다르거나 존재하지 않는 ID를 참조하면 전체 응답을 거절한다.
+Provider task schemas contain only their task payload fields; they exclude `task`, version/revision metadata, referenced-ID arrays, and `warnings`. The server supplies these envelope fields from the validated request and context. It compares task/version metadata against the server registry and rejects a mismatch or nonexistent referenced ID.
 
 ## 표시 block 계약
 
