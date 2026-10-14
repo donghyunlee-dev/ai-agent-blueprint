@@ -4,7 +4,7 @@
 
 각 요구사항은 하나 이상의 개발 작업과 검증 증거를 가져야 한다. 구현 PR에서는 상태, PR unit, 코드 리뷰, QA와 기본 브랜치 병합 증거 링크를 갱신한다. 상세 상태와 순서는 [PR·리뷰·QA 반복 워크플로](development-pr-review-qa-workflow.md)를 따른다.
 
-FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01은 PR #10 merge commit `ef5acebb48f06808e622e0af8508a59326603e21`, PRJ-PR-02는 PR #11 merge commit `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`, PRJ-PR-03은 PR #12 merge commit `f5c1dc3b07304e23f650a020d2afd2d56df36a3b`로 병합됐다. PRJ-PR-03의 검증 gate도 통과했다. AI-PR-01 merged as PR #13 (`e97d04c`); the user retained `DEFAULT=gpt-5-mini` and current budget limits. The model/prompt/schema registry, budget/ledger foundation and deterministic golden gate are available; live provider pairwise evaluation remains a later user-key gate. CON-PR-01 merged as PR #14. CON-PR-02 is now in progress on its merged contracts. NFR-001 still awaits QLT-601, so its overall requirement remains `ready`.
+FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. PRJ-PR-01은 PR #10 merge commit `ef5acebb48f06808e622e0af8508a59326603e21`, PRJ-PR-02는 PR #11 merge commit `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`, PRJ-PR-03은 PR #12 merge commit `f5c1dc3b07304e23f650a020d2afd2d56df36a3b`로 병합됐다. PRJ-PR-03의 검증 gate도 통과했다. AI-PR-01 merged as PR #13 (`e97d04c`); the user retained `DEFAULT=gpt-5-mini` and current budget limits. The model/prompt/schema registry, budget/ledger foundation and deterministic golden gate are available; live provider pairwise evaluation remains a later user-key gate. CON-PR-01 merged as PR #14 and CON-PR-02 as PR #15 (`4335ca1`). CON-PR-03 is now in progress. NFR-001 still awaits QLT-601, so its overall requirement remains `ready`.
 
 | 요구사항 | 주 작업 | 핵심 검증 | 초기 상태 |
 | --- | --- | --- | --- |
@@ -31,8 +31,8 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | PJT-005 | PRJ-101, PRJ-103 | namespace 분리와 404 | done (PRJ-PR-01 #10, PRJ-PR-02 #11 merged) |
 | CONV-001 | CON-202, CON-203 | 첫 입력 복수 후보 | ready |
 | CONV-002 | CON-203, DSG-302 | 반복 방지와 제안 gate | ready |
-| CONV-003 | CON-202, CON-205 | 단일 thread와 요약 | ready |
-| CONV-004 | CON-202, CON-205 | 작업 상태와 취소 | ready |
+| CONV-003 | CON-202, CON-205 | 단일 thread와 요약 | in_progress (CON-PR-03; source-aware compaction and one-thread UI) |
+| CONV-004 | CON-202, CON-205 | 작업 상태와 취소 | in_progress (CON-PR-03; GenerationJob progress and cancel UI) |
 | CONV-005 | CON-206 | 입력 보존과 중복 없는 재시도 | foundation merged (CON-PR-01 #14; full conversation UI remains in CON-PR-03) |
 | FORM-001 | CON-204 | 7개 answer mode | ready |
 | FORM-002 | CON-204 | value/label, 추천 미선택 | ready |
@@ -58,7 +58,7 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | NFR-001 | FND-002, QLT-601 | 키보드, 이름, 대비 | ready |
 | NFR-002 | PRJ-105, QLT-602 | responsive desktop/tablet/mobile layout | in_progress (PRJ-105 done #12; QLT-602 pending) |
 | NFR-003 | QLT-603 | 셸, 긴 콘텐츠, 입력 응답 | ready |
-| NFR-004 | CON-201, SRC-503, QLT-604 | 안내, 최소 전송, 비밀 보호 | pending consent UI/recording in CON-PR-03; source minimization and QLT-604 remain |
+| NFR-004 | CON-201, SRC-503, QLT-604 | 안내, 최소 전송, 비밀 보호 | in_progress (CON-PR-03 consent UI/recording; source minimization and QLT-604 remain) |
 | NFR-005 | CON-202, QLT-604 | 비식별 오류와 지연 | in_progress (CON-PR-01 API errors; QLT-604 remains) |
 | NFR-006 | CON-205, QLT-605 | 한글 UI·응답·문서 | ready |
 | NFR-007 | QLT-604, QLT-606 | 행동 이벤트 미전송 | ready |
