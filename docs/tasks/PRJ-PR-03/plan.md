@@ -45,7 +45,7 @@
 
 **Definition of Ready: READY.** PRJ-02의 persisted aggregate/repository와 owner isolation 계약은 기본 브랜치에 있고, active document는 canonical project field와 URL로, scroll/width는 UI preference로 보존한다. 그 결과 새 IndexedDB 필드, schema migration, product decision 없이 구현을 시작할 수 있다.
 
-**Current delivery status: `ready_to_merge` (focused implementation validation, independent code review, and scoped independent Playwright QA passed on the current PR head).**
+**Current delivery status: `merged` (PR #12, merge commit `f5c1dc3b07304e23f650a020d2afd2d56df36a3b`).**
 
 ## 작업 단위별 구현 개요
 
@@ -217,9 +217,9 @@ Given user opens the inspector Drawer or adjusts the conversation resizer by key
 - [x] Acceptance criteria verified
 - [x] 독립 코드 리뷰 pass
 - [x] 관련 동작의 focused validation 및 독립 QA pass (캡처는 필요할 때만 선택적으로 첨부)
-- [ ] 사용자 PR 머지 확인
+- [x] 사용자 요청 전체 lifecycle에 따라 PR #12 병합 및 기본 브랜치 반영 확인
 
 ## 실행 증거 문서
 
 - Implementation stage creates `test-results.md`, `review-notes.md`, and/or `qa-report.md` when execution begins.
-- Do not advance PRJ-03 to `ready_to_merge` until relevant implementation validation, independent review and scoped independent QA pass. Screenshots are optional evidence; do not mark the PR merged before GitHub confirms merge.
+- PR #12 (`f5c1dc3b07304e23f650a020d2afd2d56df36a3b`) is verified merged after relevant implementation validation, independent review and scoped independent QA passed. Screenshots were optional evidence.

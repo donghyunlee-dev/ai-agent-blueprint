@@ -38,7 +38,13 @@ test('AI budget requires a known task and its registered model profile', () => {
 });
 
 test('task input and output hard limits block requests even when project budget remains', () => {
- const base={task:'TURN_ANALYZE',profile:'DEFAULT',estimatedInputTokens:1,maxOutputTokens:1};
+ const base={task:'TURN_ANALYZE',profile:'DEFAULT',estimatedInputTokens:1,maxOutputTokens:1,estimatedCostUsd:0.001};
  assert.equal(canRequestAi({}, {...base,estimatedInputTokens:8001}).reason,'task_input_limit');
  assert.equal(canRequestAi({}, {...base,maxOutputTokens:1801}).reason,'task_output_limit');
+});
+
+test('request is blocked until input, output and estimated cost are supplied before provider use', () => {
+ const base={task:'TURN_ANALYZE',profile:'DEFAULT',estimatedInputTokens:1,maxOutputTokens:1};
+ assert.equal(canRequestAi({},base).reason,'request_estimate_required');
+ assert.equal(canRequestAi({}, {...base,estimatedCostUsd:0}).allowed,true);
 });

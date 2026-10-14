@@ -6,6 +6,11 @@ export function canRequestAi(project = {}, request = {}) {
  const taskLimit=aiModelRegistry.tasks[request.task];
  if (!taskLimit) return {allowed:false,reason:'unknown_task',decision:'block'};
  if (request.profile !== taskLimit.profile) return {allowed:false,reason:'profile_mismatch',decision:'block'};
+ if (!Number.isFinite(request.estimatedInputTokens) || request.estimatedInputTokens < 0
+  || !Number.isFinite(request.estimatedCostUsd) || request.estimatedCostUsd < 0
+  || (request.maxOutputTokens !== undefined && (!Number.isFinite(request.maxOutputTokens) || request.maxOutputTokens < 0))) {
+  return {allowed:false,reason:'request_estimate_required',decision:'block'};
+ }
  if ((request.estimatedInputTokens??0)>taskLimit.maxInputTokens) return {allowed:false,reason:'task_input_limit',decision:'block'};
  if ((request.maxOutputTokens??taskLimit.maxOutputTokens)>taskLimit.maxOutputTokens) return {allowed:false,reason:'task_output_limit',decision:'block'};
  const totals={

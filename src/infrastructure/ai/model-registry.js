@@ -8,6 +8,39 @@ const promptIds = {
 export const aiModelRegistry = Object.freeze({
   projectLimits: Object.freeze({ soft: { foregroundCalls:28, finalCalls:1, inputTokens:300000, outputReasoningTokens:60000, estimatedCostUsd:0.35 }, hard: { foregroundCalls:40, finalCalls:2, inputTokens:500000, outputReasoningTokens:100000, estimatedCostUsd:0.60 }, schemaRetriesPerTask:1, repairsPerDocument:1 }),
   profiles: Object.freeze({ LIGHT: { model:'gpt-5.6-luna', reasoning:'low' }, DEFAULT: { model:'gpt-5-mini', reasoning:'low' }, FINAL: { model:'gpt-5.6-terra', reasoning:'low' } }),
-  tasks: Object.freeze(Object.fromEntries(Object.entries(taskRows).map(([task,[profile,maxInputTokens,maxOutputTokens]]) => [task,{profile,reasoning:'low',maxInputTokens,maxOutputTokens}]))),
+  tasks: Object.freeze(Object.fromEntries(Object.entries(taskRows).map(([task,[profile,maxInputTokens,maxOutputTokens]]) => [task,{profile,reasoning:'low',maxInputTokens,maxOutputTokens,timeoutMs:45_000}]))),
 });
 export const promptRegistry = Object.freeze(Object.fromEntries(Object.entries(promptIds).map(([task,id]) => [task, Object.freeze({ task, promptId:id, promptVersion:'v1', schemaId:`${id}.v1`, schemaVersion:'v1', modelProfile:taskRows[task][0] })])));
+
+const modelEnvironmentKeys = Object.freeze({ LIGHT: 'AI_MODEL_LIGHT', DEFAULT: 'AI_MODEL_DEFAULT', FINAL: 'AI_MODEL_FINAL' });
+
+export function validateModelConfiguration(env = process.env) {
+  for (const key of Object.values(modelEnvironmentKeys)) {
+    if (typeof env[key] !== 'string' || !env[key].trim()) throw new Error(`Missing required AI model configuration: ${key}`);
+  }
+  return true;
+}
+
+export function resolveModelProfile(profile, env = process.env) {
+  const key = modelEnvironmentKeys[profile];
+  if (!key) throw new Error(`Unknown AI model profile: ${profile}`);
+  const modelId = env[key];
+  if (typeof modelId !== 'string' || !modelId.trim()) throw new Error(`Missing required AI model configuration: ${key}`);
+  const registered = aiModelRegistry.profiles[profile];
+  return { profile, modelId: modelId.trim(), reasoningEffort: registered.reasoning };
+}
+
+export function resolveTaskModel(task, env = process.env) {
+  const taskConfig = aiModelRegistry.tasks[task];
+  if (!taskConfig) throw new Error(`Unknown AI task: ${task}`);
+  const profile = resolveModelProfile(taskConfig.profile, env);
+  return {
+    task,
+    profile: taskConfig.profile,
+    modelId: profile.modelId,
+    reasoningEffort: profile.reasoningEffort,
+    maxInputTokens: taskConfig.maxInputTokens,
+    maxOutputTokens: taskConfig.maxOutputTokens,
+    timeoutMs: taskConfig.timeoutMs,
+  };
+}
