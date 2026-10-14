@@ -26,8 +26,8 @@ PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현�
 6. Agent는 사용자가 전체 PR lifecycle을 요청했을 때만 모든 gate가 통과된 PR을 병합할 수 있다. 이 요청이 없으면 `ready_to_merge`에서 멈춘다.
 7. 현재 PR이 기본 브랜치에 병합됐다는 확인 전에는 다음 PR의 구현을 시작하지 않는다.
 8. 미결정·차단 요구사항은 임의로 구현하지 않고 별도 PR 단위도 시작하지 않는다.
-9. 최종 품질 단계는 매 PR의 QA를 대체하지 않고 전체 회귀를 추가한다.
-10. UI PR은 최종 HEAD와 일치하는 개발 화면 캡처가 PR에서 보여야 한다.
+9. 각 PR은 변경 동작과 직접 영향받는 계약만 테스트한다. 전체 회귀는 별도 품질 단계에서 수행한다.
+10. UI PR의 검증은 변경된 화면 동작과 직접 영향받는 반응형·접근성 조건에 한정한다. 캡처는 선택적 증거다.
 11. 단계별 구현은 Codex `$pr-development-loop` skill과 별도 planner, implementer, code-reviewer, QA agent 규칙을 따른다.
 
 ## PR 개발 단위 기준
@@ -119,11 +119,11 @@ flowchart TD
 ### QA
 
 - PR 수용 기준을 사용자 행동과 프로세스 상태 전이로 검증한다.
-- 정상 흐름만 아니라 실패, 빈 상태, 재시도, 새로고침과 중복 실행을 확인한다.
-- UI 변경은 데스크톱·모바일, 키보드, 포커스와 반응형을 검증한다.
-- AI 작업은 fixture 기준 schema, 호출 수, 모델 profile과 실패 시 상태 보존을 확인한다.
+- 변경 범위에 해당하는 정상·실패·경계 동작만 검증한다. 빈 상태, 재시도, 새로고침, 중복 실행은 acceptance criteria 또는 직접 영향받는 경우에 포함한다.
+- UI 변경은 변경된 데스크톱·모바일 동작과 직접 영향받는 키보드, 포커스, 반응형 조건을 검증한다.
+- AI 작업은 변경에 직접 관련된 fixture schema, 호출 수, model profile과 실패 시 상태 보존을 확인한다.
 - 코드 리뷰 결과를 반복하는 대신 실행 증거를 남긴다.
-- 화면 변경이면 최종 HEAD의 개발 화면을 캡처하고 PR에서 직접 볼 수 있게 첨부한다.
+- 캡처는 설명 가치가 있는 경우 최종 HEAD에서 선택적으로 첨부한다. 캡처 자체는 QA 통과 gate가 아니다.
 
 ### 사용자 승인자
 
@@ -150,11 +150,10 @@ flowchart TD
 
 PR 생성 전 최소 검증:
 
-- 해당 작업의 단위·통합·계약 테스트
-- `npm run build`
-- UI 변경 시 Playwright Chromium으로 동일 핵심 경로를 검증하고, Agent Browser가 있으면 같은 경로의 독립 검증도 수행한다. 사용할 수 없는 경우 도구 목록과 실행 파일 확인 결과를 기록하며, 그 부재만으로 QA를 차단하지 않는다.
-- desktop과 mobile 필수 viewport 확인
-- 오류·빈 상태·loading·재시도 확인
+- 변경 동작과 직접 영향받는 계약을 검증하는 관련 단위·통합·계약 테스트만 실행한다. 전체 suite는 결과가 넓은 회귀 위험을 보여줄 때 그 이유를 기록하고 추가한다.
+- `npm run build`는 production code, dependency 또는 build configuration 변경이 있을 때 실행한다.
+- UI 변경 시 Playwright Chromium으로 변경된 핵심 경로와 직접 영향받는 viewport/접근성 조건을 검증한다. Agent Browser가 있으면 같은 범위에서 선택적으로 함께 쓸 수 있다. 사용할 수 없는 도구의 부재만으로 QA를 차단하지 않는다.
+- 변경된 실패·빈 상태·loading·재시도 동작이 있는 경우 해당 상태만 검증한다.
 - secret, token, 사용자 원문과 임시 결과 파일 미포함 확인
 - 관련 Mermaid 문서 변경 시 `npm run docs:check:mermaid`
 - `git diff --check`
@@ -178,16 +177,16 @@ PR 생성 전 최소 검증:
 
 ## QA gate
 
-PR 유형별 필수 QA:
+PR 유형별 QA 항목은 적용 가능한 범위를 고르는 기준이다. 현재 PR의 수용 기준과 직접 영향받는 계약만 실행하고, 변경과 무관한 실패 상태나 경로는 추가하지 않는다.
 
 | 유형 | 필수 검증 |
 | --- | --- |
-| 도메인·상태 | 정상/금지 전이, 원자성, revision, 새로고침 |
-| API | 정상·400·401·409·429·5xx fixture, 중복 요청, 로그 안전성 |
-| AI | schema, 잘못된 ID 거절, 모델 profile, 호출·비용 budget, 입력 보존 |
-| 저장 | 생성·업데이트·migration·손상·실패 복구·사용자 격리 |
-| UI | desktop/mobile, keyboard, focus, loading/empty/error, 긴 콘텐츠 |
-| 문서 | source/revision coverage, ready gate, stale/conflict, 다운로드 내용 |
+| 도메인·상태 | 변경된 정상/금지 전이, 원자성, revision 또는 새로고침 계약 |
+| API | 변경된 정상·오류 status fixture, 중복 요청, 로그 안전성 계약 |
+| AI | 변경된 schema, ID 검증, model profile, 호출·비용 budget, 입력 보존 계약 |
+| 저장 | 변경된 생성·업데이트·migration·손상·실패 복구·사용자 격리 경로 |
+| UI | 변경에 직접 영향받는 desktop/mobile 반응형, keyboard, focus, 상태와 긴 콘텐츠 동작 |
+| 문서 | 변경된 source/revision coverage, ready gate, stale/conflict, 다운로드 계약 |
 
 QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`가 아니라 `blocked`로 기록한다.
 
@@ -226,10 +225,8 @@ QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`�
 - 증거:
 
 ## Screenshots
-- UI 변경 없음 또는 캡처 링크
-- desktop 1440×900
-- mobile 390×844
-- 필요한 loading/empty/error/validation/overlay/completed 상태
+- 선택적으로 캡처 링크 (없어도 gate 통과 가능)
+- 첨부 시 검증 대상 동작을 설명하는 viewport/state만 포함
 
 ## Risk
 - 데이터/API/config 영향:
@@ -243,20 +240,12 @@ QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`�
 
 스크린샷·녹화·대용량 로그는 PR 첨부나 CI artifact로 보관하고 저장소 루트에 커밋하지 않는다. 저장소에는 지속적으로 필요한 fixture와 테스트 코드만 남긴다.
 
-### UI PR 캡처 gate
+### UI 검증 및 선택적 캡처
 
-UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음을 모두 만족해야 한다.
-
-- 최종 review fix 이후의 HEAD로 캡처한다.
-- 최소 desktop 1440×900과 mobile 390×844를 포함한다.
-- 해당 task가 바꾼 정상 상태와 적용 가능한 loading, empty, error, validation, overlay, completed 상태를 포함한다.
-- 기존 화면 변경을 비교하는 데 의미가 있으면 before/after를 함께 올린다.
-- 파일명은 `<pr-unit>-<screen>-<viewport>-<state>.png` 형식이다.
-- Playwright Chromium으로 캡처하고 같은 상태의 DOM·interaction을 확인한다. Agent Browser를 사용할 수 있으면 동일 상태를 별도로 검증한다. 사용할 수 없는 환경에서는 도구 목록과 실행 파일 확인 결과를 기록하고 Playwright Chromium에서 같은 상태 검증을 수행한다.
-- secret, token, 개인 이메일, 운영 데이터, 로컬 경로와 관련 없는 창을 포함하지 않는다.
-- PR 본문에서 route, viewport, state와 fixture를 설명한다.
-
-임시 파일은 gitignored `.pr-artifacts/<pr-unit>/`에 둔다. 우선 PR attachment로 업로드하며, 환경상 업로드할 수 없으면 최종 최적화 이미지에 한해 `docs/delivery/evidence/<pr-unit>/`에 커밋하고 PR에서 링크한다. 보이는 최종 캡처가 없는 UI PR은 `ready_to_merge`가 아니다.
+- QA는 변경된 화면의 사용자 행동과 직접 영향받는 반응형·접근성 조건을 검증한다. 전체 앱 회귀나 관련 없는 상태를 반복하지 않는다.
+- 적합한 viewport 수는 변경에 따라 정한다. 특정 고정 viewport 개수나 다섯 화면 캡처 세트는 요구하지 않는다. NFR/품질 PR에서 별도로 지정한 반응형 범위는 해당 PR에서 검증한다.
+- 캡처는 결과 설명이나 finding 재현에 도움이 될 때만 최종 검증 HEAD에서 선택적으로 첨부한다. 캡처의 부재는 `ready_to_merge`를 막지 않는다.
+- 첨부할 경우 secret, token, 개인 이메일, 운영 데이터와 로컬 경로를 제외한다. 임시 파일은 gitignored `.pr-artifacts/<pr-unit>/`에 둔다.
 
 ## PR 단위 실행 순서
 
@@ -273,7 +262,7 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 | 7 | `FND-PR-03` 테스트 기반 | FND-005 | unit/contract/browser test 명령과 CI gate 실행 | merged (#9, `d3e56d5`) |
 | 8 | `PRJ-PR-01` 라우팅·프로젝트 생성 | PRJ-101, 102 | 홈에서 생성, 잘못된 경로 404 | merged (#10, `ef5aceb`) |
 | 9 | `PRJ-PR-02` 저장·최근 목록 | PRJ-103, 104 | 새로고침 복구, 20/21 경계와 실패 보존 | merged (#11, `4581d4619125fcd23227a65fe71a2dc0b0d4d48c`) |
-| 10 | `PRJ-PR-03` 작업 공간 셸 | PRJ-105 | desktop/mobile 셸과 탭·저장 상태 복구 | in_progress |
+| 10 | `PRJ-PR-03` 작업 공간 셸 | PRJ-105 | desktop/mobile 셸과 탭·저장 상태 복구 | ready |
 | 11 | `AI-PR-01` 모델·prompt·budget 기반 | AI-001~003, 008, 009 | Luna/Mini/Terra routing, schema version, budget/eval gate | planned |
 | 12 | `CON-PR-01` turn 수명주기 | CON-201, 202, 206, AI-010 | 입력 보존, 인증, 중복 방지와 실패 재시도 | planned |
 | 13 | `CON-PR-02` 질문·선택 폼 | CON-203, 204, AI-005 | catalog 질문과 7개 form, 선택 경로 API 0회 | planned |
@@ -314,8 +303,8 @@ UI, 레이아웃, 문구, 상태, focus 또는 interaction이 바뀌면 다음�
 1. `blueprint-task-planner`가 plan과 화면·상태 acceptance를 작성한다.
 2. `blueprint-implementer`가 TDD 구현과 self-check를 수행한다.
 3. `blueprint-code-reviewer`가 별도 context에서 diff와 spec을 검토한다.
-4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 Playwright Chromium으로 desktop/mobile을 검증한다. Agent Browser를 사용할 수 있으면 같은 경로도 검증하며, 사용할 수 없으면 해당 확인 근거를 남기고 Playwright로 완료한다.
-5. QA가 최종 HEAD 캡처를 만들고 PR `Screenshots`에 노출한다.
+4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 변경된 사용자 경로와 직접 영향받는 desktop/mobile 반응형·접근성 조건을 Playwright Chromium으로 검증한다. Agent Browser는 사용 가능하고 유용하면 같은 범위에서 보조적으로 쓸 수 있다.
+5. 필요한 경우 QA가 설명에 도움이 되는 최종 HEAD 캡처를 선택적으로 첨부한다.
 6. 전체 PR lifecycle 요청이면 gate 통과 후 Agent가 PR을 병합하고 결과를 확인한다. 요청이 없으면 `ready_to_merge`에서 멈춘다.
 
 ### Agent 또는 QA 실패

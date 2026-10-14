@@ -30,7 +30,7 @@
 
 ## 연결 근거
 
-- 요구사항: `PJT-002`(재개), `PJT-003`(복구), `NFR-001`(keyboard/accessibility), `NFR-002`(5개 viewport)
+- 요구사항: `PJT-002`(재개), `PJT-003`(복구), `NFR-001`(keyboard/accessibility), `NFR-002`(desktop/tablet/mobile responsive shell)
 - Delivery 작업: `PRJ-105` (`docs/delivery/01-project-lifecycle.md`)
 - 결정: `DEC-003`(숫자 점수 없는 준비도 — 상세 패널 상태 표시에 적용)
 - 화면 설계: `docs/ui/01-workspace-shell.md`(UI-SHELL-001, AppBar 해부, panel sizing/scroll, responsive/accessibility), `docs/template/README.md`의 [image (11).png](../../template/image%20(11).png) (대화와 work surface 공존), [image (8).png](../../template/image%20(8).png) (work surface 빈 상태)
@@ -45,7 +45,7 @@
 
 **Definition of Ready: READY.** PRJ-02의 persisted aggregate/repository와 owner isolation 계약은 기본 브랜치에 있고, active document는 canonical project field와 URL로, scroll/width는 UI preference로 보존한다. 그 결과 새 IndexedDB 필드, schema migration, product decision 없이 구현을 시작할 수 있다.
 
-**Current delivery status: `in_progress` (PRJ-03 branch/worktree is active; source implementation has not started).**
+**Current delivery status: `ready` (dependencies and acceptance criteria are resolved; source implementation may start from latest main).**
 
 ## 작업 단위별 구현 개요
 
@@ -185,24 +185,26 @@ Given user opens the inspector Drawer or adjusts the conversation resizer by key
 
 ### Validation commands
 
-- `npm run test:unit` — unit/contract suite
-- `npm run test:e2e:ci -- tests/e2e/prj-pr03.spec.ts` — focused Playwright Chromium paths
-- `npm run test:ci` — full unit/contract, desktop/mobile E2E, then build
-- `npm run docs:check:mermaid` — if the plan/process Mermaid diagrams change
-- `git diff --check`
+- Run only tests that cover PRJ-03 behavior and directly affected contracts:
+  - focused workspace preference unit tests (valid/invalid/unavailable storage, scroll clamp and panel-width bounds)
+  - focused route/component tests for document URL synchronization, save-state retention, responsive modes and accessible controls
+  - `npm run test:e2e:ci -- tests/e2e/prj-pr03.spec.ts` for the changed workspace flows, including breakpoint families, route/history, scroll isolation/restoration, missing/error states and keyboard behavior
+- Run `npm run build` because this PR changes production code. It is not a blanket requirement for docs-only changes in other PR units.
+- Run `npm run docs:check:mermaid` only if a changed Mermaid diagram requires it; run `git diff --check` for the final diff.
+- Do not run the full test suite unless a focused result identifies a cross-cutting risk that needs broader confirmation; record the specific reason if expanded.
 
-## UI 증거 계획
+## UI 검증 및 선택적 증거
 
-- QLT-602 five CSS viewports: 360×800, 390×844, 768×1024, 1280×800, 1440×900. Capture the default shell at all five; cover breakpoint layout, drawer, bottom modes, save states and missing/error states at the viewports where they apply.
-- Add explicit 1440×900 three-panel and saved/saving/failed states; 1024–1279 inspector Drawer; 768–1023 mode tabs; 390×844 and 360×800 bottom navigation; missing/error project path.
-- Evidence must use final implementation HEAD, include relevant loading/empty/error/overlay/completed states, and be attached to PR; keep working captures in `.pr-artifacts/PRJ-PR-03/` until attachment.
-- Playwright Chromium verifies exact viewport dimensions, breakpoint transitions, Drawer keyboard behavior, resizer keyboard operation, independent panel scroll, no horizontal overflow, URL flows, and state persistence. Check Agent Browser tool catalog and executable availability; if unavailable, record both checks and use Playwright Chromium per workflow.
+- Verify the changed shell at representative widths for each required layout family (≥1280, 1024–1279, 768–1023, ≤767) and check the declared breakpoint edges and 320px minimum-width overflow boundary. Preserve the NFR-002 responsive behavior; the separate QLT-602 delivery remains responsible for its full quality matrix.
+- Independently verify the changed user paths with Playwright Chromium: URL/history and document selection, save-state retention, scroll isolation/restoration, missing/error recovery, drawer focus behavior, resizer keyboard bounds, hidden-panel focus exclusion, and responsive overflow/layout.
+- Screenshots are optional supporting evidence, not an acceptance gate. If useful, capture only the state/viewport that explains a finding or user-visible result; there is no mandatory five-viewport capture set or requirement to capture every state.
+- Use `docs/template/README.md` and mapped images 11/8 as visual references; they inform hierarchy and empty-state layout, not screenshot proof requirements.
 
 ## 코드 리뷰·QA 체크리스트
 
 - [ ] `activeDocumentType`/URL만 canonical doc selection이며 aggregate에 `activeTab` or UI state를 추가하지 않았는지 확인
 - [ ] `conversationScrollTop` and width contain no ownerKey, project contents or credentials and remain local UI preferences
-- [ ] 360×800, 390×844, 768×1024, 1280×800, 1440×900 plus breakpoint edges verify expected layout; no horizontal overflow at 320px+
+- [ ] Representative viewport in each of four layout families and relevant breakpoint edges verify expected layout; no horizontal overflow at 320px+
 - [ ] 767px 이하 compact AppBar and bottom mode tabs; 768–1023 mode tabs + inspector Drawer; 1024–1279 inspector Drawer; ≥1280 three panels
 - [ ] Existing save failure, unsaved title draft, retry and prior owner's content remain correct across document routes/mode switches/account changes
 - [ ] Reference images 11 and 8 were used for hierarchy/empty-state; URL links and in-place mode tabs use distinct semantics
@@ -214,11 +216,10 @@ Given user opens the inspector Drawer or adjusts the conversation resizer by key
 - [ ] Requirements implemented
 - [ ] Acceptance criteria verified
 - [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료
+- [ ] 관련 동작의 focused validation 및 독립 QA pass (캡처는 필요할 때만 선택적으로 첨부)
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 증거 문서
 
 - Implementation stage creates `test-results.md`, `review-notes.md`, and/or `qa-report.md` when execution begins.
-- Do not advance PRJ-03 to `ready_to_merge` until implementation validation, independent review, independent QA, and final-HEAD UI evidence all pass. Do not mark it merged before GitHub confirms merge.
+- Do not advance PRJ-03 to `ready_to_merge` until relevant implementation validation, independent review and scoped independent QA pass. Screenshots are optional evidence; do not mark the PR merged before GitHub confirms merge.
