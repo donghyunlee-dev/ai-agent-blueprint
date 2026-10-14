@@ -14,3 +14,10 @@ Playwright Chromium screenshots captured from the final implementation on 2026-1
 | Delete confirmation modal | [limit-modal-desktop-chromium.png](./limit-modal-desktop-chromium.png) | [limit-modal-mobile-chromium.png](./limit-modal-mobile-chromium.png) |
 
 The 21st-project browser flow checks initial focus, Tab focus containment, Escape cancellation, preserved input, successful deletion/creation, and the 20-item limit. Reduced-motion emulation also verifies that the modal backdrop does not blur. Agent Browser was unavailable in this environment (`agent-browser` was not on PATH); the same responsive flows were run directly in Playwright Chromium.
+
+The canonical project-title editor is editable and autosaves after 500 ms. Save failure preserves the draft and exposes an explicit retry. Its final-HEAD states are captured at both required viewports:
+
+| Title autosave state | Desktop | Mobile |
+| --- | --- | --- |
+| Saved title | [title-saved-desktop-chromium.png](./title-saved-desktop-chromium.png) | [title-saved-mobile-chromium.png](./title-saved-mobile-chromium.png) |
+| Save failure with draft retained | [title-save-failed-desktop-chromium.png](./title-save-failed-desktop-chromium.png) | [title-save-failed-mobile-chromium.png](./title-save-failed-mobile-chromium.png) |

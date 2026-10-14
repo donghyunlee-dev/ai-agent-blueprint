@@ -37,7 +37,7 @@ export function createDebouncedProjectSaver({ save, onState = () => {}, delay = 
       if (disposed) return;
       snapshot = structuredClone(nextSnapshot);
       revision += 1;
-      if (inFlight) publish({ status: 'saving', savedAt: state.savedAt });
+      publish({ status: 'saving', savedAt: state.savedAt });
       clearTimer();
       timer = schedule(() => { timer = null; void flush(); }, delay);
     },

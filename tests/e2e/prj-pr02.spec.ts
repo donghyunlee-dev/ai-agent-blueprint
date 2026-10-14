@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
 
-declare global { interface Window { releaseProjectCommand?: () => void } }
+declare global { interface Window { releaseProjectCommand?: () => void; releaseDelete?: () => void; switchOwner?: () => void; rejectRetry?: () => void } }
 
 const evidenceDirectory = path.resolve('.pr-artifacts/PRJ-PR-02');
 const identity = { issuer: 'https://accounts.google.com', subject: 'prj-qa-user', email: 'verified@example.test' };
@@ -51,6 +51,24 @@ test('saving state remains visible while project creation is pending', async ({ 
   await page.screenshot({ path: path.join(evidenceDirectory, `saving-${testInfo.project.name}.png`), fullPage: true });
   await page.evaluate(() => window.releaseProjectCommand?.());
   await expect.poll(() => page.locator('[data-created-project]').getAttribute('data-created-project')).toMatch(/^[0-9a-f-]{36}$/i);
+});
+
+test('owner switch while delete settles releases the composer lock for the new owner', async ({ page }) => {
+  await page.goto(`${composerOrigin}/tests/e2e/fixtures/project-composer-harness.html?mode=delete-race`);
+  const idea = page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' });
+  await idea.fill('계정 전환 뒤에도 다시 제출할 수 있습니다.');
+  await page.getByRole('button', { name: 'Blueprint 시작' }).click();
+  const dialog = page.getByRole('dialog', { name: '오래된 프로젝트를 삭제하고 새로 만들까요?' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: '삭제하고 만들기' }).click();
+  await expect(dialog).toHaveAttribute('aria-busy', 'true');
+  await page.evaluate(() => window.switchOwner?.());
+  await expect(page.locator('main')).toHaveAttribute('data-owner', 'next-owner');
+  await page.evaluate(() => window.releaseDelete?.());
+  await expect(dialog).toBeHidden();
+  await page.getByRole('button', { name: 'Blueprint 시작' }).click();
+  await expect(dialog).toBeVisible();
+  await expect(idea).toHaveValue('계정 전환 뒤에도 다시 제출할 수 있습니다.');
 });
 
 test('recent projects sort by last opened and reveal six initially and at most twenty on demand', async ({ page }, testInfo) => {
@@ -101,6 +119,59 @@ test('project creation saves before navigation and recovers the canonical data a
   await page.screenshot({ path: path.join(evidenceDirectory, `saved-${testInfo.project.name}.png`), fullPage: true });
   await page.reload();
   await expect(page.getByRole('heading', { name: '저장되기 전에는 작업 공간으로 이동하지 않습니다.' })).toBeVisible();
+});
+
+test('editable canonical title preserves edits through save failure and retry', async ({ page }, testInfo) => {
+  await seedProjects(page, 1, 'editable-project');
+  await page.goto('/blueprints/editable-project');
+  await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue('저장된 프로젝트 1');
+  await expect(page.getByRole('status')).toContainText('저장됨');
+  const title = page.getByRole('textbox', { name: '프로젝트 제목' });
+  await page.evaluate(() => {
+    const prototype = IDBObjectStore.prototype;
+    const originalPut = prototype.put;
+    (prototype as IDBObjectStore & { __originalPut?: IDBObjectStore['put'] }).__originalPut = originalPut;
+    Object.defineProperty(prototype, 'put', { configurable: true, value: function (...args: Parameters<typeof originalPut>) {
+      if (this.name === 'projects') throw new Error('QUOTA_TEST_FAILURE');
+      return originalPut.apply(this, args);
+    } });
+  });
+  await title.fill('수정한 프로젝트 제목');
+  await expect(page.getByRole('status')).toContainText('저장 중');
+  await expect(page.getByRole('alert')).toContainText('저장하지 못했습니다');
+  await expect(title).toHaveValue('수정한 프로젝트 제목');
+  await page.screenshot({ path: path.join(evidenceDirectory, `title-save-failed-${testInfo.project.name}.png`), fullPage: true });
+  await page.evaluate(() => {
+    const prototype = IDBObjectStore.prototype as IDBObjectStore & { __originalPut?: IDBObjectStore['put'] };
+    if (prototype.__originalPut) Object.defineProperty(prototype, 'put', { configurable: true, value: prototype.__originalPut });
+  });
+  await page.getByRole('button', { name: '저장 다시 시도' }).click();
+  await expect(page.getByRole('status')).toContainText('저장됨');
+  await page.screenshot({ path: path.join(evidenceDirectory, `title-saved-${testInfo.project.name}.png`), fullPage: true });
+  await page.reload();
+  await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue('수정한 프로젝트 제목');
+});
+
+test('stale owner retry completion cannot change the next owner project status', async ({ page }) => {
+  let subject = 'retry-owner-a';
+  await page.unroute('**/api/auth/session');
+  await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: {
+    authenticated: true,
+    user: { issuer: 'https://accounts.google.com', subject, email: `${subject}@example.test` },
+  } }));
+  await page.goto(`${composerOrigin}/tests/e2e/fixtures/project-page-harness.html`);
+  await expect(page.getByRole('heading', { name: 'A 소유자 프로젝트' })).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('저장하지 못했습니다');
+  await page.getByRole('button', { name: '저장 다시 시도' }).click();
+  await expect.poll(() => page.locator('body').getAttribute('data-a-saves')).toBe('2');
+
+  subject = 'retry-owner-b';
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await expect(page.getByRole('heading', { name: 'B 소유자 프로젝트' })).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('저장됨');
+  await page.evaluate(() => window.rejectRetry?.());
+  await expect(page.getByRole('status')).toContainText('저장됨');
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
 test('owner namespaces isolate identical project ids and clear stale reads on account change', async ({ page }) => {

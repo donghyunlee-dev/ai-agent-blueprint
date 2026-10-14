@@ -14,6 +14,7 @@
 
 - `ProjectRepository` 인터페이스의 IndexedDB 구현(namespace, `schemaVersion`, 트랜잭션)
 - 프로젝트 aggregate + activity 단일 트랜잭션 저장, 500ms debounce 자동 저장
+- 현재 프로젝트 화면에서 canonical `BlueprintProject.title` 편집과 500ms debounce 자동 저장 제공. 다른 UI 전용 필드는 저장 aggregate에 추가하지 않는다.
 - 최근 프로젝트 목록(수정 시간순, 최초 6개 + 전체 보기, 최대 20개)
 - 21번째 생성 시 삭제 확인 모달과 승인된 삭제 후 생성 처리
 - 새로고침 후 마지막 프로젝트/저장 상태 복구(localStorage에는 마지막 projectId·활성 탭·UI 설정만)
@@ -105,6 +106,8 @@ flowchart TD
 
 Given 사용자가 프로젝트를 편집하고, when 500ms 동안 추가 입력이 없으면, then 자동 저장이 실행되고 저장 상태가 `저장됨 · HH:mm`으로 바뀐다.
 
+Given 사용자가 프로젝트 화면에서 canonical title을 편집하면, when 입력이 500ms 동안 멈추면, then 최신 title이 저장되고 화면에 저장 상태가 표시되며, 저장 실패 시 입력을 유지하고 재시도할 수 있다.
+
 Given 사용자가 저장된 프로젝트에서 새로고침하면, when 앱이 다시 부팅되면, then 마지막 프로젝트와 마지막 저장 상태가 복구된다.
 
 ### Failure Case
@@ -156,8 +159,8 @@ Given 사용자가 19개 이하의 프로젝트를 가지고 있으면, when 새
 
 ## UI 증거 계획
 
-- desktop 1440×900: 최근 프로젝트 0/6/20개 목록, 21번째 삭제 확인 모달, 저장 중/저장됨/저장 실패 상태
-- mobile 390×844: 최근 프로젝트 목록, 삭제 확인 모달
+- desktop 1440×900: 최근 프로젝트 0/6/20개 목록, 21번째 삭제 확인 모달, 프로젝트 title editor의 저장 중/저장됨/저장 실패 상태
+- mobile 390×844: 최근 프로젝트 목록, 삭제 확인 모달, project title editor와 저장 상태
 - Playwright Chromium으로 모달 포커스 트랩과 취소/확인 키보드 동작을 검증한다. Agent Browser tool과 실행 파일의 사용 가능 여부를 확인해 기록하고, unavailable이면 workflow 정책대로 Playwright 결과를 사용한다.
 - 최종 HEAD 캡처는 `.pr-artifacts/PRJ-PR-02/`에 수집해 PR에서 확인 가능하게 첨부한다. 1440×900 및 390×844에서 실제 0/6/20개·modal·저장 상태를 확인한다.
 

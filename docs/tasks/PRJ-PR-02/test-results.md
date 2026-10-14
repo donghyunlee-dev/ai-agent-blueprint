@@ -4,12 +4,22 @@
 
 | Command | Result |
 | --- | --- |
-| `npm run test:unit` | Passed: 121/121 unit and contract tests. |
-| `npm run test:e2e:ci -- tests/e2e/prj-pr02.spec.ts --workers=1` | Passed: 16/16 PRJ-02 Playwright Chromium cases across desktop 1440×900 and mobile 390×844. |
-| `npm run test:ci` | Passed: unit/contract 121/121, full Playwright E2E 76/76, production build. The E2E script runs with one worker. |
+| `npm run test:unit` | Passed: 122/122 unit and contract tests. |
+| `npm run test:e2e:ci -- tests/e2e/prj-pr01.spec.ts` | Passed: 24/24 PRJ-01 Playwright Chromium cases across desktop and mobile. |
+| `npm run test:e2e:ci -- tests/e2e/prj-pr02.spec.ts` | Passed: 22/22 PRJ-02 Playwright Chromium cases across desktop 1440×900 and mobile 390×844. |
+| `npm run test:ci` | Passed: unit/contract 122/122, full Playwright E2E 82/82, production build. The E2E script runs with one worker. |
 | `git diff --check` | Passed after the validation run. |
 
 The E2E default was reduced from two workers to one in `package.json`. The full suite first ran with two workers and passed 73/76; three failures were resource-sensitive browser checks (two PRJ-02 20-item full-page screenshot/interaction timeouts and one PRJ-01 history navigation save-status timeout). The 20-item evidence was changed to viewport screenshots while retaining list-count assertions. Serial E2E then passed 76/76, and literal `npm run test:ci` passed after setting the CI default to one worker.
+
+## Independent-review correction pass
+
+- Released the project-creation submission lock when an owner switch invalidates an in-flight confirmed-delete operation. A delayed-delete Playwright regression verifies the new owner can submit afterward.
+- Guarded project load, autosave, and retry completions by owner, project, attempt, and effect generation. A deferred retry regression switches from owner A to B before rejecting A's save and verifies B's saved state remains unchanged.
+- Wired the 500 ms debounced autosaver to the canonical project title. The editor preserves invalid input and unsaved drafts, shows saving/saved/failed states, and offers explicit retry. Unit coverage verifies edits made during retry are persisted as the latest snapshot.
+- Added Playwright saved and failed-title screenshots for desktop and mobile; see the evidence index.
+
+The correction pass's focused autosave unit suite passed 3/3, its race/title E2E subset passed 6/6, and final literal `npm run test:ci` passed with 122 unit/contract tests and 82 Playwright tests plus production build.
 
 ## Browser evidence
 

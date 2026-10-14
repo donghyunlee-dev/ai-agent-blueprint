@@ -4,6 +4,7 @@ import type { ProjectSummary } from '../../domain/blueprint/types.js';
 import { projectLimitDecision } from '../../features/projects/projectAggregate.js';
 import { getLastProjectId, persistProjectCreation } from '../../features/projects/persistProjectCreation.js';
 import { getIndexedDbProjectRepository } from '../../infrastructure/storage/indexeddb-project-repository.js';
+import type { ProjectRepository } from '../../infrastructure/storage/indexeddb-project-repository.js';
 import { createProject } from '../../features/projects/createProject.js';
 import type { CreateProjectInput, CreatedProjectBundle } from '../../features/projects/createProject.js';
 import '../../styles/project-composer.css';
@@ -19,10 +20,12 @@ export function ProjectComposer({
   ownerKey,
   onCreated,
   createCommand = createProject,
+  repositoryFactory = getIndexedDbProjectRepository,
 }: {
   ownerKey: string | null;
   onCreated: (projectId: string) => void;
   createCommand?: CreateCommand;
+  repositoryFactory?: () => ProjectRepository;
 }) {
   const [idea, setIdea] = useState('');
   const [hasBlurred, setHasBlurred] = useState(false);
@@ -70,7 +73,7 @@ export function ProjectComposer({
     setSaveFailed(false);
     setIsPending(true);
     try {
-      const repository = getIndexedDbProjectRepository();
+      const repository = repositoryFactory();
       const summaries = await repository.list(ownerKey);
       if (ownerKeyRef.current !== ownerKey) { submissionLocked.current = false; setIsPending(false); return; }
       const decision = projectLimitDecision(summaries, getLastProjectId());
@@ -123,11 +126,11 @@ export function ProjectComposer({
     setIsDeleting(true);
     setDeleteError('');
     submissionLocked.current = true;
-    const repository = getIndexedDbProjectRepository();
-    if (ownerKeyRef.current !== ownerKey) { setIsDeleting(false); return; }
+    const repository = repositoryFactory();
+    if (ownerKeyRef.current !== ownerKey) { submissionLocked.current = false; setIsDeleting(false); return; }
     try {
       await repository.delete(ownerKey, limitProject.id);
-      if (ownerKeyRef.current !== ownerKey) { setLimitProject(null); setIsDeleting(false); return; }
+      if (ownerKeyRef.current !== ownerKey) { submissionLocked.current = false; setLimitProject(null); setIsDeleting(false); return; }
     } catch {
       setDeleteError('프로젝트를 삭제하지 못해 새 프로젝트를 만들지 않았습니다. 기존 프로젝트는 유지됩니다. 다시 시도하거나 취소해 주세요.');
       submissionLocked.current = false;
