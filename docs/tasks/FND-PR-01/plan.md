@@ -2,7 +2,7 @@
 
 ## 상태
 
-**IN_PROGRESS** — implementation is complete and self-validation passed; independent review and QA are running.
+**READY_TO_MERGE** — implementation, self-validation, independent review, independent QA, and configured checks passed on the recorded code/evidence HEAD.
 
 ## 사용자/시스템 결과
 
