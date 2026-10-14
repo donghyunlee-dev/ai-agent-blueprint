@@ -19,6 +19,7 @@
 - product/13에 지정된 provider task별 strict JSON Schema와 8종 normalized DisplayBlock payload contract
 - `/turn`의 중첩 transport projection(`ProjectContext`, `UserAnswer`, `ContextMessage`, `DesignItemContext`, `SourceExcerpt`)을 product/06에 정의된 정확한 field set으로 strict schema/validation; 다른 문서 API는 기존 명명 field만 검증하며 public transport DTO와 provider payload schema를 분리
 - `AiTaskType`, `LIGHT/DEFAULT/FINAL` model registry, task별 token 상한 정의
+- prompt registry는 task/version/schema/model-profile metadata(`PromptDefinitionMetadata`)만 제공. product/13의 canonical `PromptDefinition<TInput, TOutput>`에 포함된 executable `buildInput`/`validateDomain` 함수와 실제 task input builder는 AI-PR-01에서 구현
 - 현재 product/13에 정의된 13개 `AiTaskType`만 provider registry에 포함. `setup_guide`는 `DocumentType` enum과 generate API에서 허용 가능한 문서 유형이지만, `SETUP_GUIDE_DRAFT` task/schema/prompt는 GDE-PR-01이 registry 등록을 완료할 때까지 제외
 - 허용 `DisplayBlock` 8종 타입과 렌더링 검증용 판별 로직(실제 UI 렌더러는 이후 PR)
 - 정상/부분 응답/빈 제안/잘못된 응답 fixture와 계약 테스트
@@ -80,7 +81,7 @@
 ### FND-004 Agent 계약
 
 1. `src/infrastructure/ai/schemas/`에 `QUESTION_COMPOSE`, `QUESTION_EXPLAIN`, `TURN_ANALYZE`, `OPTION_RECOMMEND`, `REQUIREMENTS_DRAFT`, `PRD_DRAFT`, `DOCUMENT_PATCH`, `CONSISTENCY_REVIEW`의 provider JSON Schema를 `additionalProperties: false`로 작성
-2. 현재 product/13 `AiTaskType` 13종과 `promptId`/`promptVersion`/`schemaId`/`schemaVersion`/`modelProfile` 필드를 가진 `PromptDefinition<TInput, TOutput>` registry 골격 작성(`docs/product/13-prompt-and-response-contracts.md:31-40` 참고). `SETUP_GUIDE_DRAFT`는 GDE-PR-01에서 task/schema/prompt가 정식 등록된 뒤 후속 범위로 추가
+2. 현재 product/13 `AiTaskType` 13종을 대상으로 `promptId`/`promptVersion`/`schemaId`/`schemaVersion`/`modelProfile` metadata만 가진 `PromptDefinitionMetadata` registry 작성(product/13의 canonical `PromptDefinition` metadata subset). 이 PR은 `buildInput`/`validateDomain` 구현이나 task별 executable input builder를 포함하지 않으며, 해당 함수 계약 구현은 [AI-PR-01](../AI-PR-01/plan.md) 소유. `SETUP_GUIDE_DRAFT`는 GDE-PR-01에서 task/schema/prompt가 정식 등록된 뒤 후속 범위로 추가
 3. `AiModelRegistry`에 `LIGHT`/`DEFAULT`/`FINAL` profile과 `docs/product/12-ai-orchestration-and-model-policy.md`의 작업별 `maxInput`/`maxOutputTokens`/`reasoning` 표를 그대로 값으로 이식
 4. `DisplayBlock` 8종 유니온 타입(`assistant_text`, `question`, `explanation`, `recommendation`, `proposal_summary`, `conflict_notice`, `readiness_notice`, `next_action`)과 응답당 최대 6개 block, `question` block 최대 1개 제약을 검증하는 함수 작성
 5. provider block과 normalized UI block을 구분해 validator가 task별 허용 producer block만 받게 함. `question`의 immutable QuestionSpec ID/topic/form/stable value는 catalog에서 결합하고 AI가 수정할 수 없음
@@ -135,6 +136,8 @@ FND-PR-02 does not create unnamed transport fields or revise endpoint business b
 
 The `AiResponseEnvelope` is application-owned: provider schemas reject envelope metadata (`task`, versions, revision, references, and warnings). `AiWarning` fixtures validate only sanitized `{code, severity, message}` values. `documentType` validation uses the existing `DocumentType` enum, including `setup_guide`, without inventing a `SETUP_GUIDE_DRAFT` provider task in this PR.
 
+The FND prompt registry tests validate metadata completeness and referential consistency for each of the current 13 tasks. They do not require executable `buildInput` or `validateDomain` functions; the canonical function-bearing `PromptDefinition<TInput, TOutput>` contract remains as defined in product/13 and its implementation belongs to AI-PR-01.
+
 The `/turn` contract tests validate each nested projection against its named source fields: `ProjectContext` contains only project ID/title and the request's `ContextManifest.designRevision`; `UserAnswer` contains the user-authored `QuestionAnswer` fields but no storage/server metadata; `ContextMessage` permits only user/assistant text/question messages; `DesignItemContext` is built only from confirmed items and its six declared fields; `SourceExcerpt` contains an excerpt ID, ready source document ID, text, and optional location. Each schema rejects additional properties, especially `ownerKey`, credentials, and secrets.
 
 ### Failure Case
@@ -158,6 +161,7 @@ Given 한 응답에 `question` block이 2개 포함된 fixture가 주어졌을 �
 - `src/domain/blueprint/*.ts` (타입, 상태 전이 함수)
 - `src/infrastructure/ai/schemas/*.ts` (task-specific provider JSON Schema and named HTTP DTO boundary schemas)
 - `src/infrastructure/ai/model-registry.ts`
+- `src/infrastructure/ai/prompt-registry.ts` (metadata-only `PromptDefinitionMetadata`; executable prompt functions belong to AI-PR-01)
 - `src/infrastructure/ai/display-block.ts`
 - `src/infrastructure/ai/context-manifest.ts`
 - `tests/domain/*.test.ts`, `tests/contract/*.test.ts` (디렉터리는 `FND-PR-03`에서 정식 구성되므로 이 PR에서는 임시 위치에 작성 후 다음 PR에서 이동 가능)
