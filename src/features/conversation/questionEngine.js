@@ -125,7 +125,7 @@ export function selectNextQuestion(aggregate) {
 
 export function resolveQuestionForDisplay(spec, displayedCatalogVersion = DEFAULT_VERSION) {
   validateQuestionSpec(spec);
-  if (spec.catalogVersion && spec.catalogVersion !== displayedCatalogVersion) return { ...spec, answerMode: "text", options: [], safeTextFallback: true };
+  if (spec.catalogVersion && spec.catalogVersion !== displayedCatalogVersion) return { ...spec, answerMode: "text", allowedAnswerModes: ["text"], options: [], safeTextFallback: true };
   return spec;
 }
 

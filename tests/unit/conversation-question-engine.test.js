@@ -121,5 +121,9 @@ test('each answer mode accepts valid values and rejects missing, invalid, or out
   assert.equal(validateQuestionAnswer(optional, { action: 'skip' }).valid, true);
   assert.throws(() => getQuestionCandidates(aggregate(), { answerMode: 'agent_custom' }), /QUESTION_SCHEMA_INVALID/);
   assert.throws(() => resolveQuestionForDisplay({ ...base, answerMode: 'agent_custom' }), /QUESTION_SCHEMA_INVALID/);
-  assert.equal(resolveQuestionForDisplay({ ...base, catalogVersion: 'old' }).answerMode, 'text');
+  const staleMultiple = QUESTION_CATALOG.find(({ id }) => id === 'core-features');
+  const staleFallback = resolveQuestionForDisplay({ ...staleMultiple, catalogVersion: 'old' });
+  assert.equal(staleFallback.answerMode, 'text');
+  assert.deepEqual(staleFallback.allowedAnswerModes, ['text']);
+  assert.equal(validateQuestionAnswer(staleFallback, { action: 'answer', customText: '안전한 직접 입력' }).valid, true);
 });
