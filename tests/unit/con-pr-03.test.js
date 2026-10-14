@@ -46,3 +46,27 @@ test('context compaction preserves fact classes and source message IDs', () => {
  const result=compactConversationContext({threshold:2,messages:[{id:'m1',role:'user',content:'source'},{id:'m2',role:'assistant',content:'reply'},{id:'m3',role:'user',content:'recent'}],summary:{confirmedFacts:[{text:'확정',sourceMessageIds:['m1']}],explicitUnknowns:[{text:'미정',sourceMessageIds:['m2']}],rejectedDirections:[{text:'거절',sourceMessageIds:['m1']}],unresolvedQuestions:[{text:'질문',sourceMessageIds:['m2']}],sourceMessageIds:['m1','m2']}});
  assert.equal(result.compacted,true); assert.deepEqual(result.summary.sourceMessageIds,['m1','m2']); assert.equal(result.originalMessages.length,1); assert.equal(result.summary.confirmedFacts[0].text,'확정');
 });
+
+test('context compaction never truncates messages without a source-aware summary', async () => {
+  const messages=Array.from({length:30},(_,index)=>({id:`full-${index}`,role:'user',content:`message-${index}`}));
+  const result=compactConversationContext({messages,threshold:2});
+  assert.equal(result.compacted,false);
+  assert.deepEqual(result.originalMessages,messages);
+});
+
+test('unknown requests stay blocked through tombstone TTL and require state confirmation after expiry', async () => {
+  const {getUnknownRequestRecovery,UNKNOWN_REQUEST_TTL_MS}=await import('../../src/features/conversation/generation-job-view.js');
+  const job={status:'failed',errorCode:'AI_REQUEST_UNKNOWN',finishedAt:'2026-10-14T00:00:00.000Z'};
+  const started=Date.parse(job.finishedAt);
+  assert.equal(getUnknownRequestRecovery(job,started+UNKNOWN_REQUEST_TTL_MS-1,true).canStartNewIntent,false);
+  assert.equal(getUnknownRequestRecovery(job,started+UNKNOWN_REQUEST_TTL_MS,false).canStartNewIntent,false);
+  assert.equal(getUnknownRequestRecovery(job,started+UNKNOWN_REQUEST_TTL_MS,true).canStartNewIntent,true);
+});
+
+test('context compaction refuses a summary missing source IDs', () => {
+  const messages=Array.from({length:30},(_,index)=>({id:`m${index}`,role:'user',content:`x${index}`}));
+  const invalid={confirmedFacts:[{text:'known',sourceMessageIds:['unknown']}],explicitUnknowns:[],rejectedDirections:[],unresolvedQuestions:[],sourceMessageIds:[]};
+  const result=compactConversationContext({messages,summary:invalid,threshold:2});
+  assert.equal(result.compacted,false);
+  assert.equal(result.originalMessages.length,30);
+});

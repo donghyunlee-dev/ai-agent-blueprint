@@ -65,7 +65,7 @@
 
 - 사용자/Agent/질문/작업 상태/오류를 의미별 컴포넌트로 렌더링(Agent 메시지는 카드 없는 본문 흐름, 사용자 메시지는 우측 정렬 표면)
 - `GenerationJob` 단계(예: "답변 분석 중 → 관련 사용자 후보 확인 → 기능 후보 정리 중")를 실제 완료된 단계만 체크 표시, 가짜 퍼센트 금지
-- `CONTEXT_COMPACT` threshold 초과 시 오래된 메시지를 구조화 요약으로 대체하되 원문/요약을 시각적으로 구분
+- `CONTEXT_COMPACT` threshold 초과 시 validated, source-aware project summary가 있을 때만 오래된 원문을 요약+최근 메시지로 대체하고 시각적으로 구분한다. 그런 요약이 없거나 source ID 검증이 실패하면 모든 원문을 보존해 전송하며 오래된 메시지를 임의로 자르지 않는다.
 - 진행 중 작업의 취소 버튼과 `cancelled` 상태 반영(`CON-PR-01`의 job 상태 머신 소비)
 
 ## 프로세스 / 상태 전이
@@ -94,7 +94,8 @@ flowchart TD
     R --> S{사용자 취소?}
     S -- 예 --> T[job=cancelled 반영, 렌더 중단]
     S -- 아니오 --> U{대화 길이 threshold 초과?}
-    U -- 예 --> V[CONTEXT_COMPACT 트리거<br/>요약으로 대체, 원문 구분 표시]
+    U -- 예, 검증된 요약 있음 --> V[CONTEXT_COMPACT<br/>요약 + 최근 원문 표시]
+    U -- 예, 요약 없음/검증 실패 --> V2[전체 원문 보존]
     U -- 아니오 --> Q
 
     W[사용자가 AI 작업 전송] --> X{현재 consentVersion 승인됨?}
@@ -122,7 +123,8 @@ flowchart TD
 - Given persisting consent fails, when the user accepts, then no AI request is sent and the draft remains available.
 - Given 자유 답변 하나에서 서버가 4개 block과 2개 proposal을 반환하면, when 렌더러가 처리하면, then 6개 이하 제약을 만족하는 모든 block이 올바른 컴포넌트로 표시된다.
 - Given 작업이 정상 진행 중일 때, when GenerationJob 단계가 갱신되면, then 실제 완료된 단계만 체크 표시로 바뀐다.
-- Given 대화가 threshold를 초과하면, when CONTEXT_COMPACT가 트리거되면, then 오래된 메시지가 요약으로 대체되고 원문/요약이 시각적으로 구분된다.
+- Given 대화가 threshold를 초과하고 validated source-aware summary가 있으면, when CONTEXT_COMPACT가 트리거되면, then 오래된 메시지가 요약으로 대체되고 요약·최근 원문이 시각적으로 구분된다.
+- Given threshold를 초과했지만 validated summary가 없거나 source ID가 맞지 않으면, when 요청 context를 만들면, then 모든 원문 메시지를 보존하고 임의로 자르지 않는다.
 
 ### Failure Case
 
@@ -154,7 +156,7 @@ flowchart TD
 - block schema fixture 기반 렌더링 테스트: 8종 각각 정상 렌더, 알 수 없는 type 거절
 - 제약 테스트: 6개 초과 block, question 2개 이상, primary action 2개 이상 각각 거절
 - GenerationJob 단계 텍스트 테스트: 완료 전/후 상태 반영, 가짜 퍼센트 없음 검증
-- compaction tests: threshold crossing preserves confirmed/deferred/rejected facts and source message IDs and visibly separates summaries from originals (`docs/delivery/ai-model-prompt-and-evaluation.md` scenario 5)
+- compaction tests: valid source-aware summary preserves fact classes/source IDs and visibly separates summary from retained originals; absent or invalid summary preserves the full original context without truncation (`docs/delivery/ai-model-prompt-and-evaluation.md` scenario 5)
 - 취소 테스트: 취소 후 부분 렌더링 잔존 없음
 
 ## UI 증거 계획 (해당 시)

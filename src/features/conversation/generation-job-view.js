@@ -14,3 +14,11 @@ export function cancelGenerationJob(job) {
   if (!job || terminal.has(job.status)) return { job, blocks: [] };
   return { job: { ...job, status: 'cancelled', finishedAt: new Date().toISOString() }, blocks: [] };
 }
+
+export const UNKNOWN_REQUEST_TTL_MS = 24 * 60 * 60 * 1000;
+export function getUnknownRequestRecovery(job, now = Date.now(), confirmedCurrentState = false) {
+  if (!job || job.errorCode !== 'AI_REQUEST_UNKNOWN' || !job.finishedAt) return { blocked: false, expired: false, canStartNewIntent: true };
+  const expiresAt = Date.parse(job.finishedAt) + UNKNOWN_REQUEST_TTL_MS;
+  const expired = Number.isFinite(expiresAt) && now >= expiresAt;
+  return { blocked: !expired || !confirmedCurrentState, expired, expiresAt, canStartNewIntent: expired && confirmedCurrentState };
+}

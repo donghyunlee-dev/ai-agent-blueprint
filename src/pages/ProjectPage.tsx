@@ -49,6 +49,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const projectIdRef = useRef(projectId);
   const aggregateRef = useRef<BlueprintAggregate | null>(null);
   const attemptRef = useRef(attempt);
+  const activeTurnCancellationRef = useRef<{ jobId:string; abort:()=>void } | null>(null);
   const saverRef = useRef<ProjectSaver | null>(null);
   const conversationRef = useRef<HTMLElement | null>(null);
   const inspectorPanelRef = useRef<HTMLElement | null>(null);
@@ -248,6 +249,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   function cancelGenerationJob(job: BlueprintAggregate["generationJobs"][number]) {
     const latest = aggregateRef.current;
     if (!latest || job.status !== "running") return;
+    if (activeTurnCancellationRef.current?.jobId === job.id) {
+      activeTurnCancellationRef.current.abort();
+      return;
+    }
     const now = new Date().toISOString();
     const updated: BlueprintAggregate = {
       ...latest,
@@ -338,7 +343,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           <header className="workspace-panel-heading"><h1>대화</h1><span>초기 아이디어</span></header>
           <div className="workspace-conversation-content">
             {visibleSummary ? <ConversationSummary summary={visibleSummary} /> : null}
-            {visibleConversationMessages.filter((message) => message.role !== "user" || message.id !== aggregate.messages.find((item) => item.role === "user")?.id).map((message) => <article key={message.id} className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{message.blocks ? <DisplayBlocks blocks={message.blocks} questionCatalog={QUESTION_CATALOG} proposalIds={aggregate.proposals.map((proposal) => proposal.id)} /> : <p>{message.content}</p>}</article>)}
+            {visibleConversationMessages.filter((message) => message.role !== "user" || message.id !== aggregate.messages.find((item) => item.role === "user")?.id).map((message) => <article key={message.id} className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{message.blocks ? <DisplayBlocks blocks={message.blocks} questionCatalog={QUESTION_CATALOG} proposalIds={aggregate.proposals.map((proposal) => proposal.id)} onQuestionSubmit={(question,answer,mode)=>saveQuestionAnswer(question,answer,mode)} /> : <p>{message.content}</p>}</article>)}
             {aggregate.generationJobs.filter((job) => job.status === "queued" || job.status === "running").map((job) => <GenerationJobStatus key={job.id} job={job} onCancel={cancelGenerationJob} />)}
             <article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{visibleConversationMessages.find((message) => message.role === "user")?.content ?? (compactedConversation.compacted ? "요약 아래에 최근 대화가 표시됩니다." : "아직 대화가 없습니다.")}</p></article>
             <p className="workspace-next-hint">이 대화에서 요구사항을 구체화할 수 있습니다.</p>
@@ -349,7 +354,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
               return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{reviewRequired ? <p role="status">선행 답변 변경으로 다시 검토가 필요합니다.</p> : null}{answer.action === "defer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : answer.action === "answer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>수정</button> : null}</article>;
             })}</section> : null}
             {activeQuestion ? <QuestionCard key={`${activeQuestion.id}-${reopenedQuestionAnswerId ?? "next"}`} question={activeQuestion} onSubmit={(answer, effectiveAnswerMode) => saveQuestionAnswer(activeQuestion, answer, effectiveAnswerMode)} /> : <p className="question-complete-state" role="status">{aggregate.project.readiness.pendingProposalCount ? "제안 검토를 마치면 다음 질문이 이어집니다." : "현재 필요한 질문에 답했습니다."}</p>}
-            <AiTurnComposer aggregate={aggregate} projectId={aggregate.project.id} question={activeQuestion} onAggregateChange={applyAggregate} persistAggregate={persistAggregateNow} />
+            <AiTurnComposer aggregate={aggregate} projectId={aggregate.project.id} question={activeQuestion} onAggregateChange={applyAggregate} persistAggregate={persistAggregateNow} activeTurnCancellationRef={activeTurnCancellationRef} onQuestionSubmit={saveQuestionAnswer} />
           </div>
         </section>
         <button className="workspace-resizer" type="button" role="separator" aria-orientation="vertical" aria-label="대화 패널 너비" aria-valuemin={320} aria-valuemax={420} aria-valuenow={conversationWidth} onKeyDown={(event) => {
