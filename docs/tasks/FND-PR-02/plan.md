@@ -16,7 +16,8 @@
 
 - `BlueprintProject`, `ConversationThread`, `ConversationMessage`, `QuestionAnswer`, `SourceDocument`, `DesignItem`, `EvidenceRef`, `AcceptanceCriterion`, `ChangeProposal`, `GeneratedDocument`, `DocumentSection`, `GenerationJob`, `AiRequestLedgerEntry`, `ContextManifest`, `ReadinessSummary`, `ActivityEntry` TypeScript 타입
 - 상태 전이 검증 함수(UI·저장 구현에 비의존)
-- `turn`, `documents/generate`, `documents/patch`, `review` API의 strict JSON Schema
+- product/13에 지정된 provider task별 strict JSON Schema와 8종 normalized DisplayBlock payload contract
+- 이미 field가 지정된 `/turn`, `/documents/generate`, `/documents/patch`, `/review` HTTP request/response DTO의 strict schema/validation. 문서에 없는 HTTP field는 추가하지 않으며, public transport DTO와 provider payload schema를 분리
 - `AiTaskType`, `LIGHT/DEFAULT/FINAL` model registry, task별 token 상한 정의
 - 허용 `DisplayBlock` 8종 타입과 렌더링 검증용 판별 로직(실제 UI 렌더러는 이후 PR)
 - 정상/부분 응답/빈 제안/잘못된 응답 fixture와 계약 테스트
@@ -77,13 +78,16 @@
 
 ### FND-004 Agent 계약
 
-1. `src/infrastructure/ai/schemas/`에 `TURN_ANALYZE`, `documents/generate`, `documents/patch`, `CONSISTENCY_REVIEW`의 JSON Schema를 `additionalProperties: false`로 작성
+1. `src/infrastructure/ai/schemas/`에 `QUESTION_COMPOSE`, `QUESTION_EXPLAIN`, `TURN_ANALYZE`, `OPTION_RECOMMEND`, `REQUIREMENTS_DRAFT`, `PRD_DRAFT`, `DOCUMENT_PATCH`, `CONSISTENCY_REVIEW`의 provider JSON Schema를 `additionalProperties: false`로 작성
 2. `AiTaskType` 전체 13종과 `promptId`/`promptVersion`/`schemaId`/`schemaVersion`/`modelProfile` 필드를 가진 `PromptDefinition<TInput, TOutput>` registry 골격 작성(`docs/product/13-prompt-and-response-contracts.md:31-40` 참고)
 3. `AiModelRegistry`에 `LIGHT`/`DEFAULT`/`FINAL` profile과 `docs/product/12-ai-orchestration-and-model-policy.md`의 작업별 `maxInput`/`maxOutputTokens`/`reasoning` 표를 그대로 값으로 이식
 4. `DisplayBlock` 8종 유니온 타입(`assistant_text`, `question`, `explanation`, `recommendation`, `proposal_summary`, `conflict_notice`, `readiness_notice`, `next_action`)과 응답당 최대 6개 block, `question` block 최대 1개 제약을 검증하는 함수 작성
-5. `ContextManifest`, `AiRequestLedgerEntry` 타입을 데이터 명세와 동일하게 작성
-6. 정상/부분 응답/빈 제안/잘못된 응답(추가 필드, 알 수 없는 enum, 존재하지 않는 참조 ID, 6개 초과 block) fixture와 이를 거절하는 검증 테스트 작성
-7. plan 실패 시 draft 미호출, repair 1회 제한, hard budget 초과 시 차단하는 fixture와 테스트 작성
+5. provider block과 normalized UI block을 구분해 validator가 task별 허용 producer block만 받게 함. `question`의 immutable QuestionSpec ID/topic/form/stable value는 catalog에서 결합하고 AI가 수정할 수 없음
+6. `ProposalPayload`는 ChangeProposal의 모델 작성 가능 필드만 사용하고 server ID/status/time 필드는 거절; evidence/source/item/proposal 참조를 실제 request context와 대조
+7. `DocumentSectionDraft`, Requirements/PRD draft, patch proposal, consistency review payload를 product/13의 명시적 field sets로 JSON Schema 작성
+8. `ContextManifest`, `AiRequestLedgerEntry` 타입을 data spec과 동일하게 작성
+9. 정상/부분/빈/잘못된 응답(추가 속성, 알 수 없는 enum, 누락 필드, context 외 ID, block 상한 초과) fixture 및 거절 테스트 작성
+10. plan 실패 시 draft 미호출, repair 1회 제한, hard budget 초과 시 차단하는 fixture와 테스트 작성
 
 ## 프로세스 / 상태 전이
 
@@ -101,6 +105,32 @@
 Given ready project fixture가 주어졌을 때, then `project.readiness.state`는 `"ready"`이고 `pendingProposalCount`/`conflictCount`는 0이며 `ReadinessSummary`에는 숫자 score가 없다. 이 PR은 readiness 계산 engine을 구현하지 않고 contract shape만 확정한다.
 
 Given 정상 `TURN_ANALYZE` 응답 fixture가 주어졌을 때, when schema 검증을 실행하면, then 통과하고 `proposals` 배열의 각 항목이 하나의 대상·하나의 의도만 가진다.
+
+Given 각각의 8가지 normalized block fixture가 주어졌을 때, when block schema 검증을 하면, then 아래 출처에 맞는 필드만 통과한다. provider schema는 product/13의 task별 허용 subset만 받으며 application block은 앱 코드만 생성한다.
+
+| block | 필드 contract | producer / 근거 |
+| --- | --- | --- |
+| `assistant_text` | `content` (`ConversationMessage.content`) | permitted task; data spec message shape |
+| `question` | completed block은 `QuestionSpec` 전체; provider composition은 `prompt`, optional `help`, `QuestionOption[]` | code가 immutable contract/stable values 결합; product/04 + product/15 |
+| `explanation` | `title`, `summary`, `comparisons[]`, optional `example`, `returnToQuestionId` | `QUESTION_EXPLAIN`; product/13 payload |
+| `recommendation` | `questionId`, `recommendedValue`, `rationale`, `tradeoffs[]`, `assumptions[]` | `OPTION_RECOMMEND`; product/13 payload |
+| `proposal_summary` | validated `proposalIds[]` only | application; product/13 + UI-CONV-005 |
+| `conflict_notice` | validated `proposalIds[]` only | application after before-value check; process/03 + product/13 |
+| `readiness_notice` | `ReadinessSummary` | application only; product/05 + process/04 |
+| `next_action` | typed allowlisted `action` | application projection of process state; process/02, process/05, process/01 and UI/04 |
+
+### API Contract Acceptance
+
+Given each documented HTTP operation's request and response fixture is validated, then exactly its documented names/requiredness/value restrictions pass with no extra properties. The HTTP tests do not mistake an inner provider payload for the public DTO.
+
+| HTTP operation | Exact source contract used by tests |
+| --- | --- |
+| `POST /api/blueprint/turn` | `TurnRequest` / `TurnResponse` fields in product/06 architecture |
+| `POST /api/blueprint/documents/generate` | `documentType`, `designRevision` from DOC-PR-01/02; response `AiResponseEnvelope` and typed draft payload from DOC-PR-01/product/13 |
+| `POST /api/blueprint/documents/patch` | `{documentId, targetSectionIds[] or targetRequirementIds[], instruction?}` request and `ProposalPayload[]` response from DOC-PR-03 |
+| `POST /api/blueprint/review` | `{requirementsDocumentId, prdDocumentId}` request and `{type, location, sourceItemIds[], proposal?}[]` response from DOC-PR-03 |
+
+FND-PR-02 does not create unnamed transport fields or revise endpoint business behavior. Any additional provider payload field is permitted only when product/13 records the source contract; this plan's sources are product/04–06, 13, 15; process/01–05; UI/02 and the owning DOC task plans.
 
 ### Failure Case
 
@@ -121,7 +151,7 @@ Given 한 응답에 `question` block이 2개 포함된 fixture가 주어졌을 �
 ## 예상 변경 파일
 
 - `src/domain/blueprint/*.ts` (타입, 상태 전이 함수)
-- `src/infrastructure/ai/schemas/*.ts` (JSON Schema)
+- `src/infrastructure/ai/schemas/*.ts` (task-specific provider JSON Schema and named HTTP DTO boundary schemas)
 - `src/infrastructure/ai/model-registry.ts`
 - `src/infrastructure/ai/display-block.ts`
 - `src/infrastructure/ai/context-manifest.ts`
@@ -131,6 +161,8 @@ Given 한 응답에 `question` block이 2개 포함된 fixture가 주어졌을 �
 
 - 도메인 상태 전이 단위 테스트(허용/거절 양쪽)
 - Agent 요청/응답 schema 계약 테스트(정상/부분/빈/오류 fixture)
+- 각 normalized block 8종의 valid/invalid schema fixture 및 producer ownership rejection (model provider가 code-only block을 반환하면 거절)
+- documented HTTP request/response contract fixture for all four operations, with extra-property and required-field rejection
 - block 개수 상한(6) 경계 테스트(6/7개)
 - proposal 개수 상한(8) 경계 테스트(8/9개)
 - budget/repair 1회 제한 fixture 테스트
