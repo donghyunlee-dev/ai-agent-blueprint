@@ -91,6 +91,11 @@ test("Blueprint 로그아웃은 사용자 메뉴에서 한 번만 수행되고 �
   await expect(page.locator(".survey-header")).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+  await page.evaluate(() => {
+    sessionStorage.setItem("windsoft-agent-blueprint:prd-context", "current-user-context");
+    sessionStorage.setItem("sfood-agent-blueprint:prd-context", "legacy-context");
+    sessionStorage.setItem("other-app-state", "preserve");
+  });
   await page.getByRole("button", { name: /verified@example\.test/ }).click();
   await expect(page.getByText("이 작업은 Google 계정에서 로그아웃하지 않습니다.")).toBeVisible();
   await page.screenshot({ path: `.pr-artifacts/AUTH-PR-02/${testInfo.project.name}-account-menu.png`, fullPage: true, scale: "css" });
@@ -98,8 +103,14 @@ test("Blueprint 로그아웃은 사용자 메뉴에서 한 번만 수행되고 �
     button.click();
     button.click();
   });
+  await page.waitForURL("**/login");
   await expect(page.getByRole("heading", { name: "Agent Blueprint" })).toBeVisible();
   expect(logoutCalls).toBe(1);
+  expect(await page.evaluate(() => [
+    sessionStorage.getItem("windsoft-agent-blueprint:prd-context"),
+    sessionStorage.getItem("sfood-agent-blueprint:prd-context"),
+    sessionStorage.getItem("other-app-state"),
+  ])).toEqual([null, null, "preserve"]);
   await page.keyboard.press("Alt+ArrowLeft");
   await expect(page.getByRole("heading", { name: "Agent Blueprint" })).toBeVisible();
   await expect(page.locator(".survey-header")).toHaveCount(0);
