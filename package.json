@@ -8,9 +8,12 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "docs:check:mermaid": "node scripts/validate-mermaid.mjs",
+    "test": "npm run test:unit",
+    "test:watch": "node --test --watch \"tests/unit/**/*.test.js\" \"tests/contract/**/*.test.js\"",
     "test:unit": "node --test \"tests/unit/**/*.test.js\" \"tests/contract/**/*.test.js\"",
     "test:e2e": "playwright test",
-    "test:e2e:ci": "playwright test --reporter=line"
+    "test:e2e:ci": "playwright test --reporter=line,html --workers=2",
+    "test:ci": "npm run test:unit && npm run test:e2e:ci && npm run build"
   },
   "dependencies": {
     "@upstash/redis": "1.39.0",
