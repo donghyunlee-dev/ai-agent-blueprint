@@ -8,7 +8,7 @@ import "../../../src/styles/globals.css";
 import "../../../src/styles/home.css";
 
 declare global {
-  interface Window { releaseProjectCommand?: () => void; releaseDelete?: () => void; switchOwner?: () => void }
+  interface Window { releaseProjectCommand?: () => void; releaseDelete?: () => void; rejectDelete?: () => void; switchOwner?: () => void }
 }
 
 let calls = 0;
@@ -29,7 +29,10 @@ const raceRepository: ProjectRepository = {
   save: async () => {},
   delete: async () => {
     deleteCalls += 1;
-    if (deleteCalls === 1) await new Promise<void>((resolve) => { window.releaseDelete = resolve; });
+    if (deleteCalls === 1) await new Promise<void>((resolve, reject) => {
+      window.releaseDelete = resolve;
+      window.rejectDelete = () => reject(new Error("DELETE_RACE_REJECTED"));
+    });
   },
   migrate: async () => {},
 };
@@ -51,7 +54,7 @@ function Harness() {
       <header className="home-shell-header"><span className="home-shell-brand"><span className="home-shell-mark">W</span>Blueprint</span></header>
       <main className="home-shell-main" data-created-project="" data-owner={activeOwner}>
         <section className="home-shell-intro"><p className="home-shell-eyebrow">PRODUCT BLUEPRINT</p><h1>아이디어를 제품 설계로 구체화하세요</h1><p>AI와 함께 결정하고 Requirements와 PRD를 완성합니다.</p></section>
-        <ProjectComposer ownerKey={activeOwner} onCreated={(projectId) => { document.querySelector("main")?.setAttribute("data-created-project", projectId); }} createCommand={command} repositoryFactory={mode === "delete-race" ? () => raceRepository : undefined} />
+        <ProjectComposer ownerKey={activeOwner} onCreated={(projectId) => { document.querySelector("main")?.setAttribute("data-created-project", projectId); }} createCommand={command} repositoryFactory={mode?.startsWith("delete-race") ? () => raceRepository : undefined} />
       </main>
     </div>
   );

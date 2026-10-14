@@ -132,6 +132,13 @@ export function ProjectComposer({
       await repository.delete(ownerKey, limitProject.id);
       if (ownerKeyRef.current !== ownerKey) { submissionLocked.current = false; setLimitProject(null); setIsDeleting(false); return; }
     } catch {
+      if (ownerKeyRef.current !== ownerKey) {
+        submissionLocked.current = false;
+        setLimitProject(null);
+        setDeleteError('');
+        setIsDeleting(false);
+        return;
+      }
       setDeleteError('프로젝트를 삭제하지 못해 새 프로젝트를 만들지 않았습니다. 기존 프로젝트는 유지됩니다. 다시 시도하거나 취소해 주세요.');
       submissionLocked.current = false;
       setIsDeleting(false);

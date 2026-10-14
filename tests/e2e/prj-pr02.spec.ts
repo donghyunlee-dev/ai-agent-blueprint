@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
 
-declare global { interface Window { releaseProjectCommand?: () => void; releaseDelete?: () => void; switchOwner?: () => void; rejectRetry?: () => void } }
+declare global { interface Window { releaseProjectCommand?: () => void; releaseDelete?: () => void; rejectDelete?: () => void; switchOwner?: () => void; rejectRetry?: () => void } }
 
 const evidenceDirectory = path.resolve('.pr-artifacts/PRJ-PR-02');
 const identity = { issuer: 'https://accounts.google.com', subject: 'prj-qa-user', email: 'verified@example.test' };
@@ -69,6 +69,26 @@ test('owner switch while delete settles releases the composer lock for the new o
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
   await expect(dialog).toBeVisible();
   await expect(idea).toHaveValue('계정 전환 뒤에도 다시 제출할 수 있습니다.');
+});
+
+test('owner switch before delete rejection clears the previous owner modal and releases submission', async ({ page }) => {
+  await page.goto(`${composerOrigin}/tests/e2e/fixtures/project-composer-harness.html?mode=delete-race-reject`);
+  const idea = page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' });
+  await idea.fill('새 계정에서도 다시 제출할 수 있습니다.');
+  await page.getByRole('button', { name: 'Blueprint 시작' }).click();
+  const dialog = page.getByRole('dialog', { name: '오래된 프로젝트를 삭제하고 새로 만들까요?' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: '삭제하고 만들기' }).click();
+  await expect(dialog).toHaveAttribute('aria-busy', 'true');
+  await page.evaluate(() => window.switchOwner?.());
+  await expect(page.locator('main')).toHaveAttribute('data-owner', 'next-owner');
+  await page.evaluate(() => window.rejectDelete?.());
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText('경합 프로젝트 19')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Blueprint 시작' }).click();
+  await expect(dialog).toBeVisible();
+  await expect(idea).toHaveValue('새 계정에서도 다시 제출할 수 있습니다.');
 });
 
 test('recent projects sort by last opened and reveal six initially and at most twenty on demand', async ({ page }, testInfo) => {
