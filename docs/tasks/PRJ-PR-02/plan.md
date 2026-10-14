@@ -6,7 +6,7 @@
 
 ## Background
 
-`PRJ-PR-01`은 라우팅과 생성 커맨드를 in-memory stub으로 검증했다. 이 PR은 그 stub을 실제 IndexedDB 저장소로 교체하고, `DEC-001`/`DEC-011`(20개 제한과 확인 후 삭제)을 구현한다. 서버 DB가 없는 MVP 구조이므로(`docs/product/06-architecture.md`) 저장 실패·quota 초과·저장 중 새로고침 같은 실패 경로를 이 PR에서 견고하게 다뤄야 이후 단계(대화, 문서 생성)가 데이터 유실 위험 위에서 쌓이지 않는다.
+`PRJ-PR-01`은 생성 중 transient canonical entities와 ephemeral route lookup만 제공한다. 이 PR이 저장 계약을 정의하고 IndexedDB repository를 구현하며, `DEC-001`/`DEC-011`(20개 제한과 확인 후 삭제)을 완성한다. 서버 DB가 없는 MVP 구조이므로(`docs/product/06-architecture.md`) 저장 실패·quota 초과·저장 중 새로고침 같은 실패 경로를 이 PR에서 견고하게 다뤄야 이후 단계(대화, 문서 생성)가 데이터 유실 위험 위에서 쌓이지 않는다.
 
 ## Scope
 
@@ -36,12 +36,14 @@
 
 - `PRJ-PR-01`이 기본 브랜치에 병합된 상태여야 한다.
 - 인증된 사용자의 `ownerKey` 파생 규칙이 확정돼 있어야 한다(`AUTH-PR-03`).
-- `docs/product/06-architecture.md`의 `ProjectRepository` 인터페이스 정의와 충돌 없음을 확인한다.
+- `docs/product/06-architecture.md`의 `ProjectRepository` interface가 current canonical entities와 충돌 없는지 확인한다. 현재 `BlueprintAggregate` 반환/입력 타입의 실제 shape은 product/data source 어디에도 정의되어 있지 않다.
+- 구현 시작 전에 이 PR이 persisted `BlueprintAggregate` envelope를 `BlueprintProject`, `ConversationThread`, `ConversationMessage` 및 이 PR이 소유하는 persistent child entities로부터 명시적으로 정하고 `docs/product/05-data-spec.md`와 architecture interface에 반영한다. PRJ-PR-01은 transient create/navigation only로 두며 persisted envelope나 repository interface를 선행 정의하지 않는다.
 
 ## 작업 단위별 구현 개요
 
 **PRJ-103 IndexedDB 저장소**
 
+- Define and document the persisted `BlueprintAggregate` envelope before implementing IndexedDB serialization; do not infer its object shape from the currently undefined architecture placeholder.
 - `ownerKey` 기준 namespace와 `schemaVersion`을 가진 IndexedDB 스토어를 연다.
 - 모든 `list/get/save/delete`는 활성 인증 context의 `ownerKey`로 제한한다. 서로 다른 owner 간 프로젝트 ID를 공유하지 않으며 다른 owner의 직접 `get`은 `null`을 반환한다.
 - 계정 전환이 진행 중이거나 늦은 이전 owner 요청이 완료되어도 새 owner 화면에 이전 프로젝트를 열거나 표시하지 않는다.

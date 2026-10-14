@@ -4,7 +4,7 @@
 
 각 요구사항은 하나 이상의 개발 작업과 검증 증거를 가져야 한다. 구현 PR에서는 상태, PR unit, 코드 리뷰, QA와 기본 브랜치 병합 증거 링크를 갱신한다. 상세 상태와 순서는 [PR·리뷰·QA 반복 워크플로](development-pr-review-qa-workflow.md)를 따른다.
 
-FND-001~FND-004는 요구사항 ID가 아니라 delivery 작업 ID이며, FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8로 병합됐다. FND-005 테스트 기반은 다음 FND-PR-03에서 진행한다. 하위 작업의 진행 상태는 delivery workflow/task index에서 추적한다. 이 작업들이 연결된 NFR-001은 QLT-601 검증도 남아 있으므로 전체 요구사항 상태는 아직 `ready`다.
+FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/002는 FND-PR-01 PR #7, FND-003/004는 FND-PR-02 PR #8, FND-005 테스트 기반은 FND-PR-03 PR #9 (merge commit `d3e56d5`)로 병합됐다. 다음 순서인 PRJ-PR-01은 최신 `main` 기준 Definition of Ready를 충족해 `ready`다. 하위 작업의 진행 상태는 delivery workflow/task index에서 추적한다. 이 작업들이 연결된 NFR-001은 QLT-601 검증도 남아 있으므로 전체 요구사항 상태는 아직 `ready`다.
 
 | 요구사항 | 주 작업 | 핵심 검증 | 초기 상태 |
 | --- | --- | --- | --- |
