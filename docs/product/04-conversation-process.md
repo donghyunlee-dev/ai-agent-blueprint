@@ -35,7 +35,9 @@
 
 한 task 응답은 여러 표시 block을 포함할 수 있다. block은 `assistant_text`, `question`, `explanation`, `recommendation`, `proposal_summary`, `conflict_notice`, `readiness_notice`, `next_action`만 허용하며 세부 계약은 [프롬프트·응답 계약](13-prompt-and-response-contracts.md)을 따른다.
 
-## 대화 상태
+## 대화·화면 단계 (비영속 phase)
+
+아래 표는 사용자에게 제공할 행동을 설명하는 conversation/UI phase이며 `BlueprintProject.processState`의 저장 enum이나 별도 도메인 상태 머신이 아니다. 영속 project transition과 guard의 정본은 [프로세스 상태 머신](../process/02-state-machine.md)이다. `document_editing`은 현재 문서에 대응하는 `requirements_draft` 또는 `prd_draft`에서 표현하고, `completed`는 프로젝트 상태로 저장하지 않는다(PRD draft 생성 후에도 사용자는 검토·내보내기·대화를 계속할 수 있다). `error`는 [프로세스 상태 머신](../process/02-state-machine.md)의 재개 정보를 가진 작업 오류 overlay다.
 
 | 상태 | 진입 조건 | 사용자에게 제공할 행동 | 종료 조건 |
 | --- | --- | --- | --- |

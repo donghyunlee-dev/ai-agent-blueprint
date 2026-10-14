@@ -1,5 +1,7 @@
 # FND-PR-02 — 도메인·Agent 계약 확정
 
+> **상태: ready.** 저장소 계약상 `docs/process/02-state-machine.md`와 `docs/process/07-process-test-spec.md`가 실행 가능한 aggregate transition/test 기준이며 `docs/product/04-conversation-process.md`의 표는 비영속 conversation/UI phase다. `BlueprintProject.processState`의 저장 enum을 프로세스 상태 머신의 project aggregate subset으로 명확히 했고 앱 인증·홈·프로젝트 생성 lifecycle 및 오류 overlay를 제외했다.
+
 ## Overview
 
 도메인 타입·상태 enum(`BlueprintProject`, `DesignItem`, `ChangeProposal`, `GeneratedDocument` 등)과 Agent turn/document API의 strict JSON Schema, model registry, DisplayBlock/ContextManifest/AiRequestLedger 타입을 코드 계약으로 확정한다. 이 PR의 결과물은 화면이 아니라 "타입과 스키마가 요구사항·데이터 명세와 동일하다"는 검증 가능한 계약 테스트다.
@@ -37,17 +39,39 @@
 
 ## 선행 조건 (Definition of Ready)
 
-- `FND-PR-01`이 사용자에 의해 `merged` 상태로 전환됨
-- `docs/product/05-data-spec.md`, `docs/product/13-prompt-and-response-contracts.md`의 타입·필드명에 미해결 불일치가 없음(있으면 이 PR 착수 전 문서를 먼저 갱신)
+- `FND-PR-01`은 PR #7로 `origin/main` commit `276156e42c87c47dc036ccd227f272e6e38d4894`에 병합됨.
+- `docs/process/README.md`는 process 문서를 제품 규칙의 실행 가능한 전이·guard·테스트 기준으로 정하고 `docs/product/04-conversation-process.md`도 전이를 process docs에 위임한다. `docs/process/02-state-machine.md`와 `docs/process/07-process-test-spec.md`가 transition/test oracle이다.
+- `docs/product/05-data-spec.md`는 persisted project aggregate state만 `BlueprintProcessState`에 저장한다. `docs/product/04-conversation-process.md`의 `document_editing`/`completed`/`error`는 비영속 UI phase/overlay다. `PS_ERROR`도 재개 정보를 가진 overlay이며 저장하지 않는다.
+- `docs/product/05-data-spec.md`는 process/02의 project aggregate 상태를 명시된 persisted literals로 정규화했다. 앱 lifecycle인 `PS_AUTH_CHECK`, `PS_LOGIN`, `PS_AUTH_REDIRECT`, `PS_HOME`, `PS_PROJECT_CREATING`은 project enum에서 제외한다. `PS_EVALUATING`은 `evaluating`으로 포함한다.
+- `docs/product/05-data-spec.md`와 `docs/product/13-prompt-and-response-contracts.md`의 entity/payload 명세, `docs/product/12-ai-orchestration-and-model-policy.md`의 task/profile/token 표, `docs/product/14-ai-budget-evaluation-and-operations.md`의 project hard limit은 구현의 field/value source of truth로 사용한다. 확인 결과 registry의 task/profile/token 및 project budget 값은 구체적이다.
+- 실제 source에는 현재 legacy survey/conversation/PRD 타입만 있고 `src/domain/blueprint/` 및 AI schema/registry 계약은 없다. 기존 legacy 타입을 새 contract로 간주하지 말고 PRD 타입을 새로 구현한다.
+
+## Persisted state와 process transition 계약
+
+| Process state machine ID | persisted `BlueprintProcessState` | 저장 여부 |
+| --- | --- | --- |
+| `PS_INTAKE` | `intake` | yes |
+| `PS_EXTRACTING` | `extracting` | yes |
+| `PS_PROPOSAL_REVIEW` | `proposal_review` | yes |
+| `PS_CONFLICT_REVIEW` | `conflict_review` | yes |
+| `PS_EVALUATING` | `evaluating` | yes |
+| `PS_DISCOVERING` | `discovering` | yes |
+| `PS_DOCUMENT_READY` | `document_ready` | yes |
+| `PS_REQ_GENERATING` / `PS_REQ_DRAFT` / `PS_REQ_READY` | `requirements_generating` / `requirements_draft` / `requirements_ready` | yes |
+| `PS_PRD_GENERATING` / `PS_PRD_DRAFT` | `prd_generating` / `prd_draft` | yes |
+| `PS_AUTH_CHECK`, `PS_LOGIN`, `PS_AUTH_REDIRECT`, `PS_HOME`, `PS_PROJECT_CREATING` | — | no; app lifecycle, outside project aggregate |
+| `PS_ERROR` | — | no; operation overlay retains `resumeState` |
+
+`document_editing` in product/04 resolves to the applicable document draft state; `completed` is not persisted because PRD draft is not project completion. FND-003 transition tests use the complete transition edges and guards in process/02 (normalized through this mapping) and assert that every unspecified project-state pair is rejected without mutation. They also assert PS_ERROR/auth lifecycle events do not become persisted project states.
 
 ## 작업 단위별 구현 개요
 
 ### FND-003 도메인 타입과 상태
 
 1. `src/domain/blueprint/`에 위 인터페이스·유니온 타입을 데이터 명세와 동일한 필드명으로 작성
-2. 상태 전이 함수(`canTransition(from, to)` 형태)를 순수 함수로 작성해 React, fetch, IndexedDB에 의존하지 않게 함
+2. 상태 전이 함수(`transition(state, event, aggregateContext)` 형태)를 순수 함수로 작성해 process/02의 event/guard를 평가하고 다음 상태 또는 rejection을 반환하며 React, fetch, IndexedDB에 의존하지 않게 함
 3. 5개 필수 fixture 작성: 빈 프로젝트, 문서 생성 가능한 프로젝트, 미정이 있지만 생성 가능한 프로젝트, 처리되지 않은 제안이 있는 프로젝트, 충돌로 생성 불가능한 프로젝트
-4. 허용되지 않은 상태 전이(예: `intake` → `prd_draft` 직접 전이)를 거절하는 테스트 작성
+4. process/02에 정의된 모든 project aggregate event/guard 전이와 process/07의 핵심 불변식을 fixture test로 검증하고 미정의 전이를 거절
 5. `ReadinessSummary`에 숫자 score 필드가 없음을 타입 레벨에서 보장(리터럴 유니온 `"insufficient" | "workable" | "ready"`만 허용)
 6. 프로젝트당 `ConversationThread` 1개 제약을 도메인 command 레벨에서 검증하는 테스트 작성
 
@@ -63,30 +87,7 @@
 
 ## 프로세스 / 상태 전이
 
-`BlueprintProcessState`는 코드가 결정하는 상태이며 이 PR에서 "허용된 전이만" 계약으로 고정한다(`docs/product/05-data-spec.md:74-86`).
-
-```mermaid
-stateDiagram-v2
-    [*] --> intake
-    intake --> extracting: 자료 업로드
-    extracting --> discovering: 추출 완료
-    intake --> discovering: 자료 없이 진행
-    discovering --> proposal_review: AI 제안 수신
-    proposal_review --> discovering: 제안 처리 후 계속 질문
-    discovering --> conflict_review: 기존 확정값 충돌
-    conflict_review --> discovering: 충돌 해결
-    discovering --> document_ready: readiness 충족
-    document_ready --> requirements_generating: 생성 요청
-    requirements_generating --> requirements_draft: draft 완료
-    requirements_draft --> requirements_generating: repair 1회
-    requirements_draft --> [*]: requirements ready(사용자 확인)
-    note right of requirements_draft
-      ready 전환은 AI review 통과만으로
-      자동 발생하지 않는다(DEC-021)
-    end note
-```
-
-이 PR이 확정하는 것은 다이어그램의 화살표 = "허용된 전이 집합"이며, 그 외 전이는 `canTransition()`이 거절해야 한다. `prd_generating`/`prd_draft`는 `requirements` `ready` 이후에만 진입 가능(별도 PR인 `DOC-PR-02`에서 실제 구현, 이 PR은 타입과 가드 계약만 고정).
+순수 transition helper는 `docs/process/02-state-machine.md`의 project aggregate transition을 `BlueprintProcessState`로 매핑해 검사한다. UI Frame, 인증 lifecycle 전이, repository transaction은 이 PR의 helper에 포함하지 않는다. 실패 전이(`EV_TURN_FAILED`, `EV_GENERATION_FAILED`)는 저장 enum에 `PS_ERROR`를 쓰지 않고 기존 `resumeState`를 보존한 operation error result를 반환한다. process/02의 retry event는 해당 저장 상태로 돌아가는지 검증한다. Decision semantics와 guards는 process/02를 그대로 따르며 source docs에 없는 transition을 추가하지 않는다.
 
 ## 데이터/API 영향
 
@@ -97,7 +98,7 @@ stateDiagram-v2
 
 ### Happy Path
 
-Given 5개 필수 fixture 중 "문서 생성 가능한 프로젝트" fixture가 주어졌을 때, when readiness 계산 함수를 호출하면, then `state: "ready"`이고 `pendingProposalCount`/`conflictCount`가 모두 0이다.
+Given ready project fixture가 주어졌을 때, then `project.readiness.state`는 `"ready"`이고 `pendingProposalCount`/`conflictCount`는 0이며 `ReadinessSummary`에는 숫자 score가 없다. 이 PR은 readiness 계산 engine을 구현하지 않고 contract shape만 확정한다.
 
 Given 정상 `TURN_ANALYZE` 응답 fixture가 주어졌을 때, when schema 검증을 실행하면, then 통과하고 `proposals` 배열의 각 항목이 하나의 대상·하나의 의도만 가진다.
 
@@ -107,7 +108,7 @@ Given `additionalProperties`에 없는 필드를 포함한 응답이 주어졌�
 
 Given `ContextManifest`에 없는 `referencedItemIds`를 포함한 응답이 주어졌을 때, when 참조 검증을 실행하면, then 전체 응답이 거절된다.
 
-Given 허용되지 않은 상태 전이(예: `intake` → `requirements_draft`)를 시도했을 때, when `canTransition()`을 호출하면, then `false`를 반환하고 예외적으로 상태를 바꾸지 않는다.
+Given process/02에 정의된 project aggregate transition edge와 guard를 입력했을 때, when 순수 transition helper를 호출하면, then 각 edge의 지정된 next persisted state를 반환한다. process/02에 없는 state/event 조합은 거절되고 입력 aggregate는 변경되지 않는다. app lifecycle event는 project helper에서 거절한다. failure event는 `PS_ERROR`를 저장하지 않고 기존 `resumeState`의 process state를 보존하면서 operation error result를 반환하며, 정의된 retry event는 원래 작업 상태로 복귀한다. 테스트는 process/02의 edge/guard를 fixture matrix로 추적한다; 임의 전이를 acceptance oracle로 추가하지 않는다.
 
 ### Boundary
 
@@ -133,6 +134,10 @@ Given 한 응답에 `question` block이 2개 포함된 fixture가 주어졌을 �
 - block 개수 상한(6) 경계 테스트(6/7개)
 - proposal 개수 상한(8) 경계 테스트(8/9개)
 - budget/repair 1회 제한 fixture 테스트
+- task budget test는 `docs/product/14-ai-budget-evaluation-and-operations.md`의 정확한 경계를 사용한다: foreground calls 28/40, FINAL calls 1/2, input 300,000/500,000, output+reasoning 60,000/100,000, estimated cost USD 0.35/0.60; 요청 전 hard 초과 차단 및 task당 schema retry/document당 repair 1회. Hard limit을 임의의 placeholder로 쓰지 않는다.
+- process transition tests cover every project aggregate transition/guard in `docs/process/02-state-machine.md`, every unspecified project-state/event combination as rejected, failure overlay results that preserve `resumeState`, defined retry returns, and app lifecycle exclusion.
+
+현재 repo의 실행 명령은 `npm run test:unit` 및 `npm run build`다. 이 PR은 테스트 runner/CI script 자체를 추가하지 않으며, 새 계약 테스트는 기존 runner에서 실행 가능하게 배치한다. 브라우저 QA/UI 캡처는 계약 코드만 변경할 경우 해당 없음.
 
 ## UI 증거 계획
 

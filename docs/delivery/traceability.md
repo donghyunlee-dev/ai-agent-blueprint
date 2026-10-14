@@ -4,6 +4,8 @@
 
 각 요구사항은 하나 이상의 개발 작업과 검증 증거를 가져야 한다. 구현 PR에서는 상태, PR unit, 코드 리뷰, QA와 기본 브랜치 병합 증거 링크를 갱신한다. 상세 상태와 순서는 [PR·리뷰·QA 반복 워크플로](development-pr-review-qa-workflow.md)를 따른다.
 
+FND-001과 FND-002는 요구사항 ID가 아니라 delivery 작업 ID이며 FND-PR-01로 완료되어 PR #7에 병합됐다. 하위 작업의 진행 상태는 delivery workflow/task index에서 추적한다. 이 작업들이 연결된 NFR-001은 QLT-601 검증도 남아 있으므로 전체 요구사항 상태는 아직 `ready`다.
+
 | 요구사항 | 주 작업 | 핵심 검증 | 초기 상태 |
 | --- | --- | --- | --- |
 | BRD-001 | BRD-PR-01 | UI·앱 식별자의 Windsoft 표기, 기존 브라우저 데이터 보존 | done (PR #4) |
