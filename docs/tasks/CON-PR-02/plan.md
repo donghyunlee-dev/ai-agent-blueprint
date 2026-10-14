@@ -150,9 +150,9 @@ flowchart TD
 
 - [x] Requirements implemented
 - [x] Acceptance criteria verified by focused unit and browser checks
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 변경된 interaction과 직접 영향받는 접근성/반응형 동작 확인(캡처 선택)
+- [x] 독립 코드 리뷰 pass
+- [x] 독립 QA pass
+- [x] 변경된 interaction과 직접 영향받는 접근성/반응형 동작 확인(캡처 선택)
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서
