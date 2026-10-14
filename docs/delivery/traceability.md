@@ -6,7 +6,7 @@
 
 | 요구사항 | 주 작업 | 핵심 검증 | 초기 상태 |
 | --- | --- | --- | --- |
-| BRD-001 | BRD-PR-01 | UI·앱 식별자의 Windsoft 표기, 기존 브라우저 데이터 보존 | in_progress |
+| BRD-001 | BRD-PR-01 | UI·앱 식별자의 Windsoft 표기, 기존 브라우저 데이터 보존 | done (PR #4) |
 | AI-001 | AI-001 | task/profile/model/reasoning routing | ready |
 | AI-002 | AI-002, AI-009 | prompt/schema version과 변경 gate | ready |
 | AI-003 | AI-004 | 6개 block, 8개 proposal 상한, 임의 UI 거절 | ready |
@@ -17,11 +17,11 @@
 | AI-008 | AI-008 | usage·latency 원장, 원문 미기록 | ready |
 | AI-009 | AI-009 | golden eval과 금지 결과 0건 | ready |
 | AI-010 | AI-003, AI-010 | store=false, retry/circuit 복구 | ready |
-| AUTH-001 | AUTH-PR-02 | Google 로그인 시작, 보호 경로와 safe returnTo | planned |
-| AUTH-002 | AUTH-PR-01 | OIDC claim 검증, state/nonce 오류, session cookie | blocked: Google OAuth setup |
-| AUTH-003 | AUTH-PR-02 | 보호 화면과 직접 API 401 | planned |
-| AUTH-004 | AUTH-PR-02 | 사용자 표시, 만료, 멱등 logout | planned |
-| AUTH-005 | AUTH-PR-03 | `(issuer, sub)` owner namespace 격리 | planned |
+| AUTH-001 | AUTH-PR-02 | Google 로그인 시작, 보호 경로와 safe returnTo | done (PR #5) |
+| AUTH-002 | AUTH-PR-01 | OIDC claim 검증, state/nonce 오류, session cookie | done (PR #3) |
+| AUTH-003 | AUTH-PR-02 | 보호 화면과 직접 API 401 | done (PR #5) |
+| AUTH-004 | AUTH-PR-02 | 사용자 표시, 만료, 멱등 logout | done (PR #5) |
+| AUTH-005 | AUTH-PR-03, PRJ-PR-02 | identity owner context와 lifecycle; IndexedDB list/get/save/delete 격리 | in_progress |
 | PJT-001 | PRJ-102 | 제목 있음/없음, 중복 생성 | ready |
 | PJT-002 | PRJ-103, PRJ-105 | 자동 저장, 실패, 새로고침 | ready |
 | PJT-003 | PRJ-104, PRJ-105 | 최근 목록과 복구 | ready |
