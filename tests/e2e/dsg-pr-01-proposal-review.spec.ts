@@ -61,3 +61,26 @@ test('reports repository transaction failure while keeping the proposal pending'
   await expect(page.locator('.proposal-review-error')).toContainText('저장하지 못했습니다');
   await expect(page.getByRole('heading',{name:'제안 2개'})).toBeVisible();
 });
+
+test('does not offer edit for delete proposals and archives only after plain approval', async ({ page }) => {
+  const ownerKey=await deriveOwnerKey(identity);
+  await page.evaluate(async ({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    const tx=db.transaction('projects','readwrite');const store=tx.objectStore('projects');const request=store.get(projectId);
+    request.onsuccess=()=>{const record=request.result;const now='2026-10-14T00:00:00.000Z';record.designItems=[{id:'delete-target',projectId,type:'user_role',title:'이전 예약 담당자',description:'기존 설명',status:'confirmed',attributes:{},evidence:[],acceptanceCriteria:[],relatedItemIds:[],createdAt:now,updatedAt:now}];const proposal=record.proposals.find((item:any)=>item.id==='proposal-edit');proposal.operation='delete';proposal.targetId='delete-target';proposal.before={title:'이전 예약 담당자'};delete proposal.after;store.put(record);};
+    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  await page.goto(`/blueprints/${projectId}/design`);
+  const card=page.locator('[data-proposal-card="proposal-edit"]');
+  await expect(card.getByText(/제안 1 · 삭제/)).toBeVisible();
+  await expect(card.getByRole('button',{name:'수정 후 승인'})).toHaveCount(0);
+  await card.getByRole('button',{name:'승인',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'제안 1개'})).toBeVisible();
+  const persisted=await page.evaluate(async ({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    const request=db.transaction('projects','readonly').objectStore('projects').get(projectId);const result=await new Promise<any>((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});db.close();return result;
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(persisted.proposals.find((item:any)=>item.id==='proposal-edit').status).toBe('accepted');
+  expect(persisted.designItems[0].title).toBe('이전 예약 담당자');
+  expect(persisted.designItems[0].archivedAt).toBeTruthy();
+});

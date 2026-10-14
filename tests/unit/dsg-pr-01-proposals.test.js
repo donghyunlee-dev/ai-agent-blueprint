@@ -68,3 +68,13 @@ test('delete approval archives the target and transaction failure preserves sour
   await assert.rejects(approveProposal({ownerKey:'owner',projectId:'project',proposalId:'p1',repository:{transact:async()=>{throw Error('STORAGE_FAILED')}},now:()=>now,idFactory:()=> 'a2'}),/STORAGE_FAILED/);
   assert.deepEqual(failedState,before);
 });
+
+test('edit-and-approve refuses delete proposals without changing them; plain approval archives', async () => {
+  const target={...item,id:'delete-me',title:'Old title'};
+  const deletion=proposal({operation:'delete',targetId:'delete-me',before:{title:'Old title'},after:undefined});
+  const state=aggregate(deletion,[target]); const before=structuredClone(state); const repo=repository(state);
+  const editResult=await editAndApproveProposal({ownerKey:'owner',projectId:'project',proposalId:'p1',editedValue:{title:'Edited instead'},repository:repo,now:()=>now,idFactory:()=> 'a1'});
+  assert.equal(editResult.status,'edit_not_supported'); assert.deepEqual(state,before);
+  const approval=await approveProposal({ownerKey:'owner',projectId:'project',proposalId:'p1',repository:repo,now:()=>now,idFactory:()=> 'a2'});
+  assert.equal(approval.status,'applied'); assert.equal(state.designItems[0].archivedAt,now); assert.equal(state.designItems[0].title,'Old title');
+});

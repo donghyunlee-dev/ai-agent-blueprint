@@ -49,6 +49,7 @@ async function resolve({ ownerKey, projectId, proposalId, repository, action, ed
     const proposal = aggregate.proposals.find((item) => item.id === proposalId);
     if (!proposal) return { status: 'not_found' };
     if (proposal.status !== 'pending') return { status: 'already_resolved', proposal };
+    if (action === 'edit' && proposal.operation === 'delete') return { status: 'edit_not_supported', proposal };
     if (action === 'reject') {
       const at = now();
       proposal.status = 'rejected'; proposal.resolvedAt = at;

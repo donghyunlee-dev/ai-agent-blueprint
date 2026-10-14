@@ -268,6 +268,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       const editedValue = currentProposal?.targetType === "acceptance_criterion" ? { text: proposalEdit.title } : currentProposal?.targetType === "document_section" ? { title: proposalEdit.title, markdown: proposalEdit.description } : proposalEdit;
       const result = action === "reject" ? await rejectProposal(input) : action === "edit" ? await editAndApproveProposal({ ...input, editedValue }) : await approveProposal(input);
       if (result.status === "stale") { setProposalError("확정된 값이 제안 작성 당시와 달라졌습니다. 기존 값은 유지됐으며 이 항목은 충돌 검토가 필요합니다."); return; }
+      if (result.status === "edit_not_supported") { setProposalError("삭제 제안은 수정할 수 없습니다. 승인하거나 거절해 주세요."); return; }
       if (result.status === "not_found") throw new Error("PROPOSAL_NOT_FOUND");
       if (result.status === "invalid_value") { setProposalError("제목과 설명을 입력해 주세요."); return; }
       if (result.aggregate) applyAggregate(result.aggregate);
@@ -401,7 +402,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
               {proposalError ? <p className="proposal-review-error" role="alert">{proposalError}</p> : null}
               <ol className="proposal-review-list">{aggregate.proposals.filter((proposal) => proposal.status === "pending").map((proposal, index) => {
                 const value = (proposal.after ?? proposal.before ?? {}) as Record<string, unknown>;
-                const editing = editingProposalId === proposal.id;
+                const editing = editingProposalId === proposal.id && proposal.operation !== "delete";
                 return <li key={proposal.id} className="proposal-review-item" tabIndex={-1} data-proposal-card={proposal.id}>
                   <div className="proposal-review-card-heading"><span>제안 {index + 1} · {proposal.operation === "create" ? "추가" : proposal.operation === "update" ? "수정" : "삭제"}</span><span>확정 전</span></div>
                   {proposal.operation === "update" ? <div className="proposal-diff"><div><small>변경 전</small><p>{String((proposal.before as Record<string, unknown> | undefined)?.title ?? (proposal.before as Record<string, unknown> | undefined)?.text ?? "기존 값")}</p></div><div><small>제안값</small><p>{String(value.title ?? value.text ?? "삭제 제안")}</p></div></div> : null}
@@ -412,7 +413,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
                   </form> : <><h3>{String(value.title ?? value.text ?? "제안된 변경")}</h3><p className="proposal-review-value">{String(value.description ?? value.markdown ?? value.text ?? "")}</p></>}
                   <p className="proposal-review-rationale">{proposal.rationale}</p>
                   <div className="proposal-evidence"><strong>근거</strong>{proposal.evidence.map((ref) => <p key={ref.id}>{ref.sourceType === "agent_inference" ? "Agent 추론 · 검토 필요" : ref.excerpt ?? ref.sourceId}</p>)}</div>
-                  <div className="proposal-review-actions"><button type="button" disabled={Boolean(proposalBusyId)} onClick={() => void resolveProposal(proposal.id, "reject")}>거절</button>{!editing ? <button type="button" disabled={Boolean(proposalBusyId)} onClick={() => { setProposalError(null); setEditingProposalId(proposal.id); setProposalEdit({ title: String(value.title ?? value.text ?? ""), description: String(value.description ?? value.markdown ?? "") }); }}>수정 후 승인</button> : null}<button type="button" disabled={Boolean(proposalBusyId) || editing} onClick={() => void resolveProposal(proposal.id, "approve")}>{proposalBusyId === proposal.id ? "저장 중…" : "승인"}</button></div>
+                  <div className="proposal-review-actions"><button type="button" disabled={Boolean(proposalBusyId)} onClick={() => void resolveProposal(proposal.id, "reject")}>거절</button>{proposal.operation !== "delete" && !editing ? <button type="button" disabled={Boolean(proposalBusyId)} onClick={() => { setProposalError(null); setEditingProposalId(proposal.id); setProposalEdit({ title: String(value.title ?? value.text ?? ""), description: String(value.description ?? value.markdown ?? "") }); }}>수정 후 승인</button> : null}<button type="button" disabled={Boolean(proposalBusyId) || editing} onClick={() => void resolveProposal(proposal.id, "approve")}>{proposalBusyId === proposal.id ? "저장 중…" : "승인"}</button></div>
                 </li>;
               })}</ol>
             </section> : <div className="workspace-empty-state"><div className="workspace-empty-mark" aria-hidden="true">✦</div><h2>{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)} 작업을 시작해 보세요</h2><p>첫 아이디어를 바탕으로 내용을 정리하고 필요한 결정을 이어갈 수 있습니다.</p><span>현재 문서: {documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</span></div>}
