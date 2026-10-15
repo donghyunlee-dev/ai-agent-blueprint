@@ -18,7 +18,8 @@
 - F-DOC-IMPACT 화면 계약을 `DEC-040`에 맞게 갱신해 항목별 선택 제외 동작을 명시
 - 저장 전 영향받는 source item, 다른 문서, stale 전환 계산 및 미리보기 표시
 - 영향받는 항목 개별 선택 제외 UI와 로직(`DEC-040`)
-- 제외하지 않은 항목만 하나의 transaction으로 공통 설계·문서 version에 반영
+- 제외하지 않은 항목만 하나의 로컬 IndexedDB transaction으로 공통 설계·문서 version에 반영
+- 연결 항목이 여러 개인 편집은 기존 항목 설명을 보존하고 선택 항목과 연결된 `document_section` 정합성 검토 기록을 생성
 - 오래된 편집본(다른 사용자/탭이 먼저 저장) 충돌 비교와 저장 실패 시 편집 내용 보존
 
 ### 제외
@@ -44,10 +45,11 @@
 
 **DOC-405 직접 편집과 영향 미리보기**
 - 편집 시작 시 `baseVersion`, `baseDesignRevision`을 고정해 세션 동안 비교 기준으로 사용
-- 저장 시도 시 변경된 `sourceItemIds`, 영향받는 공통 설계 항목(before/after), 영향받는 다른 문서 섹션(stale 전환 대상)을 계산
+- 저장 시도 시 현재 `sourceItemIds`, 영향받는 공통 설계 항목(before/after 또는 기존 설명 보존), 영향받는 다른 문서 섹션(stale 전환 대상)을 계산
+- source 항목이 하나면 유일하게 대응되는 설명만 갱신한다. source 항목이 여러 개면 원본 설명은 유지하고 제외되지 않은 source ID만 연결한 `document_section` 기록을 `review_required` 상태로 생성한다. 편집된 대상 섹션은 새 기록만 source로 가리킨다.
 - 영향 미리보기 Modal에 각 영향 항목을 체크박스로 표시하고 기본값은 전체 선택; 변경 전·후, 연관 문서 섹션, 저장 후 상태를 함께 표시
 - 사용자가 일부 항목의 체크를 해제하면 해당 항목은 공통 설계에 반영하지 않고, 그 항목을 참조하는 문서 섹션도 stale로 전환하지 않음
-- "확인하고 저장" 시 (편집된 markdown, 선택된 공통 설계 변경, 선택된 stale 전환)을 하나의 transaction으로 저장
+- "확인하고 저장" 시 (편집된 markdown, 선택된 공통 설계 변경/섹션 기록, 선택된 stale 전환)을 하나의 IndexedDB `ProjectRepository.transact`로 저장. 이 흐름에 서버 API는 없다.
 - `baseVersion`이 최신이 아니면 저장하지 않고 최신 내용과의 충돌 비교를 제공
 - 저장 실패 시 편집 내용을 입력 상태로 유지(자동 되돌리지 않음)
 
@@ -73,29 +75,31 @@ flowchart TD
     L -- 성공 --> N[제외 항목: 설계·stale 불변 / 선택 항목: 설계 갱신·문서 stale]
 ```
 
-## 데이터/API 영향
+## 데이터·아키텍처 영향
 
-- `POST /api/blueprint/documents/patch` 또는 신규 `PATCH /api/blueprint/documents/:id/sections/:sectionId`에 `excludedImpactIds: string[]` 필드 추가
-- 저장 transaction: `documentVersion++`, 선택된 설계 항목만 `designRevision++` 대상에 포함, 제외 항목은 두 revision 모두 불변
-- 서버가 `excludedImpactIds`에 없는 항목만 stale 전환 계산에 사용하고 결과를 응답에 포함
+- API 변경 없음. `ProjectPage`가 전달하는 직접 편집 명령은 `ProjectRepository.transact`로 IndexedDB aggregate를 원자 저장한다.
+- 단일 source item만 연결된 편집은 그 항목의 description/evidence만 갱신한다.
+- 복수 source item 편집은 기존 설명을 보존한다. 제외하지 않은 source IDs와 편집 markdown을 새 `document_section` DesignItem에 담고, `status: review_required`, `user_edit` 근거, `attributes.sourceSectionId`, `attributes.consistencyReviewRequired: true`, `attributes.reviewRequiredReason`로 정합성 검토를 표시한다. 이 app-authored type은 AI proposal이나 readiness 필수 항목이 아니다.
+- 다중 항목 편집 대상 섹션의 `sourceItemIds`는 생성한 section-level item만 가리킨다. revision은 선택 항목이 있을 때 증가하며 제외 항목만 참조하는 다른 섹션은 stale로 바꾸지 않는다. 모두 제외하면 설계 항목을 생성하지 않는다.
 
 ## Acceptance Criteria
 
 ### Happy Path
-Given 사용자가 섹션을 편집하고 영향받는 항목 3개 중 1개의 체크를 해제했을 때, when "확인하고 저장"을 누르면, then 나머지 2개 항목만 공통 설계에 반영되고 해당 항목을 참조하는 문서 섹션만 stale로 전환되며, 제외한 1개 항목과 그 참조 섹션은 이전 상태를 유지한다.
+Given 사용자가 여러 설계 항목에 연결된 섹션을 편집하고 영향 항목 중 하나의 체크를 해제했을 때, when "확인하고 저장"을 누르면, then 기존 설계 항목 설명은 보존되고 제외되지 않은 항목만 section-level 정합성 검토 기록에 연결되며, 선택 항목을 참조하는 문서만 stale로 전환되고 제외 항목만 참조하는 문서는 유지된다.
 
 ### Failure Case
-Given 저장 도중 네트워크 오류가 발생했을 때, when 저장이 실패하면, then 편집 내용은 입력 상태로 유지되고 공통 설계·다른 문서는 변경되지 않으며 재시도가 제공된다.
+Given IndexedDB 저장 오류가 발생했을 때, when 저장이 실패하면, then 편집 내용은 입력 상태로 유지되고 공통 설계·다른 문서는 변경되지 않으며 재시도가 제공된다.
 
 ### Boundary
 Given 다른 세션이 같은 섹션을 먼저 저장해 `baseVersion`이 오래됐을 때, when 사용자가 저장을 시도하면, then 저장이 거부되고 최신 내용과의 충돌 비교가 표시되며 사용자의 편집 원문은 유지된다.
 
 ## 예상 변경 파일
 
-- `src/features/documents/impactPreview.ts`(영향 계산 + 선택 제외 로직)
-- `src/features/documents/documentEditTransaction.ts`
-- `api/blueprint/documents/patch.js`(또는 신규 section PATCH 핸들러)
-- `src/components/blueprint/document-panel.tsx`(편집 모드)
+- `src/features/documents/document-edit-transaction.js` 및 `.d.ts`(미리보기, 선택 제외, 원자 aggregate 변경)
+- `src/components/blueprint/DocumentSectionEditor.tsx`(편집 모드와 영향 확인)
+- `src/features/design/DesignBoard.tsx`(section-level 정합성 검토 항목을 열 수 있는 후속 영역)
+- `src/domain/blueprint/types.d.ts` 및 `docs/product/05-data-spec.md`(앱이 생성하는 `document_section` 항목 계약)
+- `docs/product/06-architecture.md`(IndexedDB transaction과 DEC-040 동작)
 - `docs/ui/screens/05-documents-and-guide.md`, `docs/ui/04-document-workspace.md`(F-DOC-IMPACT 문구를 `DEC-040` 기준으로 갱신 — 이 PR의 선행 작업으로 포함)
 - `tests/domain/impactPreview.test.ts`, `tests/e2e/document-edit-impact.spec.ts`
 
@@ -128,7 +132,8 @@ Use deterministic fixtures; no live provider call. Run only these task tests and
 
 ## 코드 리뷰·QA 체크리스트
 
-- [ ] 제외된 항목이 실제로 공통 설계·stale 계산에서 빠지는지 서버 응답으로 확인(클라이언트 상태만으로 판단 금지)
+- [ ] IndexedDB transaction aggregate에서 제외 항목이 설계 연결·stale 계산에서 빠지는지 확인
+- [ ] 다중 연결 section edit가 각 DesignItem 설명을 보존하고 새 section record를 만들며, 단일 연결 edit만 기존 설명을 갱신하는지 확인
 - [ ] transaction이 원자적인지(부분 실패 시 일부만 반영되는 경우가 없는지) 확인
 - [ ] `docs/ui/*` 문서가 이번 PR에서 `DEC-040` 기준으로 실제로 갱신됐는지 확인
 
@@ -143,7 +148,7 @@ Use deterministic fixtures; no live provider call. Run only these task tests and
 
 ## 구현자 검증 증거
 
-- `test-results.md`에 구현자 단위·브라우저·build 결과를 기록했다. 독립 코드 리뷰와 QA는 아직 완료되지 않았다.
+- `test-results.md`에 구현자 단위·브라우저·build 결과를 기록했다. 로컬 IndexedDB 트랜잭션에서 생성 section-level 기록이 aggregate 저장과 DesignBoard 후속 검토 목록에 표시되는 것도 확인했다. 독립 코드 리뷰와 QA는 아직 완료되지 않았다.
 
 ## 실행 시 추가 문서
 

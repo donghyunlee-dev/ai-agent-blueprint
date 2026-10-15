@@ -48,9 +48,16 @@ test('desktop edit previews individual impacts and commits selected design chang
   const stored=await readStored(page,databaseName);
   expect(stored.documents[0].version).toBe(3);expect(stored.documents[0].status).toBe('review_required');expect(stored.project.designRevision).toBe(5);
   expect(stored.sections.find((entry:any)=>entry.id==='req-section').markdown).toBe('새 Requirements 본문');expect(stored.sections.find((entry:any)=>entry.id==='req-section').origin).toBe('user_edited');
-  expect(stored.designItems.find((entry:any)=>entry.id==='feature').description).toBe('새 Requirements 본문');
+  expect(stored.designItems.find((entry:any)=>entry.id==='feature').description).toBe('기존 기능 A');
   expect(stored.designItems.find((entry:any)=>entry.id==='scope').description).toBe('기존 범위 B');
+  const sectionEdit=stored.designItems.find((entry:any)=>entry.type==='document_section'&&entry.attributes.sourceSectionId==='req-section');
+  expect(sectionEdit.description).toBe('새 Requirements 본문');expect(sectionEdit.relatedItemIds).toEqual(['feature']);expect(sectionEdit.status).toBe('review_required');
+  expect(stored.sections.find((entry:any)=>entry.id==='req-section').sourceItemIds).toEqual([sectionEdit.id]);
   expect(stored.sections.find((entry:any)=>entry.id==='prd-section').syncStatus).toBe('stale');
+  await page.goto(`/blueprints/${projectId}/design`);
+  await expect(page.getByRole('heading',{name:'문서 편집 정합성 검토'})).toBeVisible();
+  const reviewRecord=page.getByRole('button',{name:/기능 요구사항 \(직접 편집\)/});await expect(reviewRecord).toBeVisible();await reviewRecord.click();
+  await expect(page.getByRole('complementary',{name:'상세 정보'})).toContainText('기능 A');
 });
 
 test('narrow PRD edit preserves the draft and persisted values when save fails',async({page})=>{

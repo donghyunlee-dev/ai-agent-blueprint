@@ -206,7 +206,8 @@ type DesignItemType =
   | "technical_decision"
   | "success_metric"
   | "risk"
-  | "open_issue";
+  | "open_issue"
+  | "document_section";
 
 interface DesignItem {
   id: string;
@@ -522,7 +523,10 @@ interface ProjectSummary {
 - 사용자가 확인하면 연결된 공통 설계 항목을 같은 트랜잭션에서 갱신한다.
 - 사용자 편집은 별도 AI 승인 없이 `confirmed` 상태이며 `user_edit` 근거를 가진다.
 - 설계 revision과 문서 version을 증가시키고, 같은 항목을 참조하는 다른 문서 섹션은 `stale`로 표시한다.
-- 하나의 문장 변경이 여러 설계 항목에 걸쳐 분리되지 않으면 섹션 단위의 설계 항목으로 기록하고 후속 정합성 검토 대상으로 표시한다.
+- 섹션이 하나의 활성 설계 항목만 참조하면 확인된 편집 markdown을 그 항목의 설명에 반영한다.
+- 여러 설계 항목을 참조하는 섹션 편집은 항목별로 제외할 수 있다. 기존 항목 설명을 섹션 전체 markdown으로 덮어쓰지 않는다. 선택 항목이 하나 이상이면 새 `document_section` 설계 항목을 만들고 선택된 기존 ID만 `relatedItemIds`에 기록한다. 새 항목은 편집된 markdown, `user_edit` 근거, `review_required` 상태, `attributes.sourceSectionId`, `attributes.consistencyReviewRequired: true`, `attributes.reviewRequiredReason`를 가진다.
+- 다중 항목 편집 후 대상 문서 섹션의 `sourceItemIds`는 새 `document_section` ID 하나를 가리킨다. 선택된 기존 항목을 참조하는 다른 문서만 `stale`로 바꾸며, 제외된 항목만 참조하는 문서는 그대로 둔다. 모든 항목을 제외하면 설계 항목을 만들지 않고 대상 섹션의 `sourceItemIds`를 비운다.
+- `document_section`은 앱이 직접 편집에서만 생성하며 AI proposal type이나 설계 readiness의 필수 유형으로 사용하지 않는다. 후속 정합성 검토에서 실제 개별 설계 항목으로 분리한다.
 
 ## 파일 제한
 
