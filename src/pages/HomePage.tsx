@@ -23,7 +23,7 @@ export function HomePage() {
           <h1 id="home-shell-title">아이디어를 제품 설계로 구체화하세요</h1>
           <p>AI와 함께 결정하고 Requirements와 PRD를 완성합니다.</p>
         </section>
-        <ProjectComposer ownerKey={ownerKey} onCreated={(projectId) => navigate("/blueprints/" + projectId)} />
+        <ProjectComposer ownerKey={ownerKey} onCreated={(projectId, sourceNotice) => navigate("/blueprints/" + projectId, { state: sourceNotice ? { sourceNotice } : undefined })} />
         <figure className="home-workflow" id="workflow" aria-label="Blueprint 작업 흐름">
           <div><span>01</span><strong>대화</strong><p>아이디어와 필요한 내용을 정리합니다.</p></div>
           <span className="home-workflow-arrow" aria-hidden="true">→</span>
