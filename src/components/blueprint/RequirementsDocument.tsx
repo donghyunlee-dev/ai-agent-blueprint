@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { GeneratedDocument, DocumentSection } from '../../domain/blueprint/types.js';
 import type { BlueprintAggregate } from '../../domain/blueprint/types.js';
 import { DocumentSectionEditor } from './DocumentSectionEditor.js';
+import { DocumentExportActions } from './DocumentExportActions.js';
 import '../../styles/blueprint-workspace.css';
 
 type Requirement = NonNullable<GeneratedDocument['requirements']>[number];
@@ -63,7 +64,7 @@ export function RequirementsDocument({ aggregate, document, sections, generating
   return <section className="requirements-document" aria-labelledby="requirements-document-title">
     <header className="requirements-document-header">
       <div><p className="workspace-eyebrow">문서 · {document ? `rev. ${document.designRevision} · ${document.status === 'review_required' ? '검토 필요' : document.status}` : '초안'}</p><h2 id="requirements-document-title">Requirements</h2></div>
-      {document ? <span role="status">사용자 검토 전</span> : null}
+      {document ? <><span role="status">사용자 검토 전</span><DocumentExportActions document={document} sections={currentSections} projectTitle={aggregate.project.title} /></> : null}
     </header>
     {generating ? <div className="requirements-generation-status" role="status" aria-live="polite"><strong>Requirements를 만들고 있습니다</strong><ol><li>설계 계획 검증</li><li>요구사항 작성</li><li>품질 검토</li></ol><p>현재 설계와 기존 문서는 생성이 끝날 때까지 유지됩니다.</p></div> : null}
     {error ? <div className="requirements-generation-error" role="alert"><p>{error}</p><button type="button" onClick={onGenerate}>같은 요청 다시 시도</button></div> : null}

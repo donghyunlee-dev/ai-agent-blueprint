@@ -1,114 +1,133 @@
 # EXP-PR-01 — 문서 복사·다운로드
 
-## Overview
+**Status: in progress.** Planning base: `origin/main` at `f169cf7da310dc446fdb02b7006817c65703ea12` (SRC-PR-01, PR #24, merged 2026-10-15). Scope: `EXP-505` (`EXP-001`).
 
-사용자가 요구사항명세서, PRD, 설정 가이드를 각각 안전하게 Markdown으로 복사하거나 다운로드할 수 있게 한다. 전체 묶음이나 ZIP은 제공하지 않는다.
+## 사용자 결과
 
-## Background
+사용자는 현재 존재하는 Requirements와 PRD를 개별 Markdown으로 복사하거나 다운로드할 수 있다. 설정 가이드도 동일한 export contract로 지원하며, 가이드가 아직 생성되지 않은 상태에서는 해당 문서의 동작만 제공하지 않는다. 다운로드 파일명은 프로젝트명과 문서 유형을 포함하고 안전하게 정제한다.
 
-`DEC-008`(전체 묶음 미제공, 문서별 개별 다운로드)이 이미 확정돼 있다. 세 문서(요구사항명세서, PRD, 설정 가이드) 생성 PR(`DOC-PR-02`, `GDE-PR-01`)이 끝나야 실제 내보낼 대상이 존재하므로, 이 PR은 문서 생성 파이프라인이 아니라 순수 export 계층만 담당한다.
+## 요구사항·delivery 추적
+
+- Requirement: `EXP-001` in `docs/product/03-requirements.md`.
+- Delivery task: `EXP-505` in `docs/delivery/05-sources-guides-export.md`.
+- PR unit row 24: `EXP-PR-01`; `DOC-PR-01` and `DOC-PR-02` are merged. `GDE-PR-01` is later in the delivery order and is not a precondition for exporting the existing two document types.
+- Decision: `DEC-008` allows document-by-document Markdown copy/download and excludes package/ZIP export.
+- Data/API: `GeneratedDocument`, `DocumentSection` and typed requirements in `docs/product/05-data-spec.md`; document responses remain structured section/requirement records, not a single API Markdown payload, per `docs/product/06-architecture.md`.
+- UI: `UI-DOC-001` in `docs/ui/04-document-workspace.md`; `F-REQ-READY`, `F-PRD-DRAFT`, `F-GUIDE-DRAFT` in `docs/ui/screens/05-documents-and-guide.md` and `F-REQ-READY` in `docs/ui/screens/06-generation-ready-and-errors.md`.
+- Visual references: read `docs/template/README.md`; inspected `image (12).png` for document outline/readability and `image (9).png` for a detail inspector. Use the established compact document header and calm content hierarchy; controls must stay outside exported Markdown. No screenshot artifacts are required by this plan.
+- Existing implementation patterns: document-specific views in `src/components/blueprint/RequirementsDocument.tsx` and `src/pages/ProjectPage.tsx`; legacy clipboard/download behavior in `src/features/survey/useSurveyForm.ts` is not the canonical structured-document serializer and should not be reused as its payload source.
+
+## Definition of Ready
+
+- [x] PR unit, requirement, delivery task, scope, and observable acceptance are identified.
+- [x] `DOC-PR-01` and `DOC-PR-02` provide the two currently available document types on current main.
+- [x] `GDE-PR-01` is not required to build the generic export contract. The view/actions remain unavailable when `setup_guide` does not exist; GDE-PR-01 will connect those actions to its generated guide when that task adds the guide view. `EXP-001` remains in progress until all three types are integrated.
+- [x] `DEC-008` resolves document-by-document versus bundle export.
+- [x] Structured serialization source is identified: ordered `DocumentSection.markdown`, plus the structured Requirements records rendered in their linked section; guide serialization uses the same section-based document contract.
+- [x] UI surfaces and visual references are identified. Only directly affected copy/download behavior and responsive/keyboard behavior are in scope.
+- [x] No server/API, storage migration, or product decision is required.
 
 ## Scope
 
-### 포함
+### Included
 
-- 현재 선택 문서의 전체 Markdown 복사
-- 문서별 개별 다운로드(파일명에 정제된 프로젝트명 + 문서 유형 포함)
-- Object URL 다운로드 후 해제
-- 복사 실패 시 수동 선택 가능한 대체 행동
+- Pure client serializer for one document at a time, derived from canonical `GeneratedDocument` + its matching sections (never from rendered DOM).
+- Requirements Markdown contains sections ordered by `DocumentSection.order`; within a section it includes the linked requirement IDs, priority, title, description, and acceptance criteria that the existing view renders. Include open issues in their existing dedicated section. Avoid duplicating a structured requirement across sections beyond the existing view's source-item linkage behavior.
+- PRD and setup guide Markdown contain their ordered section heading and authored Markdown. Preserve code fences, tables, lists, and Korean text byte-for-byte apart from deliberate heading/separator joining. Include the setup guide's required draft notice at the beginning while its document is draft, as required by `F-GUIDE-DRAFT`.
+- Copy the current complete document; on Clipboard API absence/rejection, expose a focused/selectable text fallback and a clear status message. Do not silently claim success.
+- Download each document individually as UTF-8 `text/markdown`; filename contains sanitized project title and stable document type (`requirements`, `prd`, `setup-guide`) with `.md` extension. Remove or replace path separators, control characters and traversal-like dot-only segments; use a safe fallback if no project-title characters remain.
+- Create an Object URL for the Blob, trigger a single download, and revoke the URL after the browser has consumed the click, including cleanup if trigger setup fails.
+- Provide actions for each document view that exists; do not render disabled setup-guide export actions when the guide document is absent. A reusable action component/function may be integrated by GDE-PR-01 when that view exists.
 
-### 제외
+### Excluded
 
-- ZIP/전체 묶음 내보내기(DEC-008로 금지)
-- 문서 생성 자체(`DOC-PR-01`~`04`, `GDE-PR-01`)
+- ZIP, “all documents” bundle, bulk download, or exporting only a selected section (`DEC-008`, `EXP-505`).
+- Document generation, approval/readiness decisions, guide content, PDF export, server APIs, persistence, and changes to document schemas.
+- Changing how the on-screen document is rendered, except the small action/fallback UI needed for copy and download.
+- Broad accessibility, responsive, or full-app QA outside the affected action and fallback.
 
-## 연결 근거
+## Implementation outline
 
-- 요구사항: `EXP-001`
-- Delivery 작업: `EXP-505` (`docs/delivery/05-sources-guides-export.md`)
-- 결정: `DEC-008`
-- 화면 설계: `docs/ui/screens/05-documents-and-guide.md` F-REQ-DRAFT/F-GUIDE-DRAFT의 `[복사][Markdown 다운로드]` 액션
-- 선행 PR: `DOC-PR-02`(요구사항명세서·PRD 생성), `GDE-PR-01`(설정 가이드 생성)
+1. Add a pure serializer/filename helper with stable input types and tests for ordered sections, structured Requirements content, guide draft notice, control-free output, and path/control-character edge cases.
+2. Add client copy/download actions with injectable clipboard/URL/document seams where needed for deterministic tests; handle success, failure, selectable fallback, and URL cleanup.
+3. Integrate into the existing Requirements and PRD document headers using semantic buttons, visible focus, and accessible status/fallback labels. Export all existing sections regardless of the currently selected section.
+4. Exercise both available document types in a focused Playwright flow at desktop and mobile layout; use synthetic fixture documents for the generic setup-guide serializer contract, without asserting that guide generation exists.
 
-## 선행 조건 (Definition of Ready)
-
-- `DOC-PR-02`가 머지되어 요구사항명세서/PRD `GeneratedDocument`가 존재함
-- `GDE-PR-01`이 머지되어 설정 가이드 문서가 존재함(설정 가이드가 아직 없으면 해당 문서 유형만 비활성화하고 나머지 두 문서는 독립적으로 동작해야 함)
-
-## 작업 단위별 구현 개요
-
-1. **Markdown 직렬화**: `DocumentSection[]`을 화면 제어 요소(버튼, modal, 상태 배지) 없이 순수 Markdown 문자열로 직렬화한다.
-2. **복사**: Clipboard API로 전체 문서를 복사하고, 실패 시(권한 거부 등) 수동 선택 가능한 텍스트 영역 등 대체 UI를 제공한다.
-3. **다운로드**: 안전한 파일명(경로 문자·제어 문자 제거, 정제된 프로젝트명 + 문서 유형)으로 Blob을 만들고 Object URL을 생성해 다운로드 트리거 후 즉시 해제한다.
-4. **왕복 무결성 확인**: 코드 fence, 목록, 표, 한글이 다시 열었을 때 원래 형태로 유지되는지 확인한다.
-
-## 프로세스 / 상태 전이
+## Process and failure states
 
 ```mermaid
 flowchart TD
-    A[사용자가 문서 선택: Requirements/PRD/설정 가이드] --> B{행동 선택}
-    B -- 복사 --> C[Markdown 직렬화]
-    C --> D{Clipboard API 성공}
-    D -- 성공 --> E[복사 완료 피드백]
-    D -- 실패 --> F[수동 선택 가능한 대체 UI 제공]
-    B -- 다운로드 --> G[Markdown 직렬화]
-    G --> H[안전한 파일명 생성]
-    H --> I[Blob + Object URL 생성]
-    I --> J[다운로드 트리거]
-    J --> K[Object URL 해제]
+  A[select current document] --> B{document exists}
+  B -- no --> C[no export action for absent type]
+  B -- yes --> D[serialize complete structured document]
+  D --> E{user action}
+  E -- copy --> F{clipboard succeeds}
+  F -- yes --> G[announce copied]
+  F -- no --> H[show selectable text fallback and error]
+  E -- download --> I[sanitize project + type filename]
+  I --> J[Blob + Object URL]
+  J --> K[trigger one individual .md download]
+  K --> L[revoke Object URL]
 ```
 
-## 데이터/API 영향
+## Acceptance criteria
 
-- 없음(순수 클라이언트 export, 서버 API·저장 스키마 변경 없음)
+### Happy path
 
-## Acceptance Criteria
+Given a stored Requirements or PRD with multiple sections, when the user copies or downloads it, then the complete document is exported in stored section order with the same structured requirement content the view presents; Korean, tables, lists, and fenced code remain intact, and the downloaded name contains the project title and document type. A setup-guide fixture uses the same section serializer and draft notice.
 
-### Happy Path
+### Failure case
 
-Given `ready` 상태의 PRD가 있을 때, when 사용자가 "Markdown 다운로드"를 선택하면, then `<정제된 프로젝트명>-prd.md` 형식 파일이 다운로드되고 코드 fence·표·한글이 다시 열었을 때 그대로 유지된다.
-
-### Failure Case
-
-Given 브라우저가 Clipboard API 권한을 거부한 환경에서, when 사용자가 "복사"를 선택하면, then 에러가 조용히 무시되지 않고 수동으로 선택해 복사할 수 있는 대체 UI가 나타난다.
+Given Clipboard API is unavailable or rejects the write, when the user chooses copy, then an accessible error is announced and the complete Markdown is placed in a selectable fallback; the UI does not report copy success. If download setup throws, the failure is visible and any created Object URL is revoked.
 
 ### Boundary
 
-Given 프로젝트명에 `/`, `..`, 제어 문자가 포함된 경우, when 사용자가 다운로드하면, then 생성된 파일명에서 해당 문자가 제거되거나 치환돼 파일 시스템에 안전하게 저장된다.
+Given the project title contains `/`, `..`, NUL/control characters, separators, or only unsafe characters, when any document type is downloaded, then the resulting basename is safe (no path traversal or control characters), includes a safe project-name fallback and the type, and ends in `.md`. Repeated sections retain stable order; no ZIP or all-document action is exposed.
 
-## 예상 변경 파일
+## Focused validation matrix
 
-- `src/features/export/markdown-serializer.ts` (신규)
-- `src/features/export/download-document.ts` (신규, 안전한 파일명 생성 포함)
-- `src/features/export/copy-document.ts` (신규, Clipboard 실패 fallback 포함)
-- `src/components/blueprint/document-panel.tsx` (복사/다운로드 액션 연결)
+| Concern | Focused check | Required result |
+| --- | --- | --- |
+| Serialization | Unit tests for ordered sections, empty section, Korean text, fenced code, tables/lists, Requirements IDs/priority/AC/open issues, guide draft notice | Stable Markdown matches canonical document content and contains no buttons, modal copy, badges, or UI labels |
+| Filename/download | Unit tests for separators, `..`, control characters, blank/unsafe titles, type mapping, and URL lifecycle on success/failure | Safe per-document `.md` basename; one trigger; every created URL eventually revoked |
+| Copy behavior | Component/unit tests for clipboard success, missing API/rejection, selectable fallback, accessible error/status | Success only on resolved write; fallback text exactly matches serializer output |
+| Browser behavior | One scoped Playwright spec for Requirements and PRD copy/download, fallback, file contents/name, and mobile action usability | Only existing document types are exposed; whole document downloads and can be reopened/read without formatting loss |
+| Build and diff | `npm run build`; `git diff --check` | Both pass |
 
-## 테스트 계획
+No live AI calls, source/guide pipeline tests, broad suite, or screenshot set is required. Scope all tests to serialization and the visible export interaction.
 
-- 단위: 파일명 정제(경로/제어 문자 제거), Markdown 직렬화에 화면 제어 요소 미포함 확인
-- 컴포넌트: 복사 실패 시 대체 UI 노출
-- E2E: 세 문서 각각 복사·다운로드, 다운로드된 파일 재오픈 시 형식 유지 확인
+## Data/API impact
 
-## UI 증거 계획
+- No server API, schema, or persisted project data changes. Export is derived locally from the current saved `GeneratedDocument` and related `DocumentSection` records.
+- The source of truth remains structured records. Do not scrape UI DOM or expose generated control elements in output.
+- Filename metadata is only the project title and document type; do not include owner identity, secrets, or local paths.
 
-- desktop 1440×900, mobile 390×844
-- 복사 성공/실패 상태, 다운로드 트리거 상태 캡처
+## Risks
 
-## 코드 리뷰·QA 체크리스트
+- Requirements contain both authored sections and structured requirement records. Serializing only `section.markdown` would omit content that the current Requirements view renders; keep serializer mapping aligned to that view and cover it with fixtures.
+- Clipboard permissions vary by browser/context; fallback must remain selectable and keyboard reachable.
+- Revoking the Object URL synchronously may cancel a browser download. Revoke after the click has been consumed and test lifecycle deterministically.
+- `GDE-PR-01` has not run yet. Keep the serializer generic and test its setup-guide data shape, but do not claim a guide screen is usable until GDE-PR-01 wires it.
 
-- [ ] ZIP/전체 묶음 UI가 노출되지 않는지
-- [ ] Object URL이 다운로드 후 확실히 해제되는지(메모리 누수 방지)
-- [ ] 파일명에 경로/제어 문자 주입 가능성이 없는지
+## Review and QA checklist
 
-## Done Checklist
+- [ ] Current Requirements/PRD content and generic guide document are serialized in canonical order.
+- [ ] Structured requirement fields and guide draft notice are included as specified.
+- [ ] UI controls, modal text, transient statuses, and unrelated sections are not omitted/included incorrectly.
+- [ ] Copy fallback is accessible and never claims unconfirmed success.
+- [ ] Filenames are safe and include project/type; one document per action only.
+- [ ] Object URLs are revoked after completion/error.
+- [ ] Focused unit and Playwright checks pass at exact final SHA; screenshots are optional.
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료
-- [ ] 사용자 PR 머지 확인
+## Done checklist
 
-## 실행 시 추가 문서
+- [x] `EXP-001` available-document behavior and focused acceptance checks pass.
+- [x] Implementer self-validation/build results recorded.
+- [ ] Independent code review passes on final SHA.
+- [ ] Independent focused QA passes on the same SHA.
+- [ ] User-authorized PR lifecycle gate passes and GitHub confirms merge.
+- [ ] `EXP-001` stays `in_progress` until GDE-PR-01 adds setup-guide view integration and the same actions are verified there.
 
-- 이 폴더에 구현 중/후 `test-results.md`, `review-notes.md`, `qa-report.md`를 추가로 생성한다(지금은 생성하지 않음).
+## Execution artifacts
+
+During implementation, add `test-results.md`, `review-notes.md`, and `qa-report.md` to this task folder with exact commands, same-SHA review/QA evidence, and focused outcomes. Do not create them in planning stage.

@@ -1,116 +1,133 @@
 # SRC-PR-02 — 근거 연결
 
-## Overview
+**Status: blocked — excerpt selection contract required.** Planning base: `origin/main` at merge commit `f169cf7da310dc446fdb02b7006817c65703ea12` (PR #24, merged 2026-10-15). Scope: `SRC-503` (`SRC-002`).
 
-파일에서 나온 proposal에 source ID·발췌·위치를 연결해 사용자가 설계 항목의 근거를 확인할 수 있게 하고, 자료를 제거해도 관련 설계 항목이 삭제되지 않고 "근거 없음" 상태로 안전하게 전환되게 한다.
+## 사용자 결과
 
-## Background
+사용자는 AI 제안으로 확정된 설계 항목에서 연결된 자료 파일, 인용 발췌와 위치를 확인한다. 자료를 제거할 때 영향을 받는 고유 설계 항목 수를 먼저 확인하고, 취소하면 데이터가 그대로 유지되며, 확인하면 자료 근거만 원자적으로 제거되고 설계 항목은 남는다.
 
-`SRC-PR-01`이 파일 추출까지만 완성하므로, 추출된 텍스트가 실제로 어떤 설계 항목의 근거가 됐는지 사용자가 검증할 방법이 없다. `DEC-004`(문서 직접 편집은 공통 설계에 자동 반영)와 같은 신뢰 기반 UX 원칙상, 설계 항목의 출처를 추적할 수 없으면 사용자가 AI 제안을 신뢰하기 어렵다. `docs/product/06-architecture.md`의 문서 동기화 절과 마찬가지로, 자료 제거가 과거 확정 항목을 조용히 무효화하지 않아야 한다.
+## 요구사항·delivery 추적
+
+- Requirement: `SRC-002` in `docs/product/03-requirements.md`.
+- Delivery task: `SRC-503` in `docs/delivery/05-sources-guides-export.md`.
+- PR unit row 23: `SRC-PR-02`; predecessor `SRC-PR-01` merged as PR #24.
+- Decisions/contracts: `DEC-005`, `DEC-009`, `DEC-013`, `DEC-020`; `SourceDocument`, `DesignItem.evidence`, `EvidenceRef`, `ContextManifest`, `SourceExcerpt` in `docs/product/05-data-spec.md` and `docs/product/06-architecture.md`.
+- UI: `UI-FILE-001` in `docs/ui/05-home-projects-and-files.md`; `UI-INS-001` and deleted-evidence state in `docs/ui/03-design-board-and-inspector.md`. Read `docs/template/README.md`; use its existing calm workspace hierarchy as reference, since it has no dedicated source-evidence inspector capture. Do not require screenshot artifacts.
+- Existing implementation: `SourceDocuments` / `removeSource`, `AiTurnComposer.sendDraft`, `normalizeProposals`, `proposal-commands`, `EvidenceRef`, and the existing design Inspector.
+
+## Definition of Ready
+
+- [x] SRC-PR-01 is merged on current main; project source storage and `DesignItem.evidence` already exist.
+- [x] DSG-PR-01~03 and the design-item Inspector are merged.
+- [x] Scope, requirement, delivery task, normal/failure/boundary outcomes, affected UI, and focused validation are identified.
+- [ ] Product contract defines how to derive bounded, relevant excerpts from ready `SourceDocument.extractedText` before sending them to `TURN_ANALYZE` (selection/chunking rule and maximum per-source/total text). Existing docs require “necessary excerpts only” but define no retrieval/selection rule. Sending each entire file would violate the data-minimization contract.
+- [ ] Product/data contract defines the mapping between a request-local `SourceExcerpt.id` (the ID checked by the context manifest) and durable `EvidenceRef` fields. Today `validateReferences` expects returned evidence `sourceId` to be a manifest excerpt ID, while `normalizeProposals` validates `sourceId` against persisted `SourceDocument.id`; choosing a mapping in implementation would change observable citation behavior and data semantics.
+
+**Exact unblock input:** approve one excerpt-selection/size policy and one durable citation mapping. A compatible candidate for review is: create bounded paragraph excerpts only from ready sources; assign each request excerpt a unique ID and keep its source document ID/location; on proposal normalization map the excerpt ID back to `EvidenceRef.sourceId = SourceDocument.id` and copy the quoted excerpt/location. This candidate is not approved and must not be implemented as a decided contract without confirmation.
 
 ## Scope
 
-### 포함
+### Included after the missing contract is approved
 
-- proposal → source ID, 발췌, 위치 연결 저장
-- 설계 항목 상세에서 근거 preview 열람
-- 자료 제거 전 영향받는 근거 수 표시
-- 자료 제거 후 관련 설계 항목을 삭제하지 않고 "근거 없음" 상태로 전환
+- Build request excerpts exclusively from ready project sources and include only the approved bounded selection in `TURN_ANALYZE`; keep non-ready, removed, and other-project sources out.
+- Validate model evidence against the exact excerpts sent; persist file evidence on accepted/edited-and-accepted design items, preserving quote and location for preview.
+- Show a source evidence preview in the selected design item Inspector with filename, quote, and location; retain an explicit empty/deleted-evidence state.
+- Before removal, count unique active design items whose evidence refers to that source and show the count in a confirmation dialog.
+- Cancel leaves source and evidence unchanged. Confirm atomically removes the source and its matching file evidence from design items and their acceptance criteria; retain every design item and all unrelated evidence.
+- Keep excerpts, file contents, and private values out of logs; no API routes, server persistence, or live provider test unless the approved policy makes an existing contract insufficient.
 
-### 제외
+### Excluded
 
-- 파일 업로드·추출 자체(`SRC-PR-01`에서 완성)
-- 근거 텍스트의 사용자 직접 수정(결정 gate 미확정 — `docs/delivery/05-sources-guides-export.md:14` 차단 gate로 남아 있음)
+- Upload, extraction, OCR, source text editing, remote/binary storage, or new source-storage service (`SRC-PR-01`).
+- User-editing evidence, restoring removed files/evidence, generic evidence management, or redesign of proposal review.
+- Requirements/guides/exports and unrelated AI context changes.
 
-## 연결 근거
+## Implementation outline after unblock
 
-- 요구사항: `SRC-002`
-- Delivery 작업: `SRC-503` (`docs/delivery/05-sources-guides-export.md`)
-- 결정: `DEC-004`
-- 화면 설계: `docs/ui/05-home-projects-and-files.md` 파일 행, `docs/ui/03-design-board-and-inspector.md`(설계 항목 상세 Inspector — 구현 시 재확인)
-- 선행 PR: `SRC-PR-01`, `DSG-PR-03`(설계 보드·상세 패널)
+1. Add a focused excerpt projection/selection function implementing the approved limit and location semantics, without persisting duplicate source text.
+2. Wire the selected ready-source excerpts into `AiTurnComposer`'s existing `TURN_ANALYZE` payload; validate returned evidence IDs and normalize them into canonical `EvidenceRef` data before proposals can be saved.
+3. Add evidence preview to the existing Inspector and make missing file references render a clear deleted-evidence state without hiding other evidence.
+4. Add a source-removal impact preview and confirmation. Recompute impact and remove matching refs inside the same latest-aggregate `ProjectRepository.transact`; do not delete design items or partially save.
+5. Add direct unit/contract and one focused Playwright flow. Keep AI provider mocked; no unrelated suite or screenshot set.
 
-## 선행 조건 (Definition of Ready)
-
-- `SRC-PR-01`이 사용자에 의해 머지됨(파일 추출·상태 관리 완료)
-- `DSG-PR-01`~`DSG-PR-03`이 머지되어 DesignItem/EvidenceRef 도메인과 상세 패널이 존재함
-
-## 작업 단위별 구현 개요
-
-1. **EvidenceRef 저장**: `TURN_ANALYZE` 응답의 proposal이 참조한 `sourceExcerptIds`를 승인 시 DesignItem의 `evidenceRefs`로 저장한다.
-2. **근거 preview UI**: 설계 항목 상세 패널에서 "근거 보기"를 선택하면 원본 파일명, 발췌 텍스트, 위치를 보여준다.
-3. **자료 제거 확인**: 파일 제거 시 해당 파일을 근거로 삼는 설계 항목 수를 미리 표시하고 확인을 받는다.
-4. **근거 없음 전환**: 확인 후 파일을 제거하면 관련 설계 항목은 삭제되지 않고 `evidenceRefs`가 비워지며 "근거 없음" 배지로 표시된다.
-
-## 프로세스 / 상태 전이
+## Process and failure states
 
 ```mermaid
 flowchart TD
-    A[TURN_ANALYZE 응답의 proposal] --> B{sourceExcerptIds 포함?}
-    B -- 예 --> C[승인 시 EvidenceRef 저장]
-    B -- 아니오 --> D[근거 없이 승인]
-    C --> E[설계 항목 상세에서 근거 preview 열람 가능]
-    F[사용자가 자료 제거 요청] --> G[영향받는 근거 수 계산]
-    G --> H[확인 Modal: n개 설계 항목이 근거 없음으로 전환됨]
-    H -- 취소 --> I[자료 유지]
-    H -- 확인 --> J[자료 삭제]
-    J --> K[관련 설계 항목의 evidenceRefs 비움]
-    K --> L["근거 없음" 배지로 표시, 항목 자체는 삭제하지 않음]
+  A[ready source + user turn] --> B[approved excerpt selection]
+  B --> C{request excerpt IDs validated}
+  C -- invalid or none --> D[do not attach invalid evidence; preserve input]
+  C -- valid --> E[TURN_ANALYZE]
+  E --> F{proposal evidence IDs in sent excerpt set}
+  F -- no --> G[reject invalid AI output; preserve project]
+  F -- yes --> H[normalize to durable file ID + quote + location]
+  H --> I[user approves proposal]
+  I --> J[DesignItem evidence]
+  J --> K[Inspector evidence preview]
+  K --> L[remove source request]
+  L --> M[impact count + confirmation]
+  M -- cancel --> N[no source or item changes]
+  M -- confirm --> O[atomic source removal + matching file-ref cleanup]
+  O --> P[items remain; empty or remaining evidence shown]
 ```
 
-## 데이터/API 영향
+## Acceptance criteria
 
-- `DesignItem.evidenceRefs: EvidenceRef[]` 필드 추가(스키마 마이그레이션 필요, 기존 항목은 빈 배열로 초기화)
-- 서버 API 변경 없음(클라이언트 도메인 command로 처리)
+### Happy path
 
-## Acceptance Criteria
+Given a ready source and an approved excerpt-selection policy, when the user sends a turn, then only policy-bounded excerpts from that project’s ready sources are included; an accepted proposal linked to one of those excerpts stores its source filename reference, exact quote, and location, and the Inspector preview shows all three after reload.
 
-### Happy Path
+### Failure cases
 
-Given 파일에서 추출된 발췌로 승인된 설계 항목이 있을 때, when 사용자가 해당 항목의 "근거 보기"를 선택하면, then 원본 파일명과 발췌 텍스트, 위치가 표시된다.
-
-### Failure Case
-
-Given 근거로 사용 중인 파일을 제거하려 할 때, when 사용자가 제거를 취소하면, then 파일과 관련 설계 항목 모두 변경되지 않는다.
+- A proposal referencing an excerpt ID that was not sent is rejected before persistence; the existing aggregate and user input remain available, with no citation silently attached to another source.
+- When source removal is canceled, the source, design item evidence, and acceptance-criterion evidence remain byte-for-byte unchanged.
+- If the transactional removal fails, the latest source and all its evidence remain intact and the UI reports a recoverable error.
+- When a source is removed, unrelated message/file evidence remains visible; the design item itself is never removed.
 
 ### Boundary
 
-Given 하나의 파일이 5개 설계 항목의 근거일 때, when 사용자가 그 파일을 제거하고 확인하면, then 5개 항목 모두 삭제되지 않고 "근거 없음"으로 전환되며 제거 확인 Modal에 정확히 5라는 영향 수가 표시돼 있었어야 한다.
+Given one source is referenced by five distinct design items (including duplicate evidence refs and any nested criteria), when removal is requested, then the confirmation shows exactly five affected design items; confirmation removes all matching refs atomically and retains all five items. The empty-evidence state appears only for an item with no remaining evidence.
 
-## 예상 변경 파일
+## Focused validation matrix
 
-- `src/domain/blueprint/design-item.ts` (evidenceRefs 필드 추가)
-- `src/infrastructure/storage/migrations/*` (schemaVersion 증가)
-- `src/features/design-items/evidence-preview.tsx` (신규)
-- `src/features/sources/remove-source-confirm.tsx` (신규)
+| Concern | Focused check | Required result |
+| --- | --- | --- |
+| Excerpt policy | Unit/contract tests for ready-state filtering, project/source ID mapping, excerpt size/selection boundary, and omitted text | Approved policy is enforced; non-ready/foreign/over-limit material is never sent |
+| Evidence validation | Unit tests for allowed excerpt ID, unknown/stale ID, durable source mapping, quote/location normalization | Unknown IDs fail closed; valid citations map to the exact source and excerpt |
+| Removal transaction | Unit/repository tests for unique impact count, duplicate refs, nested criteria, cancellation, transaction failure, and preservation of unrelated refs/items | Correct count; atomic cleanup; no design item loss or unrelated evidence mutation |
+| Inspector/removal UI | One scoped Playwright spec for evidence preview, impact dialog, cancel, confirm, and visible no-evidence state at desktop and mobile layout | Filename/quote/location and exact affected count are accessible; cancel/confirm outcomes persist after reload |
+| Build and diff | `npm run build`; `git diff --check` | Both pass |
 
-## 테스트 계획
+Do not run a broad suite, live OpenAI request, full-app QA, or screenshot capture. Keep test execution limited to the changed evidence behavior and direct contracts.
 
-- 단위: EvidenceRef 저장/조회, 자료 제거 시 영향 항목 계산
-- 저장소: 마이그레이션 전/후 기존 DesignItem 데이터 무결성
-- 컴포넌트: 근거 preview 렌더, 제거 확인 Modal의 영향 수 표시
-- E2E: 근거 연결 → preview 열람 → 자료 제거 → "근거 없음" 확인
+## Data/API impact
 
-## UI 증거 계획
+- Expected canonical storage remains existing `SourceDocument`, `DesignItem.evidence`, `AcceptanceCriterion.evidence`, and `EvidenceRef`; no schema migration is expected if approved mapping fits the current shape.
+- The existing `/api/blueprint/turn` contract already accepts `SourceExcerpt[]`; no new endpoint/API route is expected. A policy that requires a new persisted entity or incompatible `EvidenceRef` fields must be replanned before implementation.
+- Source removal must update `sources`, design-item evidence and criterion evidence in one client-side IndexedDB transaction. Pending proposal behavior must not be broadened unless a product contract explicitly requires it.
 
-- desktop 1440×900, mobile 390×844
-- 근거 preview 열림 상태, 자료 제거 확인 Modal, "근거 없음" 배지 상태 캡처
+## Risks
 
-## 코드 리뷰·QA 체크리스트
+- Sending entire files as excerpts can violate source-minimization requirements and increase prompt exposure/cost; the missing selection and size policy is the current blocker.
+- Excerpt ID versus source ID mismatch can either reject valid model citations or attach a citation to the wrong file; tests must exercise the complete request-to-persisted-reference mapping.
+- Concurrent/stale UI state can undercount impacts; compute count and cleanup against the latest aggregate inside the transaction, and require confirmation against the displayed latest count.
+- A source may support several items and have duplicate/nested refs; count unique design items, remove only matching file refs, and retain other evidence.
 
-- [ ] 자료 제거가 설계 항목을 삭제하지 않고 상태만 바꾸는지
-- [ ] 원문 전체가 아니라 발췌만 근거로 저장·표시되는지(로그 노출 없음)
-- [ ] 마이그레이션이 기존 데이터를 손상하지 않는지
+## Review and QA checklist
 
-## Done Checklist
+- [ ] Approved excerpt selection and durable-ID mapping implemented exactly.
+- [ ] Only ready, project-owned, bounded excerpts enter `TURN_ANALYZE`; content is not logged.
+- [ ] Model evidence must refer to a sent excerpt; normalization cannot bind arbitrary or removed sources.
+- [ ] Inspector shows filename, quoted excerpt, location, and empty/deleted state accessibly.
+- [ ] Removal previews unique impacted design-item count and recomputes atomically; cancel/failure preserve state.
+- [ ] Confirmed removal retains items, nested unrelated evidence, and all unrelated aggregate fields.
+- [ ] Focused unit/contract and Playwright checks pass on the exact final SHA.
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료
-- [ ] 사용자 PR 머지 확인
+## Done checklist
 
-## 실행 시 추가 문서
-
-- 이 폴더에 구현 중/후 `test-results.md`, `review-notes.md`, `qa-report.md`를 추가로 생성한다(지금은 생성하지 않음).
+- [ ] Missing product contract resolved and Definition of Ready complete.
+- [ ] `SRC-002` behavior and focused acceptance checks pass.
+- [ ] Implementer self-validation and build pass; exact results recorded.
+- [ ] Independent code review passes on final SHA.
+- [ ] Independent focused QA passes on the same SHA.
+- [ ] User-authorized PR lifecycle gate passes and GitHub confirms merge.

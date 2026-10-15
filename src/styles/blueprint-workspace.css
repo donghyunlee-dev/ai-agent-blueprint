@@ -95,6 +95,12 @@
 .requirements-document { display:grid; gap:1.25rem; color:var(--workspace-ink,#20242b); }
 .requirements-document-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; border-bottom:1px solid var(--workspace-border,#dfe3e8); padding-bottom:1rem; }
 .requirements-document-header h2,.requirements-content-main h3 { margin:.25rem 0; }
+.document-export-actions { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; }
+.document-export-actions button { min-height:2.5rem; padding:.55rem .8rem; border:1px solid var(--workspace-border,#cfd4dc); border-radius:8px; color:inherit; background:#fff; font:inherit; cursor:pointer; }
+.document-export-actions button:focus-visible,.document-export-fallback textarea:focus-visible { outline:3px solid #4f72d8; outline-offset:2px; }
+.document-export-actions p { flex-basis:100%; margin:.25rem 0; }
+.document-export-fallback { flex-basis:100%; display:grid; gap:.4rem; }
+.document-export-fallback textarea { width:100%; min-height:8rem; padding:.65rem; border:1px solid var(--workspace-border,#cfd4dc); border-radius:8px; color:inherit; background:#fff; font:inherit; }
 .requirements-document-layout { display:grid; grid-template-columns:minmax(180px,230px) minmax(0,1fr); gap:1.25rem; align-items:start; }
 .requirements-contents { position:sticky; top:1rem; padding:.75rem; border:1px solid var(--workspace-border,#dfe3e8); border-radius:12px; background:var(--workspace-panel,#fff); }
 .requirements-contents header { display:flex; justify-content:space-between; align-items:center; padding:.25rem .35rem .65rem; }
@@ -132,6 +138,9 @@
 .document-impact-dialog footer { position:sticky; bottom:-1.25rem; display:flex; justify-content:flex-end; gap:.5rem; padding:1rem 0 .25rem; background:#fff; }
 .document-impact-dialog button:focus-visible,.document-direct-editor button:focus-visible,.document-direct-edit-actions button:focus-visible { outline:3px solid #4f72d8; outline-offset:2px; }
 @media (max-width:767px) {
+  .requirements-document-header { align-items:flex-start; flex-wrap:wrap; }
+  .document-export-actions { width:100%; }
+  .document-export-actions button { flex:1 1 auto; }
   .requirements-document-layout { grid-template-columns:minmax(0,1fr); }
   .requirements-contents-trigger { display:inline-flex; margin-bottom:.75rem; }
   .requirements-contents { display:none; position:fixed; z-index:60; inset:10vh 8vw auto; max-height:80vh; overflow:auto; box-shadow:0 16px 48px #141b2b38; }

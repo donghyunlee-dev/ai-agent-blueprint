@@ -1,6 +1,6 @@
 # SRC-PR-01 implementation validation
 
-**Status:** implementer self-validation passed. The independent review and QA gates remain open.
+**Status:** merged in PR #24. Implementer self-validation and independent review/QA gates passed before merge; GitHub reports AI synthetic eval and Vercel checks successful. Final PR head: `8fa05f6b4032713c1d30c6bb0da2b7f706704233`; merge commit: `f169cf7da310dc446fdb02b7006817c65703ea12`.
 
 ## Focused tests
 
