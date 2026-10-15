@@ -4,7 +4,7 @@ Implementation HEAD `e55eba6b3fe00ca7c58d0413d5f038d8e4e836a5`; the review and Q
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Focused implementation unit/contract tests | `node --test tests/unit/dsg-pr-02-proposals.test.js tests/unit/dsg-pr-01-proposals.test.js tests/unit/project-autosave.test.js tests/contract/dsg-pr-02-proposals.test.js` | 21 passed, 0 failed; includes same-target bulk exclusion and missing/occupied-target conflict resolution regressions. |
+| Focused implementation unit/contract tests | `node --test tests/unit/dsg-pr-02-proposals.test.js tests/unit/dsg-pr-01-proposals.test.js tests/unit/project-autosave.test.js tests/contract/dsg-pr-02-proposals.test.js` | 25 passed, 0 failed; includes same-target bulk exclusion and missing/occupied-target conflict resolution regressions. Re-run on final implementation code after the documentation-only QA report commit. |
 | Production build | `npm run build` | Passed; TypeScript and Vite completed (87 modules). |
 | Full focused browser scenarios | `npx playwright test tests/e2e/dsg-pr-02-conflict-bulk.spec.ts --workers=1` | 6/6 passed across desktop and mobile Chromium. |
 | Desktop comparison scenario | `npx playwright test tests/e2e/dsg-pr-02-conflict-bulk.spec.ts --project=desktop-chromium --grep='shows current, before, and proposed values' --workers=1` | 1/1 passed; criterion and section before/current/proposed values rendered. |
