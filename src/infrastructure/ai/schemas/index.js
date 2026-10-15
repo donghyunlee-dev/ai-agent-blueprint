@@ -64,6 +64,15 @@ const requirementsGenerateRequest = object({
   project: object({ id: string, title: string, designRevision: { type: 'integer', minimum: 0 } }),
   designItems: array(requirementsDesignItem), proposals: array(requirementsProposal),
 });
+const prdRequirement = object({ id:string, category:enumeration('functional','non_functional','data','integration','security','operation'), title:string, description:string, priority:enumeration('P0','P1','P2'), sourceItemIds:strings, acceptanceCriteria:array(object({text:string,sourceItemIds:strings})), openIssueIds:strings });
+const prdReadyDocument = object({ id:string, type:{const:'requirements'}, title:string, status:enumeration('draft','review_required','ready'), designRevision:{type:'integer',minimum:0}, version:{type:'integer',minimum:1}, sectionIds:strings, requirements:array(prdRequirement), openIssues:array(object({id:string,title:string,description:string,sourceItemIds:strings})), reviewIssues:array(object({code:string,severity:enumeration('error','warning'),sectionKey:string,relatedItemIds:strings,description:string,repairInstruction:opt(string)},['code','severity','sectionKey','relatedItemIds','description'])), readyDesignRevision:opt({type:'integer',minimum:0}) });
+const prdSection = object({ id:string, projectId:string, documentId:string, key:string, title:string, markdown:{type:'string'}, order:{type:'integer',minimum:0}, sourceItemIds:strings, origin:enumeration('generated','user_edited','accepted_proposal'), syncStatus:enumeration('current','stale','conflict'), updatedAt:string });
+const generationJobSnapshot = object({ id:string, type:{const:'PRD_DRAFT'}, logicalRequestId:string, status:enumeration('queued','running','succeeded','failed','cancelled') });
+const prdGenerateRequest = object({
+  documentType:{const:'prd'}, projectId:string, designRevision:{type:'integer',minimum:0}, currentDesignRevision:{type:'integer',minimum:0}, logicalRequestId:string, attemptId:string,
+  project:object({id:string,title:string,designRevision:{type:'integer',minimum:0}}),
+  designItems:array(requirementsDesignItem), documents:array(prdReadyDocument), sections:array(prdSection), generationJobs:array(generationJobSnapshot),
+});
 const documentsPatchRequest = union([
   object({ documentId: string, targetSectionIds: array(string), instruction: opt(string) }, ['documentId', 'targetSectionIds']),
   object({ documentId: string, targetRequirementIds: array(string), instruction: opt(string) }, ['documentId', 'targetRequirementIds']),
@@ -74,7 +83,7 @@ const envelope = union([taskEnvelope('REQUIREMENTS_DRAFT'), taskEnvelope('PRD_DR
 export const schemas = Object.freeze({
   displayBlock, normalizedBlocks: array(displayBlock, 6),
   tasks: Object.freeze(tasks), envelopes: Object.freeze(Object.fromEntries(Object.keys(tasks).map(task => [task, taskEnvelope(task)]))),
-  http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, requirementsGenerateRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
+  http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, requirementsGenerateRequest, prdGenerateRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
 });
 export function validateSchema(schema, value) {
   const errors = [];

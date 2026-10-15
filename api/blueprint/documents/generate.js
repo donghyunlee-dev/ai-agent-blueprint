@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { generateRequirements } from '../../../src/features/documents/requirements-generation.js';
+import { generatePrd } from '../../../src/features/documents/prd-generation.js';
 import { schemas, validateSchema } from '../../../src/infrastructure/ai/schemas/index.js';
 import { getPromptDefinition } from '../../../src/infrastructure/ai/prompt-registry.js';
 import { aiModelRegistry } from '../../../src/infrastructure/ai/model-registry.js';
@@ -13,7 +14,7 @@ import { requireSession } from '../../_lib/session.js';
 import { claimTurn, finishTurn, turnFingerprint, turnKey } from '../../_lib/turn-lifecycle.js';
 
 const MAX_BODY_BYTES = 100_000;
-const TASKS = new Set(['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR']);
+const TASKS = new Set(['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR', 'PRD_DRAFT', 'PRD_REVIEW', 'PRD_REPAIR']);
 const fail = (res, status, error, extra = {}) => sendJson(res, status, { error, ...extra });
 function ownerNamespace(user) {
   const secret = process.env.APP_SESSION_SECRET;
@@ -31,7 +32,9 @@ export default async function handler(req, res, deps = {}) {
   if (rejectCrossOriginMutation(req, res)) return;
   if (req.method !== 'POST') return fail(res, 405, 'METHOD_NOT_ALLOWED');
   const body = req.body;
-  if (Buffer.byteLength(JSON.stringify(body ?? {}), 'utf8') > MAX_BODY_BYTES || !validateSchema(schemas.http.requirementsGenerateRequest, body).valid) return fail(res, 400, 'INVALID_REQUEST');
+  const isPrd = body?.documentType === 'prd';
+  const requestSchema = isPrd ? schemas.http.prdGenerateRequest : schemas.http.requirementsGenerateRequest;
+  if (Buffer.byteLength(JSON.stringify(body ?? {}), 'utf8') > MAX_BODY_BYTES || !validateSchema(requestSchema, body).valid) return fail(res, 400, 'INVALID_REQUEST');
   if (body.projectId !== body.project.id || body.designRevision !== body.project.designRevision || body.currentDesignRevision !== body.designRevision) return fail(res, 409, 'DESIGN_REVISION_MISMATCH');
   let store; let key;
   try {
@@ -44,28 +47,33 @@ export default async function handler(req, res, deps = {}) {
     if (claim.kind === 'unknown') return fail(res, 503, 'AI_REQUEST_UNKNOWN');
     if (claim.kind === 'replay') return sendJson(res, 200, claim.result);
     if (!await finishTurn(store, key, { status: 'running', attemptId })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
-    const aggregate = { project: body.project, designItems: body.designItems, proposals: body.proposals };
+    const aggregate = isPrd
+      ? { project: body.project, designItems: body.designItems, documents: body.documents, sections: body.sections, generationJobs: body.generationJobs, proposals: [] }
+      : { project: body.project, designItems: body.designItems, proposals: body.proposals };
     const generationJobId = crypto.randomUUID();
     const requestLedgerEntries = [];
     let usage = { foregroundCalls: 0, finalCalls: 0, inputTokens: 0, outputReasoningTokens: 0, estimatedCostUsd: 0 };
-    const result = await generateRequirements({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask: async (task, input) => {
+    const runTask = async (task, input) => {
       if (!TASKS.has(task)) throw new Error('AI_TASK_NOT_ALLOWED');
       const definition = getPromptDefinition(task);
-      const messages = definition.buildInput({ currentTarget: input.plan, confirmedDesignItems: input.designItems.filter((item) => item.status === 'confirmed'), unknownsAndConflicts: input.openIssues, designRevision: input.designRevision });
+      const messages = definition.buildInput(isPrd
+        ? { currentTarget: task === 'PRD_DRAFT' ? input.plan : task === 'PRD_REVIEW' ? { plan: input.plan, draft: input.draft } : { plan: input.plan, sections: input.sections, issues: input.issues }, confirmedDesignItems: input.requirements, unknownsAndConflicts: input.openIssues, designRevision: input.designRevision }
+        : { currentTarget: input.plan, confirmedDesignItems: input.designItems.filter((item) => item.status === 'confirmed'), unknownsAndConflicts: input.openIssues, designRevision: input.designRevision });
       const taskConfig = aiModelRegistry.tasks[task];
       const inputTokens = estimateTokens(messages);
-      const resolvedModel = aiModelRegistry.profiles.DEFAULT.model;
+      const profile = taskConfig.profile;
+      const resolvedModel = aiModelRegistry.profiles[profile].model;
       for (let retry = 0; retry <= aiModelRegistry.projectLimits.schemaRetriesPerTask; retry += 1) {
-        const budget = canRequestAi(usage, { task, profile: 'DEFAULT', resolvedModel, estimatedInputTokens: inputTokens, maxOutputTokens: taskConfig.maxOutputTokens });
+        const budget = canRequestAi(usage, { task, profile, resolvedModel, estimatedInputTokens: inputTokens, maxOutputTokens: taskConfig.maxOutputTokens });
         if (!budget.allowed || budget.decision !== 'allow') throw Object.assign(new Error('AI_BUDGET_EXCEEDED'), { code: 'AI_BUDGET_EXCEEDED' });
         const estimatedCostUsd = calculateEstimatedCost(resolvedModel, { inputTokens, outputTokens: taskConfig.maxOutputTokens });
-        usage = { ...usage, foregroundCalls: usage.foregroundCalls + 1, inputTokens: usage.inputTokens + inputTokens, outputReasoningTokens: usage.outputReasoningTokens + taskConfig.maxOutputTokens, estimatedCostUsd: usage.estimatedCostUsd + estimatedCostUsd };
-        const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''), schema: schemas.envelopes[task], messages, reasoningEffort: taskConfig.reasoning });
+        usage = { ...usage, foregroundCalls: usage.foregroundCalls + 1, finalCalls: usage.finalCalls + (profile === 'FINAL' ? 1 : 0), inputTokens: usage.inputTokens + inputTokens, outputReasoningTokens: usage.outputReasoningTokens + taskConfig.maxOutputTokens, estimatedCostUsd: usage.estimatedCostUsd + estimatedCostUsd };
+        const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''), schema: schemas.envelopes[task], messages, model: resolvedModel, reasoningEffort: taskConfig.reasoning });
         const validation = validateSchema(schemas.envelopes[task], output);
         const createdAt = new Date().toISOString();
         requestLedgerEntries.push(createLedgerEntry({
           id: crypto.randomUUID(), projectId: body.projectId, generationJobId, logicalRequestId: body.logicalRequestId, attemptId,
-          task, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion, modelProfile: 'DEFAULT', resolvedModel,
+          task, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion, modelProfile: profile, resolvedModel,
           reasoningEffort: taskConfig.reasoning, designRevision: body.designRevision, estimatedInputTokens: inputTokens,
           estimatedOutputTokens: taskConfig.maxOutputTokens, estimatedCostUsd,
           status: validation.valid ? 'succeeded' : 'failed', ...(!validation.valid ? { errorCode: 'AI_INVALID_OUTPUT' } : {}), createdAt, finishedAt: createdAt,
@@ -73,7 +81,10 @@ export default async function handler(req, res, deps = {}) {
         if (validation.valid) return output;
       }
       throw Object.assign(new Error('AI_INVALID_OUTPUT'), { code: 'AI_INVALID_OUTPUT' });
-    } });
+    };
+    const result = isPrd
+      ? await generatePrd({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask })
+      : await generateRequirements({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask });
     result.requestLedgerEntries = requestLedgerEntries;
     if (!await finishTurn(store, key, { status: 'succeeded', attemptId, result })) return fail(res, 503, 'AI_REQUEST_UNKNOWN');
     return sendJson(res, 200, result);
@@ -81,6 +92,7 @@ export default async function handler(req, res, deps = {}) {
     if (store && key) { try { const code = /^[A-Z0-9_:-]{1,80}$/.test(error.code ?? '') ? error.code : 'AI_GENERATION_FAILED'; await finishTurn(store, key, { status: 'failed', attemptId: req.body?.attemptId, errorCode: code }); } catch { /* Preserve the original error response. */ } }
     if (error?.message === 'AUTH_STORE_NOT_CONFIGURED') return fail(res, 503, 'AUTH_STORE_NOT_CONFIGURED');
     if (error?.message === 'REQUIREMENTS_BLOCKED') return fail(res, 409, 'REQUIREMENTS_BLOCKED', { blockers: error.blockers });
+    if (error?.message === 'PRD_BLOCKED') return fail(res, 409, 'PRD_BLOCKED', { blockers: error.blockers });
     if (error?.message === 'DOCUMENT_PLAN_INVALID') return fail(res, 422, 'DOCUMENT_PLAN_INVALID');
     if (error?.message === 'DOCUMENT_OUTPUT_INVALID' || error?.message === 'AI_INVALID_OUTPUT') return fail(res, 502, 'AI_INVALID_OUTPUT');
     if (error?.message === 'AI_BUDGET_EXCEEDED') return fail(res, 429, 'AI_BUDGET_EXCEEDED');
