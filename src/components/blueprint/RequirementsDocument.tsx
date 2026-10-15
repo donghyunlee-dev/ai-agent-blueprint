@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GeneratedDocument, DocumentSection } from '../../domain/blueprint/types.js';
+import type { BlueprintAggregate } from '../../domain/blueprint/types.js';
+import { DocumentSectionEditor } from './DocumentSectionEditor.js';
 import '../../styles/blueprint-workspace.css';
 
 type Requirement = NonNullable<GeneratedDocument['requirements']>[number];
 type ReadySummary = { eligible:boolean; blockers:string[]; p0RequirementCount:number; acceptanceCriteriaCount:number; openIssueCount:number; designRevision:number|null };
-type Props = { document?:GeneratedDocument; sections:DocumentSection[]; generating:boolean; error?:string|null; readySummary?:ReadySummary; readyError?:string|null; patching?:boolean; patchError?:string|null; impactPreview?:(targets:{sectionIds:string[];requirementIds:string[]})=>{targetIds:string[];itemIds:string[];documentIds:string[]}; onRequestPatch?:(targets:{sectionIds:string[];requirementIds:string[]})=>void; onGenerate:()=>void; onMarkReady?:()=>void; onOpenPrd?:()=>void };
+type Props = { aggregate:BlueprintAggregate; document?:GeneratedDocument; sections:DocumentSection[]; generating:boolean; error?:string|null; readySummary?:ReadySummary; readyError?:string|null; patching?:boolean; patchError?:string|null; impactPreview?:(targets:{sectionIds:string[];requirementIds:string[]})=>{targetIds:string[];itemIds:string[];documentIds:string[]}; onRequestPatch?:(targets:{sectionIds:string[];requirementIds:string[]})=>void; onDirectEdit:(edit:{documentId:string;sectionId:string;baseVersion:number;baseDesignRevision:number;title:string;markdown:string;excludedImpactIds:string[]})=>Promise<{status:'updated'}|{status:'conflict';latest:{title:string;markdown:string;version:number;designRevision:number};draft:{title:string;markdown:string}}> ; onGenerate:()=>void; onMarkReady?:()=>void; onOpenPrd?:()=>void };
 
 function ImpactSummary({preview}:{preview:{targetIds:string[];itemIds:string[];documentIds:string[]}}) {
   return <div className="document-impact-preview" aria-label="변경 대상과 예상 영향"><strong>변경 대상과 예상 영향</strong><dl><dt>선택 대상 ID</dt><dd>{preview.targetIds.join(', ')||'없음'}</dd><dt>연결 설계 항목 ID</dt><dd>{preview.itemIds.join(', ')||'없음'}</dd><dt>영향 문서 ID</dt><dd>{preview.documentIds.join(', ')||'없음'}</dd></dl></div>;
@@ -23,7 +25,7 @@ function blockerMessage(code:string) {
   return code;
 }
 
-export function RequirementsDocument({ document, sections, generating, error, readySummary, readyError, patching=false, patchError, impactPreview, onRequestPatch, onGenerate, onMarkReady, onOpenPrd }:Props) {
+export function RequirementsDocument({ aggregate, document, sections, generating, error, readySummary, readyError, patching=false, patchError, impactPreview, onRequestPatch, onDirectEdit, onGenerate, onMarkReady, onOpenPrd }:Props) {
   const [selectedKey, setSelectedKey] = useState(sections[0]?.key ?? 'overview');
   const [selectedRequirementIds, setSelectedRequirementIds] = useState<string[]>([]);
   const [sectionTargetSelected, setSectionTargetSelected] = useState(false);
@@ -75,7 +77,7 @@ export function RequirementsDocument({ document, sections, generating, error, re
         {contentsOpen ? <button className="requirements-contents-backdrop" aria-label="목차 닫기" onClick={()=>setContentsOpen(false)} /> : null}
         <div className="requirements-content-main">
           <button ref={triggerRef} type="button" className="requirements-contents-trigger" aria-expanded={contentsOpen} onClick={()=>setContentsOpen(true)}>목차 열기</button>
-          {selected ? <article aria-labelledby="requirements-section-title"><p className="workspace-eyebrow">섹션 {selected.order+1} / {currentSections.length}</p><h3 id="requirements-section-title">{selected.title}</h3>{selected.markdown ? <p className="requirements-section-copy">{selected.markdown}</p> : null}
+          {selected ? <article aria-labelledby="requirements-section-title"><p className="workspace-eyebrow">섹션 {selected.order+1} / {currentSections.length}</p><h3 id="requirements-section-title">{selected.title}</h3>{selected.markdown ? <p className="requirements-section-copy">{selected.markdown}</p> : null}{document?<DocumentSectionEditor aggregate={aggregate} document={document} section={selected} onSave={onDirectEdit}/>:null}
             <label><input type="checkbox" checked={sectionTargetSelected} onChange={(event)=>setSectionTargetSelected(event.target.checked)} /> 이 섹션을 보완 대상으로 선택</label>
             {requirements.map((requirement:Requirement)=><section className="requirements-item" key={requirement.id}><header><strong>{requirement.id}</strong><span>{requirement.priority}</span></header><h4>{requirement.title}</h4><p>{requirement.description}</p><p className="requirements-item-meta">근거: {requirement.sourceItemIds.join(', ') || '연결된 설계 없음'}</p><label><input type="checkbox" checked={selectedRequirementIds.includes(requirement.id)} onChange={(event)=>setSelectedRequirementIds((ids)=>event.target.checked?[...ids,requirement.id]:ids.filter((id)=>id!==requirement.id))} /> 이 요구사항을 보완 대상으로 선택</label>{requirement.acceptanceCriteria.length ? <div><strong>수용 기준</strong><ul>{requirement.acceptanceCriteria.map((criterion,index)=><li key={`${requirement.id}-${index}`}>{criterion.text} <span>(근거: {criterion.sourceItemIds.join(', ')})</span></li>)}</ul></div> : null}</section>)}
           </article> : null}

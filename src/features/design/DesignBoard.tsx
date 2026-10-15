@@ -32,6 +32,7 @@ export function DesignBoard({ aggregate, readiness, selectedItemId, onSelectItem
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [pendingFocusItemId, setPendingFocusItemId] = useState<string | null>(null);
   const activeItems = aggregate.designItems.filter((item) => !item.archivedAt && item.status !== 'rejected');
+  const sectionReviewItems = activeItems.filter((item) => item.type === 'document_section' && item.status === 'review_required');
   const visibleAreas = readiness.areas.filter((area) => !filterKey || area.key === filterKey || (filterKey === 'conflicts' && area.status === 'conflict'));
 
   useEffect(() => {
@@ -105,5 +106,12 @@ export function DesignBoard({ aggregate, readiness, selectedItemId, onSelectItem
         </div> : null}
       </section>;
     })}</div>
+    {sectionReviewItems.length ? <section className="design-section" aria-labelledby="document-section-review-title">
+      <header className="design-section-heading"><h3 id="document-section-review-title">문서 편집 정합성 검토</h3><span className="design-section-status status-review_required">검토 필요 · {sectionReviewItems.length}</span></header>
+      <p>편집된 문서 섹션을 관련된 개별 설계 항목에 반영할지 검토하세요.</p>
+      <div className="design-items-list">{sectionReviewItems.map((item) => <button key={item.id} type="button" className={`design-item-row${selectedItemId === item.id ? ' is-selected' : ''}`} data-design-item-id={item.id} aria-pressed={selectedItemId === item.id} onClick={() => onSelectItem(item)}>
+        <span className="design-item-copy"><strong>{item.title}</strong><span>{item.description}</span></span><span className="design-item-state status-review_required">상세 및 관련 항목 확인</span>
+      </button>)}</div>
+    </section> : null}
   </section>;
 }

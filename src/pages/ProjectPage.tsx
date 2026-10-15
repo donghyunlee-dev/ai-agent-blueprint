@@ -31,6 +31,8 @@ import { commitPrdResult, validatePrdAllowed } from "../features/documents/prd-g
 import { approveDocumentPatch, buildDocumentPatchProposals, prepareDocumentPatchApproval, rejectDocumentPatch, validateDocumentPatchOutput } from "../features/documents/document-refinement.js";
 import { commitConsistencyReview } from "../features/documents/consistency-review.js";
 import { previewDocumentImpact } from "../features/documents/document-impact-preview.js";
+import { commitDirectDocumentEdit } from "../features/documents/document-edit-transaction.js";
+import { DocumentSectionEditor } from "../components/blueprint/DocumentSectionEditor.js";
 import { fetchBlueprintApi } from "../features/auth/sessionFetch.js";
 import "../styles/workspace-shell.css";
 
@@ -65,7 +67,7 @@ function classifyDesignProposals(aggregate:BlueprintAggregate) {
   return classifyProposalConflicts({...aggregate,proposals:aggregate.proposals.filter((proposal)=>!proposal.documentSnapshot)});
 }
 
-function PrdDocument({aggregate,generating,error,patching,patchError,onRequestPatch,onGenerate}:{aggregate:BlueprintAggregate;generating:boolean;error:string|null;patching:boolean;patchError:string|null;onRequestPatch:(targets:{sectionIds:string[];requirementIds:string[]})=>void;onGenerate:()=>void}) {
+function PrdDocument({aggregate,generating,error,patching,patchError,onRequestPatch,onDirectEdit,onGenerate}:{aggregate:BlueprintAggregate;generating:boolean;error:string|null;patching:boolean;patchError:string|null;onRequestPatch:(targets:{sectionIds:string[];requirementIds:string[]})=>void;onDirectEdit:(edit:{documentId:string;sectionId:string;baseVersion:number;baseDesignRevision:number;title:string;markdown:string;excludedImpactIds:string[]})=>Promise<{status:'updated'}|{status:'conflict';latest:{title:string;markdown:string;version:number;designRevision:number};draft:{title:string;markdown:string}}>;onGenerate:()=>void}) {
   const [selectedIds,setSelectedIds]=useState<string[]>([]);
   const saved=aggregate.documents.filter((document)=>document.type==='prd').sort((a,b)=>b.version-a.version)[0];
   const allowed=validatePrdAllowed(aggregate).allowed;
@@ -73,7 +75,7 @@ function PrdDocument({aggregate,generating,error,patching,patchError,onRequestPa
   return <section className="requirements-document" aria-labelledby="prd-title">
     <header className="requirements-document-header"><div><p className="workspace-eyebrow">{saved?`rev. ${saved.designRevision} · 검토 필요`:'PRD'}</p><h2 id="prd-title">제품 요구사항 문서</h2></div>{saved?<span role="status">사용자 검토 전</span>:null}</header>
     {!allowed?<div className="requirements-empty-state"><h3>PRD 생성 전 Requirements 검토가 필요합니다</h3><p>같은 설계 revision의 Requirements를 검토 완료한 뒤 PRD를 생성할 수 있습니다.</p><Link className="design-requirements-action is-primary" to={`/blueprints/${encodeURIComponent(aggregate.project.id)}/requirements`}>Requirements 검토로 이동</Link></div>:null}
-    {saved?<div className="requirements-document-layout"><nav aria-label="PRD 섹션 목차">{sections.map((section)=><a key={section.id} href={`#prd-${section.key}`}>{section.title}</a>)}</nav><div>{sections.map((section)=><article id={`prd-${section.key}`} key={section.id}><h3>{section.title}</h3><p>{section.markdown}</p><label><input type="checkbox" checked={selectedIds.includes(section.id)} onChange={(event)=>setSelectedIds((ids)=>event.target.checked?[...ids,section.id]:ids.filter((id)=>id!==section.id))}/> {section.title} 섹션을 보완 대상으로 선택</label><small>근거: {section.sourceItemIds.join(', ')||'연결 없음'}</small></article>)}</div></div>:null}
+    {saved?<div className="requirements-document-layout"><nav aria-label="PRD 섹션 목차">{sections.map((section)=><a key={section.id} href={`#prd-${section.key}`}>{section.title}</a>)}</nav><div>{sections.map((section)=><article id={`prd-${section.key}`} key={section.id}><h3>{section.title}</h3><p>{section.markdown}</p><DocumentSectionEditor aggregate={aggregate} document={saved} section={section} onSave={onDirectEdit}/><label><input type="checkbox" checked={selectedIds.includes(section.id)} onChange={(event)=>setSelectedIds((ids)=>event.target.checked?[...ids,section.id]:ids.filter((id)=>id!==section.id))}/> {section.title} 섹션을 보완 대상으로 선택</label><small>근거: {section.sourceItemIds.join(', ')||'연결 없음'}</small></article>)}</div></div>:null}
     {saved?<section className="requirements-ready-review" aria-labelledby="prd-patch-title"><h3 id="prd-patch-title">선택 섹션 부분 보완</h3><p>선택한 섹션만 보완 제안으로 검토합니다. 승인 전에는 문서를 바꾸지 않습니다.</p><ImpactPreview preview={previewDocumentImpact(aggregate,saved.id,{sectionIds:selectedIds,requirementIds:[]})}/>{patchError?<p role="alert">{patchError}</p>:null}<button type="button" disabled={patching||!selectedIds.length} onClick={()=>onRequestPatch({sectionIds:selectedIds,requirementIds:[]})}>{patching?'보완 제안 작성 중…':'선택 섹션 보완 제안 받기'}</button></section>:null}
     {allowed?<div className="requirements-empty-state">{generating?<p role="status">PRD를 작성하고 검토하고 있습니다.</p>:null}{error?<p role="alert">{error}</p>:null}<button type="button" className="design-requirements-action is-primary" disabled={generating} onClick={onGenerate}>{saved?'PRD 다시 생성':'PRD 생성'}</button></div>:null}
   </section>;
@@ -358,6 +360,20 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     throw new Error("STORAGE_SAVE_DID_NOT_SETTLE");
   }
 
+  async function saveDirectDocumentEdit(edit:{documentId:string;sectionId:string;baseVersion:number;baseDesignRevision:number;title:string;markdown:string;excludedImpactIds:string[]}) {
+    if (!ownerKey || !projectId) throw new Error('PROJECT_CONTEXT_STALE');
+    await flushProposalAutosave();
+    const saved = await repositoryFactory().transact(ownerKey,projectId,(latest)=>commitDirectDocumentEdit(latest,edit));
+    if (saved.status === 'conflict') {
+      const latest = await repositoryFactory().get(ownerKey,projectId);
+      if (latest) { aggregateRef.current = latest; setAggregate(latest); }
+      return saved as Extract<ReturnType<typeof commitDirectDocumentEdit>,{status:'conflict'}>;
+    }
+    if (!saved.aggregate) throw new Error('DOCUMENT_EDIT_SAVE_FAILED');
+    applyCommittedAggregate(saved.aggregate);
+    return {status:'updated' as const};
+  }
+
   async function requestDocumentPatch(targets:{sectionIds:string[];requirementIds:string[]}, documentType:'requirements'|'prd'='requirements') {
     if (!ownerKey || !projectId || documentPatchBusy) return;
     const snapshot = aggregateRef.current;
@@ -627,7 +643,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           documentType: 'requirements', projectId: request.snapshot.project.id, designRevision: request.snapshot.project.designRevision, currentDesignRevision: current.project.designRevision,
           logicalRequestId: request.logicalRequestId, attemptId,
           project: { id: request.snapshot.project.id, title: request.snapshot.project.title, designRevision: request.snapshot.project.designRevision },
-          designItems: request.snapshot.designItems.map(({ id, type, key, title, description, status, priority, archivedAt, attributes, acceptanceCriteria }) => ({ id, type, key, title, description, status, priority, archivedAt, attributes, acceptanceCriteria: acceptanceCriteria.map(({ id: criterionId, text, status: criterionStatus }) => ({ id: criterionId, text, status: criterionStatus })) })),
+          designItems: request.snapshot.designItems.filter((item) => item.type !== 'document_section').map(({ id, type, key, title, description, status, priority, archivedAt, attributes, acceptanceCriteria }) => ({ id, type, key, title, description, status, priority, archivedAt, attributes, acceptanceCriteria: acceptanceCriteria.map(({ id: criterionId, text, status: criterionStatus }) => ({ id: criterionId, text, status: criterionStatus })) })),
           proposals: request.snapshot.proposals.map(({ id, operation, targetType, targetId, before, after, affectedItemIds, status }) => ({ id, operation, targetType, targetId, before, after, affectedItemIds, status })),
         }),
       });
@@ -699,7 +715,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         body:JSON.stringify({
           documentType:'prd', projectId, designRevision:snapshot.project.designRevision, currentDesignRevision:current.project.designRevision,
           logicalRequestId:crypto.randomUUID(), attemptId:crypto.randomUUID(), project:{id:snapshot.project.id,title:snapshot.project.title,designRevision:snapshot.project.designRevision},
-          designItems:snapshot.designItems.map(({id,type,key,title,description,status,priority,archivedAt,attributes,acceptanceCriteria})=>({id,type,key,title,description,status,priority,archivedAt,attributes,acceptanceCriteria:acceptanceCriteria.map(({id:criterionId,text,status:criterionStatus})=>({id:criterionId,text,status:criterionStatus}))})),
+          designItems:snapshot.designItems.filter((item)=>item.type!=='document_section').map(({id,type,key,title,description,status,priority,archivedAt,attributes,acceptanceCriteria})=>({id,type,key,title,description,status,priority,archivedAt,attributes,acceptanceCriteria:acceptanceCriteria.map(({id:criterionId,text,status:criterionStatus})=>({id:criterionId,text,status:criterionStatus}))})),
           documents:[{id:requirements.id,projectId:requirements.projectId,type:'requirements',title:requirements.title,status:requirements.status,designRevision:requirements.designRevision,readyDesignRevision:requirements.readyDesignRevision,version:requirements.version,sectionIds:requirements.sectionIds,requirements:requirements.requirements,openIssues:requirements.openIssues??[],reviewIssues:requirements.reviewIssues??[],createdAt:requirements.createdAt,generationArtifact:requirements.generationArtifact,readyConfirmationArtifact:requirements.readyConfirmationArtifact}],
           sections:current.sections.filter((section)=>section.documentId===requirements.id),generationJobs:current.generationJobs.filter((job)=>job.type==='PRD_DRAFT').map(({id,type,logicalRequestId,status})=>({id,type,logicalRequestId,status})),
         }),
@@ -804,7 +820,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
                 </li>;
               })}</ol>
             </section> : null}
-            {designBoardVisible ? <DesignBoard aggregate={aggregate} readiness={designReadiness} selectedItemId={selectedDesignItemId} onSelectItem={openDesignItem} onContinueDeciding={continueDeciding} onOpenRequirements={openRequirements} /> : documentType === 'requirements' ? (() => { const saved = aggregate.documents.filter((document) => document.type === 'requirements').sort((a,b)=>b.version-a.version)[0]; const readySummary=saved?assessRequirementsReady(aggregate,saved):undefined; return <RequirementsDocument document={saved} sections={saved ? aggregate.sections.filter((section) => section.documentId === saved.id) : []} generating={requirementsGenerating} error={requirementsError} readySummary={readySummary} readyError={requirementsReadyError} patching={documentPatchBusy} patchError={documentPatchError} impactPreview={(targets)=>saved?previewDocumentImpact(aggregate,saved.id,targets):{targetIds:[],itemIds:[],documentIds:[]}} onRequestPatch={(targets)=>requestDocumentPatch(targets,'requirements')} onGenerate={() => void generateRequirementsDraft()} onMarkReady={() => void markRequirementsReady()} onOpenPrd={() => navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/prd`)} />; })() : documentType === 'prd' ? <PrdDocument aggregate={aggregate} generating={prdGenerating} error={prdError} patching={documentPatchBusy} patchError={documentPatchError} onRequestPatch={(targets)=>requestDocumentPatch(targets,'prd')} onGenerate={() => void generatePrdDraft()} /> : null}
+            {designBoardVisible ? <DesignBoard aggregate={aggregate} readiness={designReadiness} selectedItemId={selectedDesignItemId} onSelectItem={openDesignItem} onContinueDeciding={continueDeciding} onOpenRequirements={openRequirements} /> : documentType === 'requirements' ? (() => { const saved = aggregate.documents.filter((document) => document.type === 'requirements').sort((a,b)=>b.version-a.version)[0]; const readySummary=saved?assessRequirementsReady(aggregate,saved):undefined; return <RequirementsDocument aggregate={aggregate} document={saved} sections={saved ? aggregate.sections.filter((section) => section.documentId === saved.id) : []} generating={requirementsGenerating} error={requirementsError} readySummary={readySummary} readyError={requirementsReadyError} patching={documentPatchBusy} patchError={documentPatchError} impactPreview={(targets)=>saved?previewDocumentImpact(aggregate,saved.id,targets):{targetIds:[],itemIds:[],documentIds:[]}} onRequestPatch={(targets)=>requestDocumentPatch(targets,'requirements')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generateRequirementsDraft()} onMarkReady={() => void markRequirementsReady()} onOpenPrd={() => navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/prd`)} />; })() : documentType === 'prd' ? <PrdDocument aggregate={aggregate} generating={prdGenerating} error={prdError} patching={documentPatchBusy} patchError={documentPatchError} onRequestPatch={(targets)=>requestDocumentPatch(targets,'prd')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generatePrdDraft()} /> : null}
             {aggregate.designItems.some((item) => item.status === "review_required" && !item.archivedAt) ? <section className="proposal-review-required" aria-labelledby="review-required-title"><h2 id="review-required-title">선행 변경으로 재검토가 필요한 항목</h2><ul>{aggregate.designItems.filter((item) => item.status === "review_required" && !item.archivedAt).map((item) => <li key={item.id}><strong>{item.title}</strong><p>{String(item.attributes.reviewRequiredReason ?? "선행 결정 변경으로 확인이 필요합니다.")}</p></li>)}</ul></section> : null}
           </div>
         </section>
