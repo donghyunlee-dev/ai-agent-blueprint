@@ -25,9 +25,13 @@ test('selected Requirements section stays pending until explicit approval, then 
     await route.fulfill({status:200,json:{proposals:[{operation:'update',targetType:'document_section',targetId:'section-1',before:{markdown:'기존 선택 내용'},after:{markdown:'승인 후 선택 내용'},rationale:'선택한 섹션을 더 분명하게 합니다.',evidence:[],affectedItemIds:['item-1'],serverProof:'server-signed-proposal'}],requestLedgerEntries:[]}});
   });
   let refreshRequest:any;
-  await page.route('**/api/blueprint/documents/requirements/refresh-attestation',async(route)=>{refreshRequest=route.request().postDataJSON();await route.fulfill({status:200,json:{generationArtifact:'refreshed-attestation'}});});
+  await page.route('**/api/blueprint/documents/requirements/ready',async(route)=>{refreshRequest=route.request().postDataJSON();await route.fulfill({status:200,json:{generationArtifact:'refreshed-attestation'}});});
   await page.goto(`/blueprints/${projectId}/requirements`);
   await page.getByLabel('이 섹션을 보완 대상으로 선택').check();
+  const impactPreview=page.getByLabel('변경 대상과 예상 영향');
+  await expect(impactPreview).toContainText('section-1');
+  await expect(impactPreview).toContainText('product');
+  await expect(impactPreview).toContainText('requirements-doc');
   await page.getByRole('button',{name:'선택 항목 보완 제안 받기'}).click();
   await expect(page.getByRole('heading',{name:'제안 1개'})).toBeVisible();
   expect(patchRequest.targetSectionIds).toEqual(['section-1']);

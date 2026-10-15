@@ -151,3 +151,11 @@ Use stubbed providers and synthetic fixtures; no OpenAI key or live call. Do not
 - [ ] Prompt/schema synthetic eval passes if those artifacts changed; build and `git diff --check` pass.
 - [ ] Independent code review and independent QA pass on the same final HEAD; configured checks pass.
 - [ ] PR lifecycle gate passes; GitHub confirms merge to `main` before DOC-PR-04 begins.
+
+## Review follow-up (2026-10-15)
+
+- Consistency review now rechecks the captured design revision and both document versions inside the same IndexedDB transaction that stores findings' proposals and ledger entries. A transaction-time mismatch returns `stale`; UI reports failed/stale and does not display the model result as completed. Regression test: `tests/unit/doc-pr-03-consistency-review.test.js`.
+- Requirements/PRD impact preview lists selected target IDs, linked design item IDs, and all known documents linked through those items before dispatch. Regression tests: `tests/unit/doc-pr-03-document-impact-preview.test.js`; browser flow asserts the preview before request.
+- Both AI endpoints receive the project's existing request ledger and derive cumulative usage before `canRequestAi`; exhausted cumulative input budget tests assert provider-call count stays zero. The ledger remains client IndexedDB state in this architecture, so requests include the authenticated project's ledger snapshot and no server-side ledger database is introduced by this unit.
+- The Requirements attestation refresh is now an `action: "refresh-attestation"` branch of the existing `/api/blueprint/documents/requirements/ready` function. This preserves the public behavior under that path while reducing deployed API functions from 13 to 12 for Vercel Hobby.
+- Current Vercel routing evidence: direct `api/` files map to individual functions in non-framework projects and Hobby allows at most 12 functions per deployment ([Vercel runtime docs](https://vercel.com/docs/functions/runtimes)); same-project rewrites are configured in `vercel.json` if needed ([Vercel rewrites](https://vercel.com/docs/routing/rewrites)). We avoid a rewrite by consolidating the extra action into the existing ready route.

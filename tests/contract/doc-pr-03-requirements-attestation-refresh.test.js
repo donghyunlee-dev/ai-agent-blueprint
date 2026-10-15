@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler from '../../api/blueprint/documents/requirements/refresh-attestation.js';
+import handler from '../../api/blueprint/documents/requirements/ready.js';
 import { issueDocumentPatchProposalArtifact, issueRequirementsGenerationArtifact, verifyRequirementsGenerationArtifact } from '../../api/_lib/requirements-attestation.js';
 import { signSession, sessionCookieName } from '../../api/_lib/session.js';
 import { prepareDocumentPatchApproval } from '../../src/features/documents/document-refinement.js';
@@ -25,8 +25,9 @@ function fixture() {
   return { body, nextDocument, nextSections };
 }
 function request(body) {
-  const req = createMockReq({ method: 'POST', url: '/api/blueprint/documents/requirements/refresh-attestation', cookie: cookie(), headers: { host: 'app.example', 'x-forwarded-proto': 'https', origin: 'https://app.example', 'sec-fetch-site': 'same-origin' } });
+  const req = createMockReq({ method: 'POST', url: '/api/blueprint/documents/requirements/ready', cookie: cookie(), headers: { host: 'app.example', 'x-forwarded-proto': 'https', origin: 'https://app.example', 'sec-fetch-site': 'same-origin' } });
   req.body = body;
+  req.body.action = 'refresh-attestation';
   return req;
 }
 

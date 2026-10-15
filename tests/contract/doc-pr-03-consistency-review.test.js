@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import handler from '../../api/blueprint/review.js';
 import { signSession, sessionCookieName } from '../../api/_lib/session.js';
 import { createMockReq, createMockRes } from '../fixtures/http.js';
+import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
+import { calculateEstimatedCost, createLedgerEntry } from '../../src/infrastructure/ai/request-ledger.js';
 
 process.env.APP_SESSION_SECRET = 'doc-pr-03-review-session-secret';
 function cookie() { const { value } = signSession({ issuer: 'https://accounts.google.com', subject: 'doc-03-review' }); return `${sessionCookieName()}=${encodeURIComponent(value)}`; }
@@ -16,7 +18,7 @@ function fixture() {
     projectId: 'p1', designRevision: 3, logicalRequestId: 'review-1', attemptId: 'attempt-1', project: { id: 'p1', title: 'Project', designRevision: 3 }, requirementsDocumentId: 'req1', prdDocumentId: 'prd1',
     documents: [{ id: 'req1', projectId: 'p1', type: 'requirements', status: 'ready', version: 2, designRevision: 3, requirements: [{ id: 'R1', title: '기능', description: '기능 설명', sourceItemIds: ['i1'] }] }, { id: 'prd1', projectId: 'p1', type: 'prd', status: 'review_required', version: 1, designRevision: 3, goals: [{ text: '목표', sourceItemIds: ['i1'] }] }],
     sections: [{ id: 's1', projectId: 'p1', documentId: 'req1', key: 'scope', title: '범위', markdown: '확정 범위', sourceItemIds: ['i1'], origin: 'generated', syncStatus: 'current' }, { id: 's2', projectId: 'p1', documentId: 'prd1', key: 'scope', title: '범위', markdown: 'PRD 범위', sourceItemIds: ['i1'], origin: 'generated', syncStatus: 'current' }],
-    designItems: [{ id: 'i1', projectId: 'p1', type: 'goal', title: '목표', description: '목표 설명', status: 'confirmed' }],
+    designItems: [{ id: 'i1', projectId: 'p1', type: 'goal', title: '목표', description: '목표 설명', status: 'confirmed' }], requestLedgerEntries: [],
   };
 }
 function output(findings) { return { task: 'CONSISTENCY_REVIEW', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 3, referencedItemIds: ['i1'], referencedSourceIds: [], warnings: [], payload: { findings } }; }
@@ -45,4 +47,12 @@ test('consistency API rejects cross-project and revision snapshots before provid
     await handler(request(body), res, { store: store(), requestStructuredOutput: async () => { calls += 1; return output([]); } });
     assert.notEqual(res.statusCode, 200); assert.equal(calls, 0);
   }
+});
+
+test('consistency API blocks an exhausted cumulative project budget before provider call', async () => {
+  const body = fixture(); const model = aiModelRegistry.profiles.DEFAULT.model; const inputTokens = 500_000; const outputTokens = 100;
+  body.requestLedgerEntries = [createLedgerEntry({ id:'prior-ledger', projectId:'p1', generationJobId:'prior-job', logicalRequestId:'prior-request', attemptId:'prior-attempt', task:'CONSISTENCY_REVIEW', promptVersion:'v2', schemaVersion:'v2', modelProfile:'DEFAULT', resolvedModel:model, reasoningEffort:'low', designRevision:3, estimatedInputTokens:inputTokens, estimatedOutputTokens:outputTokens, estimatedCostUsd:calculateEstimatedCost(model,{inputTokens,outputTokens}), status:'succeeded', createdAt:new Date().toISOString() })];
+  const res = createMockRes(); let calls = 0;
+  await handler(request(body), res, { store:store(), requestStructuredOutput:async()=>{calls+=1;return output([]);} });
+  assert.equal(res.statusCode, 429); assert.equal(JSON.parse(res.body).error, 'AI_BUDGET_EXCEEDED'); assert.equal(calls, 0);
 });

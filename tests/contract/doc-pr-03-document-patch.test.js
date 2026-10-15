@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../../api/blueprint/documents/patch.js';
 import { signSession, sessionCookieName } from '../../api/_lib/session.js';
+import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
+import { calculateEstimatedCost, createLedgerEntry } from '../../src/infrastructure/ai/request-ledger.js';
 import { createMockReq, createMockRes } from '../fixtures/http.js';
 
 process.env.APP_SESSION_SECRET = 'doc-pr-03-contract-session-secret';
@@ -15,7 +17,7 @@ function fixture() {
   const project = { id: 'p1', title: 'Project', designRevision: 3 };
   const document = { id: 'd1', projectId: 'p1', type: 'requirements', status: 'review_required', version: 4, designRevision: 3 };
   const sections = [{ id: 's1', projectId: 'p1', documentId: 'd1', key: 'scope', title: '범위', markdown: '선택 내용', sourceItemIds: ['i1'], origin: 'generated', syncStatus: 'current' }, { id: 's2', projectId: 'p1', documentId: 'd1', key: 'risk', title: '위험', markdown: '비선택 내용', sourceItemIds: ['i2'], origin: 'generated', syncStatus: 'current' }];
-  return { projectId: 'p1', documentId: 'd1', designRevision: 3, logicalRequestId: 'request-1', attemptId: 'attempt-1', project, document, sections, designItems: [{ id: 'i1', type: 'scope', title: '범위', description: '확정', status: 'confirmed' }, { id: 'i2', type: 'risk', title: '위험', description: '확정', status: 'confirmed' }], targetSectionIds: ['s1'], targetRequirementIds: [], instruction: '명확히 해 주세요.' };
+  return { projectId: 'p1', documentId: 'd1', designRevision: 3, logicalRequestId: 'request-1', attemptId: 'attempt-1', project, document, sections, designItems: [{ id: 'i1', type: 'scope', title: '범위', description: '확정', status: 'confirmed' }, { id: 'i2', type: 'risk', title: '위험', description: '확정', status: 'confirmed' }], targetSectionIds: ['s1'], targetRequirementIds: [], requestLedgerEntries: [], instruction: '명확히 해 주세요.' };
 }
 function validOutput(revision = 3) { return { task: 'DOCUMENT_PATCH', promptVersion: 'v1', schemaVersion: 'v1', designRevision: revision, referencedItemIds: ['i1'], referencedSourceIds: [], warnings: [], payload: { proposals: [{ operation: 'update', targetType: 'document_section', targetId: 's1', before: { markdown: '선택 내용' }, after: { markdown: '보완 내용' }, rationale: '범위를 분명히 합니다.', evidence: [], affectedItemIds: ['i1'] }] } }; }
 
@@ -68,4 +70,12 @@ test('patch API supports a selected requirement target with only its linked desi
   const context = JSON.parse(messages[2].content.split('TYPED_CONTEXT_JSON:\n')[1].split('\nSOURCE_EXCERPTS')[0]);
   assert.deepEqual(context.currentTarget.requirements.map((item) => item.id), ['R1']);
   assert.deepEqual(context.currentTarget.sections, []);
+});
+
+test('patch API blocks an exhausted cumulative project budget before provider call', async () => {
+  const body = fixture(); const model = aiModelRegistry.profiles.DEFAULT.model; const inputTokens = 500_000; const outputTokens = 100;
+  body.requestLedgerEntries = [createLedgerEntry({ id:'prior-ledger', projectId:'p1', generationJobId:'prior-job', logicalRequestId:'prior-request', attemptId:'prior-attempt', task:'DOCUMENT_PATCH', promptVersion:'v1', schemaVersion:'v1', modelProfile:'DEFAULT', resolvedModel:model, reasoningEffort:'low', designRevision:3, estimatedInputTokens:inputTokens, estimatedOutputTokens:outputTokens, estimatedCostUsd:calculateEstimatedCost(model,{inputTokens,outputTokens}), status:'succeeded', createdAt:new Date().toISOString() })];
+  const res = createMockRes(); let calls = 0;
+  await handler(request(body), res, { store:store(), requestStructuredOutput:async()=>{calls+=1;return validOutput();} });
+  assert.equal(res.statusCode, 429); assert.equal(JSON.parse(res.body).error, 'AI_BUDGET_EXCEEDED'); assert.equal(calls, 0);
 });

@@ -4,7 +4,7 @@ import { schemas, validateSchema } from '../../../src/infrastructure/ai/schemas/
 import { getPromptDefinition } from '../../../src/infrastructure/ai/prompt-registry.js';
 import { canRequestAi } from '../../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../../src/infrastructure/ai/model-pricing.js';
-import { createLedgerEntry } from '../../../src/infrastructure/ai/request-ledger.js';
+import { createLedgerEntry, projectAiUsageFromLedger } from '../../../src/infrastructure/ai/request-ledger.js';
 import { validateResponseMetadata } from '../../../src/infrastructure/ai/context-manifest.js';
 import { validateDocumentPatchOutput } from '../../../src/features/documents/document-refinement.js';
 import { issueDocumentPatchProposalArtifact } from '../../_lib/requirements-attestation.js';
@@ -29,7 +29,7 @@ function estimateTokens(value) {
 function validRequest(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
   if (typeof body.projectId !== 'string' || typeof body.documentId !== 'string' || typeof body.logicalRequestId !== 'string' || typeof body.attemptId !== 'string') return false;
-  if (!Number.isSafeInteger(body.designRevision) || !Array.isArray(body.targetSectionIds) || !Array.isArray(body.targetRequirementIds) || !Array.isArray(body.sections) || !Array.isArray(body.designItems)) return false;
+  if (!Number.isSafeInteger(body.designRevision) || !Array.isArray(body.targetSectionIds) || !Array.isArray(body.targetRequirementIds) || !Array.isArray(body.sections) || !Array.isArray(body.designItems) || !Array.isArray(body.requestLedgerEntries)) return false;
   const document = body.document;
   return document && document.id === body.documentId && document.projectId === body.projectId && ['requirements', 'prd'].includes(document.type)
     && ['draft', 'review_required', 'ready'].includes(document.status) && document.designRevision === body.designRevision
@@ -75,8 +75,9 @@ export default async function handler(req, res, deps = {}) {
     const inputTokens = estimateTokens(messages);
     const profile = taskConfig.profile;
     const resolvedModel = aiModelRegistry.profiles[profile].model;
-    const budget = canRequestAi({}, { task, profile, resolvedModel, estimatedInputTokens: inputTokens, maxOutputTokens: taskConfig.maxOutputTokens });
-    if (!budget.allowed) { const error = new Error('AI_BUDGET_EXCEEDED'); error.code = 'AI_BUDGET_EXCEEDED'; throw error; }
+    const projectUsage = projectAiUsageFromLedger(body.requestLedgerEntries, body.projectId);
+    const budget = canRequestAi(projectUsage, { task, profile, resolvedModel, estimatedInputTokens: inputTokens, maxOutputTokens: taskConfig.maxOutputTokens });
+    if (!budget.allowed || budget.decision !== 'allow') { const error = new Error('AI_BUDGET_EXCEEDED'); error.code = 'AI_BUDGET_EXCEEDED'; throw error; }
     const estimatedCostUsd = calculateEstimatedCost(resolvedModel, { inputTokens, outputTokens: taskConfig.maxOutputTokens });
     const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_'), schema: schemas.envelopes[task], messages, model: resolvedModel, reasoningEffort: taskConfig.reasoning });
     const schema = validateSchema(schemas.envelopes[task], output);
@@ -101,6 +102,7 @@ export default async function handler(req, res, deps = {}) {
   } catch (error) {
     if (store && key) { try { await finishTurn(store, key, { status: error.code === 'AI_INVALID_OUTPUT' ? 'failed' : 'failed', attemptId: req.body?.attemptId, errorCode: error.code ?? 'DOCUMENT_PATCH_FAILED' }); } catch { /* Preserve the original response. */ } }
     if (error?.message === 'AUTH_STORE_NOT_CONFIGURED') return fail(res, 503, 'AUTH_STORE_NOT_CONFIGURED');
+    if (error?.message?.startsWith('AI_LEDGER_')) return fail(res, 400, 'AI_LEDGER_INVALID');
     if (error?.message === 'AI_BUDGET_EXCEEDED') return fail(res, 429, 'AI_BUDGET_EXCEEDED');
     if (error?.message === 'AI_INVALID_OUTPUT') return fail(res, 502, 'AI_INVALID_OUTPUT');
     return fail(res, error.statusCode || 502, 'DOCUMENT_PATCH_FAILED');

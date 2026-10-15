@@ -7,6 +7,7 @@ import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricin
 import { createLedgerEntry } from '../../src/infrastructure/ai/request-ledger.js';
 import { validateResponseMetadata } from '../../src/infrastructure/ai/context-manifest.js';
 import { validateConsistencyReviewOutput } from '../../src/features/documents/document-refinement.js';
+import { projectAiUsageFromLedger } from '../../src/infrastructure/ai/request-ledger.js';
 import { issueDocumentPatchProposalArtifact } from '../_lib/requirements-attestation.js';
 import { getAuthStore } from '../_lib/auth-store.js';
 import { requestStructuredOutput, sendJson } from '../_lib/blueprint-openai.js';
@@ -27,7 +28,7 @@ function estimateTokens(value) {
   return hangul + Math.ceil((chars.length - hangul) / 4);
 }
 function validRequest(body) {
-  if (!body || typeof body !== 'object' || Array.isArray(body) || !Array.isArray(body.documents) || !Array.isArray(body.sections) || !Array.isArray(body.designItems)) return false;
+  if (!body || typeof body !== 'object' || Array.isArray(body) || !Array.isArray(body.documents) || !Array.isArray(body.sections) || !Array.isArray(body.designItems) || !Array.isArray(body.requestLedgerEntries)) return false;
   if (typeof body.projectId !== 'string' || typeof body.logicalRequestId !== 'string' || typeof body.attemptId !== 'string' || !Number.isSafeInteger(body.designRevision)) return false;
   const requirements = body.documents.find((document) => document.id === body.requirementsDocumentId && document.type === 'requirements');
   const prd = body.documents.find((document) => document.id === body.prdDocumentId && document.type === 'prd');
@@ -69,8 +70,9 @@ export default async function handler(req, res, deps = {}) {
     const inputTokens = estimateTokens(messages);
     const profile = taskConfig.profile;
     const resolvedModel = aiModelRegistry.profiles[profile].model;
-    const budget = canRequestAi({}, { task, profile, resolvedModel, estimatedInputTokens: inputTokens, maxOutputTokens: taskConfig.maxOutputTokens });
-    if (!budget.allowed) throw Object.assign(new Error('AI_BUDGET_EXCEEDED'), { code: 'AI_BUDGET_EXCEEDED' });
+    const projectUsage = projectAiUsageFromLedger(body.requestLedgerEntries, body.projectId);
+    const budget = canRequestAi(projectUsage, { task, profile, resolvedModel, estimatedInputTokens: inputTokens, maxOutputTokens: taskConfig.maxOutputTokens });
+    if (!budget.allowed || budget.decision !== 'allow') throw Object.assign(new Error('AI_BUDGET_EXCEEDED'), { code: 'AI_BUDGET_EXCEEDED' });
     const estimatedCostUsd = calculateEstimatedCost(resolvedModel, { inputTokens, outputTokens: taskConfig.maxOutputTokens });
     const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''), schema: schemas.envelopes[task], messages, model: resolvedModel, reasoningEffort: taskConfig.reasoning });
     const schema = validateSchema(schemas.envelopes[task], output);
@@ -99,6 +101,7 @@ export default async function handler(req, res, deps = {}) {
   } catch (error) {
     if (store && key) { try { await finishTurn(store, key, { status: 'failed', attemptId: req.body?.attemptId, errorCode: error.code ?? 'CONSISTENCY_REVIEW_FAILED' }); } catch { /* Preserve the original response. */ } }
     if (error?.message === 'AUTH_STORE_NOT_CONFIGURED') return fail(res, 503, 'AUTH_STORE_NOT_CONFIGURED');
+    if (error?.message?.startsWith('AI_LEDGER_')) return fail(res, 400, 'AI_LEDGER_INVALID');
     if (error?.message === 'AI_BUDGET_EXCEEDED') return fail(res, 429, 'AI_BUDGET_EXCEEDED');
     if (error?.message === 'AI_INVALID_OUTPUT') return fail(res, 502, 'AI_INVALID_OUTPUT');
     return fail(res, error.statusCode || 502, 'CONSISTENCY_REVIEW_FAILED');
