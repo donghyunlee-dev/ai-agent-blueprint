@@ -24,6 +24,9 @@ import { approveProposal, editAndApproveProposal, rejectProposal } from "../feat
 import { bulkApproveProposals, bulkRejectProposals, classifyProposalConflicts, proposalCurrentSnapshot, resolveProposalConflict } from "../features/proposals/dsg-pr-02-commands.js";
 import { DesignBoard } from "../features/design/DesignBoard.js";
 import { computeDesignReadiness } from "../features/design/readiness.js";
+import { RequirementsDocument } from "../components/blueprint/RequirementsDocument.js";
+import { commitRequirementsResult } from "../features/documents/requirements-generation.js";
+import { fetchBlueprintApi } from "../features/auth/sessionFetch.js";
 import "../styles/workspace-shell.css";
 
 const documentTypes = new Set(["design", "requirements", "prd", "setup_guide"]);
@@ -70,6 +73,9 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [mobileLayout, setMobileLayout] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
   const [proposalBusyId, setProposalBusyId] = useState<string | null>(null);
   const [proposalError, setProposalError] = useState<string | null>(null);
+  const [requirementsGenerating, setRequirementsGenerating] = useState(false);
+  const [requirementsError, setRequirementsError] = useState<string | null>(null);
+  const requirementsRequestRef = useRef<{ logicalRequestId:string; snapshot:BlueprintAggregate } | null>(null);
   const [editingProposalId, setEditingProposalId] = useState<string | null>(null);
   const [proposalEdit, setProposalEdit] = useState({ title: "", description: "" });
   const [proposalBulkAction, setProposalBulkAction] = useState<"approve" | "reject" | null>(null);
@@ -470,6 +476,47 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     if (designReadiness.canGenerateRequirements) navigate(`/blueprints/${encodeURIComponent(currentProjectId)}/requirements`);
   }
 
+  async function generateRequirementsDraft() {
+    const latest = aggregateRef.current;
+    if (!ownerKey || !projectId || !latest || requirementsGenerating) return;
+    const request = requirementsRequestRef.current ?? (computeDesignReadiness(latest).canGenerateRequirements ? { logicalRequestId:crypto.randomUUID(), snapshot:structuredClone(latest) } : null);
+    if (!request) return;
+    requirementsRequestRef.current = request;
+    setRequirementsGenerating(true);
+    setRequirementsError(null);
+    const attemptId = crypto.randomUUID();
+    try {
+      const repository = repositoryFactory();
+      const current = await repository.get(ownerKey, projectId);
+      if (!current || current.project.designRevision !== request.snapshot.project.designRevision) {
+        requirementsRequestRef.current = null;
+        throw new Error('설계가 변경되어 Requirements를 생성하지 않았습니다. 최신 설계를 다시 확인해 주세요.');
+      }
+      const response = await fetchBlueprintApi('/api/blueprint/documents/generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentType: 'requirements', projectId: request.snapshot.project.id, designRevision: request.snapshot.project.designRevision, currentDesignRevision: current.project.designRevision,
+          logicalRequestId: request.logicalRequestId, attemptId,
+          project: { id: request.snapshot.project.id, title: request.snapshot.project.title, designRevision: request.snapshot.project.designRevision },
+          designItems: request.snapshot.designItems.map(({ id, type, key, title, description, status, priority, archivedAt, attributes, acceptanceCriteria }) => ({ id, type, key, title, description, status, priority, archivedAt, attributes, acceptanceCriteria: acceptanceCriteria.map(({ id: criterionId, text, status: criterionStatus }) => ({ id: criterionId, text, status: criterionStatus })) })),
+          proposals: request.snapshot.proposals.map(({ id, operation, targetType, targetId, before, after, affectedItemIds, status }) => ({ id, operation, targetType, targetId, before, after, affectedItemIds, status })),
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (payload.error === 'REQUIREMENTS_BLOCKED') throw new Error((payload.blockers ?? []).map((item: { reason?:string }) => item.reason).filter(Boolean).join(' '));
+        throw new Error(payload.error === 'AI_BUDGET_EXCEEDED' ? '요청 예산을 초과해 생성하지 못했습니다.' : 'Requirements를 생성하지 못했습니다. 저장된 설계는 유지됩니다. 다시 시도해 주세요.');
+      }
+      const committed = await repository.transact(ownerKey, projectId, (current) => ({ status: 'updated', aggregate: commitRequirementsResult(current, payload, current.project.designRevision) }));
+      if (!committed.aggregate) throw new Error('저장 결과를 확인하지 못했습니다. 설계는 보존됐으며 다시 시도할 수 있습니다.');
+      requirementsRequestRef.current = null;
+      aggregateRef.current = committed.aggregate;
+      setAggregate(committed.aggregate);
+    } catch (error) {
+      setRequirementsError(error instanceof Error ? error.message : 'Requirements를 생성하지 못했습니다. 저장된 설계는 유지됩니다. 다시 시도해 주세요.');
+    } finally { setRequirementsGenerating(false); }
+  }
+
   return (
     <main className="workspace-shell" style={{ "--workspace-conversation-width": `${conversationWidth}px` } as CSSProperties} data-mobile-mode={mobileMode}>
       <header className="workspace-appbar">
@@ -559,7 +606,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
                 </li>;
               })}</ol>
             </section> : null}
-            {designBoardVisible ? <DesignBoard aggregate={aggregate} readiness={designReadiness} selectedItemId={selectedDesignItemId} onSelectItem={openDesignItem} onContinueDeciding={continueDeciding} onOpenRequirements={openRequirements} /> : !aggregate.proposals.some((proposal) => proposal.status === "pending") ? <div className="workspace-empty-state"><div className="workspace-empty-mark" aria-hidden="true">✦</div><h2>{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)} 작업을 시작해 보세요</h2><p>첫 아이디어를 바탕으로 내용을 정리하고 필요한 결정을 이어갈 수 있습니다.</p><span>현재 문서: {documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</span></div> : null}
+            {designBoardVisible ? <DesignBoard aggregate={aggregate} readiness={designReadiness} selectedItemId={selectedDesignItemId} onSelectItem={openDesignItem} onContinueDeciding={continueDeciding} onOpenRequirements={openRequirements} /> : documentType === 'requirements' ? (() => { const saved = aggregate.documents.filter((document) => document.type === 'requirements').sort((a,b)=>b.version-a.version)[0]; return <RequirementsDocument document={saved} sections={saved ? aggregate.sections.filter((section) => section.documentId === saved.id) : []} generating={requirementsGenerating} error={requirementsError} onGenerate={() => void generateRequirementsDraft()} />; })() : !aggregate.proposals.some((proposal) => proposal.status === "pending") ? <div className="workspace-empty-state"><div className="workspace-empty-mark" aria-hidden="true">✦</div><h2>{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)} 작업을 시작해 보세요</h2><p>첫 아이디어를 바탕으로 내용을 정리하고 필요한 결정을 이어갈 수 있습니다.</p><span>현재 문서: {documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</span></div> : null}
             {aggregate.designItems.some((item) => item.status === "review_required" && !item.archivedAt) ? <section className="proposal-review-required" aria-labelledby="review-required-title"><h2 id="review-required-title">선행 변경으로 재검토가 필요한 항목</h2><ul>{aggregate.designItems.filter((item) => item.status === "review_required" && !item.archivedAt).map((item) => <li key={item.id}><strong>{item.title}</strong><p>{String(item.attributes.reviewRequiredReason ?? "선행 결정 변경으로 확인이 필요합니다.")}</p></li>)}</ul></section> : null}
           </div>
         </section>
