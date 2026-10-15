@@ -1,6 +1,6 @@
 # EXP-PR-01 implementation validation
 
-**Status:** implementer self-validation passed. Independent review and QA gates remain open. Planning base: `f169cf7da310dc446fdb02b7006817c65703ea12`.
+**Status:** implementer self-validation passed. Independent review and QA passed on code SHA `c6ae9dd64a92678aad2640016cc81fd84206068d`. Planning base: `f169cf7da310dc446fdb02b7006817c65703ea12`.
 
 ## Focused validation
 
@@ -18,6 +18,6 @@ No live AI calls or broad suite were run. The first browser run failed because i
 
 ## Gates
 
-- [ ] Independent code review on the final PR SHA.
-- [ ] Independent focused QA on the same final PR SHA.
+- [x] Independent code review on `c6ae9dd64a92678aad2640016cc81fd84206068d`.
+- [x] Independent focused QA on `c6ae9dd64a92678aad2640016cc81fd84206068d`.
 - [ ] PR lifecycle gate and merge verification.

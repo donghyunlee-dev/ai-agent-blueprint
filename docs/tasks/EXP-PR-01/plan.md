@@ -123,8 +123,8 @@ No live AI calls, source/guide pipeline tests, broad suite, or screenshot set is
 
 - [x] `EXP-001` available-document behavior and focused acceptance checks pass.
 - [x] Implementer self-validation/build results recorded.
-- [ ] Independent code review passes on final SHA.
-- [ ] Independent focused QA passes on the same SHA.
+- [x] Independent code review passes on code SHA `c6ae9dd64a92678aad2640016cc81fd84206068d` (see `review-notes.md`).
+- [x] Independent focused QA passes on the same code SHA (see `qa-report.md`).
 - [ ] User-authorized PR lifecycle gate passes and GitHub confirms merge.
 - [ ] `EXP-001` stays `in_progress` until GDE-PR-01 adds setup-guide view integration and the same actions are verified there.
 
