@@ -48,6 +48,15 @@ test('blocks readiness and invalid coverage before provider call', async () => {
   assert.equal(count, 1);
 });
 
+test('keeps confirmed out of scope items only in the exclusions section', async () => {
+  const scoped = structuredClone(aggregate);
+  scoped.designItems.find((entry) => entry.id === 'out').acceptanceCriteria = [{ id:'excluded-ac', text:'제외 기능 완료', status:'confirmed' }];
+  const result = await generateRequirements({ aggregate:scoped, runTask:async (task) => task === 'REQUIREMENTS_DRAFT' ? draft() : review('pass') });
+  assert.equal(result.document.requirements.some((requirement)=>requirement.sourceItemIds.includes('out')),false);
+  assert.ok(result.sections.find((section)=>section.key==='exclusions').sourceItemIds.includes('out'));
+  assert.ok(result.sections.filter((section)=>section.key!=='exclusions').every((section)=>!section.sourceItemIds.includes('out')));
+});
+
 
 test('commits document, sections, job, ledger and activity atomically while marking revision drift stale', async () => {
   const result = await generateRequirements({ aggregate, logicalRequestId:'logical-request-0001', attemptId:'attempt-0001', runTask: async (task) => task === 'REQUIREMENTS_DRAFT' ? draft() : review('pass') });

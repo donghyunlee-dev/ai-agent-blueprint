@@ -60,7 +60,7 @@ const requirementsProposal = object({
   targetId: opt(string), before: opt({}), after: opt({}), affectedItemIds: strings, status: enumeration('pending', 'accepted', 'edited_and_accepted', 'rejected', 'superseded'),
 });
 const requirementsGenerateRequest = object({
-  documentType: { const: 'requirements' }, projectId: string, designRevision: { type: 'integer', minimum: 0 }, logicalRequestId: string, attemptId: string,
+  documentType: { const: 'requirements' }, projectId: string, designRevision: { type: 'integer', minimum: 0 }, currentDesignRevision: { type: 'integer', minimum: 0 }, logicalRequestId: string, attemptId: string,
   project: object({ id: string, title: string, designRevision: { type: 'integer', minimum: 0 } }),
   designItems: array(requirementsDesignItem), proposals: array(requirementsProposal),
 });

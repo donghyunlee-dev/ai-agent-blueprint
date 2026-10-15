@@ -33,7 +33,7 @@ function categoryFor(sectionKey) {
 }
 
 function activeItems(aggregate) {
-  return (aggregate.designItems ?? []).filter((item) => !item.archivedAt && item.status === 'confirmed');
+  return (aggregate.designItems ?? []).filter((item) => !item.archivedAt && item.status === 'confirmed' && item.type !== 'out_of_scope');
 }
 
 export function buildRequirementsPlan(aggregate) {
@@ -48,6 +48,7 @@ export function buildRequirementsPlan(aggregate) {
       continue;
     }
     if (item.status !== 'confirmed') continue;
+    if (item.type === 'out_of_scope') continue;
     const sectionKey = sectionFor(item);
     const acceptanceCriteria = (item.acceptanceCriteria ?? []).filter((criterion) => criterion.status === 'confirmed' && criterion.text?.trim());
     requirements.push({
@@ -66,6 +67,8 @@ export function buildRequirementsPlan(aggregate) {
     ...section,
     sourceItemIds: section.key === 'open_issues'
       ? (aggregate.designItems ?? []).filter((item) => !item.archivedAt && item.status === 'deferred').map((item) => item.id)
+      : section.key === 'exclusions'
+        ? (aggregate.designItems ?? []).filter((item) => !item.archivedAt && item.status === 'confirmed' && item.type === 'out_of_scope').map((item) => item.id)
       : items.filter((item) => sectionFor(item) === section.key).map((item) => item.id),
     requirementIds: requirements.filter((item) => item.sectionKey === section.key).map((item) => item.id),
   }));
@@ -95,6 +98,8 @@ export function validateRequirementsPlan(plan, aggregate) {
   for (const section of plan?.sections ?? []) {
     const expected = section.key === 'open_issues'
       ? [...deferredIdsFrom(aggregate)]
+      : section.key === 'exclusions'
+        ? (aggregate.designItems ?? []).filter((item) => !item.archivedAt && item.status === 'confirmed' && item.type === 'out_of_scope').map((item) => item.id)
       : activeItems(aggregate).filter((item) => sectionFor(item) === section.key).map((item) => item.id);
     for (const id of expected) if (!section.sourceItemIds.includes(id)) errors.push(`section source not covered ${section.key}:${id}`);
   }

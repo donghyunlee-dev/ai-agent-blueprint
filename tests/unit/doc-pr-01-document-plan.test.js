@@ -25,8 +25,20 @@ test('builds every required section and traces confirmed core acceptance criteri
   assert.ok(plan.openIssues.some((issue) => issue.sourceItemIds.includes('deferred')));
   assert.equal(plan.requirements.some((entry) => entry.sourceItemIds.includes('proposed')), false);
   assert.equal(plan.requirements.some((entry) => entry.sourceItemIds.includes('rejected')), false);
+  assert.equal(plan.requirements.some((entry) => entry.sourceItemIds.includes('exclusions')), false);
+  assert.ok(plan.sections.find((section) => section.key === 'exclusions').sourceItemIds.includes('exclusions'));
   assert.equal(plan.openIssues.some((issue) => issue.sourceItemIds.includes('pending')), false);
   assert.equal(validateRequirementsPlan(plan, ready).valid, true);
+});
+
+test('out of scope items are preserved only in exclusions and cannot become P0 requirements', () => {
+  const outOfScope = item('excluded-feature', 'out_of_scope', 'confirmed', { priority: 'must', acceptanceCriteria: [{ id: 'excluded-ac', text: '금지', status: 'confirmed' }] });
+  const aggregate = { ...ready, designItems: [...ready.designItems, outOfScope] };
+  const plan = buildRequirementsPlan(aggregate);
+  assert.equal(plan.requirements.some((requirement) => requirement.sourceItemIds.includes(outOfScope.id)), false);
+  assert.equal(plan.acceptanceCriterionIds.includes('excluded-ac'), false);
+  assert.deepEqual(plan.sections.find((section) => section.key === 'exclusions').sourceItemIds, ['exclusions', outOfScope.id]);
+  assert.equal(validateRequirementsPlan(plan, aggregate).valid, true);
 });
 
 test('rejects plan coverage gaps before a draft can be requested', () => {

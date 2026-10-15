@@ -16,7 +16,7 @@ function validateDraft(output, plan, aggregate) {
   const actualIds = new Set(output.payload.requirements.map((entry) => entry.id));
   for (const id of expectedIds) if (!actualIds.has(id)) errors.push(`planned requirement missing ${id}`);
   for (const id of actualIds) if (!expectedIds.has(id)) errors.push(`unplanned requirement ${id}`);
-  const items = new Map(aggregate.designItems.filter((item) => item.status === 'confirmed' && !item.archivedAt).map((item) => [item.id, item]));
+  const items = new Map(aggregate.designItems.filter((item) => item.status === 'confirmed' && item.type !== 'out_of_scope' && !item.archivedAt).map((item) => [item.id, item]));
   for (const requirement of output.payload.requirements) {
     const expected = plan.requirements.find((entry) => entry.id === requirement.id);
     if (expected && (requirement.category !== expected.category || requirement.priority !== expected.priority || requirement.sourceItemIds.join('|') !== expected.sourceItemIds.join('|'))) errors.push(`planned requirement mapping mismatch ${requirement.id}`);
@@ -31,10 +31,11 @@ function validateDraft(output, plan, aggregate) {
       }
     }
   }
-  const allowedSourceIds = new Set([...items.keys(), ...aggregate.designItems.filter((item) => item.status === 'deferred' && !item.archivedAt).map((item) => item.id)]);
+  const allowedSourceIds = new Set([...items.keys(), ...aggregate.designItems.filter((item) => (item.status === 'deferred' || item.type === 'out_of_scope') && !item.archivedAt).map((item) => item.id)]);
   for (const section of sections) {
     for (const id of section.sourceItemIds) {
-      if (!allowedSourceIds.has(id) || (section.key !== 'open_issues' && !items.has(id))) errors.push(`unconfirmed section source ${id}`);
+      const allowedExclusion = section.key === 'exclusions' && aggregate.designItems.some((item) => item.id === id && item.type === 'out_of_scope' && item.status === 'confirmed' && !item.archivedAt);
+      if (!allowedSourceIds.has(id) || (section.key !== 'open_issues' && !items.has(id) && !allowedExclusion)) errors.push(`unconfirmed section source ${id}`);
     }
     const expected = plan.sections.find((entry) => entry.key === section.key)?.sourceItemIds ?? [];
     for (const id of expected) if (!section.sourceItemIds.includes(id)) errors.push(`section source coverage missing ${section.key}:${id}`);
@@ -93,7 +94,7 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
     const section = sectionByKey.get(key);
     return { id: idFactory(), projectId: aggregate.project.id, documentId, key, title, markdown: section.markdown, order, sourceItemIds: section.sourceItemIds, origin: 'generated', syncStatus: aggregate.project.designRevision === revision ? 'current' : 'stale', updatedAt: timestamp };
   });
-  const document = { id: documentId, projectId: aggregate.project.id, type: 'requirements', title: `${aggregate.project.title} 요구사항`, status: 'review_required', designRevision: revision, version: Math.max(0, ...aggregate.documents.filter((entry) => entry.type === 'requirements').map((entry) => entry.version)) + 1, sectionIds: sections.map(({ id }) => id), requirements: finalDraft.payload.requirements, openIssues: plan.openIssues, reviewIssues: userReviewRequired ? reviewIssues : [], createdAt: timestamp, updatedAt: timestamp };
+  const document = { id: documentId, projectId: aggregate.project.id, type: 'requirements', title: `${aggregate.project.title} 요구사항`, status: 'review_required', designRevision: revision, version: Math.max(0, ...(aggregate.documents ?? []).filter((entry) => entry.type === 'requirements').map((entry) => entry.version)) + 1, sectionIds: sections.map(({ id }) => id), requirements: finalDraft.payload.requirements, openIssues: plan.openIssues, reviewIssues: userReviewRequired ? reviewIssues : [], createdAt: timestamp, updatedAt: timestamp };
   const job = { id: generationJobId ?? idFactory(), projectId: aggregate.project.id, logicalRequestId, attemptId, type: 'REQUIREMENTS_DRAFT', promptVersion: 'v1', schemaVersion: 'v1', modelProfile: 'DEFAULT', resolvedModel: 'gpt-5-mini', reasoningEffort: 'low', designRevision: revision, status: 'succeeded', targetIds: [documentId, ...sections.map(({ id }) => id)], startedAt: timestamp, finishedAt: timestamp };
   return { document, sections, requirements: finalDraft.payload.requirements, openIssues: plan.openIssues, reviewIssues: userReviewRequired ? reviewIssues : [], job, plan, processStatus: 'review_required' };
 }

@@ -32,7 +32,7 @@ export default async function handler(req, res, deps = {}) {
   if (req.method !== 'POST') return fail(res, 405, 'METHOD_NOT_ALLOWED');
   const body = req.body;
   if (Buffer.byteLength(JSON.stringify(body ?? {}), 'utf8') > MAX_BODY_BYTES || !validateSchema(schemas.http.requirementsGenerateRequest, body).valid) return fail(res, 400, 'INVALID_REQUEST');
-  if (body.projectId !== body.project.id || body.designRevision !== body.project.designRevision) return fail(res, 409, 'DESIGN_REVISION_MISMATCH');
+  if (body.projectId !== body.project.id || body.designRevision !== body.project.designRevision || body.currentDesignRevision !== body.designRevision) return fail(res, 409, 'DESIGN_REVISION_MISMATCH');
   let store; let key;
   try {
     store = deps.store ?? getAuthStore();

@@ -41,6 +41,7 @@ test('generates a review_required Requirements document and supports section nav
   await expect(page.getByText('사용자 검토 전')).toBeVisible();
   expect(requestBody.documentType).toBe('requirements');
   expect(requestBody.designRevision).toBe(4);
+  expect(requestBody.currentDesignRevision).toBe(4);
   if (page.viewportSize()!.width <= 767) {
     await page.getByRole('button',{name:'목차 열기'}).click();
     await expect(page.getByRole('button',{name:'닫기',exact:true})).toBeFocused();
