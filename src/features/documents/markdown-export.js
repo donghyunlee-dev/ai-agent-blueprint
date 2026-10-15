@@ -39,10 +39,7 @@ export function serializeDocumentMarkdown(document, sections) {
       const requirements = matchingRequirements(document, section);
       for (const requirement of requirements) blocks.push(requirementMarkdown(requirement));
       if (section.key === 'open_issues') {
-        const sectionSources = new Set(section.sourceItemIds ?? []);
-        for (const issue of document.openIssues ?? []) {
-          if ((issue.sourceItemIds ?? []).some((id) => sectionSources.has(id))) blocks.push(openIssueMarkdown(issue));
-        }
+        for (const issue of document.openIssues ?? []) blocks.push(openIssueMarkdown(issue));
       }
     }
   }

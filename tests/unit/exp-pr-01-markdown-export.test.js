@@ -38,6 +38,17 @@ test('serializes complete Requirements content in section order using the render
   ].join('\n'));
 });
 
+test('includes every open issue in the dedicated section even without a matching source link', () => {
+  const document = { ...baseDocument, openIssues:[
+    {id:'OPEN-1',title:'연결되지 않은 항목',description:'source IDs가 없습니다.',sourceItemIds:[]},
+    {id:'OPEN-2',title:'다른 source 항목',description:'섹션과 source ID가 일치하지 않습니다.',sourceItemIds:['unmatched']},
+  ] };
+  const openIssuesSection = {...sections[0],sourceItemIds:['different']};
+  const markdown = serializeDocumentMarkdown(document,[openIssuesSection]);
+  assert.match(markdown,/### 연결되지 않은 항목[\s\S]*source IDs가 없습니다\.[\s\S]*설계 항목: /);
+  assert.match(markdown,/### 다른 source 항목[\s\S]*섹션과 source ID가 일치하지 않습니다\.[\s\S]*설계 항목: unmatched/);
+});
+
 test('serializes PRD sections only and places a draft notice at the top of setup guides', () => {
   assert.equal(serializeDocumentMarkdown({id:'prd',type:'prd',title:'PRD'}, [{...sections[1],documentId:'prd',markdown:'- 목록\n\n| A | B |'}]), '# PRD\n\n## 기능 요구사항\n\n- 목록\n\n| A | B |');
   assert.equal(serializeDocumentMarkdown({id:'guide',type:'setup_guide',title:'설정 가이드',status:'draft'}, [{...sections[1],documentId:'guide',markdown:'npm install'}]), '# 설정 가이드\n\n> 초안: 실행 전 최신 버전과 명령어를 직접 확인하세요.\n\n## 기능 요구사항\n\nnpm install');

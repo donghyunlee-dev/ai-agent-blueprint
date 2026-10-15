@@ -4,8 +4,8 @@
 
 ## Focused validation
 
-- `node --test tests/unit/exp-pr-01-markdown-export.test.js` — 4 passed, 0 failed. Covers Requirements section order and linked records, Korean/table/fenced code preservation, PRD section serialization, setup-guide draft notice, filename sanitization and URL revocation on success/setup failure.
-- `npx playwright test tests/e2e/exp-pr-01-document-export.spec.ts` — 4 passed, 0 failed across desktop Chromium (1440 × 900) and mobile Chromium (390 × 844). Verified full Requirements copy/download, full PRD download bytes and type-specific safe filename, plus PRD clipboard-unavailable fallback contents and selected text.
+- `node --test tests/unit/exp-pr-01-markdown-export.test.js` — 5 passed, 0 failed. Covers Requirements section order and linked records, inclusion of every open issue even when source IDs are empty or do not match, Korean/table/fenced code preservation, PRD section serialization, setup-guide draft notice, filename sanitization and URL revocation on success/setup failure. The new open-issue regression failed before the fix, then passed.
+- `npx playwright test tests/e2e/exp-pr-01-document-export.spec.ts` — 4 passed, 0 failed across desktop Chromium (1440 × 900) and mobile Chromium (390 × 844). Verified full Requirements copy/download, full PRD download bytes and type-specific safe filename, plus PRD clipboard-unavailable fallback contents and selected text. Both download contents match their corresponding complete serialized Markdown.
 - `npm run build` — passed (`tsc -b` and Vite production build).
 - `git diff --check` — passed.
 
