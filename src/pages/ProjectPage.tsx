@@ -21,12 +21,32 @@ import { createQuestionAnswerRecord, getAnswerReviewState, QUESTION_CATALOG, sel
 import { NotFoundPage } from "./NotFoundPage";
 import { ProjectNotFoundPage } from "./ProjectNotFoundPage";
 import { approveProposal, editAndApproveProposal, rejectProposal } from "../features/proposals/proposal-commands.js";
+import { bulkApproveProposals, bulkRejectProposals, classifyProposalConflicts, proposalCurrentSnapshot, resolveProposalConflict } from "../features/proposals/dsg-pr-02-commands.js";
 import "../styles/workspace-shell.css";
 
 const documentTypes = new Set(["design", "requirements", "prd", "setup_guide"]);
 const visibleDocumentTypes = ["design", "requirements", "prd"] as const;
 type LoadStatus = 'loading' | 'ready' | 'missing' | 'error';
 type ProjectSaver = ReturnType<typeof createDebouncedProjectSaver<BlueprintAggregate>>;
+
+function formatConflictValue(value: unknown, targetType: BlueprintAggregate["proposals"][number]["targetType"]) {
+  const record = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const fields = targetType === "design_item" ? [["항목", "title"], ["설명", "description"]] : targetType === "acceptance_criterion" ? [["수용 기준", "text"]] : [["섹션 제목", "title"], ["문서 내용", "markdown"]];
+  const lines = fields.flatMap(([label, key]) => record[key] === undefined || record[key] === null || record[key] === "" ? [] : [`${label}: ${String(record[key])}`]);
+  return lines.length ? lines.join(" · ") : "저장된 값 없음";
+}
+
+function proposalConflictComparison(aggregate: BlueprintAggregate, proposal: BlueprintAggregate["proposals"][number]) {
+  const target = proposal.targetType === "design_item"
+    ? aggregate.designItems.find((item) => item.id === proposal.targetId && !item.archivedAt)
+    : proposal.targetType === "acceptance_criterion"
+      ? aggregate.designItems.filter((item) => !item.archivedAt).flatMap((item) => item.acceptanceCriteria).find((item) => item.id === proposal.targetId)
+      : aggregate.sections.find((item) => item.id === proposal.targetId);
+  const targetName = proposal.targetType === "acceptance_criterion"
+    ? aggregate.designItems.find((item) => item.acceptanceCriteria.some((criterion) => criterion.id === proposal.targetId))?.title ?? "수용 기준"
+    : String((target as { title?: unknown } | undefined)?.title ?? (target as { text?: unknown } | undefined)?.text ?? "변경 대상");
+  return { targetName, before: formatConflictValue(proposal.before, proposal.targetType), current: formatConflictValue(target, proposal.targetType), proposed: formatConflictValue(proposal.after, proposal.targetType) };
+}
 
 export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository }: { repositoryFactory?: () => ProjectRepository }) {
   const { projectId, documentType } = useParams();
@@ -49,6 +69,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [proposalError, setProposalError] = useState<string | null>(null);
   const [editingProposalId, setEditingProposalId] = useState<string | null>(null);
   const [proposalEdit, setProposalEdit] = useState({ title: "", description: "" });
+  const [proposalBulkAction, setProposalBulkAction] = useState<"approve" | "reject" | null>(null);
+  const [selectedRejectIds, setSelectedRejectIds] = useState<string[]>([]);
+  const [conflictChoices, setConflictChoices] = useState<Record<string, "keep_current" | "accept_proposed" | "edit">>({});
+  const proposalBulkDialogRef = useRef<HTMLDialogElement | null>(null);
+  const proposalBulkTriggerRef = useRef<HTMLButtonElement | null>(null);
   const operationGeneration = useRef(0);
   const ownerRef = useRef(ownerKey);
   const projectIdRef = useRef(projectId);
@@ -64,6 +89,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   ownerRef.current = ownerKey;
   projectIdRef.current = projectId;
   attemptRef.current = attempt;
+
+  useEffect(() => {
+    const dialog = proposalBulkDialogRef.current;
+    if (proposalBulkAction && dialog && !dialog.open) dialog.showModal();
+  }, [proposalBulkAction]);
 
   useEffect(() => {
     const generation = ++operationGeneration.current;
@@ -95,7 +125,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     }
 
     const repository = repositoryFactory();
-    void repository.get(activeOwner, activeProjectId).then((result) => {
+    void repository.get(activeOwner, activeProjectId).then(async (result) => {
       if (!isCurrent()) return;
       if (!result) { setAggregate(null); setLoadStatus('missing'); return; }
       if (result.project.ownerKey !== activeOwner || result.project.id !== activeProjectId) {
@@ -104,11 +134,24 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         return;
       }
 
-      result.project.lastOpenedAt = new Date().toISOString();
-      setLastProjectId(result.project.id);
-      setAggregate(result);
-      aggregateRef.current = result;
-      setTitleDraft(result.project.title);
+      const conflictSync = await repository.transact(activeOwner, activeProjectId, (latest) => {
+        const conflictCount = classifyProposalConflicts(latest).conflictIds.length;
+        const pendingCount = latest.proposals.filter((proposal) => proposal.status === "pending").length;
+        const nextProcessState = conflictCount ? "conflict_review" : latest.project.processState === "conflict_review" ? pendingCount ? "proposal_review" : "evaluating" : latest.project.processState;
+        if (latest.project.readiness.conflictCount === conflictCount && latest.project.readiness.pendingProposalCount === pendingCount && latest.project.processState === nextProcessState) return { status: "unchanged" };
+        latest.project.readiness.conflictCount = conflictCount;
+        latest.project.readiness.pendingProposalCount = pendingCount;
+        latest.project.processState = nextProcessState;
+        latest.project.updatedAt = new Date().toISOString();
+        return { status: "updated", aggregate: latest };
+      });
+      if (!isCurrent()) return;
+      const loadedAggregate = conflictSync.aggregate ?? result;
+      loadedAggregate.project.lastOpenedAt = new Date().toISOString();
+      setLastProjectId(loadedAggregate.project.id);
+      setAggregate(loadedAggregate);
+      aggregateRef.current = loadedAggregate;
+      setTitleDraft(loadedAggregate.project.title);
       setLoadStatus('ready');
       saver = createDebouncedProjectSaver({
         save: async (snapshot) => {
@@ -119,7 +162,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         onState: (state) => { if (isCurrent()) setSaveState(state); },
       });
       saverRef.current = saver;
-      saver.schedule(result);
+      saver.schedule(loadedAggregate);
     }).catch(() => {
       if (isCurrent()) setLoadStatus('error');
     });
@@ -251,6 +294,25 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     saverRef.current?.schedule(snapshot);
   }
 
+  function applyCommittedAggregate(snapshot: BlueprintAggregate) {
+    aggregateRef.current = snapshot;
+    setAggregate(snapshot);
+  }
+
+  async function flushProposalAutosave() {
+    const saver = saverRef.current;
+    if (!saver) return;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await saver.flush();
+      const state = saver.getState();
+      if (state.status !== "saving") {
+        if (state.status === "failed") throw new Error("STORAGE_FAILED");
+        return;
+      }
+    }
+    throw new Error("STORAGE_SAVE_DID_NOT_SETTLE");
+  }
+
   async function resolveProposal(proposalId: string, action: "approve" | "reject" | "edit") {
     if (!ownerKey || !projectId || proposalBusyId) return;
     const latest = aggregateRef.current;
@@ -260,23 +322,69 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     setProposalBusyId(proposalId);
     setProposalError(null);
     try {
-      await saverRef.current?.flush();
-      if (saverRef.current?.getState().status === "failed") throw new Error("STORAGE_FAILED");
+      await flushProposalAutosave();
       const repository = repositoryFactory();
       const input = { ownerKey, projectId, proposalId, repository };
       const currentProposal = latest.proposals.find((proposal) => proposal.id === proposalId);
       const editedValue = currentProposal?.targetType === "acceptance_criterion" ? { text: proposalEdit.title } : currentProposal?.targetType === "document_section" ? { title: proposalEdit.title, markdown: proposalEdit.description } : proposalEdit;
       const result = action === "reject" ? await rejectProposal(input) : action === "edit" ? await editAndApproveProposal({ ...input, editedValue }) : await approveProposal(input);
-      if (result.status === "stale") { setProposalError("확정된 값이 제안 작성 당시와 달라졌습니다. 기존 값은 유지됐으며 이 항목은 충돌 검토가 필요합니다."); return; }
+      if (result.status === "stale") { if (result.aggregate) applyCommittedAggregate(result.aggregate); setProposalError("확정된 값이 제안 작성 당시와 달라졌습니다. 기존 값은 유지됐으며 이 항목은 충돌 검토가 필요합니다."); return; }
       if (result.status === "edit_not_supported") { setProposalError("삭제 제안은 수정할 수 없습니다. 승인하거나 거절해 주세요."); return; }
       if (result.status === "not_found") throw new Error("PROPOSAL_NOT_FOUND");
       if (result.status === "invalid_value") { setProposalError("제목과 설명을 입력해 주세요."); return; }
-      if (result.aggregate) applyAggregate(result.aggregate);
+      if (result.aggregate) applyCommittedAggregate(result.aggregate);
       setEditingProposalId(null);
       if (nextProposalId) window.requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-proposal-card="${CSS.escape(nextProposalId)}"]`)?.focus());
     } catch {
       setProposalError("저장하지 못했습니다. 제안과 확정 설계는 보존했습니다. 다시 시도해 주세요.");
     } finally { setProposalBusyId(null); }
+  }
+
+  async function resolveConflict(proposalId: string) {
+    if (!ownerKey || !projectId || proposalBusyId) return;
+    const choice = conflictChoices[proposalId];
+    if (!choice) return;
+    setProposalBusyId(proposalId); setProposalError(null);
+    try {
+      await flushProposalAutosave();
+      const latest = aggregateRef.current; if (!latest) return;
+      const proposal = latest.proposals.find((item) => item.id === proposalId);
+      if (!proposal) throw new Error("PROPOSAL_NOT_FOUND");
+      const editedValue = proposal.targetType === "acceptance_criterion" ? { text: proposalEdit.title } : proposal.targetType === "document_section" ? { title: proposalEdit.title, markdown: proposalEdit.description } : proposalEdit;
+      const expectedCurrent = proposalCurrentSnapshot(latest, proposal);
+      const result = await resolveProposalConflict({ ownerKey, projectId, proposalId, choice, expectedCurrent, editedValue, repository: repositoryFactory() });
+      if (result.status === "changed_again") { if (result.aggregate) applyCommittedAggregate(result.aggregate); setProposalError("검토 중 확정값이 다시 변경됐습니다. 최신 값으로 다시 선택해 주세요."); return; }
+      if (result.status === "invalid_value") { setProposalError("수정값의 필수 항목을 입력해 주세요."); return; }
+      if (result.status === "invalid_target") { if (result.aggregate) applyCommittedAggregate(result.aggregate); setProposalError("제안 대상이 없거나 이미 사용 중입니다. 기존 값을 유지하거나 제안을 거절해 주세요."); return; }
+      if (result.status === "not_conflict") { if (result.aggregate) applyCommittedAggregate(result.aggregate); setProposalError("현재 값은 더 이상 충돌 상태가 아닙니다. 최신 제안을 확인해 주세요."); return; }
+      if (result.aggregate) applyCommittedAggregate(result.aggregate);
+    } catch { setProposalError("충돌을 저장하지 못했습니다. 기존 확정 설계는 보존했습니다. 다시 시도해 주세요."); }
+    finally { setProposalBusyId(null); }
+  }
+
+  function closeBulkDialog() {
+    setProposalBulkAction(null);
+    window.requestAnimationFrame(() => {
+      const trigger = proposalBulkTriggerRef.current;
+      if (trigger && !trigger.disabled) trigger.focus();
+      else document.querySelector<HTMLElement>("#proposal-review-title")?.focus();
+    });
+  }
+
+  async function resolveBulk(action: "approve" | "reject") {
+    if (!ownerKey || !projectId || proposalBusyId) return;
+    const latest = aggregateRef.current; if (!latest) return;
+    const candidateIds = action === "approve" ? classifyProposalConflicts(latest).approvalCandidates.map((item) => item.id) : selectedRejectIds;
+    setProposalBusyId("bulk"); setProposalError(null);
+    try {
+      await flushProposalAutosave();
+      const input = { ownerKey, projectId, proposalIds: candidateIds, repository: repositoryFactory() };
+      const result = action === "approve" ? await bulkApproveProposals(input) : await bulkRejectProposals(input);
+      if (result.aggregate) applyCommittedAggregate(result.aggregate);
+      setProposalBulkAction(null); setSelectedRejectIds([]);
+      window.requestAnimationFrame(() => { const trigger = proposalBulkTriggerRef.current; if (trigger && !trigger.disabled) trigger.focus(); else document.querySelector<HTMLElement>("#workspace-work-panel h1")?.focus(); });
+    } catch { setProposalError("일괄 저장에 실패했습니다. 제안과 확정 설계는 모두 처리 전 상태로 보존했습니다."); }
+    finally { setProposalBusyId(null); }
   }
 
   function cancelGenerationJob(job: BlueprintAggregate["generationJobs"][number]) {
@@ -398,12 +506,18 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           <header className="workspace-panel-heading workspace-work-heading"><div><p className="workspace-eyebrow">{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</p><h1>{documentType === "requirements" ? "요구사항" : documentType === "prd" ? "제품 요구사항 문서" : documentType === "setup_guide" ? "설정 안내" : "설계"}</h1></div><button ref={inspectorTriggerRef} type="button" className="workspace-inspector-trigger" onClick={() => setInspectorOpen(true)}>상세 보기</button></header>
           <div className="workspace-work-content">
             {aggregate.proposals.some((proposal) => proposal.status === "pending") ? <section className="proposal-review" aria-labelledby="proposal-review-title">
-              <header className="proposal-review-heading"><div><p className="workspace-eyebrow">검토가 필요한 변경</p><h2 id="proposal-review-title">제안 {aggregate.proposals.filter((proposal) => proposal.status === "pending").length}개</h2></div><p>승인한 값만 확정 설계에 반영됩니다.</p></header>
+              <header className="proposal-review-heading"><div><p className="workspace-eyebrow">검토가 필요한 변경</p><h2 id="proposal-review-title" tabIndex={-1}>제안 {aggregate.proposals.filter((proposal) => proposal.status === "pending").length}개</h2></div><p>승인한 값만 확정 설계에 반영됩니다.</p></header>
+              {(() => { const review = classifyProposalConflicts(aggregate); return <div className="proposal-bulk-controls"><p>안전하게 승인 가능 {review.approvalCandidates.length}개 · 제외 {review.excluded.length}개{review.excluded.length ? ` (${review.excluded.map(({proposal,reason}) => `${proposal.id}: ${reason}`).join("; ")})` : ""}</p><button type="button" disabled={!review.approvalCandidates.length || Boolean(proposalBusyId)} onClick={(event) => { proposalBulkTriggerRef.current = event.currentTarget; setProposalBulkAction("approve"); }}>가능한 제안 일괄 승인</button><button type="button" disabled={!selectedRejectIds.length || Boolean(proposalBusyId)} onClick={(event) => { proposalBulkTriggerRef.current = event.currentTarget; setProposalBulkAction("reject"); }}>선택한 제안 일괄 거절 ({selectedRejectIds.length})</button></div>; })()}
+              {proposalBulkAction ? <dialog ref={proposalBulkDialogRef} className="proposal-bulk-confirm" aria-labelledby="proposal-bulk-title" onCancel={(event) => { event.preventDefault(); closeBulkDialog(); }}><h3 id="proposal-bulk-title">{proposalBulkAction === "approve" ? "충돌 없는 제안을 승인할까요?" : "선택한 제안을 거절할까요?"}</h3><p>{proposalBulkAction === "approve" ? `${classifyProposalConflicts(aggregate).approvalCandidates.length}개 승인, ${classifyProposalConflicts(aggregate).excluded.length}개 제외` : `${selectedRejectIds.length}개 제안 거절`}. 한 번의 저장 transaction으로 처리합니다.</p>{proposalError ? <p role="alert">{proposalError}</p> : null}<button type="button" onClick={closeBulkDialog}>취소</button><button type="button" disabled={Boolean(proposalBusyId)} onClick={() => void resolveBulk(proposalBulkAction)}>{proposalBulkAction === "approve" ? "승인" : "거절"} 확인</button></dialog> : null}
               {proposalError ? <p className="proposal-review-error" role="alert">{proposalError}</p> : null}
               <ol className="proposal-review-list">{aggregate.proposals.filter((proposal) => proposal.status === "pending").map((proposal, index) => {
                 const value = (proposal.after ?? proposal.before ?? {}) as Record<string, unknown>;
                 const editing = editingProposalId === proposal.id && proposal.operation !== "delete";
+                const isConflict = classifyProposalConflicts(aggregate).conflictIds.includes(proposal.id);
+                const conflictComparison = isConflict ? proposalConflictComparison(aggregate, proposal) : null;
                 return <li key={proposal.id} className="proposal-review-item" tabIndex={-1} data-proposal-card={proposal.id}>
+                  <label className="proposal-bulk-select"><input type="checkbox" checked={selectedRejectIds.includes(proposal.id)} onChange={(event) => setSelectedRejectIds((ids) => event.target.checked ? [...ids, proposal.id] : ids.filter((id) => id !== proposal.id))} /> 일괄 거절 대상으로 선택</label>
+                  {isConflict && conflictComparison ? <section className="proposal-conflict" aria-labelledby={`conflict-${proposal.id}`}><h3 id={`conflict-${proposal.id}`}>충돌 검토 · {conflictComparison.targetName}</h3><div className="proposal-diff proposal-conflict-diff"><div><small>제안 작성 당시</small><p>{conflictComparison.before}</p></div><div><small>최신 확정값</small><p>{conflictComparison.current}</p></div><div><small>제안값</small><p>{conflictComparison.proposed}</p></div></div><p><strong>변경 이유</strong> · {proposal.rationale}</p>{proposal.evidence.length ? <div className="proposal-evidence"><strong>근거</strong>{proposal.evidence.map((ref) => <p key={ref.id}>{ref.sourceType === "agent_inference" ? "Agent 추론 · 검토 필요" : ref.excerpt ?? ref.sourceId}</p>)}</div> : null}{proposal.affectedItemIds.length ? <p>영향 항목: {proposal.affectedItemIds.map((id) => aggregate.designItems.find((item) => item.id === id)?.title ?? id).join(" · ")}</p> : null}<fieldset><legend>해결 방법을 선택하세요</legend><label><input type="radio" name={`conflict-${proposal.id}`} checked={conflictChoices[proposal.id] === "keep_current"} onChange={() => setConflictChoices((value) => ({...value,[proposal.id]:"keep_current"}))} /> 기존 값 유지</label><label><input type="radio" name={`conflict-${proposal.id}`} checked={conflictChoices[proposal.id] === "accept_proposed"} onChange={() => setConflictChoices((value) => ({...value,[proposal.id]:"accept_proposed"}))} /> 새 제안 사용</label><label><input type="radio" name={`conflict-${proposal.id}`} checked={conflictChoices[proposal.id] === "edit"} onChange={() => { setConflictChoices((value) => ({...value,[proposal.id]:"edit"})); setProposalEdit({title:String(value.title ?? value.text ?? ""),description:String(value.description ?? value.markdown ?? "")}); }} /> 직접 수정</label></fieldset>{conflictChoices[proposal.id] === "edit" ? <div className="proposal-edit-form"><label>{proposal.targetType === "acceptance_criterion" ? "수용 기준" : proposal.targetType === "document_section" ? "섹션 제목" : "제목"}<input value={proposalEdit.title} onChange={(event)=>setProposalEdit((current)=>({...current,title:event.target.value}))}/></label>{proposal.targetType !== "acceptance_criterion" ? <label>{proposal.targetType === "document_section" ? "문서 내용" : "설명"}<textarea value={proposalEdit.description} onChange={(event)=>setProposalEdit((current)=>({...current,description:event.target.value}))}/></label> : null}</div> : null}<button type="button" disabled={!conflictChoices[proposal.id] || Boolean(proposalBusyId)} onClick={()=>void resolveConflict(proposal.id)}>선택 적용</button></section> : null}
                   <div className="proposal-review-card-heading"><span>제안 {index + 1} · {proposal.operation === "create" ? "추가" : proposal.operation === "update" ? "수정" : "삭제"}</span><span>확정 전</span></div>
                   {proposal.operation === "update" ? <div className="proposal-diff"><div><small>변경 전</small><p>{String((proposal.before as Record<string, unknown> | undefined)?.title ?? (proposal.before as Record<string, unknown> | undefined)?.text ?? "기존 값")}</p></div><div><small>제안값</small><p>{String(value.title ?? value.text ?? "삭제 제안")}</p></div></div> : null}
                   {editing ? <form className="proposal-edit-form" onSubmit={(event) => { event.preventDefault(); void resolveProposal(proposal.id, "edit"); }}>
@@ -413,10 +527,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
                   </form> : <><h3>{String(value.title ?? value.text ?? "제안된 변경")}</h3><p className="proposal-review-value">{String(value.description ?? value.markdown ?? value.text ?? "")}</p></>}
                   <p className="proposal-review-rationale">{proposal.rationale}</p>
                   <div className="proposal-evidence"><strong>근거</strong>{proposal.evidence.map((ref) => <p key={ref.id}>{ref.sourceType === "agent_inference" ? "Agent 추론 · 검토 필요" : ref.excerpt ?? ref.sourceId}</p>)}</div>
-                  <div className="proposal-review-actions"><button type="button" disabled={Boolean(proposalBusyId)} onClick={() => void resolveProposal(proposal.id, "reject")}>거절</button>{proposal.operation !== "delete" && !editing ? <button type="button" disabled={Boolean(proposalBusyId)} onClick={() => { setProposalError(null); setEditingProposalId(proposal.id); setProposalEdit({ title: String(value.title ?? value.text ?? ""), description: String(value.description ?? value.markdown ?? "") }); }}>수정 후 승인</button> : null}<button type="button" disabled={Boolean(proposalBusyId) || editing} onClick={() => void resolveProposal(proposal.id, "approve")}>{proposalBusyId === proposal.id ? "저장 중…" : "승인"}</button></div>
+                  {!isConflict ? <div className="proposal-review-actions"><button type="button" disabled={Boolean(proposalBusyId)} onClick={() => void resolveProposal(proposal.id, "reject")}>거절</button>{proposal.operation !== "delete" && !editing ? <button type="button" disabled={Boolean(proposalBusyId)} onClick={() => { setProposalError(null); setEditingProposalId(proposal.id); setProposalEdit({ title: String(value.title ?? value.text ?? ""), description: String(value.description ?? value.markdown ?? "") }); }}>수정 후 승인</button> : null}<button type="button" disabled={Boolean(proposalBusyId) || editing} onClick={() => void resolveProposal(proposal.id, "approve")}>{proposalBusyId === proposal.id ? "저장 중…" : "승인"}</button></div> : null}
                 </li>;
               })}</ol>
             </section> : <div className="workspace-empty-state"><div className="workspace-empty-mark" aria-hidden="true">✦</div><h2>{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)} 작업을 시작해 보세요</h2><p>첫 아이디어를 바탕으로 내용을 정리하고 필요한 결정을 이어갈 수 있습니다.</p><span>현재 문서: {documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</span></div>}
+            {aggregate.designItems.some((item) => item.status === "review_required" && !item.archivedAt) ? <section className="proposal-review-required" aria-labelledby="review-required-title"><h2 id="review-required-title">선행 변경으로 재검토가 필요한 항목</h2><ul>{aggregate.designItems.filter((item) => item.status === "review_required" && !item.archivedAt).map((item) => <li key={item.id}><strong>{item.title}</strong><p>{String(item.attributes.reviewRequiredReason ?? "선행 결정 변경으로 확인이 필요합니다.")}</p></li>)}</ul></section> : null}
           </div>
         </section>
       <aside ref={inspectorPanelRef} id="workspace-review-panel" className={`workspace-panel workspace-inspector ${inspectorOpen ? "is-open" : ""}`} aria-label="상세 정보" aria-hidden={!inspectorOpen && inspectorOverlay && mobileMode !== "review"} aria-modal={inspectorOpen && inspectorOverlay ? true : undefined} role={inspectorOpen && inspectorOverlay ? "dialog" : modeTabsVisible && mobileMode === "review" ? "tabpanel" : "complementary"} aria-labelledby={modeTabsVisible && mobileMode === "review" && !inspectorOpen ? "workspace-mode-tab-review" : undefined}>

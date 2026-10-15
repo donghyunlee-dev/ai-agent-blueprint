@@ -37,6 +37,10 @@ GIT_MUTATION_COMMAND = re.compile(
 GIT_SUBCOMMAND = re.compile(
     r"\bgit\b(?:\s+-C\s+\S+|\s+-c\s+\S+|\s+--git-dir(?:=\S+|\s+\S+)|\s+--work-tree(?:=\S+|\s+\S+))*\s+(?P<subcommand>[A-Za-z0-9_-]+)\b",
 )
+COMMON_GIT_SUBCOMMANDS = {
+    "add", "branch", "checkout", "commit", "diff", "fetch", "log", "restore",
+    "rev-parse", "show", "status", "switch", "worktree",
+}
 
 
 def project_root() -> Path:
@@ -246,7 +250,9 @@ def pretool_hook(event: dict) -> None:
     git_alias = False
     for segment in re.split(r"[\n;&|]+", command):
         for git_command in GIT_SUBCOMMAND.finditer(segment):
-            git_alias = git_alias or git_command.group("subcommand") not in builtin_git_subcommands()
+            subcommand = git_command.group("subcommand")
+            if subcommand not in COMMON_GIT_SUBCOMMANDS and subcommand not in {"push", "merge"}:
+                git_alias = git_alias or subcommand not in builtin_git_subcommands()
         for git_command in GIT_MUTATION_COMMAND.finditer(segment):
             args = git_command.group("args")
             if git_command.group("subcommand") == "merge":

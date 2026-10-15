@@ -4,7 +4,7 @@ export function createDebouncedProjectSaver({ save, onState = () => {}, delay = 
   let revision = 0;
   let timer = null;
   let inFlight = null;
-  let queued = false;
+  let savedRevision = 0;
   let disposed = false;
   let state = { status: 'saved', savedAt: null };
 
@@ -14,22 +14,24 @@ export function createDebouncedProjectSaver({ save, onState = () => {}, delay = 
   async function flush() {
     clearTimer();
     if (!snapshot || disposed) return;
-    if (inFlight) { queued = true; return inFlight; }
-    const savingRevision = revision;
-    const savingSnapshot = structuredClone(snapshot);
-    publish({ status: 'saving', savedAt: state.savedAt });
-    inFlight = Promise.resolve().then(() => save(savingSnapshot)).then(() => {
-      if (savingRevision === revision) publish({ status: 'saved', savedAt: new Date().toISOString() });
-    }).catch(() => {
-      if (savingRevision === revision) publish({ status: 'failed', savedAt: state.savedAt });
-    }).finally(() => {
-      inFlight = null;
-      if (queued) {
-        queued = false;
-        if (state.status !== 'failed') void flush();
+    while (!disposed && savedRevision < revision) {
+      if (state.status === 'failed') return;
+      if (inFlight) {
+        await inFlight;
+        continue;
       }
-    });
-    return inFlight;
+      const savingRevision = revision;
+      const savingSnapshot = structuredClone(snapshot);
+      publish({ status: 'saving', savedAt: state.savedAt });
+      inFlight = Promise.resolve().then(() => save(savingSnapshot)).then(() => {
+        savedRevision = Math.max(savedRevision, savingRevision);
+        if (savingRevision === revision) publish({ status: 'saved', savedAt: new Date().toISOString() });
+      }).catch(() => {
+        if (savingRevision === revision) publish({ status: 'failed', savedAt: state.savedAt });
+      }).finally(() => { inFlight = null; });
+      await inFlight;
+      if (state.status === 'failed' && savingRevision === revision) return;
+    }
   }
 
   return {
@@ -42,7 +44,7 @@ export function createDebouncedProjectSaver({ save, onState = () => {}, delay = 
       timer = schedule(() => { timer = null; void flush(); }, delay);
     },
     flush,
-    async retry() { if (!snapshot || disposed) return; clearTimer(); await flush(); },
+    async retry() { if (!snapshot || disposed) return; clearTimer(); if (state.status === 'failed') publish({ status: 'saved', savedAt: state.savedAt }); await flush(); },
     getSnapshot() { return snapshot ? structuredClone(snapshot) : null; },
     getState() { return { ...state }; },
     dispose() { disposed = true; clearTimer(); },

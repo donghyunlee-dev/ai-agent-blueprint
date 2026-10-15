@@ -128,6 +128,16 @@ test("pretool hook blocks direct pushes to main and GitHub API merge calls", () 
   }
 });
 
+test("pretool hook allows routine read-only git inspection commands", () => {
+  for (const command of ["git status --short", "git diff --check", "git log -1 --oneline"]) {
+    const output = runHook("pretool", {
+      tool_name: "Bash",
+      tool_input: { command },
+    });
+    assert.equal(output, "", command);
+  }
+});
+
 test("pretool hook blocks configured and command-scoped Git mutation aliases", () => {
   for (const command of [
     "git -c alias.p=push p origin main",

@@ -1,9 +1,9 @@
-function matchesBefore(current, before) {
+export function matchesBefore(current, before) {
   if (!current || !before || typeof before !== 'object') return false;
   return Object.entries(before).every(([key, value]) => JSON.stringify(current[key]) === JSON.stringify(value));
 }
 
-function currentTarget(aggregate, proposal) {
+export function currentTarget(aggregate, proposal) {
   if (proposal.targetType === 'design_item') return aggregate.designItems.find((item) => item.id === proposal.targetId && !item.archivedAt);
   if (proposal.targetType === 'acceptance_criterion') return aggregate.designItems.filter((item) => !item.archivedAt).flatMap((item) => item.acceptanceCriteria).find((item) => item.id === proposal.targetId);
   return aggregate.sections.find((item) => item.id === proposal.targetId);
@@ -19,7 +19,7 @@ function selectedFields(value, keys) {
   return Object.fromEntries(keys.filter((key) => Object.hasOwn(value, key)).map((key) => [key, value[key]]));
 }
 
-function applyValue(aggregate, proposal, value, now, idFactory) {
+export function applyValue(aggregate, proposal, value, now, idFactory) {
   if (proposal.operation === 'create') {
     if (!value || typeof value !== 'object') throw new Error('PROPOSAL_VALUE_INVALID');
     if (proposal.targetType === 'design_item') aggregate.designItems.push({ ...selectedFields(value, ['parentId','type','key','title','description','priority','confidence','attributes','relatedItemIds']), id: idFactory(), projectId: aggregate.project.id, status: 'confirmed', attributes: value.attributes ?? {}, evidence: proposal.evidence, acceptanceCriteria: (value.acceptanceCriteria ?? []).map((criterion) => ({ ...criterion, status: 'draft' })), relatedItemIds: value.relatedItemIds ?? [], createdAt: now, updatedAt: now, confirmedAt: now });
@@ -59,7 +59,19 @@ async function resolve({ ownerKey, projectId, proposalId, repository, action, ed
       return { status: 'applied', aggregate, proposal };
     }
     const target = proposal.operation === 'create' ? null : currentTarget(aggregate, proposal);
-    if ((proposal.operation === 'create' && proposal.targetId) || (proposal.operation !== 'create' && !matchesBefore(target, proposal.before))) return { status: 'stale' };
+    if ((proposal.operation === 'create' && proposal.targetId) || (proposal.operation !== 'create' && !matchesBefore(target, proposal.before))) {
+      const pending = aggregate.proposals.filter((item) => item.status === 'pending');
+      const stale = pending.filter((item) => {
+        if (item.operation === 'create') return Boolean(item.targetId);
+        const current = currentTarget(aggregate, item);
+        return !matchesBefore(current, item.before);
+      });
+      aggregate.project.processState = 'conflict_review';
+      aggregate.project.readiness.pendingProposalCount = pending.length;
+      aggregate.project.readiness.conflictCount = stale.length;
+      aggregate.project.updatedAt = now();
+      return { status: 'stale', aggregate, proposal };
+    }
     const at = now();
     const value = action === 'edit' ? editedValue : proposal.after;
     if (action === 'edit' && (!value || typeof value !== 'object' || !Object.keys(value).length || (proposal.targetType === 'design_item' && (!String(value.title ?? '').trim() || !String(value.description ?? '').trim())) || (proposal.targetType === 'acceptance_criterion' && !String(value.text ?? '').trim()) || (proposal.targetType === 'document_section' && !String(value.markdown ?? '').trim()))) return { status: 'invalid_value' };
