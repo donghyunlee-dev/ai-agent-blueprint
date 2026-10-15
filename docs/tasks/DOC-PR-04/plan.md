@@ -1,5 +1,7 @@
 # DOC-PR-04 — 직접 편집 영향
 
+**Status: in_progress.** Planning base: `origin/main` at `94bdf704e1909d49813a9e3592dcf056c8e9f3cb` (DOC-PR-03, PR #22, merged 2026-10-15). Scope: `DOC-405` (`DOC-004`).
+
 ## Overview
 
 사용자가 문서 섹션을 직접 편집해 저장할 때, 저장 전 영향받는 공통 설계 항목과 다른 문서의 stale 전환을 미리 보여주고, 사용자가 영향받는 항목을 **항목별로 선택 제외**할 수 있게 한다(`DEC-040`). 확인 후에는 편집 내용, 공통 설계 반영, 문서 version을 하나의 transaction으로 저장한다.
@@ -13,6 +15,7 @@
 ### 포함
 
 - 섹션 편집 시작 시 기준 version·design revision 고정(`DOC-405`)
+- F-DOC-IMPACT 화면 계약을 `DEC-040`에 맞게 갱신해 항목별 선택 제외 동작을 명시
 - 저장 전 영향받는 source item, 다른 문서, stale 전환 계산 및 미리보기 표시
 - 영향받는 항목 개별 선택 제외 UI와 로직(`DEC-040`)
 - 제외하지 않은 항목만 하나의 transaction으로 공통 설계·문서 version에 반영
@@ -34,14 +37,15 @@
 ## 선행 조건 (Definition of Ready)
 
 - `DOC-PR-03`이 사용자에 의해 머지됨
-- `docs/ui/screens/05-documents-and-guide.md`의 F-DOC-IMPACT Modal 문구가 `DEC-040`(항목별 제외 UI)을 반영하도록 별도로 갱신되어 있어야 함 — **미확인 시 차단**: 이 문서(F-DOC-IMPACT 71행, `docs/ui/04-document-workspace.md` 71행)는 아직 "일부 영향 제외 여부는 결정 전"이라는 이전 문구를 그대로 갖고 있다. 착수 전 UI 문서를 `DEC-040` 기준으로 먼저 갱신한다.
+- `DEC-040`이 항목별 영향 제외를 확정했고 DOC-004/DOC-405, 데이터·아키텍처 계약이 이를 뒷받침함
+- 현재 UI 설계의 F-DOC-IMPACT 두 곳에 DEC-040 이전 문구가 남아 있음. 별도 제품 결정은 필요하지 않으며, 구현 전에 이 PR의 범위에서 문구와 Modal 계약을 갱신한다.
 
 ## 작업 단위별 구현 개요
 
 **DOC-405 직접 편집과 영향 미리보기**
 - 편집 시작 시 `baseVersion`, `baseDesignRevision`을 고정해 세션 동안 비교 기준으로 사용
 - 저장 시도 시 변경된 `sourceItemIds`, 영향받는 공통 설계 항목(before/after), 영향받는 다른 문서 섹션(stale 전환 대상)을 계산
-- 영향 미리보기 Modal에 각 영향 항목을 체크박스로 표시하고 기본값은 전체 선택
+- 영향 미리보기 Modal에 각 영향 항목을 체크박스로 표시하고 기본값은 전체 선택; 변경 전·후, 연관 문서 섹션, 저장 후 상태를 함께 표시
 - 사용자가 일부 항목의 체크를 해제하면 해당 항목은 공통 설계에 반영하지 않고, 그 항목을 참조하는 문서 섹션도 stale로 전환하지 않음
 - "확인하고 저장" 시 (편집된 markdown, 선택된 공통 설계 변경, 선택된 stale 전환)을 하나의 transaction으로 저장
 - `baseVersion`이 최신이 아니면 저장하지 않고 최신 내용과의 충돌 비교를 제공
@@ -102,13 +106,25 @@ Given 다른 세션이 같은 섹션을 먼저 저장해 `baseVersion`이 오래
 3. 오래된 편집본 저장 거부와 충돌 비교(contract)
 4. 저장 실패 시 편집 내용 보존(component)
 5. 전체 선택(제외 없음) 시 기존 동작과 동일(회귀)
-6. 데스크톱/모바일 영향 미리보기 Modal 상호작용(E2E)
+6. 데스크톱·모바일에서 영향 미리보기 열기, 항목 제외, 취소/확인, 성공/실패 상태의 핵심 상호작용(E2E)
+
+## Focused validation matrix
+
+| Concern | Required evidence | Candidate command |
+| --- | --- | --- |
+| Impact calculation and exclusions | Before/after preview; selected vs excluded design items and dependent stale sections; no changes before confirmation | `node --test tests/unit/doc-pr-04-impact-preview.test.js` |
+| Save transaction and stale edits | Current base version saves atomically; stale base is rejected with latest-content comparison; failure preserves editor content and all persisted values | `node --test tests/contract/doc-pr-04-document-edit.test.js` |
+| User interaction | Edit → preview → deselect an impact → confirm; cancel and save failure preserve draft; desktop and narrow viewport behavior | `npx playwright test tests/e2e/doc-pr-04-direct-edit-impact.spec.ts --workers=1` |
+| Production integration | TypeScript and production bundle compile | `npm run build` |
+| Diff hygiene | No whitespace errors | `git diff --check` |
+
+Use deterministic fixtures; no live provider call. Run only these task tests and build needed for production changes. Do not run unrelated suites or require screenshot artifacts. If a Mermaid diagram changes, also run `npm run docs:check:mermaid`.
 
 ## UI 증거 계획
 
-- desktop 1440×900: 편집 모드, 영향 미리보기(전체 선택), 영향 미리보기(일부 제외), 저장 실패 4개 상태
-- mobile 390×844: 동일 4개 상태
-- Playwright + Agent Browser로 체크박스 해제 → 저장 → 제외 항목 미반영을 실제 상호작용으로 검증
+- 문서 작업 공간의 선택 섹션 편집 → 영향 미리보기 → 항목 제외 → 저장 흐름을 Playwright Chromium으로 검증한다.
+- 데스크톱과 좁은 화면에서 체크박스·Modal 조작, 취소/실패 후 편집 내용 보존, 저장 후 영향 상태를 확인한다.
+- 이미지 캡처는 선택 증거이며 merge gate가 아니다. `docs/template/README.md` 기준 관련 문서 레이아웃 참고는 image (12) (문서 개요/목차)로 한정하며 영향 Modal 전용 레퍼런스는 없다.
 
 ## 코드 리뷰·QA 체크리스트
 
@@ -118,12 +134,16 @@ Given 다른 세션이 같은 섹션을 먼저 저장해 `baseVersion`이 오래
 
 ## Done Checklist
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
+- [x] Requirements implemented
+- [x] Acceptance criteria verified by implementer tests
 - [ ] 독립 코드 리뷰 pass
 - [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료
+- [x] 변경된 편집·영향 미리보기 흐름을 데스크톱·좁은 화면에서 구현자 검증 (캡처는 선택 증거)
 - [ ] 사용자 PR 머지 확인
+
+## 구현자 검증 증거
+
+- `test-results.md`에 구현자 단위·브라우저·build 결과를 기록했다. 독립 코드 리뷰와 QA는 아직 완료되지 않았다.
 
 ## 실행 시 추가 문서
 

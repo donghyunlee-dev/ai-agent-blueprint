@@ -61,14 +61,14 @@ Cancel secondary | Save primary
 
 ## 영향 미리보기
 
-저장 버튼 다음 단계로 Modal을 연다.
+저장 버튼 다음 단계로 Modal을 연다. Modal에서 사용자는 각 연결 설계 항목을 개별로 포함하거나 제외할 수 있고, 기본값은 전체 포함이다. 확인하면 문서 본문과 선택한 설계 변경을 같은 저장 transaction으로 반영한다. 제외한 설계 항목을 참조하는 문서 섹션은 stale로 바꾸지 않는다.
 
 1. 바뀌는 공통 설계 항목
 2. stale이 되는 Requirements/PRD 섹션
 3. 새로 생기는 재검토 또는 충돌
 4. 저장 후 수행 가능한 다음 행동
 
-`DiffView` 구조로 before/after를 표시하고 footer에 `편집으로 돌아가기`, `확인하고 저장`을 둔다. 일부 영향 제외 여부는 결정 전이므로 기능과 제어를 문서에 임의 추가하지 않는다.
+`DiffView` 구조로 before/after를 표시하고 footer에 `편집으로 돌아가기`, `확인하고 저장`을 둔다. 저장 기준 version 또는 design revision이 바뀌면 저장을 거부하고 최신 내용과 입력 원문을 비교한다. 실패해도 편집 입력과 Modal 내용을 유지한다.
 
 ## Requirements ready와 PRD 잠금
 
