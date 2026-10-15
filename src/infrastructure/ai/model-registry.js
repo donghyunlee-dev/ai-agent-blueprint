@@ -12,7 +12,10 @@ export const aiModelRegistry = Object.freeze({
   profiles: Object.freeze({ LIGHT: { model:'gpt-5.6-luna', reasoning:'low' }, DEFAULT: { model:'gpt-5-mini', reasoning:'low' }, FINAL: { model:'gpt-5.6-terra', reasoning:'low' } }),
   tasks: Object.freeze(Object.fromEntries(Object.entries(taskRows).map(([task,[profile,maxInputTokens,maxOutputTokens]]) => [task,{profile,reasoning:'low',maxInputTokens,maxOutputTokens,timeoutMs:45_000}]))),
 });
-export const promptRegistry = Object.freeze(Object.fromEntries(Object.entries(promptIds).map(([task,id]) => [task, Object.freeze({ task, promptId:id, promptVersion:task === 'PRD_REVIEW' ? 'v2' : 'v1', schemaId:`${id}.${task === 'PRD_REVIEW' ? 'v2' : 'v1'}`, schemaVersion:task === 'PRD_REVIEW' ? 'v2' : 'v1', modelProfile:taskRows[task][0] })])));
+export const promptRegistry = Object.freeze(Object.fromEntries(Object.entries(promptIds).map(([task,id]) => {
+  const version = ['PRD_REVIEW', 'CONSISTENCY_REVIEW'].includes(task) ? 'v2' : 'v1';
+  return [task, Object.freeze({ task, promptId:id, promptVersion:version, schemaId:`${id}.${version}`, schemaVersion:version, modelProfile:taskRows[task][0] })];
+})));
 
 const modelEnvironmentKeys = Object.freeze({ LIGHT: 'AI_MODEL_LIGHT', DEFAULT: 'AI_MODEL_DEFAULT', FINAL: 'AI_MODEL_FINAL' });
 

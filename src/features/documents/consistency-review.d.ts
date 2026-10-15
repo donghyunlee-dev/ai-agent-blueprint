@@ -1,0 +1,2 @@
+import type { BlueprintAggregate, ChangeProposal, AiRequestLedgerEntry } from '../../domain/blueprint/types.js';
+export function commitConsistencyReview(input:{ownerKey:string;projectId:string;repository:{transact(ownerKey:string,projectId:string,mutator:(aggregate:BlueprintAggregate)=>unknown):Promise<{status:string;aggregate?:BlueprintAggregate}>};designRevision:number;documentVersions:Record<string,number>;proposals:ChangeProposal[];requestLedgerEntries?:AiRequestLedgerEntry[];updatedAt?:string}):Promise<{status:string;aggregate?:BlueprintAggregate}>;

@@ -71,6 +71,33 @@ export function emptyProjectAiUsage() {
   return { foregroundCalls: 0, finalCalls: 0, inputTokens: 0, outputReasoningTokens: 0, estimatedCostUsd: 0 };
 }
 
+export function projectAiUsageFromLedger(entries, projectId) {
+  if (!Array.isArray(entries) || entries.length > 10000 || typeof projectId !== 'string' || !projectId) throw new Error('AI_LEDGER_INVALID');
+  const usage = emptyProjectAiUsage();
+  for (const entry of entries) {
+    if (!entry || entry.projectId !== projectId) throw new Error('AI_LEDGER_PROJECT_MISMATCH');
+    if (!['started', 'succeeded', 'failed', 'unknown', 'cancelled'].includes(entry.status) || !['LIGHT', 'DEFAULT', 'FINAL'].includes(entry.modelProfile)
+      || typeof entry.task !== 'string' || aiModelRegistry.profiles[entry.modelProfile]?.model !== entry.resolvedModel
+      || !Number.isSafeInteger(entry.estimatedInputTokens) || entry.estimatedInputTokens < 0
+      || !Number.isSafeInteger(entry.estimatedOutputTokens) || entry.estimatedOutputTokens < 0
+      || !Number.isFinite(entry.estimatedCostUsd) || entry.estimatedCostUsd < 0) throw new Error('AI_LEDGER_INVALID');
+    if (entry.status === 'cancelled') continue;
+    const inputTokens = entry.usage?.inputTokens ?? entry.estimatedInputTokens;
+    const outputTokens = entry.usage ? (entry.usage.outputTokens ?? 0) + (entry.usage.reasoningTokens ?? 0) : entry.estimatedOutputTokens;
+    const estimatedCostUsd = Math.max(entry.estimatedCostUsd ?? 0, entry.actualCostUsd ?? 0);
+    const usageTokens = entry.usage ? Object.values(entry.usage).every((value) => Number.isSafeInteger(value) && value >= 0) : true;
+    if (!Number.isSafeInteger(inputTokens) || inputTokens < 0 || !Number.isSafeInteger(outputTokens) || outputTokens < 0 || !usageTokens || !Number.isFinite(estimatedCostUsd) || estimatedCostUsd < 0) throw new Error('AI_LEDGER_INVALID');
+    const calculatedEstimate = calculateEstimatedCost(entry.resolvedModel, { inputTokens: entry.estimatedInputTokens, outputTokens: entry.estimatedOutputTokens });
+    if (Math.abs(entry.estimatedCostUsd - calculatedEstimate) > 0.00000001 || (entry.actualCostUsd !== undefined && (!Number.isFinite(entry.actualCostUsd) || entry.actualCostUsd < 0))) throw new Error('AI_LEDGER_INVALID');
+    usage.foregroundCalls += 1;
+    usage.finalCalls += entry.modelProfile === 'FINAL' ? 1 : 0;
+    usage.inputTokens += inputTokens;
+    usage.outputReasoningTokens += outputTokens;
+    usage.estimatedCostUsd += estimatedCostUsd;
+  }
+  return usage;
+}
+
 export function assertProjectBudgetShape(project = {}) {
   const limits = aiModelRegistry.projectLimits;
   return Object.fromEntries(['foregroundCalls', 'finalCalls', 'inputTokens', 'outputReasoningTokens', 'estimatedCostUsd'].map((key) => [key, {

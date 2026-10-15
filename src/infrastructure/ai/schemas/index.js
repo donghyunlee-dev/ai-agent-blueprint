@@ -39,7 +39,7 @@ const tasks = {
   REQUIREMENTS_DRAFT: requirementsDraft, REQUIREMENTS_REVIEW: review, REQUIREMENTS_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }),
   PRD_DRAFT: prdDraft, PRD_REVIEW: prdReview, PRD_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }),
   DOCUMENT_PATCH: object({ proposals: array(proposal) }),
-  CONSISTENCY_REVIEW: array(object({ type: string, location: string, sourceItemIds: strings, proposal: opt(proposal) }, ['type', 'location', 'sourceItemIds'])),
+  CONSISTENCY_REVIEW: object({ findings: array(object({ type: string, location: string, sourceItemIds: strings, severity: enumeration('error', 'warning'), nextAction: string, proposal: opt(proposal) }, ['type', 'location', 'sourceItemIds', 'severity', 'nextAction'])) }),
 };
 const taskEnvelope = task => object({ task: { const: task }, promptVersion: string, schemaVersion: string, designRevision: { type: 'integer', minimum: 0 }, payload: tasks[task], referencedItemIds: strings, referencedSourceIds: strings, warnings: array(object({ code: string, severity: enumeration('info', 'warning'), message: string }, ['code', 'severity', 'message'])) });
 const projectContext = object({ projectId: string, title: string, designRevision: { type: 'integer', minimum: 0 } });
