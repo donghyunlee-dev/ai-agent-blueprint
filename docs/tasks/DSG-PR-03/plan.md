@@ -1,6 +1,6 @@
 # DSG-PR-03 — 설계 보드와 readiness
 
-**Status: ready.** Base: `main` at PR #18 merge commit `7246eaee32d2d72856e0fafaf3b4910e1e237613`. This unit implements DSG-306 only.
+**Status: in_progress.** Base: `main` at PR #18 merge commit `7246eaee32d2d72856e0fafaf3b4910e1e237613`. This unit implements DSG-306 only.
 
 ## Outcome
 
@@ -90,7 +90,7 @@ Use deterministic local project fixtures; no live provider. Capture screenshots 
 
 ## Done checklist
 
-- [ ] All acceptance criteria above pass.
-- [ ] Focused unit/browser checks, build, and `git diff --check` pass.
+- [x] All acceptance criteria above pass.
+- [x] Focused unit/browser checks, build, and `git diff --check` pass.
 - [ ] Independent code review and independent focused QA pass on the same final PR head.
 - [ ] PR #19 is merged and verified on `main` (full lifecycle was authorized).
