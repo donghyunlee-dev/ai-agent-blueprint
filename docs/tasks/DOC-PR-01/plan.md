@@ -32,7 +32,7 @@
 ### Include
 
 1. Deterministic `DocumentPlanBuilder` over one captured project/design revision. It maps all required Requirements sections, confirmed core items and acceptance criteria to sections, and explicit deferred items to open issues. It excludes pending/rejected proposals and never calls the provider.
-2. Requirements generation through `POST /api/blueprint/documents/generate` with `documentType: "requirements"`, `designRevision`, and the existing authenticated owner context. The server rechecks the current revision, `G-REQ-ALLOWED`, duplicate-running logical request, schema, task/profile, budget, and every referenced item before applying output.
+2. Requirements generation through `POST /api/blueprint/documents/generate` with `documentType: "requirements"`, the captured `designRevision`, `currentDesignRevision` read from the browser's canonical IndexedDB repository immediately before the request, and the existing authenticated owner context. The API compares the submitted current revision with the captured snapshot and checks `G-REQ-ALLOWED`, duplicate-running logical request, request schema, and budget before provider work; it validates task/profile, response schema, and referenced items before applying provider output. Project data is browser-local; the API has no server-readable project store and cannot independently verify an authoritative current revision. This preflight detects ordinary local revision drift but is not a server-authoritative or race-free revision check.
 3. `REQUIREMENTS_DRAFT` → `REQUIREMENTS_REVIEW` → optional `REQUIREMENTS_REPAIR` once for repairable sections → one final review. Keep the existing model registry, strict schemas, request ledger, and budget guard; do not add inline prompts or a second AI abstraction.
 4. Atomic aggregate persistence for document, ordered sections, source links, generation job and activity record only after full schema/domain validation. A stale response uses its original snapshot and is marked `review_required` with affected sections `stale`.
 5. Requirements workspace empty, generating, and `review_required` states with heading/contents, requirement IDs, priority, description, acceptance criteria, source references, design revision, and actionable review issues. Keep conversation and selected design context available; support the specified mobile contents Drawer and semantic keyboard navigation.
@@ -48,22 +48,27 @@
 
 ```mermaid
 flowchart TD
-  A[Requirements request] --> B{G-REQ-ALLOWED and current revision}
-  B -- blocked --> X[No provider call; show actionable blockers]
-  B -- allowed --> C[Capture snapshot and logicalRequestId]
-  C --> D[Code plan; provider calls 0]
-  D --> E{Plan coverage valid}
-  E -- no --> Y[No draft; preserve current document]
-  E -- yes --> F[Mini draft]
-  F --> G[Strict schema and reference validation]
-  G --> H[Mini review]
-  H --> I{Verdict}
-  I -- repairable and unused --> J[Mini repair once]
-  J --> H
-  I -- pass --> K[Atomic save as review_required]
-  I -- unresolved or repair exhausted --> L[Save review issues; require user review]
-  F -. error .-> M[Keep prior document/design; retry same logicalRequestId]
-  G -. invalid .-> M
+  A[Requirements request] --> B[Read current project from browser IndexedDB]
+  B --> C{Current revision equals captured snapshot}
+  C -- no --> X[Stop before API/provider; ask user to refresh design]
+  C -- yes --> D[Authenticated API compares submitted revisions and checks G-REQ-ALLOWED]
+  D -- blocked --> X
+  D -- allowed --> E[Code plan; provider calls 0]
+  E --> F{Plan coverage valid}
+  F -- no --> Y[No draft; preserve current document]
+  F -- yes --> G[Mini draft]
+  G --> H[Strict schema and reference validation]
+  H --> I[Mini review]
+  I --> J{Verdict}
+  J -- repairable and unused --> K[Mini repair once]
+  K --> I
+  J -- pass --> L[IndexedDB transaction rereads latest aggregate]
+  L --> M{Revision still matches captured snapshot}
+  M -- yes --> N[Atomic save as review_required/current]
+  M -- no --> O[Atomic save as review_required/stale]
+  J -- unresolved or repair exhausted --> L
+  G -. error .-> P[Keep prior document/design; retry same logicalRequestId]
+  H -. invalid .-> P
 ```
 
 Persisted `GeneratedDocument.status` remains `draft | review_required | ready`; this PR writes `review_required` after a generated result. Generating is a `GenerationJob`/process/UI state, not a persisted document status. Section synchronization uses `current | stale | conflict`; do not invent document status enum values for stale/conflict. The header may summarize section sync state for display without changing the persisted contract.
@@ -85,7 +90,7 @@ Persisted `GeneratedDocument.status` remains `draft | review_required | ready`; 
 
 ### Boundaries and UI
 
-- If the design revision changes while generation is running, the job remains tied to the captured snapshot; its result is never shown as current and affected sections are marked stale for review.
+- The API rejects a mismatch between the request's captured revision and the `currentDesignRevision` freshly read from canonical browser IndexedDB before provider work. If the persisted revision changes after this preflight while generation is running, the atomic IndexedDB save rechecks the latest aggregate and marks generated sections stale. The API itself cannot perform a server-authoritative revision check because projects are not stored server-side.
 - Duplicate activation while the same logical request is running does not issue a second generation. A retry after failure keeps the logical request identity while using a fresh attempt identity.
 - Desktop and mobile Requirements views expose document state, revision, section navigation and review issues. Mobile contents Drawer opens/closes by keyboard and returns focus to its trigger; generated requirement details remain readable without a forced wide table.
 
@@ -93,7 +98,7 @@ Persisted `GeneratedDocument.status` remains `draft | review_required | ready`; 
 
 - `src/features/documents/document-plan.js` (+ `.d.ts`): deterministic plan and coverage validation.
 - `src/features/documents/requirements-generation.js` (+ `.d.ts`): orchestration, domain validation and atomic result mapping.
-- `api/blueprint/documents/generate.js`: authenticated endpoint and current-revision/readiness/idempotency guards, reusing the established AI adapter/registry.
+- `api/blueprint/documents/generate.js`: authenticated endpoint and submitted-revision/readiness/idempotency guards, reusing the established AI adapter/registry. The UI supplies the latest locally persisted revision; this is not a server-authoritative project lookup.
 - `src/components/blueprint/RequirementsDocument.tsx` and `src/styles/blueprint-workspace.css`: Requirements empty/progress/review UI (reuse existing project shell).
 - `src/pages/ProjectPage.tsx`: connect document tab and requirements action to the service.
 - `tests/unit/doc-pr-01-document-plan.test.js`, `tests/contract/doc-pr-01-requirements-generation.test.js`, and a focused `tests/e2e/doc-pr-01-requirements-generation.spec.ts` only if browser coverage is needed for the visible states.
@@ -105,11 +110,18 @@ These are expected locations based on the current architecture; reuse existing m
 | Concern | Focused evidence | Command |
 | --- | --- | --- |
 | Deterministic plan | Required sections and coverage; explicit deferred; pending/rejected excluded; invalid coverage means provider call count zero | `node --test tests/unit/doc-pr-01-document-plan.test.js` |
-| Generation/API contract | G-REQ-ALLOWED and revision guards; Mini profile/limits; strict envelope/reference validation; plan/draft/review/one repair call order; atomic save; idempotent retry; no partial state on injected failures | `node --test tests/contract/doc-pr-01-requirements-generation.test.js` (plus only directly affected existing process/schema tests) |
+| Generation/API contract | G-REQ-ALLOWED and submitted-revision guards; successful authenticated handler HTTP 200; Mini profile/limits; strict envelope/reference validation; plan/draft/review/one repair call order; atomic save; idempotent retry; no partial state on injected failures | `node --test tests/contract/doc-pr-01-requirements-generation.test.js tests/contract/doc-pr-01-requirements-api.test.js` |
 | Changed UI path | Empty/blocking → generating → review_required; actionable issue; desktop and mobile contents interaction and focus | `npx playwright test tests/e2e/doc-pr-01-requirements-generation.spec.ts --workers=1` (only if the UI changes) |
 | Build and changed diagrams | TypeScript/Vite production build; Mermaid syntax for this plan's flow | `npm run build`; `npm run docs:check:mermaid`; `git diff --check` |
 
 Use deterministic fixtures and a mocked provider; no full-suite run or broad screenshot matrix. Capture only if it clarifies a finding. Screenshots and Agent Browser are not gates.
+
+## Latest validation evidence
+
+- Implementation under validation: `dc860667b13dd1cd228ceeee201baea7b979d6cc`.
+- Direct API handler contract test uses an authenticated request and mocked structured-output provider; it asserts HTTP 200, `review_required`, all 11 sections, and a succeeded generation job. The same contract suite asserts stale revision rejection before any provider call.
+- Focused plan/generation/API contracts: 13/13 passed; production build passed; desktop and mobile Chromium E2E: 2/2 passed; `git diff --check` passed.
+- The revision contract covers browser IndexedDB preflight and atomic save recheck. There is no server-side project store, so server-authoritative current-revision lookup is not implemented or claimed.
 
 ## Risks / implementation notes
 

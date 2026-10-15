@@ -77,12 +77,14 @@ test('rejects a stale current IndexedDB revision before provider calls', async (
   assert.equal(calls,0);
 });
 
-test('successfully returns generated Requirements through the API', async () => {
-  const {body,plan}=readyBody(); const res=createMockRes();
-  await handler(request(body),res,{store:store(),requestStructuredOutput:async({name})=>providerOutput(name,plan)});
+test('successful API handler returns HTTP 200 after mocked draft and review calls', async () => {
+  const {body,plan}=readyBody(); const res=createMockRes(); const providerTasks=[];
+  await handler(request(body),res,{store:store(),requestStructuredOutput:async({name})=>{providerTasks.push(name);return providerOutput(name,plan);}});
   assert.equal(res.statusCode,200, res.body);
   const result=JSON.parse(res.body);
   assert.equal(result.document.status,'review_required');
   assert.equal(result.sections.length,11);
   assert.equal(result.job.status,'succeeded');
+  assert.equal(result.processStatus,'review_required');
+  assert.equal(providerTasks.length,2);
 });
