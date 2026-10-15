@@ -1,6 +1,6 @@
 # DOC-PR-03 — 부분 보완·정합성 검토
 
-**Status: ready.** Planning base: `origin/main` at `f0c922635ae0a620022f4a05d86fe6ea4fcc1ff9` (DOC-PR-02, PR #21, merged 2026-10-15). Scope: `DOC-406` and `DOC-407` (`DOC-005`, `DOC-006`).
+**Status: in_progress.** Planning base: `origin/main` at `f0c922635ae0a620022f4a05d86fe6ea4fcc1ff9` (DOC-PR-02, PR #21, merged 2026-10-15). Scope: `DOC-406` and `DOC-407` (`DOC-005`, `DOC-006`).
 
 ## Outcome
 
