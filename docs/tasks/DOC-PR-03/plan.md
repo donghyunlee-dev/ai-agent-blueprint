@@ -1,133 +1,153 @@
 # DOC-PR-03 — 부분 보완·정합성 검토
 
-## Overview
+**Status: ready.** Planning base: `origin/main` at `f0c922635ae0a620022f4a05d86fe6ea4fcc1ff9` (DOC-PR-02, PR #21, merged 2026-10-15). Scope: `DOC-406` and `DOC-407` (`DOC-005`, `DOC-006`).
 
-문서의 선택 섹션만 AI로 보완(patch)하는 기능과, Requirements/PRD 간 목표·사용자·범위 불일치·근거 없는 확정 표현을 찾아 표시하는 정합성 검토 기능을 구현한다. 두 기능 모두 결과를 proposal로만 반환하고 문서에 자동 반영하지 않는다.
+## Outcome
 
-## Background
+사용자가 고른 Requirements/PRD 섹션 또는 requirement만 부분 보완을 요청하고, 시스템은 문서·확정 설계 간 불일치를 검토한다. 두 작업의 AI 결과는 문서나 설계를 직접 바꾸지 않고 추적 가능한 pending proposal로만 반환한다. 사용자가 proposal을 승인할 때에만 선택 대상이 갱신되고, 범위 밖 문서 섹션과 사용자 편집은 보존된다.
 
-`DEC-004`(문서 직접 편집은 사용자 확정 변경으로만 반영), 성공 지표의 "PRD와 요구사항명세서의 목표·사용자·범위 불일치가 자동 검토에서 0건"(`docs/product/02-prd.md`)을 구현한다. `DOC-PR-01/02`에서 생성된 문서가 이미 존재하는 상태에서, 사용자가 선택한 범위만 안전하게 다시 작성하고 전체 문서 재생성 없이 문제를 찾아낼 수 있어야 한다.
+## Traceability and contracts
+
+- Delivery unit 19: `DOC-PR-03`; tasks `DOC-406`, `DOC-407` in [`04-documents.md`](../../delivery/04-documents.md).
+- Product requirements: [`DOC-005`](../../product/03-requirements.md#doc-005-부분-ai-보완--p1) (request scope, proposal before apply) and [`DOC-006`](../../product/03-requirements.md#doc-006-정합성-검토--p1) (locations, related design items, proposal only).
+- Product outcomes: [`02-prd.md`](../../product/02-prd.md) document-refinement journey C and goals (same source of truth; no unapproved technical decisions).
+- Decision: [`DEC-004`](../../product/10-decision-log.md) separates accepted/user-confirmed changes from generated document content. No new product decision is needed.
+- Data: [`05-data-spec.md`](../../product/05-data-spec.md) `GeneratedDocument`, `DocumentSection`, `ChangeProposal`, evidence/source IDs, logical request idempotency, before-value conflict rule, and aggregate transactions. Existing section `version`, `origin`, `syncStatus` and `sourceItemIds` remain authoritative.
+- AI: [`12-ai-orchestration-and-model-policy.md`](../../product/12-ai-orchestration-and-model-policy.md) routes `DOCUMENT_PATCH` and `CONSISTENCY_REVIEW` to `DEFAULT`, low, with 20k/4k and 32k/4k token caps. [`13-prompt-and-response-contracts.md`](../../product/13-prompt-and-response-contracts.md) requires strict task schemas and application-owned proposal fields. [`15-ai-prompt-template-spec.md`](../../product/15-ai-prompt-template-spec.md) defines `document.patch.v1` and `consistency.review.v1`; patch is scoped and never directly applied, while consistency findings include location, related IDs, severity, and next action and never auto-fix. [`14-ai-budget-evaluation-and-operations.md`](../../product/14-ai-budget-evaluation-and-operations.md) requires the budget guard before each provider call and sanitized request ledger entries. Existing `AI-009` synthetic evaluation is the relevant task-level gate if either prompt/schema changes.
+- Process: [`05-document-generation.md`](../../process/05-document-generation.md) generation snapshot and atomic-save/failure invariants; [`04-proposal-and-readiness.md`](../../process/04-proposal-and-readiness.md) proposal state, explicit approval, stale-before handling. Proposal acceptance must use existing domain/repository conventions and must not invent a second approval state machine.
+- UI: [`04-document-workspace.md`](../../ui/04-document-workspace.md) `UI-DOC-003/004` for section selection/actions, keyboard reveal and responsive document navigation; [`05-documents-and-guide.md`](../../ui/screens/05-documents-and-guide.md) for document hierarchy and working/error states.
+- Visual references: read [`docs/template/README.md`](../../template/README.md) and inspected image 12 (document outline/content) and image 10 (structured requirements hierarchy). They inform hierarchy only; no screenshot set is a gate. Current implementation screenshots are optional when they help review the changed interaction.
+- Dependency: DSG-PR-03 PR #19 (`bf12d9b`), DOC-PR-01 PR #20 (`6ded908`), and DOC-PR-02 PR #21 (`f0c9226`) are all merged to `main`. No open PR is present. Focused document generation tests, registered task/profile/schema/prompt, and proposal domain infrastructure exist on this base; patch/review endpoint and flow do not.
+
+## Definition of Ready
+
+- [x] Selected delivery row is unit 19, after Requirements generation and same-revision PRD generation.
+- [x] Dependencies are verified in GitHub and `origin/main` at `f0c922635ae0a620022f4a05d86fe6ea4fcc1ff9`; no open PR blocks the unit.
+- [x] Scope and observable acceptance criteria are defined by `DOC-005/006`, `DOC-406/407`, data, process and prompt contracts above.
+- [x] Required task model profiles, budgets, prompt IDs, schema registry, authenticated API pattern, storage aggregate and synthetic fixture infrastructure exist.
+- [x] UI states and reference hierarchy are identified. This UI change can be verified with focused Playwright Chromium tests; no live OpenAI call, Vercel deployment, or fixed screenshot set is required.
+- [x] No unresolved product decision, external setup, or required tool blocks planning or implementation.
 
 ## Scope
 
-### 포함
+### Include
 
-- 선택 섹션/requirement 대상 부분 patch 요청과 proposal 반환(`DOC-406`)
-- `POST /api/blueprint/documents/patch`
-- `POST /api/blueprint/review` 정합성 검토(목표/사용자/범위 불일치, 요구사항 없는 핵심 기능, 수용 기준 없는 P0, stale/conflict 섹션, 확정되지 않은 사실 표현)(`DOC-407`)
+1. **DOC-406 partial patch:** accept one or more selected section IDs or requirement IDs for an existing Requirements or PRD document plus an optional instruction. Validate ownership, document type/status, target existence, and target/version snapshot before any provider request. Show the selected scope and known impacted item/document IDs before request. Send only the selected content and the contract-required relevant source context to `DOCUMENT_PATCH` (`DEFAULT`, low; max input 20,000 / output 4,000). Validate all returned references and strict proposal schema. Return pending proposals with before/after, rationale/evidence, and affected IDs; do not mutate document sections, versions, design revision, or source items on request, provider, validation, or rejection.
+2. **DOC-407 consistency review:** review confirmed design plus current Requirements and PRD for goal/user/scope mismatch, core feature coverage, P0 acceptance criteria/success metrics, stale/conflict sections, unsupported or deferred facts, and revision/source-ID consistency as specified by the delivery and prompt contracts. Use `CONSISTENCY_REVIEW` (`DEFAULT`, low; max input 32,000 / output 4,000), strict schema and source-backed validation. Return finding location, related source/design IDs, severity, next action, and an optional pending proposal. A clean run displays a distinct “0 findings” result; never-run/loading/failed is a separate state.
+3. Authenticated server routes following existing API conventions: `POST /api/blueprint/documents/patch` and `POST /api/blueprint/review` as named in this unit specification. The request must be bound to the authenticated owner/project and a captured document/design revision; do not trust client readiness, actor, ownership, source IDs, or proposal status.
+4. Explicit proposal approval through the existing proposal command/repository boundary. Apply only approved target content and its supported design/item links atomically; preserve every out-of-scope section/version and every user-edited section. Rejected proposals leave documents/design unchanged. Before-value or revision drift returns stale/conflict for review and applies nothing. Do not add DOC-405's direct-edit impact-preview flow.
+5. Focused UI action and proposal/finding display in the existing document workspace, including target/impact preview, loading, empty/zero-finding, success, validation/provider error, stale/conflict, and rejected states. Keep semantic controls, keyboard reachability/visible focus, and the existing responsive document layout.
+6. Task-scoped tests and synthetic golden-eval assertions for the registered patch and consistency contracts. No live provider request.
 
-### 제외
+### Exclude
 
-- 문서 최초 생성(`DOC-PR-01`, `DOC-PR-02`)
-- 사용자 직접 편집과 영향 미리보기(`DOC-PR-04`)
+- First Requirements generation and PRD generation/ready behavior (`DOC-PR-01/02`, merged).
+- Direct document editing, save-impact preview, and user-edit source mapping (`DOC-405`, `DOC-PR-04`).
+- Setup guide, export, file extraction, new authentication/session design, new AI provider/model profile, broad document workspace redesign, unrelated full regression, live-provider evaluation, mandatory captures, and changes to unrelated PRD sections.
+- Automatically applying model output, automatically approving a proposal, or allowing model output to set readiness/status/revision.
 
-## 연결 근거
-
-- 요구사항: `DOC-005`, `DOC-006`
-- Delivery 작업: `DOC-406`, `DOC-407`
-- 결정: `DEC-004`
-- 화면 설계: [문서 작업 공간](../../ui/04-document-workspace.md) `UI-DOC-004`
-- 선행 PR: `DOC-PR-02`(순서 18)
-
-## 선행 조건 (Definition of Ready)
-
-- `DOC-PR-02`가 사용자에 의해 머지됨
-- Requirements와 PRD가 모두 존재하는 fixture 프로젝트, 그중 하나는 의도적으로 목표/사용자 불일치를 포함
-
-## 작업 단위별 구현 개요
-
-**DOC-406 부분 AI 보완**
-- 사용자가 특정 섹션 또는 requirement ID를 선택해 patch 요청(`DOCUMENT_PATCH`, DEFAULT, low, maxInput 20000/maxOutput 4000)
-- 요청 전 대상 범위와 영향 가능 항목을 화면에 표시
-- 결과는 문서에 즉시 쓰지 않고 proposal로 반환, 사용자 승인 시에만 공통 설계와 문서에 반영
-- 선택하지 않은 섹션의 markdown과 version은 변경되지 않음, 사용자 편집 내용을 자동으로 덮어쓰지 않음
-
-**DOC-407 정합성 검토**
-- `CONSISTENCY_REVIEW`(DEFAULT, low, maxInput 32000/maxOutput 4000)로 Requirements/PRD를 함께 검토
-- 검토 항목: 목표/사용자/범위 불일치, 요구사항 없는 핵심 기능, 수용 기준 없는 P0, stale/conflict 섹션, 확정되지 않은 사실 표현
-- 불일치 위치와 source item을 함께 표시, 수정안은 proposal로만 제공(자동 적용 없음)
-- "검토 결과 0건"과 "검토 미실행"을 화면에서 구분 표시
-
-## 프로세스 / 상태 전이
+## State and failure behavior
 
 ```mermaid
 flowchart TD
-    subgraph 부분보완["DOC-406 부분 보완"]
-        A1[사용자: 섹션/requirement 선택] --> A2[영향 가능 항목 미리 표시]
-        A2 --> A3[DOCUMENT_PATCH 요청]
-        A3 --> A4[proposal 반환, 문서 미반영]
-        A4 --> A5{사용자 승인}
-        A5 -- 거절 --> A6[문서·설계 변경 없음]
-        A5 -- 승인 --> A7[공통 설계·문서에 반영, 다른 섹션 unaffected]
-    end
-
-    subgraph 정합성["DOC-407 정합성 검토"]
-        B1[사용자: 정합성 검토 요청] --> B2[CONSISTENCY_REVIEW 호출]
-        B2 --> B3{불일치 발견}
-        B3 -- 0건 --> B4["검토 결과 0건" 표시]
-        B3 -- 발견 --> B5[불일치 위치 + source item 표시]
-        B5 --> B6[수정안 proposal 제공]
-        B6 --> B7{사용자 승인}
-        B7 -- 거절 --> B4b[문서 변경 없음]
-        B7 -- 승인 --> A7
-    end
+  A[Select document targets] --> B{Validate ownership, revision, and scope}
+  B -- fail --> C[Show actionable error; provider calls 0]
+  B -- pass --> D[Show selected scope and impact]
+  D --> E[DOCUMENT_PATCH]
+  E -- provider, schema, or reference failure --> F[Preserve all current data; retry action]
+  E -- valid --> G[Store pending proposal only]
+  G --> H{User decision}
+  H -- reject --> I[Mark rejected; document and design unchanged]
+  H -- approve, before current --> J[Atomically apply approved target only]
+  H -- approve, stale before/revision --> K[Mark conflict; no partial write]
+  L[Request consistency review] --> M{Validate snapshot and budget}
+  M -- fail --> N[Preserve prior review result; explain failure]
+  M -- pass --> O[CONSISTENCY_REVIEW]
+  O -- invalid/error --> N
+  O -- valid, zero findings --> P[Show completed review with zero findings]
+  O -- valid, findings --> Q[Show locations and pending proposals]
+  Q --> H
 ```
 
-## 데이터/API 영향
+Invariants: no provider call before auth/scope/snapshot/budget checks; AI output is strictly schema/reference validated before display or proposal storage; no partial update on validation, storage, or stale failure; duplicate logical requests do not duplicate apply; a completed zero-finding review is distinguishable from not run or failed. The data contract has no persisted review-run entity, so the displayed review result is transient UI state; do not invent a new persistent review model in this unit. Existing aggregate transaction and document version rules govern any approved apply.
 
-- 신규: `POST /api/blueprint/documents/patch` — body: `{ documentId, targetSectionIds[] | targetRequirementIds[], instruction? }`, 응답: `ProposalPayload[]`
-- 신규: `POST /api/blueprint/review` — body: `{ requirementsDocumentId, prdDocumentId }`, 응답: 불일치 목록(`{ type, location, sourceItemIds[], proposal? }[]`)
-- 두 API 모두 기존 문서 version을 변경하지 않고 별도 proposal 저장소에 기록
+## Acceptance criteria
 
-## Acceptance Criteria
+### Patch happy path
 
-### Happy Path
-Given 사용자가 특정 requirement 하나만 선택했을 때, when patch를 요청하고 결과를 승인하면, then 해당 requirement만 갱신되고 다른 섹션의 markdown·version은 그대로 유지된다.
+- Given a Requirements/PRD section or requirement is selected, the UI and request identify exactly that target set and show the possible affected items before dispatch.
+- Given the provider returns a valid scoped patch, only a pending proposal is stored. Before user approval, section Markdown/version/origin/sync status, document version, design revision, and confirmed design values are unchanged.
+- Given the user approves against the captured current before-value/revision, only the approved target and directly linked supported design items update atomically; unrelated sections and user-edited sections remain byte-for-byte/version-identical.
+- Given no consistency discrepancies exist, a successful review records completed status with zero findings, visibly distinct from never run.
 
-### Failure Case
-Given 사용자가 patch 결과를 거절했을 때, when 승인하지 않고 화면을 벗어나면, then 공통 설계와 문서 모두 변경되지 않는다.
+### Failure paths
 
-### Boundary
-Given Requirements와 PRD의 목표 서술이 실제로 다를 때, when 정합성 검토를 실행하면, then 불일치가 정확히 1건 이상 발견되고 해당 위치의 source item이 함께 표시된다. 불일치가 없는 fixture에서는 "검토 결과 0건"과 "검토 미실행"이 서로 다른 화면으로 구분된다.
+- Missing/foreign document, invalid or empty target set, unselected target in AI output, invalid source/design ID, unsupported document state, or stale snapshot is rejected before provider call or persistence as appropriate; show an actionable error and preserve current data.
+- Provider timeout/error, budget denial, malformed/additional schema fields, or failed local save leaves documents/design unchanged; a retry does not double-apply a result. A failed review is never rendered as a successful zero-finding result.
+- Rejecting or dismissing a patch/finding proposal changes no document section or confirmed design item. Model output never directly updates readiness, `ready`, `review_required`, design revision, or document version.
+- Approval with changed before-value or revision returns a conflict requiring review; no proposal target, section, revision, or activity is partially applied.
+- Consistency output marks unsupported, missing, or unknown source support as non-pass finding; findings contain accurate location and valid source/design item IDs. Never treat incomplete/failed review as zero findings.
 
-## 예상 변경 파일
+### Boundary and UI
 
-- `src/features/documents/documentPatch.ts`
-- `src/features/documents/consistencyReview.ts`
-- `api/blueprint/documents/patch.js`
-- `api/blueprint/review.js`
-- `src/components/blueprint/review-panel.tsx`(정합성 검토 결과 표시)
-- `tests/contract/documents-patch.test.ts`, `tests/contract/review.test.ts`
+- A patch of one target leaves all non-target section Markdown and version unchanged, including generated sections and `user_edited` sections.
+- Repeated submission with the same logical request/target does not create duplicate effective proposals or apply twice.
+- Patch controls and review findings are keyboard operable with visible focus; loading/error/zero findings/finding states remain legible in the affected desktop and narrow/mobile layout. No forced wide table is introduced.
 
-## 테스트 계획
+## Expected implementation files
 
-1. 선택 섹션만 patch 대상이 됨, 나머지 markdown/version 불변(contract)
-2. 사용자 편집을 자동으로 덮어쓰지 않음(unit)
-3. 승인한 patch만 반영됨, 거절 시 무변화(component)
-4. 목표/사용자/범위 불일치 검출(fixture 기반 contract)
-5. 검토 결과 0건과 검토 미실행 구분 표시(component)
-6. 수정안이 자동 적용되지 않고 proposal로만 존재(unit)
+Inspect existing DOC-PR-01/02 and DSG modules first; reuse their API auth, provider, ledger, schema validation, repository transaction, and UI conventions. Likely scoped additions/changes:
 
-## UI 증거 계획
+- `src/features/documents/document-patch.*`, `src/features/documents/consistency-review.*`
+- `api/blueprint/documents/patch.js`, `api/blueprint/review.js`
+- registered strict schemas, prompt validation, and task-specific synthetic fixtures/eval only where current schema/output does not satisfy the linked contracts
+- existing document workspace/review components and directly relevant styles
+- focused `tests/unit`, `tests/contract`, and `tests/e2e` for these flows
 
-- desktop 1440×900: 부분 보완 요청/proposal 검토/정합성 검토 결과(불일치 있음)/결과 0건 4개 상태
-- mobile 390×844: 동일 4개 상태
+These are candidates, not a requirement to create parallel abstractions where an existing equivalent is present. Keep implementation and tests within this unit; do not edit `DOC-PR-04` behavior.
 
-## 코드 리뷰·QA 체크리스트
+## Focused validation matrix
 
-- [ ] patch 결과가 문서에 직접 쓰이지 않고 proposal 경유로만 반영되는지 확인
-- [ ] 정합성 검토 수정안이 자동 적용되지 않는지 확인
-- [ ] 선택 범위 밖 섹션의 version 불변 여부 확인(diff로 검증)
+| Concern | Required focused evidence | Candidate command |
+| --- | --- | --- |
+| Patch domain/scope isolation | Exact selected IDs; outside section and user-edited version unchanged; pending-only; accept/reject; stale conflict and duplicate logical request | `node --test tests/unit/doc-pr-03-document-patch.test.js` |
+| Patch API and failure safety | Auth/owner/document/target/snapshot/budget checks; only target context sent; invalid/foreign model refs rejected; provider/schema/storage failure preserves prior state | `node --test tests/contract/doc-pr-03-document-patch.test.js` |
+| Consistency task contract | Goal/user/scope, core feature coverage, P0 criterion/metric, stale/conflict, deferred/unsupported claims, revision/source IDs; accurate locations and proposal-only output; zero vs not-run vs failure | `node --test tests/contract/doc-pr-03-consistency-review.test.js` |
+| UI interaction | Focused patch request and proposal approve/reject/stale; run review and distinguish zero/findings/failure; keyboard and affected responsive layout | `npx playwright test tests/e2e/doc-pr-03-document-refinement.spec.ts --workers=1` |
+| Prompt/schema evaluation | Run only if prompt/schema changes; relevant synthetic fixture asserts strict fields, task scope and no auto-apply | `node --test tests/unit/ai/golden-eval.test.js` plus the task-specific focused fixture/test |
+| Documentation integrity | Mermaid parse only if diagram changed; whitespace always | `npm run docs:check:mermaid` (if Mermaid changes); `git diff --check` |
+| Build | Run because expected production code/API/types change | `npm run build` |
 
-## Done Checklist
+Use stubbed providers and synthetic fixtures; no OpenAI key or live call. Do not run full test suites or unrelated browser journeys. Exact test filenames may follow existing conventions, but the listed behavioral coverage is required.
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료
-- [ ] 사용자 PR 머지 확인
+## UI evidence and QA
 
-## 실행 시 추가 문서
+- Relevant visual basis: template image 12 for document outline/content and image 10 for structured requirement hierarchy; product contracts control behavior.
+- QA checks only the changed refinement/review interactions at desktop and one narrow/mobile viewport, including keyboard focus where changed controls are used. Test loading, one successful patch proposal, reject/approve, stale conflict, findings, zero findings, and failure where applicable to the changed code. Mark unrelated states N/A.
+- Playwright Chromium is the direct browser validation path. Screenshots are optional review aids and not a gate; do not add a fixed screenshot checklist or duplicate browser tooling.
 
-- 이 폴더에 구현 중/후 `test-results.md`, `review-notes.md`, `qa-report.md` 등을 추가로 생성한다(지금은 생성하지 않음).
+## Risks and limits
+
+- Patch approval crosses document sections and source design; use one existing aggregate transaction and preserve version/before-value checks, or narrow the patch target rather than partially applying.
+- Requirements/PRD are client IndexedDB aggregates today. API auth does not make a server copy authoritative; bind requests to the authenticated project and signed/captured exact snapshot according to existing DOC-PR-01/02 conventions, and recheck local revision at apply time. State this limitation in the PR if a remote operation cannot observe concurrent local edits.
+- Consistency review is model-assisted semantic judgment, not proof. Source IDs and schema are code-validated; semantic support is surfaced as review findings, never authorization.
+- Token limits and the existing request ledger must be enforced before both task calls. No fallback model or automatic `FINAL` escalation.
+
+## Traceability checklist
+
+| Requirement/task | Planned observable proof |
+| --- | --- |
+| `DOC-005` / `DOC-406` | Selected target/impact before call; selected context only; valid pending proposal; no pre-approval mutation; accept applies only approved target; reject/stale/failure preserves data |
+| `DOC-006` / `DOC-407` | Cross-document findings with precise location and related IDs; optional proposal only; no auto-fix; zero findings distinct from not run/error |
+| `AI-006` / `AI-008` | Correct DEFAULT profile/token cap; hard budget checked before call; sanitized request ledger; no extra call on denial |
+| `AI-009` | If prompt/schema changes, scoped synthetic cases reject invalid IDs/schema and automatic application; no live eval in this unit |
+
+`docs/delivery/traceability.md` already maps `DOC-005` → `DOC-406` and `DOC-006` → `DOC-407`; planning does not change implementation status, so the traceability table needs no edit yet.
+
+## Done checklist
+
+- [ ] Focused unit and API contract tests pass.
+- [ ] Focused Playwright Chromium QA passes for changed flows and affected keyboard/responsive behavior.
+- [ ] Prompt/schema synthetic eval passes if those artifacts changed; build and `git diff --check` pass.
+- [ ] Independent code review and independent QA pass on the same final HEAD; configured checks pass.
+- [ ] PR lifecycle gate passes; GitHub confirms merge to `main` before DOC-PR-04 begins.

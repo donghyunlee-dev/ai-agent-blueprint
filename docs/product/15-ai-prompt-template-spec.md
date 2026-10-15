@@ -324,7 +324,7 @@ review에서 지정한 PRD section만 수정한다.
 - 보안·권한·데이터 보존 의미가 바뀌면 risk flag를 추가한다.
 ```
 
-## `CONSISTENCY_REVIEW` — `consistency.review.v1`
+## `CONSISTENCY_REVIEW` — `consistency.review.v2`
 
 ```text
 공통 설계, Requirements와 PRD 사이의 불일치를 찾는다.
@@ -338,7 +338,7 @@ review에서 지정한 PRD section만 수정한다.
 - revision과 source ID
 
 자동 수정하지 않는다.
-불일치 위치, 관련 ID, severity와 제안 가능한 다음 행동만 반환한다.
+불일치 위치, 관련 source/design ID, `error|warning` severity, 다음 행동을 `findings` 배열로 반환한다. 불일치가 없으면 `findings: []`로 완료 결과를 반환한다. 선택 proposal은 별도 사용자 승인 전까지 적용하지 않는다.
 ```
 
 ## Prompt별 완료 기준

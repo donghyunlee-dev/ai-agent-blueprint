@@ -45,3 +45,18 @@ export function issueRequirementsReadyArtifact(user, projectId, document, sectio
 export function verifyRequirementsReadyArtifact(user, projectId, document, sections, generationArtifact, readyArtifact) {
   return verifyRequirementsGenerationArtifact(user, projectId, document, sections, generationArtifact) && matches(verify(readyArtifact, 'requirements-ready-confirmation'), user, projectId, document, sections, 'requirements-ready-confirmation');
 }
+
+function proposalDigest(proposal) {
+  const evidence = (proposal.evidence ?? []).map(({ sourceType, sourceId, excerpt, location }) => ({ sourceType, sourceId, ...(excerpt === undefined ? {} : { excerpt }), ...(location === undefined ? {} : { location }) }));
+  const value = { operation: proposal.operation, targetType: proposal.targetType, targetId: proposal.targetId, before: proposal.before, after: proposal.after, rationale: proposal.rationale, evidence, affectedItemIds: proposal.affectedItemIds };
+  return crypto.createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
+}
+export function issueDocumentPatchProposalArtifact(user, projectId, document, proposal, logicalRequestId) {
+  return sign({ kind: 'document-patch-proposal', projectId, documentId: document.id, documentVersion: document.version, designRevision: document.designRevision, logicalRequestId, digest: proposalDigest(proposal), actor: actor(user), issuedAt: Date.now() });
+}
+export function verifyDocumentPatchProposalArtifact(user, projectId, document, proposal, logicalRequestId, token) {
+  const proof = verify(token, 'document-patch-proposal');
+  return Boolean(proof && proof.projectId === projectId && proof.documentId === document.id && proof.documentVersion === document.version
+    && proof.designRevision === document.designRevision && proof.logicalRequestId === logicalRequestId && proof.digest === proposalDigest(proposal)
+    && proof.actor === actor(user) && Date.now() - proof.issuedAt <= 24 * 60 * 60 * 1000);
+}

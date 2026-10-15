@@ -26,7 +26,7 @@ const taskRules = {
   PRD_REVIEW: 'PRD를 수정하지 말고 problem, goals, users, scope, success_metrics 각 차원을 Requirements 원문과 source item에 대조한다. 각 차원은 정확히 한 verdict와 근거 sourceItemIds를 반환한다. source ID가 존재해도 그 ID가 해당 문장 주장을 뒷받침하지 않으면 unsupported 또는 misaligned로 판정하고, 근거가 불충분하면 unknown으로 판정한다. 모든 차원이 aligned가 아니거나 지원되지 않는 기능·효과·수치가 있으면 pass를 반환하지 않는다.',
   PRD_REPAIR: 'review에서 지정한 PRD section만 수정한다. 정상 section, Requirements snapshot, 새 기능과 새 성공 수치를 변경하지 않는다.',
   DOCUMENT_PATCH: '사용자가 선택한 section 또는 requirement만 proposal로 보완한다. 기존 편집을 덮어쓰지 말고 before/after, 이유와 영향 ID를 반환한다.',
-  CONSISTENCY_REVIEW: '공통 설계, Requirements와 PRD 사이의 의미·권한·범위·revision 불일치를 찾는다. 자동 수정하지 않는다.',
+  CONSISTENCY_REVIEW: '공통 설계, Requirements와 PRD 사이의 목표·사용자·범위, 핵심 기능 coverage, P0 acceptance criteria와 success metric, stale/conflict, 미확정 사실, revision과 source ID를 검토한다. findings에는 정확한 문서/섹션 또는 설계 항목 위치, 유효한 관련 source/design ID, severity(error|warning), 다음 행동을 반환한다. 확정 설계나 문서는 수정하지 말고 선택적 proposal만 반환한다. 불일치가 없으면 findings 빈 배열을 반환하며, 검토 실패를 빈 배열로 표현하지 않는다.',
 };
 
 const contextFields = ['currentTarget', 'confirmedDesignItems', 'unknownsAndConflicts', 'conversationContext', 'userInput'];
