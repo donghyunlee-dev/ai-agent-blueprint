@@ -27,11 +27,11 @@
 | 15 | `DSG-PR-01` 제안 검토·확정 | 3단계 | merged (#17, `e33212d2de305f571db287631fb9256eda0196eb`) | [plan](DSG-PR-01/plan.md) |
 | 16 | `DSG-PR-02` 충돌·의존·일괄 처리 | 3단계 | merged (#18, `7246eaee32d2d72856e0fafaf3b4910e1e237613`) | [plan](DSG-PR-02/plan.md) |
 | 17 | `DSG-PR-03` 설계 보드·readiness | 3단계 | ready (base `7246eaee32d2d72856e0fafaf3b4910e1e237613`) | [plan](DSG-PR-03/plan.md) |
-| 18 | `DOC-PR-01` Requirements | 4단계 | planned | [plan](DOC-PR-01/plan.md) |
-| 19 | `DOC-PR-02` Requirements ready·PRD | 4단계 | planned | [plan](DOC-PR-02/plan.md) |
-| 20 | `DOC-PR-03` 부분 보완·정합성 | 4단계 | planned | [plan](DOC-PR-03/plan.md) |
-| 21 | `DOC-PR-04` 직접 편집 영향 | 4단계 | planned | [plan](DOC-PR-04/plan.md) |
-| 22 | `SRC-PR-01` 파일 제한·추출 | 5단계 | planned | [plan](SRC-PR-01/plan.md) |
+| 18 | `DOC-PR-01` Requirements | 4단계 | merged (#20; merge `6ded90838a415ee10f9a3ba0b518ebd0932c9618`; tests 13/13, Playwright 2/2, build, Mermaid 38/38; review/QA pass) | [plan](DOC-PR-01/plan.md) · [tests](DOC-PR-01/test-results.md) |
+| 19 | `DOC-PR-02` Requirements ready·PRD | 4단계 | merged (#21; merge `f0c922635ae0a620022f4a05d86fe6ea4fcc1ff9`; QA tests 16/16, Playwright 2/2, build; review/QA pass) | [plan](DOC-PR-02/plan.md) · [tests](DOC-PR-02/test-results.md) |
+| 20 | `DOC-PR-03` 부분 보완·정합성 | 4단계 | merged (#22; merge `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`; tests 36/36, Playwright desktop/mobile 1/1 each, build; review/QA pass) | [plan](DOC-PR-03/plan.md) · [tests](DOC-PR-03/test-results.md) |
+| 21 | `DOC-PR-04` 직접 편집 영향 | 4단계 | merged (#23; merge `1178050576338245d1b5bdbd913e3b19cff669df`; unit 5/5, Playwright 6/6 and related browser contracts 4/4, build; review/QA pass) | [plan](DOC-PR-04/plan.md) · [tests](DOC-PR-04/test-results.md) |
+| 22 | `SRC-PR-01` 파일 제한·추출 | 5단계 | in progress (implementation pushed; PR pending; unit 11/11, Playwright 6/6, build; review/QA pending) | [plan](SRC-PR-01/plan.md) · [tests](SRC-PR-01/test-results.md) |
 | 23 | `SRC-PR-02` 근거 연결 | 5단계 | planned | [plan](SRC-PR-02/plan.md) |
 | 24 | `EXP-PR-01` 문서 복사·다운로드 | 5단계 | planned | [plan](EXP-PR-01/plan.md) |
 | 25 | `GDE-PR-01` 설정 가이드 | 5단계 | planned | [plan](GDE-PR-01/plan.md) |

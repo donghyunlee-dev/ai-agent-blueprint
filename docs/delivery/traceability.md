@@ -45,14 +45,14 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | DES-001 | FND-003, DSG-303 | item 상태와 근거 | in_progress (item state/evidence merged #17; dependency review merged #18; board remains DSG-PR-03) |
 | DES-002 | DSG-306, DOC-402 | 요구사항과 수용 기준 | in_progress (design board DSG-PR-03; requirements detail DOC-PR-01) |
 | DES-003 | DSG-306, DOC-403 | 상태 기반 준비도 | in_progress (design readiness DSG-PR-03; generation guard integration DOC-PR-02) |
-| DOC-001 | DOC-401, DOC-402, DOC-404 | 동일 revision | ready |
-| DOC-002 | DOC-402 | requirements 필수 섹션 | ready |
-| DOC-003 | DOC-403, DOC-404 | ready 선행과 PRD 구조 | ready |
-| DOC-004 | DOC-405 | 영향 미리보기와 항목별 제외, transaction | ready |
-| DOC-005 | DOC-406 | 선택 범위 patch | ready |
-| DOC-006 | DOC-407 | 불일치 위치와 proposal | ready |
+| DOC-001 | DOC-401, DOC-402, DOC-404 | 동일 revision | done (DOC-PR-01 #20 merge `6ded90838a415ee10f9a3ba0b518ebd0932c9618`, final head `47f4cdf7304ee546547b96b255f98d345752f31a`; DOC-PR-02 #21 merge `f0c922635ae0a620022f4a05d86fe6ea4fcc1ff9`, final head `490c84fc7aa7375b0348ab9648f8b110a61d90d0`; focused tests 13/13 and 29/29, Playwright 2/2 each, build; independent review/QA passed on both heads) |
+| DOC-002 | DOC-402 | requirements 필수 섹션 | done (DOC-PR-01 #20 merge `6ded90838a415ee10f9a3ba0b518ebd0932c9618`, head `47f4cdf7304ee546547b96b255f98d345752f31a`; focused tests 13/13, Playwright 2/2, build, Mermaid 38/38; independent review/QA pass) |
+| DOC-003 | DOC-403, DOC-404 | ready 선행과 PRD 구조 | done (DOC-PR-02 #21 merge `f0c922635ae0a620022f4a05d86fe6ea4fcc1ff9`, head `490c84fc7aa7375b0348ab9648f8b110a61d90d0`; focused QA tests 16/16, Playwright 2/2, build; independent review/QA pass) |
+| DOC-004 | DOC-405 | 영향 미리보기와 항목별 제외, transaction | done (DOC-PR-04 #23 merge `1178050576338245d1b5bdbd913e3b19cff669df`, head `2b0497a5a693d09858dbf41f8bcec098cca85f58`; unit 5/5, Playwright 6/6 plus related browser contracts 4/4, build; independent review/QA pass) |
+| DOC-005 | DOC-406 | 선택 범위 patch | done (DOC-PR-03 #22 merge `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`, head `775ec6bd14ee1ec38e04768b205750cc870c7ad6`; tests 36/36, Playwright desktop/mobile 1/1 each, build; independent review/QA pass) |
+| DOC-006 | DOC-407 | 불일치 위치와 proposal | done (DOC-PR-03 #22 merge `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`, head `775ec6bd14ee1ec38e04768b205750cc870c7ad6`; tests 36/36, Playwright desktop/mobile 1/1 each, build; independent review/QA pass) |
 | DOC-007 | GDE-504 | 전체 생성, 근거 기반 명령·버전과 면책 문구, draft 검증 | ready |
-| SRC-001 | SRC-501, SRC-502 | 형식·크기·개수·추출 | ready |
+| SRC-001 | SRC-501, SRC-502 | 형식·크기·개수·추출 | in_progress (implementation commit `c007a4bd1658cf45a469f8513668be5a6adf3e22` pushed; PR pending; unit 11/11, Playwright desktop/mobile 6/6, build; independent review/QA pending) |
 | SRC-002 | SRC-503 | 근거 preview와 제거 | ready |
 | EXP-001 | EXP-505 | 개별 복사·다운로드 | ready |
 | NFR-001 | FND-002, QLT-601 | 키보드, 이름, 대비 | ready |
