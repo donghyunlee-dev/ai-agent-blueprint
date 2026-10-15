@@ -1,6 +1,7 @@
 import { schemas, validateSchema } from '../../infrastructure/ai/schemas/index.js';
 import { validateReferences, validateResponseMetadata } from '../../infrastructure/ai/context-manifest.js';
 import { REQUIREMENTS_SECTIONS } from './document-plan.js';
+import { getPromptDefinition } from '../../infrastructure/ai/prompt-registry.js';
 
 export const PRD_SECTIONS = Object.freeze([
   ['overview', '제품 개요'], ['problem_goals', '문제와 목표'], ['users_scenarios', '사용자와 시나리오'],
@@ -58,7 +59,8 @@ export function buildPrdPlan(aggregate) {
 function validatePrdDraft(output, plan, aggregate, revision, task) {
   const schemaResult = validateSchema(schemas.envelopes[task], output);
   if (!schemaResult.valid) return schemaResult;
-  const metadata = validateResponseMetadata(output, { task, promptVersion: 'v1', schemaVersion: 'v1', designRevision: revision });
+  const definition = getPromptDefinition(task);
+  const metadata = validateResponseMetadata(output, { task, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion, designRevision: revision });
   if (!metadata.valid) return metadata;
   const manifest = { designItemIds: plan.sourceItems.map(({ id }) => id), sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] };
   const targetContext = { requirementIds: plan.requirements.map(({ id }) => id), openIssueIds: plan.openIssues.map(({ id }) => id), sectionKeys: PRD_SECTIONS.map(({ key }) => key), issueIds: (aggregate.documents ?? []).flatMap((document) => document.reviewIssues ?? []).map((issue, index) => issue.id ?? `${issue.code}-${index}`) };
@@ -69,6 +71,11 @@ function validatePrdDraft(output, plan, aggregate, revision, task) {
     const actual = output.payload.coverage.map(({ targetId }) => targetId).sort();
     if (JSON.stringify(actual) !== JSON.stringify(expected)) return { valid:false, errors:['PRD review coverage does not match Requirements'] };
     if (output.payload.verdict === 'pass' && output.payload.coverage.some(({ status }) => status !== 'covered')) return { valid:false, errors:['PRD review pass has uncovered Requirements'] };
+    const dimensions = ['problem','goals','users','scope','success_metrics'];
+    const reviews = output.payload.dimensionReviews;
+    if (reviews.length !== dimensions.length || dimensions.some((dimension) => reviews.filter((entry) => entry.dimension === dimension).length !== 1)) return { valid:false, errors:['PRD review must return one verdict for every required dimension'] };
+    const sourceIds = new Set(plan.sourceItems.map(({ id }) => id));
+    for (const entry of reviews) if (!entry.sourceItemIds.length || entry.sourceItemIds.some((id) => !sourceIds.has(id))) return { valid:false, errors:[`PRD review dimension has unsupported source IDs: ${entry.dimension}`] };
   }
   if (task !== 'PRD_DRAFT') return { valid: true, errors: [] };
   const errors = [];
@@ -106,6 +113,8 @@ export async function generatePrd({ aggregate, runTask, logicalRequestId = '', a
   let review = await call('PRD_REVIEW', { draft });
   let issues = review.payload.issues;
   if (review.payload.verdict === 'repairable') {
+    const dimensionIssues = review.payload.dimensionReviews.filter((entry) => entry.verdict !== 'aligned').map((entry) => ({ code:`DIMENSION_${entry.verdict.toUpperCase()}`, severity:'error', sectionKey:entry.dimension === 'problem' || entry.dimension === 'goals' ? 'problem_goals' : entry.dimension === 'users' ? 'users_scenarios' : entry.dimension, relatedItemIds:entry.sourceItemIds, description:entry.rationale, ...(entry.repairInstruction ? { repairInstruction:entry.repairInstruction } : {}) }));
+    issues = [...issues, ...dimensionIssues];
     const repairable = issues.filter((issue) => issue.repairInstruction && PRD_SECTIONS.some((section) => section.key === issue.sectionKey));
     if (repairable.length) {
       const keys = new Set(repairable.map((issue) => issue.sectionKey));
@@ -119,13 +128,14 @@ export async function generatePrd({ aggregate, runTask, logicalRequestId = '', a
       issues = review.payload.issues;
     }
   }
+  if (review.payload.verdict !== 'pass' || review.payload.issues.length || review.payload.dimensionReviews.some((entry) => entry.verdict !== 'aligned')) throw Object.assign(new Error('PRD_REVIEW_REJECTED'), { statusCode: 422 });
   const timestamp = now();
   const documentId = idFactory();
   const sectionRows = PRD_SECTIONS.map(({ key, title, order }) => {
     const generated = draft.payload.sections.find((section) => section.key === key);
     return { id: idFactory(), projectId: aggregate.project.id, documentId, key, title, markdown: generated.markdown, order, sourceItemIds: generated.sourceItemIds, origin: 'generated', syncStatus: aggregate.project.designRevision === revision ? 'current' : 'stale', updatedAt: timestamp };
   });
-  const document = { id: documentId, projectId: aggregate.project.id, type: 'prd', title: `${aggregate.project.title} PRD`, status: 'review_required', designRevision: revision, version: Math.max(0, ...(aggregate.documents ?? []).filter((entry) => entry.type === 'prd').map((entry) => entry.version)) + 1, sectionIds: sectionRows.map(({ id }) => id), goals: draft.payload.goals, successMetrics: draft.payload.successMetrics, risks: draft.payload.risks, requirementLinks: draft.payload.requirementLinks, openIssues: plan.openIssues, reviewIssues: review.payload.verdict === 'pass' && !issues.length ? [] : issues, createdAt: timestamp, updatedAt: timestamp };
+  const document = { id: documentId, projectId: aggregate.project.id, type: 'prd', title: `${aggregate.project.title} PRD`, status: 'review_required', designRevision: revision, version: Math.max(0, ...(aggregate.documents ?? []).filter((entry) => entry.type === 'prd').map((entry) => entry.version)) + 1, sectionIds: sectionRows.map(({ id }) => id), goals: draft.payload.goals, successMetrics: draft.payload.successMetrics, risks: draft.payload.risks, requirementLinks: draft.payload.requirementLinks, openIssues: plan.openIssues, reviewIssues: [], createdAt: timestamp, updatedAt: timestamp };
   const job = { id: generationJobId ?? idFactory(), projectId: aggregate.project.id, logicalRequestId, attemptId, type: 'PRD_DRAFT', promptVersion: 'v1', schemaVersion: 'v1', modelProfile: 'FINAL', resolvedModel: 'gpt-5.6-terra', reasoningEffort: 'low', designRevision: revision, status: 'succeeded', targetIds: [documentId, ...sectionRows.map(({ id }) => id)], startedAt: timestamp, finishedAt: timestamp };
   return { document, sections: sectionRows, job, plan, processStatus: 'review_required' };
 }

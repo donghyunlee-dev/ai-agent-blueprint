@@ -12,7 +12,8 @@ test('all documented AI tasks have exact profile and token limits', () => {
     const value = aiModelRegistry.tasks[task];
     assert.deepEqual(value, { profile, reasoning: 'low', maxInputTokens, maxOutputTokens, timeoutMs: 45_000 });
     const prompt = promptRegistry[task];
-    assert.deepEqual([prompt.promptId, prompt.promptVersion, prompt.schemaId, prompt.schemaVersion], [task.toLowerCase().replaceAll('_','.'), 'v1', `${task.toLowerCase().replaceAll('_','.')}.v1`, 'v1']);
+    const version=task==='PRD_REVIEW'?'v2':'v1';
+    assert.deepEqual([prompt.promptId, prompt.promptVersion, prompt.schemaId, prompt.schemaVersion], [task.toLowerCase().replaceAll('_','.'), version, `${task.toLowerCase().replaceAll('_','.')}.${version}`, version]);
   }
 });
 test('project soft and hard limits match product policy exactly', () => {

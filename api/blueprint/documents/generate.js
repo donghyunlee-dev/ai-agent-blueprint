@@ -12,6 +12,7 @@ import { requestStructuredOutput, sendJson } from '../../_lib/blueprint-openai.j
 import { rejectCrossOriginMutation } from '../../_lib/require-session.js';
 import { requireSession } from '../../_lib/session.js';
 import { claimTurn, finishTurn, turnFingerprint, turnKey } from '../../_lib/turn-lifecycle.js';
+import { issueRequirementsGenerationArtifact, verifyRequirementsReadyArtifact } from '../../_lib/requirements-attestation.js';
 
 const MAX_BODY_BYTES = 100_000;
 const TASKS = new Set(['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR', 'PRD_DRAFT', 'PRD_REVIEW', 'PRD_REPAIR']);
@@ -36,6 +37,11 @@ export default async function handler(req, res, deps = {}) {
   const requestSchema = isPrd ? schemas.http.prdGenerateRequest : schemas.http.requirementsGenerateRequest;
   if (Buffer.byteLength(JSON.stringify(body ?? {}), 'utf8') > MAX_BODY_BYTES || !validateSchema(requestSchema, body).valid) return fail(res, 400, 'INVALID_REQUEST');
   if (body.projectId !== body.project.id || body.designRevision !== body.project.designRevision || body.currentDesignRevision !== body.designRevision) return fail(res, 409, 'DESIGN_REVISION_MISMATCH');
+  if (isPrd) {
+    const requirements = body.documents.find((document) => document.type === 'requirements');
+    const reqSections = body.sections.filter((section) => section.documentId === requirements?.id);
+    if (!verifyRequirementsReadyArtifact(session.user, body.projectId, requirements, reqSections, requirements?.generationArtifact, requirements?.readyConfirmationArtifact)) return fail(res, 409, 'PRD_BLOCKED', { blockers: ['REQUIREMENTS_CONFIRMATION_INVALID'] });
+  }
   let store; let key;
   try {
     store = deps.store ?? getAuthStore();
@@ -85,6 +91,7 @@ export default async function handler(req, res, deps = {}) {
     const result = isPrd
       ? await generatePrd({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask })
       : await generateRequirements({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask });
+    if (!isPrd) result.document.generationArtifact = issueRequirementsGenerationArtifact(session.user, body.projectId, result.document, result.sections);
     result.requestLedgerEntries = requestLedgerEntries;
     if (!await finishTurn(store, key, { status: 'succeeded', attemptId, result })) return fail(res, 503, 'AI_REQUEST_UNKNOWN');
     return sendJson(res, 200, result);
@@ -95,6 +102,7 @@ export default async function handler(req, res, deps = {}) {
     if (error?.message === 'PRD_BLOCKED') return fail(res, 409, 'PRD_BLOCKED', { blockers: error.blockers });
     if (error?.message === 'DOCUMENT_PLAN_INVALID') return fail(res, 422, 'DOCUMENT_PLAN_INVALID');
     if (error?.message === 'DOCUMENT_OUTPUT_INVALID' || error?.message === 'AI_INVALID_OUTPUT') return fail(res, 502, 'AI_INVALID_OUTPUT');
+    if (error?.message === 'PRD_REVIEW_REJECTED') return fail(res, 422, 'PRD_REVIEW_REJECTED');
     if (error?.message === 'AI_BUDGET_EXCEEDED') return fail(res, 429, 'AI_BUDGET_EXCEEDED');
     return fail(res, error.statusCode || 502, 'AI_GENERATION_FAILED', { retryable: true });
   }

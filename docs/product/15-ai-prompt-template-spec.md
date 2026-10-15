@@ -280,10 +280,10 @@ review에서 repairable로 판정된 section만 수정한다.
 - plan에 없는 section을 추가하지 않는다.
 ```
 
-## `PRD_REVIEW` — `prd.review.v1`
+## `PRD_REVIEW` — `prd.review.v2`
 
 ```text
-PRD를 수정하지 말고 ready Requirements와의 정합성을 검토한다.
+PRD를 수정하지 말고 ready Requirements와의 정합성을 검토한다. problem, goals, users, scope, success_metrics 각 차원에 정확히 하나의 verdict를 반환한다.
 
 검토 항목:
 - 문제, 목표, 사용자와 범위 의미 일치
@@ -293,10 +293,14 @@ PRD를 수정하지 말고 ready Requirements와의 정합성을 검토한다.
 - 미정·가정을 확정 사실로 표시한 문장
 - 위험과 출시 계획 누락
 - requirement/source ID 오류
+- 각 dimension에 대한 source-backed 의미 정합성. valid source ID를 붙였더라도 그 source가 주장을 뒷받침하지 않으면 unsupported 또는 misaligned로, 의미 판단 근거가 부족하면 unknown으로 판정한다.
+- 기능, 효과, 수치, 사용자 특성 중 Requirements나 해당 source에서 뒷받침되지 않는 주장은 unsupported로 판정한다.
 
-고칠 수 있는 문제와 사용자 결정이 필요한 문제를 구분한다.
+모든 dimension verdict가 aligned이고 일반 review verdict가 pass인 경우에만 성공이다. 누락된 차원, unsupported/misaligned/unknown verdict, 또는 불확실한 review는 pass로 처리하지 않는다. 고칠 수 있는 문제와 사용자 결정이 필요한 문제를 구분한다.
 본문을 직접 다시 작성하지 않는다.
 ```
+
+정확한 다섯 dimension verdict가 strict schema로 검증되지 않거나 최종 Mini review가 모두 aligned/pass가 아니면 PRD를 저장하지 않는다. 이 검토는 모델의 의미 판단이므로 수학적 증명이 아니다. source ID 유효성은 코드가 검증하고, 해당 source가 주장을 의미상 뒷받침하는지는 Mini review가 판단한다.
 
 ## `PRD_REPAIR` — `prd.repair.v1`
 

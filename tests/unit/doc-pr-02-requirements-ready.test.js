@@ -32,10 +32,11 @@ test('blocks missing sections, missing P0 criteria, review issues, stale section
 
 test('only explicit confirmation writes ready metadata and stale confirmation is rejected', () => {
   assert.equal(document.status, 'review_required');
-  const confirmed = confirmRequirementsReady(aggregate, document.id, { confirmed: true, designRevision: 4, readyAt: '2026-10-15T00:00:00.000Z' });
+  const confirmed = confirmRequirementsReady(aggregate, document.id, { confirmed: true, designRevision: 4, readyConfirmationArtifact: 'server-signed-confirmation', readyAt: '2026-10-15T00:00:00.000Z' });
   assert.equal(confirmed.status, 'ready');
   assert.equal(confirmed.readyAt, '2026-10-15T00:00:00.000Z');
   assert.equal(confirmed.readyDesignRevision, 4);
-  assert.throws(() => confirmRequirementsReady({ ...aggregate, project: { designRevision: 5 } }, document.id, { confirmed: true, designRevision: 4 }), /REQUIREMENTS_READY_STALE/);
+  assert.throws(() => confirmRequirementsReady(aggregate, document.id, { confirmed: true, designRevision: 4 }), /REQUIREMENTS_READY_ATTESTATION_REQUIRED/);
+  assert.throws(() => confirmRequirementsReady({ ...aggregate, project: { designRevision: 5 } }, document.id, { confirmed: true, designRevision: 4, readyConfirmationArtifact:'token' }), /REQUIREMENTS_READY_STALE/);
   assert.throws(() => confirmRequirementsReady(aggregate, document.id, { confirmed: false, designRevision: 4 }), /REQUIREMENTS_READY_CONFIRMATION_REQUIRED/);
 });

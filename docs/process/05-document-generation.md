@@ -142,6 +142,14 @@ sequenceDiagram
 - 기존 PRD는 삭제하지 않고 관련 section만 stale/conflict로 표시한다.
 - Requirements가 다시 ready가 된 뒤 PRD 부분 갱신 또는 재생성을 선택한다.
 
+### Server confirmation boundary
+
+Requirements generation returns a server HMAC artifact bound to the authenticated actor, project, document, design revision, and a digest of the generated document and sections. The explicit ready-confirmation endpoint verifies that artifact and deterministic `G-REQ-READY` eligibility before returning a second HMAC artifact. The PRD endpoint verifies both artifacts and the same snapshot digest before any provider call. The client cannot manufacture a valid confirmation by changing a `ready` flag or revision in IndexedDB.
+
+The project/design aggregate is stored in browser IndexedDB, not server persistence. Therefore, the server can authenticate who confirmed the exact Requirements snapshot the server generated, but cannot independently prove that a client-reported revision is the latest revision in that browser's local aggregate. Before confirmation the browser rereads IndexedDB and checks the revision; this protects the normal application flow. A malicious client can lie about its private latest local revision. Authoritative latest-revision enforcement requires server-side project/design persistence and is outside DOC-PR-02.
+
+PRD review uses the registered Mini review task to compare problem, goals, users, scope, and success metrics against Requirements and their cited source items. This semantic judgment is model-assisted and cannot be proven by source-ID membership alone. Every dimension must return exactly one source-backed `aligned` verdict. Missing, malformed, unsupported, misaligned, unknown, or otherwise non-pass final review blocks PRD persistence; the pipeline fails closed after at most one repair.
+
 ## 금지 결과
 
 - pending proposal이 Requirements 본문에 확정 사실로 포함됨

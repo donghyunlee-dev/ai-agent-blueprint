@@ -30,12 +30,14 @@ const section = object({ key: string, title: string, markdown: { type: 'string' 
 const requirementsDraft = object({ sections: array(section), requirements: array(object({ id: string, category: enumeration('functional', 'non_functional', 'data', 'integration', 'security', 'operation'), title: string, description: string, priority: enumeration('P0', 'P1', 'P2'), sourceItemIds: strings, acceptanceCriteria: array(object({ text: string, sourceItemIds: strings })), openIssueIds: strings })) });
 const prdDraft = object({ sections: array(section), requirementLinks: array(object({ sectionKey: string, requirementIds: strings })), goals: array(object({ text: string, sourceItemIds: strings })), successMetrics: array(object({ text: string, sourceItemIds: strings })), risks: array(object({ text: string, mitigation: opt(string), sourceItemIds: strings }, ['text', 'sourceItemIds'])) });
 const review = object({ verdict: enumeration('pass', 'repairable', 'user_review_required'), issues: array(object({ code: string, severity: enumeration('error', 'warning'), sectionKey: string, relatedItemIds: strings, description: string, repairInstruction: opt(string) }, ['code', 'severity', 'sectionKey', 'relatedItemIds', 'description'])), coverage: array(object({ targetId: string, status: enumeration('covered', 'missing', 'conflict') })) });
+const prdDimensionReview = object({ dimension: enumeration('problem','goals','users','scope','success_metrics'), verdict: enumeration('aligned','unsupported','misaligned','unknown'), sourceItemIds: strings, rationale: string, repairInstruction: opt(string) }, ['dimension','verdict','sourceItemIds','rationale']);
+const prdReview = object({ verdict: enumeration('pass', 'repairable', 'user_review_required'), issues: array(object({ code: string, severity: enumeration('error', 'warning'), sectionKey: string, relatedItemIds: strings, description: string, repairInstruction: opt(string) }, ['code', 'severity', 'sectionKey', 'relatedItemIds', 'description'])), coverage: array(object({ targetId: string, status: enumeration('covered', 'missing', 'conflict') })), dimensionReviews: array(prdDimensionReview) });
 const turnAnalyze = object({ blocks: array(blockTypes.assistant_text, 6), proposals: array(proposal, 8), answerInterpretation: object({ directAnswer: opt(string), additionalFacts: strings, ambiguities: strings }, ['additionalFacts', 'ambiguities']), suggestedFollowUp: opt(object({ purpose: enumeration('clarify_current_answer', 'continue_catalog'), reason: string })) });
 const tasks = {
   QUESTION_COMPOSE: composition, QUESTION_EXPLAIN: explanationPayload, TURN_ANALYZE: turnAnalyze, OPTION_RECOMMEND: recommendationPayload,
   CONTEXT_COMPACT: object({ confirmedFacts: array(fact), explicitUnknowns: array(fact), rejectedDirections: array(fact), unresolvedQuestions: array(fact), sourceMessageIds: strings }),
   REQUIREMENTS_DRAFT: requirementsDraft, REQUIREMENTS_REVIEW: review, REQUIREMENTS_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }),
-  PRD_DRAFT: prdDraft, PRD_REVIEW: review, PRD_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }),
+  PRD_DRAFT: prdDraft, PRD_REVIEW: prdReview, PRD_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }),
   DOCUMENT_PATCH: object({ proposals: array(proposal) }),
   CONSISTENCY_REVIEW: array(object({ type: string, location: string, sourceItemIds: strings, proposal: opt(proposal) }, ['type', 'location', 'sourceItemIds'])),
 };
@@ -65,7 +67,7 @@ const requirementsGenerateRequest = object({
   designItems: array(requirementsDesignItem), proposals: array(requirementsProposal),
 });
 const prdRequirement = object({ id:string, category:enumeration('functional','non_functional','data','integration','security','operation'), title:string, description:string, priority:enumeration('P0','P1','P2'), sourceItemIds:strings, acceptanceCriteria:array(object({text:string,sourceItemIds:strings})), openIssueIds:strings });
-const prdReadyDocument = object({ id:string, type:{const:'requirements'}, title:string, status:enumeration('draft','review_required','ready'), designRevision:{type:'integer',minimum:0}, version:{type:'integer',minimum:1}, sectionIds:strings, requirements:array(prdRequirement), openIssues:array(object({id:string,title:string,description:string,sourceItemIds:strings})), reviewIssues:array(object({code:string,severity:enumeration('error','warning'),sectionKey:string,relatedItemIds:strings,description:string,repairInstruction:opt(string)},['code','severity','sectionKey','relatedItemIds','description'])), readyDesignRevision:opt({type:'integer',minimum:0}) });
+const prdReadyDocument = object({ id:string, projectId:opt(string), type:{const:'requirements'}, title:string, status:enumeration('draft','review_required','ready'), designRevision:{type:'integer',minimum:0}, version:{type:'integer',minimum:1}, sectionIds:strings, requirements:array(prdRequirement), openIssues:array(object({id:string,title:string,description:string,sourceItemIds:strings})), reviewIssues:array(object({code:string,severity:enumeration('error','warning'),sectionKey:string,relatedItemIds:strings,description:string,repairInstruction:opt(string)},['code','severity','sectionKey','relatedItemIds','description'])), readyDesignRevision:opt({type:'integer',minimum:0}), createdAt:opt(string), generationArtifact:string, readyConfirmationArtifact:string });
 const prdSection = object({ id:string, projectId:string, documentId:string, key:string, title:string, markdown:{type:'string'}, order:{type:'integer',minimum:0}, sourceItemIds:strings, origin:enumeration('generated','user_edited','accepted_proposal'), syncStatus:enumeration('current','stale','conflict'), updatedAt:string });
 const generationJobSnapshot = object({ id:string, type:{const:'PRD_DRAFT'}, logicalRequestId:string, status:enumeration('queued','running','succeeded','failed','cancelled') });
 const prdGenerateRequest = object({
@@ -73,6 +75,7 @@ const prdGenerateRequest = object({
   project:object({id:string,title:string,designRevision:{type:'integer',minimum:0}}),
   designItems:array(requirementsDesignItem), documents:array(prdReadyDocument), sections:array(prdSection), generationJobs:array(generationJobSnapshot),
 });
+const requirementsReadyRequest = object({ confirmed:{type:'boolean'}, projectId:string, designRevision:{type:'integer',minimum:0}, document:{type:'object',additionalProperties:{}}, sections:array({type:'object',additionalProperties:{}}), generationArtifact:string });
 const documentsPatchRequest = union([
   object({ documentId: string, targetSectionIds: array(string), instruction: opt(string) }, ['documentId', 'targetSectionIds']),
   object({ documentId: string, targetRequirementIds: array(string), instruction: opt(string) }, ['documentId', 'targetRequirementIds']),
@@ -83,7 +86,7 @@ const envelope = union([taskEnvelope('REQUIREMENTS_DRAFT'), taskEnvelope('PRD_DR
 export const schemas = Object.freeze({
   displayBlock, normalizedBlocks: array(displayBlock, 6),
   tasks: Object.freeze(tasks), envelopes: Object.freeze(Object.fromEntries(Object.keys(tasks).map(task => [task, taskEnvelope(task)]))),
-  http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, requirementsGenerateRequest, prdGenerateRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
+  http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, requirementsGenerateRequest, prdGenerateRequest, requirementsReadyRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
 });
 export function validateSchema(schema, value) {
   const errors = [];

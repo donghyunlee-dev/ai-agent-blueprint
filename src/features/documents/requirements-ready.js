@@ -19,10 +19,11 @@ export function assessRequirementsReady(aggregate, document) {
   return { eligible: blockers.length === 0, blockers, p0RequirementCount: p0.length, acceptanceCriteriaCount, openIssueCount: document?.openIssues?.length ?? 0, designRevision: document?.designRevision ?? null };
 }
 
-export function confirmRequirementsReady(aggregate, documentId, { confirmed = false, designRevision, readyAt = new Date().toISOString() } = {}) {
+export function confirmRequirementsReady(aggregate, documentId, { confirmed = false, designRevision, readyConfirmationArtifact, readyAt = new Date().toISOString() } = {}) {
   if (!confirmed) throw new Error('REQUIREMENTS_READY_CONFIRMATION_REQUIRED');
+  if (typeof readyConfirmationArtifact !== 'string' || !readyConfirmationArtifact) throw new Error('REQUIREMENTS_READY_ATTESTATION_REQUIRED');
   const document = aggregate?.documents?.find((entry) => entry.id === documentId && entry.type === 'requirements');
   const readiness = assessRequirementsReady(aggregate, document);
   if (!readiness.eligible || readiness.designRevision !== designRevision) throw Object.assign(new Error('REQUIREMENTS_READY_STALE'), { blockers: readiness.blockers });
-  return { ...document, status: 'ready', readyAt, readyDesignRevision: designRevision, updatedAt: readyAt };
+  return { ...document, status: 'ready', readyAt, readyDesignRevision: designRevision, readyConfirmationArtifact, updatedAt: readyAt };
 }

@@ -23,7 +23,7 @@ const taskRules = {
   REQUIREMENTS_REVIEW: 'Requirements를 수정하지 말고 coverage, 근거, 미승인 확정, 모호성, 보안·운영 누락과 ID 오류를 판정한다. 고칠 수 있는 issue와 user review가 필요한 issue를 구분한다.',
   REQUIREMENTS_REPAIR: 'review가 지정한 문제 section만 repair instruction에 따라 수정한다. 정상 section, source와 새 기능은 변경하지 않는다.',
   PRD_DRAFT: '검증된 PRD plan, ready Requirements와 동일 revision snapshot에서 작성한다. 목표·사용자·범위를 유지하고 requirement/source ID를 연결한다. 입력에 없는 효과·수치·기능을 만들지 않는다.',
-  PRD_REVIEW: 'PRD를 수정하지 말고 Requirements와의 목표·사용자·범위·coverage 정합성, 검증 가능한 지표, open issue와 ID를 판정한다.',
+  PRD_REVIEW: 'PRD를 수정하지 말고 problem, goals, users, scope, success_metrics 각 차원을 Requirements 원문과 source item에 대조한다. 각 차원은 정확히 한 verdict와 근거 sourceItemIds를 반환한다. source ID가 존재해도 그 ID가 해당 문장 주장을 뒷받침하지 않으면 unsupported 또는 misaligned로 판정하고, 근거가 불충분하면 unknown으로 판정한다. 모든 차원이 aligned가 아니거나 지원되지 않는 기능·효과·수치가 있으면 pass를 반환하지 않는다.',
   PRD_REPAIR: 'review에서 지정한 PRD section만 수정한다. 정상 section, Requirements snapshot, 새 기능과 새 성공 수치를 변경하지 않는다.',
   DOCUMENT_PATCH: '사용자가 선택한 section 또는 requirement만 proposal로 보완한다. 기존 편집을 덮어쓰지 말고 before/after, 이유와 영향 ID를 반환한다.',
   CONSISTENCY_REVIEW: '공통 설계, Requirements와 PRD 사이의 의미·권한·범위·revision 불일치를 찾는다. 자동 수정하지 않는다.',
@@ -41,7 +41,7 @@ function buildInput(task, input = {}) {
   };
   return [
     { role: 'system', content: systemTemplate },
-    { role: 'developer', content: `TASK: ${task}\nPROMPT_VERSION: v1\nSCHEMA_VERSION: v1\n${taskRules[task]}\n응답은 지정된 strict JSON Schema를 따라야 한다.` },
+    { role: 'developer', content: `TASK: ${task}\nPROMPT_VERSION: ${metadata[task].promptVersion}\nSCHEMA_VERSION: ${metadata[task].schemaVersion}\n${taskRules[task]}\n응답은 지정된 strict JSON Schema를 따라야 한다.` },
     { role: 'user', content: `CONTEXT_HEADER_JSON:\n${JSON.stringify(header)}\nTYPED_CONTEXT_JSON:\n${JSON.stringify(context)}\nSOURCE_EXCERPTS_UNTRUSTED_JSON:\n${JSON.stringify(sourceExcerpts)}` },
   ];
 }

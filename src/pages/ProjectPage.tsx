@@ -539,11 +539,26 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     if (!ownerKey || !projectId || !latest) return;
     setRequirementsReadyError(null);
     try {
+      await saverRef.current?.flush();
       const readyAt = new Date().toISOString();
-      const committed = await repositoryFactory().transact(ownerKey, projectId, (current) => {
-        const requirements = current.documents.filter((document) => document.type === 'requirements').sort((a,b) => b.version-a.version)[0];
-        if (!requirements) throw new Error('REQUIREMENTS_DOCUMENT_MISSING');
-        const updated = confirmRequirementsReady(current, requirements.id, { confirmed:true, designRevision:latest.project.designRevision ?? -1, readyAt });
+      const repository = repositoryFactory();
+      const current = await repository.get(ownerKey, projectId);
+      const requirements = current?.documents.filter((document) => document.type === 'requirements').sort((a,b)=>b.version-a.version)[0];
+      if (!current || !requirements?.generationArtifact || current.project.designRevision !== latest.project.designRevision) throw new Error('REQUIREMENTS_READY_STALE');
+      const sections = current.sections.filter((section) => section.documentId === requirements.id);
+      const confirmedSnapshot = JSON.stringify({ document:requirements, sections });
+      const attestationResponse = await fetchBlueprintApi('/api/blueprint/documents/requirements/ready', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ confirmed:true, projectId, designRevision:current.project.designRevision, document:requirements, sections, generationArtifact:requirements.generationArtifact }),
+      });
+      const attestation = await attestationResponse.json().catch(() => ({}));
+      if (!attestationResponse.ok || typeof attestation.readyConfirmationArtifact !== 'string') throw new Error('REQUIREMENTS_READY_ATTESTATION_FAILED');
+      const committed = await repository.transact(ownerKey, projectId, (current) => {
+        const latestRequirements = current.documents.filter((document) => document.type === 'requirements').sort((a,b) => b.version-a.version)[0];
+        if (!latestRequirements) throw new Error('REQUIREMENTS_DOCUMENT_MISSING');
+        const latestSections = current.sections.filter((section) => section.documentId === latestRequirements.id);
+        if (current.project.designRevision !== latest.project.designRevision || JSON.stringify({ document:latestRequirements, sections:latestSections }) !== confirmedSnapshot) throw new Error('REQUIREMENTS_READY_STALE');
+        const updated = confirmRequirementsReady(current, latestRequirements.id, { confirmed:true, designRevision:latest.project.designRevision ?? -1, readyConfirmationArtifact:attestation.readyConfirmationArtifact, readyAt });
         const aggregate:BlueprintAggregate = { ...current, documents:current.documents.map((document)=>document.id===updated.id?updated:document), project:{...current.project,processState:'requirements_ready',updatedAt:readyAt}, activityEntries:[...current.activityEntries,{id:crypto.randomUUID(),projectId:current.project.id,action:'requirements_marked_ready',targetType:'document',targetId:updated.id,summary:`Requirements 검토 완료 · design revision ${updated.readyDesignRevision}`,createdAt:readyAt}] };
         return {status:'updated',aggregate};
       });
@@ -573,7 +588,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           documentType:'prd', projectId, designRevision:snapshot.project.designRevision, currentDesignRevision:current.project.designRevision,
           logicalRequestId:crypto.randomUUID(), attemptId:crypto.randomUUID(), project:{id:snapshot.project.id,title:snapshot.project.title,designRevision:snapshot.project.designRevision},
           designItems:snapshot.designItems.map(({id,type,key,title,description,status,priority,archivedAt,attributes,acceptanceCriteria})=>({id,type,key,title,description,status,priority,archivedAt,attributes,acceptanceCriteria:acceptanceCriteria.map(({id:criterionId,text,status:criterionStatus})=>({id:criterionId,text,status:criterionStatus}))})),
-          documents:[{id:requirements.id,type:'requirements',title:requirements.title,status:requirements.status,designRevision:requirements.designRevision,readyDesignRevision:requirements.readyDesignRevision,version:requirements.version,sectionIds:requirements.sectionIds,requirements:requirements.requirements,openIssues:requirements.openIssues??[],reviewIssues:requirements.reviewIssues??[]}],
+          documents:[{id:requirements.id,projectId:requirements.projectId,type:'requirements',title:requirements.title,status:requirements.status,designRevision:requirements.designRevision,readyDesignRevision:requirements.readyDesignRevision,version:requirements.version,sectionIds:requirements.sectionIds,requirements:requirements.requirements,openIssues:requirements.openIssues??[],reviewIssues:requirements.reviewIssues??[],createdAt:requirements.createdAt,generationArtifact:requirements.generationArtifact,readyConfirmationArtifact:requirements.readyConfirmationArtifact}],
           sections:current.sections.filter((section)=>section.documentId===requirements.id),generationJobs:current.generationJobs.filter((job)=>job.type==='PRD_DRAFT').map(({id,type,logicalRequestId,status})=>({id,type,logicalRequestId,status})),
         }),
       });
