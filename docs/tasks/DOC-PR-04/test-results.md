@@ -11,11 +11,13 @@ Base: `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`
 - Selected-source dependent sections become stale; dependent sections linked only to excluded items remain current. Browser save validates and persists the generated DesignItem in the local IndexedDB aggregate.
 - Stale versions are rejected with latest-vs-draft comparison; storage failure preserves the input draft and persisted values.
 - Plan and architecture accurately describe `ProjectRepository.transact` over local IndexedDB. This feature path has no server API.
+- `document_section` remains persisted locally and visible to DesignBoard, but Requirements and PRD generation omit it from HTTP payloads. The captured request bodies pass the shared strict schemas; regular requirement design items remain present and their document source references remain valid.
 
 ## Commands and results
 
 - `node --test tests/unit/doc-pr-04-document-edit-transaction.test.js` — pass, 5/5. Includes distinct-description preservation, selected/excluded dependent sections, unique record type and fields, readiness exclusion, and the single-source update case.
 - `npx playwright test tests/e2e/doc-pr-04-direct-edit-impact.spec.ts --workers=1` — pass, 6/6 across desktop Chromium and mobile Chromium. Covered multi-source save/exclusion, DesignBoard follow-up visibility/inspector, failure draft preservation, and stale-version review/save.
+- `npx playwright test tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-02-prd-readiness.spec.ts --workers=1` — pass, 4/4 across desktop and mobile Chromium. Both captured generation requests pass their shared HTTP schema validators with the local section record excluded; the record remains in the stored aggregate.
 - `npm run build` — pass (`tsc -b` and Vite production build).
 - `git diff --check` — pass.
 

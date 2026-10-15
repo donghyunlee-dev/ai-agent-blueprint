@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
+import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/index.js';
 
 const identity = { issuer:'https://accounts.google.com', subject:'doc-pr-01-generation', email:'doc-pr-01@example.test' };
 const projectId = 'doc-pr-01-project';
@@ -17,7 +18,7 @@ test('generates a review_required Requirements document and supports section nav
     const aggregate={
       project:{id:projectId,ownerKey,schemaVersion:1,title:'Requirements 검토 테스트',status:'active',activeDocumentType:'requirements',activeThreadId:'thread',processState:'document_ready',designRevision:4,readiness:{state:'ready',areas:[],pendingProposalCount:0,conflictCount:0},createdAt:now,updatedAt:now,lastOpenedAt:now},
       thread:{id:'thread',projectId,title:'초기 대화',status:'active',createdAt:now,updatedAt:now}, messages:[],answers:[],sources:[],
-      designItems:[make('product','product_definition'),make('problem','problem'),make('goal','goal'),make('user','user_role'),make('scenario','scenario'),make('feature','requirement',{acceptanceCriteria:[{id:'criterion',text:'사용자가 확인 결과를 볼 수 있다',status:'confirmed',evidence:[]}]}),make('scope','scope'),make('exclusions','out_of_scope'),make('metric','success_metric'),make('risk','risk')],
+      designItems:[make('product','product_definition'),make('problem','problem'),make('goal','goal'),make('user','user_role'),make('scenario','scenario'),make('feature','requirement',{acceptanceCriteria:[{id:'criterion',text:'사용자가 확인 결과를 볼 수 있다',status:'confirmed',evidence:[]}]}),make('scope','scope'),make('exclusions','out_of_scope'),make('metric','success_metric'),make('risk','risk'),make('doc-section-edit','document_section',{status:'review_required',relatedItemIds:['feature'],attributes:{sourceSectionId:'req-section',consistencyReviewRequired:true}})],
       proposals:[],documents:[],sections:[],generationJobs:[],requestLedgerEntries:[],contextManifests:[],activityEntries:[],
     };
     const tx=db.transaction(['projects','activities'],'readwrite'); tx.objectStore('projects').put({id:projectId,schemaVersion:1,...aggregate});
@@ -40,6 +41,9 @@ test('generates a review_required Requirements document and supports section nav
   await page.getByRole('button',{name:'Requirements 생성'}).click();
   await expect(page.getByText('사용자 검토 전')).toBeVisible();
   expect(requestBody.documentType).toBe('requirements');
+  expect(validateSchema(schemas.http.requirementsGenerateRequest,requestBody).valid).toBe(true);
+  expect(requestBody.designItems.some((item:any)=>item.type==='document_section')).toBe(false);
+  expect(requestBody.designItems.some((item:any)=>item.id==='feature'&&item.type==='requirement')).toBe(true);
   expect(requestBody.designRevision).toBe(4);
   expect(requestBody.currentDesignRevision).toBe(4);
   if (page.viewportSize()!.width <= 767) {
@@ -58,6 +62,7 @@ test('generates a review_required Requirements document and supports section nav
   expect(stored.documents).toHaveLength(1);
   expect(stored.documents[0].status).toBe('review_required');
   expect(stored.sections).toHaveLength(11);
+  expect(stored.designItems.some((item:any)=>item.id==='doc-section-edit'&&item.type==='document_section')).toBe(true);
   expect(stored.generationJobs[0].status).toBe('succeeded');
   expect(stored.activityEntries.at(-1).action).toBe('requirements_generated');
 });
