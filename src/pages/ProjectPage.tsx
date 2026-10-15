@@ -22,6 +22,8 @@ import { NotFoundPage } from "./NotFoundPage";
 import { ProjectNotFoundPage } from "./ProjectNotFoundPage";
 import { approveProposal, editAndApproveProposal, rejectProposal } from "../features/proposals/proposal-commands.js";
 import { bulkApproveProposals, bulkRejectProposals, classifyProposalConflicts, proposalCurrentSnapshot, resolveProposalConflict } from "../features/proposals/dsg-pr-02-commands.js";
+import { DesignBoard } from "../features/design/DesignBoard.js";
+import { computeDesignReadiness } from "../features/design/readiness.js";
 import "../styles/workspace-shell.css";
 
 const documentTypes = new Set(["design", "requirements", "prd", "setup_guide"]);
@@ -62,6 +64,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [conversationWidth, setConversationWidthState] = useState(() => getConversationWidth(projectId ?? "") ?? 360);
   const [mobileMode, setMobileMode] = useState<"conversation" | "work" | "review">("work");
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [selectedDesignItemId, setSelectedDesignItemId] = useState<string | null>(null);
   const [inspectorOverlay, setInspectorOverlay] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches);
   const [modeTabsVisible, setModeTabsVisible] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches);
   const [mobileLayout, setMobileLayout] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
@@ -199,6 +202,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     if (!aggregate || loadStatus !== "ready") return;
     if (!documentType) {
       navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/${aggregate.project.activeDocumentType}`, { replace: true });
+      return;
+    }
+    if (documentType === "requirements" && !computeDesignReadiness(aggregate).canGenerateRequirements) {
+      navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/design`, { replace: true });
       return;
     }
     if (documentType !== aggregate.project.activeDocumentType) {
@@ -444,6 +451,24 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const visibleSummary = compactedConversation.summary ?? aggregate.thread.summary;
   const reopenedAnswer = aggregate.answers.find((answer) => answer.id === reopenedQuestionAnswerId);
   const activeQuestion = reopenedAnswer ? QUESTION_CATALOG.find((question) => question.id === reopenedAnswer.questionId) ?? null : selectNextQuestion(aggregate);
+  const designReadiness = computeDesignReadiness(aggregate);
+  const currentProjectId = aggregate.project.id;
+  const selectedDesignItem = aggregate.designItems.find((item) => item.id === selectedDesignItemId && !item.archivedAt) ?? null;
+  const designBoardVisible = documentType === "design" || (documentType === "requirements" && !designReadiness.canGenerateRequirements);
+
+  function openDesignItem(item: BlueprintAggregate["designItems"][number]) {
+    setSelectedDesignItemId(item.id);
+    setInspectorOpen(true);
+  }
+
+  function continueDeciding() {
+    selectMode("conversation");
+    window.requestAnimationFrame(() => conversationRef.current?.focus());
+  }
+
+  function openRequirements() {
+    if (designReadiness.canGenerateRequirements) navigate(`/blueprints/${encodeURIComponent(currentProjectId)}/requirements`);
+  }
 
   return (
     <main className="workspace-shell" style={{ "--workspace-conversation-width": `${conversationWidth}px` } as CSSProperties} data-mobile-mode={mobileMode}>
@@ -454,7 +479,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           <input className="workspace-title-input" value={titleDraft} maxLength={100} aria-invalid={titleInvalid} aria-label="프로젝트 제목" aria-describedby={titleInvalid ? 'project-title-error project-save-state' : 'project-save-state'} onChange={(event) => editTitle(event.target.value)} />
         </label>
         <nav className="workspace-document-nav" aria-label="문서">
-          {visibleDocumentTypes.map((type) => <Link key={type} to={`/blueprints/${encodeURIComponent(aggregate.project.id)}/${type}`} aria-current={documentType === type ? "page" : undefined} className={documentType === type ? "is-active" : ""}>{documentTypeLabel(type)}</Link>)}
+          <span id="requirements-gate-reason" className="workspace-sr-only">설계 보드의 준비 상태와 원인을 확인해야 열 수 있습니다.</span>
+          {visibleDocumentTypes.map((type) => type === "requirements" && !designReadiness.canGenerateRequirements
+            ? <button key={type} type="button" className="is-disabled" disabled aria-describedby="requirements-gate-reason">{documentTypeLabel(type)}</button>
+            : <Link key={type} to={`/blueprints/${encodeURIComponent(aggregate.project.id)}/${type}`} aria-current={documentType === type ? "page" : undefined} className={documentType === type ? "is-active" : ""}>{documentTypeLabel(type)}</Link>)}
         </nav>
         <div className="workspace-save-area">
           {titleInvalid ? <span id="project-title-error" className="workspace-title-error" role="alert">프로젝트 제목을 입력해 주세요.</span> : null}
@@ -530,13 +558,21 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
                   {!isConflict ? <div className="proposal-review-actions"><button type="button" disabled={Boolean(proposalBusyId)} onClick={() => void resolveProposal(proposal.id, "reject")}>거절</button>{proposal.operation !== "delete" && !editing ? <button type="button" disabled={Boolean(proposalBusyId)} onClick={() => { setProposalError(null); setEditingProposalId(proposal.id); setProposalEdit({ title: String(value.title ?? value.text ?? ""), description: String(value.description ?? value.markdown ?? "") }); }}>수정 후 승인</button> : null}<button type="button" disabled={Boolean(proposalBusyId) || editing} onClick={() => void resolveProposal(proposal.id, "approve")}>{proposalBusyId === proposal.id ? "저장 중…" : "승인"}</button></div> : null}
                 </li>;
               })}</ol>
-            </section> : <div className="workspace-empty-state"><div className="workspace-empty-mark" aria-hidden="true">✦</div><h2>{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)} 작업을 시작해 보세요</h2><p>첫 아이디어를 바탕으로 내용을 정리하고 필요한 결정을 이어갈 수 있습니다.</p><span>현재 문서: {documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</span></div>}
+            </section> : null}
+            {designBoardVisible ? <DesignBoard aggregate={aggregate} readiness={designReadiness} selectedItemId={selectedDesignItemId} onSelectItem={openDesignItem} onContinueDeciding={continueDeciding} onOpenRequirements={openRequirements} /> : !aggregate.proposals.some((proposal) => proposal.status === "pending") ? <div className="workspace-empty-state"><div className="workspace-empty-mark" aria-hidden="true">✦</div><h2>{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)} 작업을 시작해 보세요</h2><p>첫 아이디어를 바탕으로 내용을 정리하고 필요한 결정을 이어갈 수 있습니다.</p><span>현재 문서: {documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</span></div> : null}
             {aggregate.designItems.some((item) => item.status === "review_required" && !item.archivedAt) ? <section className="proposal-review-required" aria-labelledby="review-required-title"><h2 id="review-required-title">선행 변경으로 재검토가 필요한 항목</h2><ul>{aggregate.designItems.filter((item) => item.status === "review_required" && !item.archivedAt).map((item) => <li key={item.id}><strong>{item.title}</strong><p>{String(item.attributes.reviewRequiredReason ?? "선행 결정 변경으로 확인이 필요합니다.")}</p></li>)}</ul></section> : null}
           </div>
         </section>
       <aside ref={inspectorPanelRef} id="workspace-review-panel" className={`workspace-panel workspace-inspector ${inspectorOpen ? "is-open" : ""}`} aria-label="상세 정보" aria-hidden={!inspectorOpen && inspectorOverlay && mobileMode !== "review"} aria-modal={inspectorOpen && inspectorOverlay ? true : undefined} role={inspectorOpen && inspectorOverlay ? "dialog" : modeTabsVisible && mobileMode === "review" ? "tabpanel" : "complementary"} aria-labelledby={modeTabsVisible && mobileMode === "review" && !inspectorOpen ? "workspace-mode-tab-review" : undefined}>
           <header className="workspace-panel-heading"><h2>프로젝트 상세</h2><button ref={inspectorCloseRef} className="workspace-drawer-close" type="button" aria-label="상세 닫기" onClick={closeInspector}>×</button></header>
-          <div className="workspace-inspector-content"><p className="workspace-readiness-label">진행 상태</p><p className="workspace-readiness-value">{readinessLabel(aggregate.project.readiness.state)}</p><p>확인할 제안 {aggregate.project.readiness.pendingProposalCount}개 · 충돌 {aggregate.project.readiness.conflictCount}개</p><div className="workspace-inspector-next"><strong>다음 단계</strong><p>아이디어를 대화에서 구체화한 뒤 문서 작업을 이어가세요.</p></div><button type="button" onClick={closeInspector}>닫기</button></div>
+          <div className="workspace-inspector-content">{selectedDesignItem ? <div className="design-inspector">
+            <p className="workspace-readiness-label">설계 항목 · {designReadiness.blockers.some((blocker) => blocker.key === "conflicts" && blocker.itemIds.includes(selectedDesignItem.id)) ? "충돌" : selectedDesignItem.status === "confirmed" ? "확정" : selectedDesignItem.status === "review_required" ? "재검토 필요" : selectedDesignItem.status === "not_applicable" ? "해당 없음" : selectedDesignItem.status === "deferred" ? "미정 · 오픈 이슈" : "제안 검토"}</p>
+            <h3>{selectedDesignItem.title}</h3><p>{selectedDesignItem.description || "설명 없음"}</p>
+            <section className="design-inspector-block"><h4>근거</h4>{selectedDesignItem.evidence.length ? selectedDesignItem.evidence.map((evidence) => <p key={evidence.id}>{evidence.excerpt ?? evidence.sourceId}</p>) : <p>연결된 근거가 없습니다.</p>}</section>
+            <section className="design-inspector-block"><h4>관련 항목</h4>{selectedDesignItem.relatedItemIds.length ? <ul>{selectedDesignItem.relatedItemIds.map((id) => <li key={id}>{aggregate.designItems.find((item) => item.id === id)?.title ?? id}</li>)}</ul> : <p>연결된 항목이 없습니다.</p>}</section>
+            {selectedDesignItem.acceptanceCriteria.length ? <section className="design-inspector-block"><h4>수용 기준</h4><ul>{selectedDesignItem.acceptanceCriteria.map((criterion) => <li key={criterion.id}>{criterion.text} · {criterion.status === "confirmed" ? "확정" : "재검토 필요"}</li>)}</ul></section> : null}
+          </div> : <><p className="workspace-readiness-label">진행 상태</p><p className="workspace-readiness-value">{readinessLabel(aggregate.project.readiness.state)}</p><p>확인할 제안 {aggregate.project.readiness.pendingProposalCount}개 · 충돌 {aggregate.project.readiness.conflictCount}개</p><div className="workspace-inspector-next"><strong>다음 단계</strong><p>아이디어를 대화에서 구체화한 뒤 문서 작업을 이어가세요.</p></div></>}
+          <button type="button" onClick={closeInspector}>닫기</button></div>
         </aside>
         {inspectorOpen ? <div className="workspace-drawer-backdrop" aria-hidden="true" onClick={closeInspector} /> : null}
       </div>
