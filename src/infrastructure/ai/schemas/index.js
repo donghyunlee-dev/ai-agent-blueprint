@@ -49,6 +49,21 @@ const sourceExcerpt = object({ id: string, sourceId: string, text: { type: 'stri
 const turnRequest = object({ logicalRequestId: string, attemptId: string, projectSummary: projectContext, question: opt(question), answer: userAnswer, recentMessages: array(contextMessage), relevantDesignItems: array(designItemContext), sources: array(sourceExcerpt) });
 const turnResponse = object({ assistantMessage: { type: 'string' }, proposals: array(proposal), questionDraft: opt(composition), referencedItemIds: strings, referencedSourceIds: strings });
 const documentsGenerateRequest = object({ documentType: enumeration('requirements', 'prd', 'setup_guide'), designRevision: { type: 'integer', minimum: 0 } });
+const requirementsDesignItem = object({
+  id: string, type: enumeration('product_definition', 'problem', 'goal', 'user_role', 'scenario', 'scope', 'out_of_scope', 'requirement', 'constraint', 'technical_decision', 'success_metric', 'risk', 'open_issue'),
+  key: opt(string), title: string, description: { type: 'string' }, status: enumeration('proposed', 'confirmed', 'deferred', 'not_applicable', 'review_required', 'rejected'),
+  priority: opt(enumeration('must', 'should', 'could', 'wont')), archivedAt: opt(string), attributes: opt(attributeMap),
+  acceptanceCriteria: array(object({ id: string, text: string, status: enumeration('draft', 'confirmed', 'review_required') })),
+});
+const requirementsProposal = object({
+  id: string, operation: enumeration('create', 'update', 'delete'), targetType: enumeration('design_item', 'acceptance_criterion', 'document_section'),
+  targetId: opt(string), before: opt({}), after: opt({}), affectedItemIds: strings, status: enumeration('pending', 'accepted', 'edited_and_accepted', 'rejected', 'superseded'),
+});
+const requirementsGenerateRequest = object({
+  documentType: { const: 'requirements' }, projectId: string, designRevision: { type: 'integer', minimum: 0 }, logicalRequestId: string, attemptId: string,
+  project: object({ id: string, title: string, designRevision: { type: 'integer', minimum: 0 } }),
+  designItems: array(requirementsDesignItem), proposals: array(requirementsProposal),
+});
 const documentsPatchRequest = union([
   object({ documentId: string, targetSectionIds: array(string), instruction: opt(string) }, ['documentId', 'targetSectionIds']),
   object({ documentId: string, targetRequirementIds: array(string), instruction: opt(string) }, ['documentId', 'targetRequirementIds']),
@@ -59,7 +74,7 @@ const envelope = union([taskEnvelope('REQUIREMENTS_DRAFT'), taskEnvelope('PRD_DR
 export const schemas = Object.freeze({
   displayBlock, normalizedBlocks: array(displayBlock, 6),
   tasks: Object.freeze(tasks), envelopes: Object.freeze(Object.fromEntries(Object.keys(tasks).map(task => [task, taskEnvelope(task)]))),
-  http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
+  http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, requirementsGenerateRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
 });
 export function validateSchema(schema, value) {
   const errors = [];
