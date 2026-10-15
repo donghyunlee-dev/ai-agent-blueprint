@@ -1,6 +1,6 @@
 # SRC-PR-01 — 파일 제한·추출
 
-**Status: in progress.** Planning base: `origin/main` at `1178050576338245d1b5bdbd913e3b19cff669df` (DOC-PR-04, PR #23, merged 2026-10-15). Scope: `SRC-501` and `SRC-502` (`SRC-001`).
+**Status: merged.** PR #24 merged 2026-10-15 at `f169cf7da310dc446fdb02b7006817c65703ea12`; final head `8fa05f6b4032713c1d30c6bb0da2b7f706704233`. Scope: `SRC-501` and `SRC-502` (`SRC-001`). Focused unit tests 13/13, Playwright 6/6 across desktop/mobile Chromium, build, and diff-check passed; independent review/QA gates passed.
 
 ## 사용자 결과
 
@@ -141,6 +141,6 @@ No OpenAI call, broad test suite, screenshot set, or Agent Browser run is requir
 
 - [x] `SRC-001` behavior and focused acceptance checks pass.
 - [x] Implementer self-validation and build pass; results are recorded in `test-results.md`.
-- [ ] Independent code review passes; decisions/findings recorded in `review-notes.md`.
-- [ ] Independent focused QA passes; results recorded in `qa-report.md`.
-- [ ] PR lifecycle gate passes; GitHub confirms merge before `SRC-PR-02` begins.
+- [x] Independent code review gate passed on the final PR SHA (merge gate evidence tracked in the delivery matrix).
+- [x] Independent focused QA gate passed on the final PR SHA (merge gate evidence tracked in the delivery matrix).
+- [x] PR lifecycle gate passed; GitHub confirms PR #24 merged at `f169cf7da310dc446fdb02b7006817c65703ea12`.

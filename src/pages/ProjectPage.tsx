@@ -25,6 +25,7 @@ import { bulkApproveProposals, bulkRejectProposals, classifyProposalConflicts, p
 import { DesignBoard } from "../features/design/DesignBoard.js";
 import { computeDesignReadiness } from "../features/design/readiness.js";
 import { RequirementsDocument } from "../components/blueprint/RequirementsDocument.js";
+import { DocumentExportActions } from "../components/blueprint/DocumentExportActions.js";
 import { commitRequirementsResult } from "../features/documents/requirements-generation.js";
 import { assessRequirementsReady, confirmRequirementsReady } from "../features/documents/requirements-ready.js";
 import { commitPrdResult, validatePrdAllowed } from "../features/documents/prd-generation.js";
@@ -74,7 +75,7 @@ function PrdDocument({aggregate,generating,error,patching,patchError,onRequestPa
   const allowed=validatePrdAllowed(aggregate).allowed;
   const sections=aggregate.sections.filter((section)=>section.documentId===saved?.id).sort((a,b)=>a.order-b.order);
   return <section className="requirements-document" aria-labelledby="prd-title">
-    <header className="requirements-document-header"><div><p className="workspace-eyebrow">{saved?`rev. ${saved.designRevision} · 검토 필요`:'PRD'}</p><h2 id="prd-title">제품 요구사항 문서</h2></div>{saved?<span role="status">사용자 검토 전</span>:null}</header>
+    <header className="requirements-document-header"><div><p className="workspace-eyebrow">{saved?`rev. ${saved.designRevision} · 검토 필요`:'PRD'}</p><h2 id="prd-title">제품 요구사항 문서</h2></div>{saved?<><span role="status">사용자 검토 전</span><DocumentExportActions document={saved} sections={sections} projectTitle={aggregate.project.title} /></>:null}</header>
     {!allowed?<div className="requirements-empty-state"><h3>PRD 생성 전 Requirements 검토가 필요합니다</h3><p>같은 설계 revision의 Requirements를 검토 완료한 뒤 PRD를 생성할 수 있습니다.</p><Link className="design-requirements-action is-primary" to={`/blueprints/${encodeURIComponent(aggregate.project.id)}/requirements`}>Requirements 검토로 이동</Link></div>:null}
     {saved?<div className="requirements-document-layout"><nav aria-label="PRD 섹션 목차">{sections.map((section)=><a key={section.id} href={`#prd-${section.key}`}>{section.title}</a>)}</nav><div>{sections.map((section)=><article id={`prd-${section.key}`} key={section.id}><h3>{section.title}</h3><p>{section.markdown}</p><DocumentSectionEditor aggregate={aggregate} document={saved} section={section} onSave={onDirectEdit}/><label><input type="checkbox" checked={selectedIds.includes(section.id)} onChange={(event)=>setSelectedIds((ids)=>event.target.checked?[...ids,section.id]:ids.filter((id)=>id!==section.id))}/> {section.title} 섹션을 보완 대상으로 선택</label><small>근거: {section.sourceItemIds.join(', ')||'연결 없음'}</small></article>)}</div></div>:null}
     {saved?<section className="requirements-ready-review" aria-labelledby="prd-patch-title"><h3 id="prd-patch-title">선택 섹션 부분 보완</h3><p>선택한 섹션만 보완 제안으로 검토합니다. 승인 전에는 문서를 바꾸지 않습니다.</p><ImpactPreview preview={previewDocumentImpact(aggregate,saved.id,{sectionIds:selectedIds,requirementIds:[]})}/>{patchError?<p role="alert">{patchError}</p>:null}<button type="button" disabled={patching||!selectedIds.length} onClick={()=>onRequestPatch({sectionIds:selectedIds,requirementIds:[]})}>{patching?'보완 제안 작성 중…':'선택 섹션 보완 제안 받기'}</button></section>:null}
