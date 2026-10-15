@@ -1,11 +1,16 @@
 import { applyValue, currentTarget, matchesBefore } from './proposal-commands.js';
 
-function current(aggregate, proposal) { return proposal.operation === 'create' ? null : currentTarget(aggregate, proposal); }
+function current(aggregate, proposal) { return currentTarget(aggregate, proposal); }
 export function proposalCurrentSnapshot(aggregate, proposal) {
   const target = current(aggregate, proposal);
-  if (!target || !proposal.before || typeof proposal.before !== 'object') return null;
+  if (!target) return null;
   const displayKeys = proposal.targetType === 'design_item' ? ['title', 'description'] : proposal.targetType === 'acceptance_criterion' ? ['text'] : ['title', 'markdown'];
-  return Object.fromEntries([...new Set([...displayKeys, ...Object.keys(proposal.before)])].map((key) => [key, target[key]]));
+  const beforeKeys = proposal.before && typeof proposal.before === 'object' ? Object.keys(proposal.before) : [];
+  return Object.fromEntries([...new Set([...displayKeys, ...beforeKeys])].map((key) => [key, target[key]]));
+}
+function matchesExpectedCurrent(currentValue, expectedValue) {
+  if (expectedValue === null) return currentValue === null;
+  return Boolean(currentValue && expectedValue && typeof expectedValue === 'object' && matchesBefore(currentValue, expectedValue));
 }
 function conflict(aggregate, proposal) { return proposal.status === 'pending' && ((proposal.operation === 'create' && Boolean(proposal.targetId)) || (proposal.operation !== 'create' && !matchesBefore(current(aggregate, proposal), proposal.before))); }
 function validValue(proposal) {
@@ -62,12 +67,13 @@ export async function resolveProposalConflict({ ownerKey, projectId, proposalId,
     if (proposal.status !== 'pending') return { status: 'already_resolved', proposal };
     if (!conflict(aggregate, proposal)) return { status: 'not_conflict', proposal, aggregate };
     const latestCurrent = proposalCurrentSnapshot(aggregate, proposal);
-    if (!expectedCurrent || !matchesBefore(latestCurrent, expectedCurrent)) return { status: 'changed_again', aggregate, proposal };
+    if (!matchesExpectedCurrent(latestCurrent, expectedCurrent)) return { status: 'changed_again', aggregate, proposal };
     const at = now();
     if (choice === 'keep_current') {
       proposal.status = 'superseded'; proposal.resolvedAt = at;
       aggregate.activityEntries.push({ id: idFactory(), projectId, action: 'proposal_conflict_kept_current', targetType: 'proposal', targetId: proposal.id, logicalRequestId: proposal.logicalRequestId, summary: '충돌에서 기존 확정값을 유지했습니다.', createdAt: at });
     } else {
+      if ((proposal.operation === 'create' && proposal.targetId && currentTarget(aggregate, proposal)) || (proposal.operation !== 'create' && !currentTarget(aggregate, proposal))) return { status: 'invalid_target', aggregate, proposal };
       const value = choice === 'edit' ? editedValue : proposal.after;
       if (choice === 'edit' && (!validValue({ ...proposal, after: value }) || (proposal.targetType === 'design_item' && (!String(value.title ?? '').trim() || !String(value.description ?? '').trim())))) return { status: 'invalid_value' };
       const changedId = proposal.targetType === 'design_item' ? proposal.targetId : undefined;

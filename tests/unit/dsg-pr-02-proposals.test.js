@@ -33,3 +33,34 @@ test('bulk approval selects only one pending proposal per target and marks the o
   assert.equal(a.project.readiness.conflictCount,1);
   assert.equal(a.project.designRevision,1);
 });
+
+test('keeps the current state and resolves a stale update whose target is missing',async()=>{
+  const a=state([proposal('missing-target',{title:'제안',description:'새 설명'})],[]);
+  const result=await resolveProposalConflict({...common,proposalId:'missing-target',choice:'keep_current',expectedCurrent:null,repository:repo(a)});
+  assert.equal(result.status,'applied');
+  assert.equal(a.proposals[0].status,'superseded');
+  assert.equal(a.designItems.length,0);
+  assert.equal(a.project.designRevision,0);
+});
+
+test('keeps an occupied target and resolves a conflicting create proposal',async()=>{
+  const a=state([proposal('occupied-create',{title:'생성 제안',description:'제안 설명'},{operation:'create',targetId:'item'})]);
+  const original=structuredClone(a.designItems[0]);
+  const result=await resolveProposalConflict({...common,proposalId:'occupied-create',choice:'keep_current',expectedCurrent:{title:'현재'},repository:repo(a)});
+  assert.equal(result.status,'applied');
+  assert.equal(a.proposals[0].status,'superseded');
+  assert.deepEqual(a.designItems[0],original);
+  assert.equal(a.project.designRevision,0);
+});
+
+test('does not apply proposed values to missing or already occupied targets',async()=>{
+  const missing=state([proposal('missing-target',{title:'제안',description:'새 설명'})],[]);
+  const missingResult=await resolveProposalConflict({...common,proposalId:'missing-target',choice:'accept_proposed',expectedCurrent:null,repository:repo(missing)});
+  assert.equal(missingResult.status,'invalid_target');
+  assert.equal(missing.proposals[0].status,'pending');
+  const occupied=state([proposal('occupied-create',{title:'생성 제안',description:'제안 설명'},{operation:'create',targetId:'item'})]);
+  const occupiedResult=await resolveProposalConflict({...common,proposalId:'occupied-create',choice:'accept_proposed',expectedCurrent:{title:'현재'},repository:repo(occupied)});
+  assert.equal(occupiedResult.status,'invalid_target');
+  assert.equal(occupied.proposals[0].status,'pending');
+  assert.equal(occupied.designItems.length,1);
+});

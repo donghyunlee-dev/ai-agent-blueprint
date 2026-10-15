@@ -352,9 +352,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       if (!proposal) throw new Error("PROPOSAL_NOT_FOUND");
       const editedValue = proposal.targetType === "acceptance_criterion" ? { text: proposalEdit.title } : proposal.targetType === "document_section" ? { title: proposalEdit.title, markdown: proposalEdit.description } : proposalEdit;
       const expectedCurrent = proposalCurrentSnapshot(latest, proposal);
-      const result = await resolveProposalConflict({ ownerKey, projectId, proposalId, choice, expectedCurrent: expectedCurrent ?? {}, editedValue, repository: repositoryFactory() });
+      const result = await resolveProposalConflict({ ownerKey, projectId, proposalId, choice, expectedCurrent, editedValue, repository: repositoryFactory() });
       if (result.status === "changed_again") { if (result.aggregate) applyCommittedAggregate(result.aggregate); setProposalError("검토 중 확정값이 다시 변경됐습니다. 최신 값으로 다시 선택해 주세요."); return; }
       if (result.status === "invalid_value") { setProposalError("수정값의 필수 항목을 입력해 주세요."); return; }
+      if (result.status === "invalid_target") { if (result.aggregate) applyCommittedAggregate(result.aggregate); setProposalError("제안 대상이 없거나 이미 사용 중입니다. 기존 값을 유지하거나 제안을 거절해 주세요."); return; }
       if (result.status === "not_conflict") { if (result.aggregate) applyCommittedAggregate(result.aggregate); setProposalError("현재 값은 더 이상 충돌 상태가 아닙니다. 최신 제안을 확인해 주세요."); return; }
       if (result.aggregate) applyCommittedAggregate(result.aggregate);
     } catch { setProposalError("충돌을 저장하지 못했습니다. 기존 확정 설계는 보존했습니다. 다시 시도해 주세요."); }
