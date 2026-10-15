@@ -21,9 +21,13 @@
 .project-submit-button:focus-visible,.project-attach-button:focus-visible,.project-example-actions button:focus-visible { outline: 3px solid #78aaff; outline-offset: 2px; }
 .project-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.45); border-top-color: #fff; border-radius: 50%; animation: project-spin .7s linear infinite; }
 @keyframes project-spin { to { transform: rotate(360deg); } }
-.project-selected-files { display: grid; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
-.project-selected-files li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 11px; border: 1px solid var(--color-border); border-radius: 10px; color: var(--color-text-body); font-size: 12px; }
-.project-selected-files li span { color: var(--color-text-muted); text-align: right; }
+.project-file-guidance { margin: 8px 0 0; color: var(--color-text-muted); font-size: 12px; }
+.project-selected-files-block { margin-top: 12px; }
+.project-selected-files { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.project-selected-files li { display: grid; justify-items: start; gap: 4px; min-width: 0; padding: 9px 11px; border: 1px solid var(--color-border); border-radius: 10px; color: var(--color-text-body); font-size: 12px; }
+.project-selected-files li strong { max-width: 100%; overflow-wrap: anywhere; color: var(--color-text-strong); }
+.project-selected-files li span,.project-selected-files li small { color: var(--color-text-muted); }
+.project-selected-files li [role="alert"] { color: #b42318; }
 .project-create-error { margin: 12px 0 0; padding: 10px 12px; border: 1px solid #fecaca; border-radius: 10px; background: #fff7f7; font-size: 13px; }
 .project-pending-status { margin: 10px 0 0; color: var(--color-primary); font-size: 13px; }
 .project-save-failed { margin: 10px 0 0; color: #a1261e; font-size: 13px; font-weight: 700; }
@@ -37,7 +41,5 @@
   .project-composer-footer { gap: 4px; }
   .project-attach-button { padding: 0 7px; font-size: 12px; white-space: nowrap; }
   .project-submit-button { min-width: 0; flex: 1; padding: 0 8px; font-size: 13px; }
-  .project-selected-files li { display: grid; }
-  .project-selected-files li span { text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) { .project-spinner { animation-duration: 1.6s; } }

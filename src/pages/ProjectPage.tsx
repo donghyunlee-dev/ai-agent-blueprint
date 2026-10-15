@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import type { BlueprintAggregate } from "../domain/blueprint/types.js";
 import { useAuth } from "../features/auth/AuthProvider";
 import { createDebouncedProjectSaver, formatSavedTime } from "../features/projects/projectAutosave.js";
@@ -33,6 +33,7 @@ import { commitConsistencyReview } from "../features/documents/consistency-revie
 import { previewDocumentImpact } from "../features/documents/document-impact-preview.js";
 import { commitDirectDocumentEdit } from "../features/documents/document-edit-transaction.js";
 import { DocumentSectionEditor } from "../components/blueprint/DocumentSectionEditor.js";
+import { SourceDocuments } from "../components/projects/SourceDocuments.js";
 import { fetchBlueprintApi } from "../features/auth/sessionFetch.js";
 import "../styles/workspace-shell.css";
 
@@ -83,6 +84,7 @@ function PrdDocument({aggregate,generating,error,patching,patchError,onRequestPa
 
 export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository }: { repositoryFactory?: () => ProjectRepository }) {
   const { projectId, documentType } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { ownerKey } = useAuth();
   const [aggregate, setAggregate] = useState<BlueprintAggregate | null>(null);
@@ -793,6 +795,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         <section id="workspace-work-panel" className="workspace-panel workspace-work" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-work" : undefined} aria-label={modeTabsVisible ? undefined : "작업 영역"} tabIndex={0}>
           <header className="workspace-panel-heading workspace-work-heading"><div><p className="workspace-eyebrow">{documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)}</p><h1>{documentType === "requirements" ? "요구사항" : documentType === "prd" ? "제품 요구사항 문서" : documentType === "setup_guide" ? "설정 안내" : "설계"}</h1></div><button ref={inspectorTriggerRef} type="button" className="workspace-inspector-trigger" onClick={() => setInspectorOpen(true)}>상세 보기</button></header>
           <div className="workspace-work-content">
+            <SourceDocuments aggregate={aggregate} repository={repositoryFactory()} onAggregate={applyCommittedAggregate} beforeMutation={flushProposalAutosave} initialMessage={(location.state as { sourceNotice?: string } | null)?.sourceNotice ?? ''} />
             {['requirements','prd'].includes(documentType??'')&&aggregate.documents.some((document)=>document.type==='requirements')&&aggregate.documents.some((document)=>document.type==='prd')?<section className="requirements-ready-review" aria-labelledby="consistency-review-title"><h2 id="consistency-review-title">Requirements · PRD 정합성</h2><p>확정 설계와 두 문서의 목표, 범위, 근거와 최신 상태를 비교합니다. 결과는 검토용이며 자동 수정하지 않습니다.</p><button type="button" disabled={consistencyReview?.status==='loading'} onClick={()=>void runConsistencyReview()}>{consistencyReview?.status==='loading'?'문서 정합성 검토 중…':'문서 정합성 검토'}</button>{consistencyReview?.status==='failed'?<p role="alert">{consistencyReview.error}</p>:null}{consistencyReview?.status==='completed'?consistencyReview.findings.length?<ol aria-label="정합성 검토 결과">{consistencyReview.findings.map((finding,index)=><li key={`${String(finding.type)}-${index}`}><strong>{String(finding.severity==='error'?'필수 확인':'확인 권장')} · {String(finding.type)}</strong><p>{String(finding.location)} · 관련 항목: {((finding.sourceItemIds as string[])??[]).join(', ')}</p><p>{String(finding.nextAction)}</p>{finding.proposal?<p>수정 제안을 생성했습니다. 제안 목록에서 승인하거나 거절할 수 있습니다.</p>:null}</li>)}</ol>:<p role="status">정합성 검토 완료 · 발견 사항 0개</p>:null}</section>:null}
             {aggregate.proposals.some((proposal) => proposal.status === "pending") ? <section className="proposal-review" aria-labelledby="proposal-review-title">
               <header className="proposal-review-heading"><div><p className="workspace-eyebrow">검토가 필요한 변경</p><h2 id="proposal-review-title" tabIndex={-1}>제안 {aggregate.proposals.filter((proposal) => proposal.status === "pending").length}개</h2></div><p>승인한 값만 확정 설계에 반영됩니다.</p></header>

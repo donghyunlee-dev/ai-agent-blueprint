@@ -7,6 +7,8 @@ import { getIndexedDbProjectRepository } from '../../infrastructure/storage/inde
 import type { ProjectRepository } from '../../infrastructure/storage/indexeddb-project-repository.js';
 import { createProject } from '../../features/projects/createProject.js';
 import type { CreateProjectInput, CreatedProjectBundle } from '../../features/projects/createProject.js';
+import { addSourceFiles } from '../../features/sources/source-upload-command.js';
+import { SOURCE_ERROR_MESSAGES, validateSourceFile } from '../../features/sources/source-validation.js';
 import '../../styles/project-composer.css';
 
 type CreateCommand = (input: CreateProjectInput, ownerKey: string | null) => Promise<CreatedProjectBundle>;
@@ -23,7 +25,7 @@ export function ProjectComposer({
   repositoryFactory = getIndexedDbProjectRepository,
 }: {
   ownerKey: string | null;
-  onCreated: (projectId: string) => void;
+  onCreated: (projectId: string, sourceNotice?: string) => void;
   createCommand?: CreateCommand;
   repositoryFactory?: () => ProjectRepository;
 }) {
@@ -104,9 +106,20 @@ export function ProjectComposer({
         repository,
         createCommand,
       });
+      let sourceNotice = '';
+      if (selectedFiles.length) {
+        try {
+          const results = await addSourceFiles({ ownerKey, projectId: bundle.project.id, files: selectedFiles, repository });
+          const rejected = results.filter((result) => result.status === 'rejected');
+          if (rejected.length) sourceNotice = `프로젝트는 저장했지만 ${rejected.length}개 파일은 추가하지 않았습니다: ${rejected.map((result) => `${result.fileName} — ${result.message}`).join(' · ')}`;
+          if (results.some((result) => result.errorCode === 'STORAGE_FAILED')) sourceNotice = '프로젝트는 저장했지만 파일 상태 저장에 실패했습니다. 작업 공간에서 해당 예약 파일을 제거하고 다시 선택해 주세요.';
+        } catch {
+          sourceNotice = '프로젝트는 저장했습니다. 파일을 추가하지 못했으니 작업 공간에서 다시 시도해 주세요.';
+        }
+      }
       if (ownerKeyRef.current !== ownerKey) { submissionLocked.current = false; setIsPending(false); setIsSaving(false); return false; }
       setIsSaving(false);
-      onCreated(bundle.project.id);
+      onCreated(bundle.project.id, sourceNotice);
     } catch {
       if (ownerKeyRef.current !== ownerKey) { submissionLocked.current = false; setIsPending(false); setIsSaving(false); return false; }
       setCreateError(afterDeletion
@@ -177,7 +190,7 @@ export function ProjectComposer({
         />
         <div className="project-composer-meta">
           <p id="project-idea-help" className={validationError ? 'project-composer-validation' : 'project-composer-hint'} role={validationError ? 'alert' : undefined}>
-            {validationError || '아이디어를 입력하고 시작하세요. 파일은 다음 단계에서 추가할 수 있습니다.'}
+            {validationError || '아이디어와 참고 파일을 함께 첨부해 시작할 수 있습니다.'}
           </p>
           <span id="project-idea-count" aria-live="polite">{idea.length}/1000</span>
         </div>
@@ -198,11 +211,18 @@ export function ProjectComposer({
             {isPending ? <><span className="project-spinner" aria-hidden="true" />프로젝트 만드는 중</> : <>Blueprint 시작 <span aria-hidden="true">→</span></>}
           </button>
         </div>
+        <p className="project-file-guidance">TXT, Markdown, 텍스트 PDF · 파일당 최대 10 MiB · 프로젝트당 최대 5개</p>
       </form>
       {selectedFiles.length > 0 ? (
-        <ul className="project-selected-files" aria-label="선택한 파일">
-          {selectedFiles.map((file) => <li key={`${file.name}-${file.size}`}>{file.name}<span>선택됨 · 추출은 다음 단계에서 지원합니다</span></li>)}
-        </ul>
+        <div className="project-selected-files-block">
+          <ul className="project-selected-files" aria-label="선택한 파일">
+            {selectedFiles.map((file, index) => {
+              const validation = validateSourceFile(file);
+              const errorCode = !validation.valid ? validation.errorCode : selectedFiles.length > 5 && index >= 5 ? 'SOURCE_LIMIT' : undefined;
+              return <li key={`${file.name}-${file.size}-${index}`}><strong>{file.name}</strong><span>{file.type || file.name.split('.').at(-1)} · {(file.size / (1024 * 1024)).toFixed(2)} MiB</span><span role={errorCode ? 'alert' : 'status'}>{errorCode ? SOURCE_ERROR_MESSAGES[errorCode] : '프로젝트 저장 후 텍스트를 추출합니다.'}</span><small>민감한 정보가 포함되어 있는지 확인해 주세요.</small></li>;
+            })}
+          </ul>
+        </div>
       ) : null}
       {createError ? <p ref={errorMessage} className="project-create-error" role="alert" tabIndex={-1}>{createError}</p> : null}
       {isPending ? <p className="project-pending-status" role="status">{isSaving ? '저장 중 · 프로젝트와 첫 대화를 브라우저에 보관하고 있습니다.' : '아이디어를 바탕으로 프로젝트를 준비하고 있습니다.'}</p> : null}
