@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { BlueprintAggregate } from '../../domain/blueprint/types.js';
 import { DESIGN_SECTIONS } from './readiness.js';
 import type { DesignReadiness } from './readiness.js';
@@ -30,8 +30,18 @@ export function DesignBoard({ aggregate, readiness, selectedItemId, onSelectItem
   const [filterKey, setFilterKey] = useState<string | null>(null);
   const [filterItemIds, setFilterItemIds] = useState<string[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [pendingFocusItemId, setPendingFocusItemId] = useState<string | null>(null);
   const activeItems = aggregate.designItems.filter((item) => !item.archivedAt && item.status !== 'rejected');
   const visibleAreas = readiness.areas.filter((area) => !filterKey || area.key === filterKey || (filterKey === 'conflicts' && area.status === 'conflict'));
+
+  useEffect(() => {
+    if (!pendingFocusItemId) return;
+    const target = document.querySelector<HTMLElement>(`[data-design-item-id="${CSS.escape(pendingFocusItemId)}"]`);
+    if (!target) return;
+    target.scrollIntoView({ block: 'nearest' });
+    target.focus();
+    setPendingFocusItemId(null);
+  }, [pendingFocusItemId, visibleAreas, filterItemIds, collapsed]);
 
   function focusBlocker(key: string, itemIds: string[]) {
     if (key === 'proposals' || (key === 'conflicts' && !itemIds.length)) {
@@ -39,7 +49,14 @@ export function DesignBoard({ aggregate, readiness, selectedItemId, onSelectItem
       document.querySelector<HTMLElement>('.proposal-review')?.scrollIntoView({ block: 'nearest' });
       return;
     }
-    const selector = itemIds.length ? `[data-design-item-id="${CSS.escape(itemIds[0])}"]` : `[data-design-section="${key}"] h3`;
+    if (itemIds.length) {
+      const itemId = itemIds[0];
+      const itemArea = readiness.areas.find((area) => area.itemIds.includes(itemId));
+      if (itemArea && collapsed[itemArea.key]) setCollapsed((value) => ({ ...value, [itemArea.key]: false }));
+      setPendingFocusItemId(itemId);
+      return;
+    }
+    const selector = `[data-design-section="${key}"] h3`;
     const target = document.querySelector<HTMLElement>(selector);
     target?.scrollIntoView({ block: 'nearest' });
     target?.focus();

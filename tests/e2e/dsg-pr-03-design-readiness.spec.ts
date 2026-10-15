@@ -58,7 +58,7 @@ test('shows the ten-area readiness gate and keeps the selected design item avail
     aggregate.designItems = [
       make('product', 'product_definition', '설계 결정 관리', { evidence, relatedItemIds: ['problem'] }),
       make('problem', 'problem', '결정이 여러 곳에 흩어짐'), make('goal', 'goal', '결정 추적 개선'),
-      make('user', 'user_role', '제품 팀'), make('scenario', 'scenario', '팀이 새 프로젝트를 준비한다'),
+      make('user', 'user_role', '제품 팀'), make('scenario', 'scenario', '팀이 새 프로젝트를 준비한다', { status: 'review_required' }),
       make('feature', 'requirement', '설계 보드', { priority: 'must', acceptanceCriteria: [{ id: 'criterion', text: '보드에서 확정 설계와 준비 원인을 확인할 수 있다', status: 'confirmed', evidence: [] }] }),
       make('scope', 'scope', '핵심 설계 요약'), make('exclusions', 'out_of_scope', '자동 문서 생성'),
       make('success', 'success_metric', '수용 기준 통과'), make('risk', 'risk', '결정 누락'),
@@ -67,6 +67,24 @@ test('shows the ten-area readiness gate and keeps the selected design item avail
     await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); db.close();
   }, { databaseName: databaseNameForOwner(ownerKey), projectId });
 
+  await page.goto(`/blueprints/${projectId}/design`);
+  await expect(page.getByText('부족', { exact: true })).toBeVisible();
+  const scenarioSection = page.locator('[data-design-section="scenarios"]');
+  const scenarioCollapse = scenarioSection.getByRole('button', { name: '접기' });
+  await scenarioCollapse.click();
+  await expect(scenarioSection.getByRole('button', { name: '펼치기' })).toHaveAttribute('aria-expanded', 'false');
+  await page.locator('.design-blocker-list button').filter({ hasText: '팀이 새 프로젝트를 준비한다' }).click();
+  await expect(scenarioSection.getByRole('button', { name: '접기' })).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('[data-design-item-id="scenario"]')).toBeFocused();
+
+  await page.evaluate(async ({ databaseName, projectId }) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(databaseName, 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const read = db.transaction('projects', 'readonly').objectStore('projects').get(projectId);
+    const aggregate = await new Promise<any>((resolve, reject) => { read.onsuccess = () => resolve(read.result); read.onerror = () => reject(read.error); });
+    aggregate.designItems.find((item: any) => item.id === 'scenario').status = 'confirmed';
+    const tx = db.transaction('projects', 'readwrite'); tx.objectStore('projects').put(aggregate);
+    await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); db.close();
+  }, { databaseName: databaseNameForOwner(ownerKey), projectId });
   await page.goto(`/blueprints/${projectId}/design`);
   await expect(page.getByText('준비 완료', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Requirements 열기' })).toBeEnabled();
