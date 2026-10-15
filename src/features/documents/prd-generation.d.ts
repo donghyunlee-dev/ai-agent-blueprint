@@ -1,0 +1,6 @@
+import type { BlueprintAggregate, GeneratedDocument, DocumentSection, GenerationJob } from '../../domain/blueprint/types.js';
+export interface PrdPlan { projectId:string; designRevision:number; requirementsDocumentId:string; sections:{key:string;title:string;order:number;sourceItemIds:string[];requirementIds:string[]}[]; requirements:NonNullable<GeneratedDocument['requirements']>; requirementLinks:{sectionKey:string;requirementIds:string[]}[]; openIssues:NonNullable<GeneratedDocument['openIssues']>; sourceItems:BlueprintAggregate['designItems'] }
+export function validatePrdAllowed(aggregate:BlueprintAggregate, logicalRequestId?:string):{allowed:boolean;blockers:string[];requirements?:GeneratedDocument};
+export function buildPrdPlan(aggregate:BlueprintAggregate):PrdPlan;
+export function generatePrd(options:{aggregate:BlueprintAggregate;runTask:(task:string,input:Record<string,unknown>)=>Promise<unknown>;logicalRequestId?:string;attemptId?:string;generationJobId?:string;now?:()=>string;idFactory?:()=>string}):Promise<{document:GeneratedDocument;sections:DocumentSection[];job:GenerationJob;plan:PrdPlan;processStatus:'review_required'}>;
+export function commitPrdResult(aggregate:BlueprintAggregate,result:Awaited<ReturnType<typeof generatePrd>>,currentRevision?:number):BlueprintAggregate;

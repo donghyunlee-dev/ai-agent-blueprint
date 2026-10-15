@@ -42,6 +42,8 @@ interface PromptDefinition<TInput, TOutput> {
 
 `promptVersion`은 내용 변경 시 증가시키며 response와 `GenerationJob`에 기록한다. 문구 수정이라도 모델 행동을 바꿀 수 있으면 새 version이다. OpenAI prompt template을 사용할 경우에도 `prompt.id`, `prompt.version`, 변수 schema를 로컬 registry에 매핑한다.
 
+`PRD_REVIEW` v2 requires exactly one source-backed verdict for each of `problem`, `goals`, `users`, `scope`, and `success_metrics`. Verdicts are `aligned`, `unsupported`, `misaligned`, or `unknown`; only all five `aligned` with an overall `pass` permits PRD persistence. This semantic comparison is model-assisted; server validation verifies schema, dimension completeness, and source ID membership, while Mini review judges whether cited sources actually support the claims. Missing or invalid judgments fail closed.
+
 ## 공통 프롬프트 계층
 
 ### System 규칙

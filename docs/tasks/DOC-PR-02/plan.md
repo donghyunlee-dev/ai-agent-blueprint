@@ -1,133 +1,137 @@
-# DOC-PR-02 — Requirements ready·PRD 생성
+# DOC-PR-02 — Requirements ready와 PRD 생성
 
-## Overview
+**Status: in_progress.** Planning base: `origin/main` at `6ded90838a415ee10f9a3ba0b518ebd0932c9618` (DOC-PR-01, PR #20, merged 2026-10-15). Scope: `DOC-403`, `DOC-404`, and `AI-007` PRD path.
 
-Requirements를 사용자가 명시적으로 `ready` 확정하는 행동과, `ready` 상태에서만 PRD 탭·API 잠금을 해제해 같은 설계 revision으로 PRD를 생성하는 기능을 구현한다. PRD 파이프라인은 코드 plan → Terra(FINAL) draft → Mini(DEFAULT) review → 선택적 repair 순서를 따른다.
+## Outcome
 
-## Background
+사용자가 검토된 Requirements를 명시적으로 `ready`로 확정하고, 동일 design revision을 기준으로만 PRD를 생성할 수 있다. PRD는 plan → Terra draft → Mini review → 필요 시 Terra repair 1회 → Mini 재검토를 거쳐 검토 가능한 초안으로 저장된다. AI review만으로 Requirements가 ready가 되거나 PRD가 사용자 승인 상태가 되지 않는다.
 
-`DEC-015`(Requirements ready 후 PRD 생성), `DEC-021`(시스템이 ready 가능 조건을 계산하지만 사용자가 `Requirements 검토 완료`를 명시적으로 확인해야 ready), `DEC-031`(Terra는 PRD draft와 1회 repair에만 사용)을 구현한다. `DOC-PR-01`에서 만든 `review_required` 상태 Requirements가 입력이며, AI review 성공만으로는 ready가 되지 않는다는 제약이 핵심이다.
+## Traceability and contracts
+
+- Delivery unit 18: `DOC-PR-02`; delivery tasks `DOC-403`, `DOC-404`; AI task `AI-007`.
+- Product requirement: `DOC-003` — Requirements ready 선행, 동일 revision PRD, 제품 결과 중심 PRD structure.
+- Decisions: `DEC-002` (명시적 미정은 open issue로 보존), `DEC-015` (Requirements ready 이후 PRD), `DEC-021` (ready 조건 계산은 코드, 사용자 명시 확인 필수), `DEC-028` (plan → draft → review → 선택적 repair 1회), `DEC-031` (FINAL은 PRD draft와 repair만 사용), `DEC-032` (결정론적 plan, provider 호출 없음).
+- Delivery: [`04-documents.md`](../../delivery/04-documents.md) (`DOC-403`, `DOC-404`); [`ai-model-prompt-and-evaluation.md`](../../delivery/ai-model-prompt-and-evaluation.md) (`AI-007`).
+- Process: [`05-document-generation.md`](../../process/05-document-generation.md) (`G-REQ-READY`, `G-PRD-ALLOWED`, transaction, failure invariants); [`02-state-machine.md`](../../process/02-state-machine.md).
+- Data/API: [`05-data-spec.md`](../../product/05-data-spec.md) (`GeneratedDocument`, `DocumentSection`, `GenerationJob`; PRD only when Requirements is ready); authenticated generation API from FND-PR-02, with server-signed proof of the exact generated Requirements snapshot and explicit ready confirmation.
+- AI: [`12-ai-orchestration-and-model-policy.md`](../../product/12-ai-orchestration-and-model-policy.md) (FINAL/DEFAULT profiles and limits); [`13-prompt-and-response-contracts.md`](../../product/13-prompt-and-response-contracts.md) (strict task schemas and references); [`14-ai-budget-evaluation-and-operations.md`](../../product/14-ai-budget-evaluation-and-operations.md) (budget before provider call and ledger); [`15-ai-prompt-template-spec.md`](../../product/15-ai-prompt-template-spec.md) (`prd.plan`, `PRD_DRAFT`, `PRD_REVIEW`, `PRD_REPAIR`).
+- UI: [`04-document-workspace.md`](../../ui/04-document-workspace.md) `UI-DOC-006`; [`05-documents-and-guide.md`](../../ui/screens/05-documents-and-guide.md) `F-PRD-LOCKED`, `F-PRD-DRAFT`, ready actions and mobile behavior.
+- Visual references read from [`docs/template/README.md`](../../template/README.md) and inspected: image 12 (completed document hierarchy), image 14 (generation in context), image 10 (structured requirements hierarchy). They inform hierarchy only; product contracts govern behavior. Screenshot attachment is optional under delivery workflow.
+
+## Definition of Ready
+
+- [x] Immediate predecessor DOC-PR-01 is merged: PR #20, base `main`, merge commit `6ded90838a415ee10f9a3ba0b518ebd0932c9618`.
+- [x] Its Requirements generation artifacts and focused tests exist on `origin/main` (`requirements-generation`, API contract, fixtures, and browser spec).
+- [x] Earlier design, readiness, model, prompt, schema, budget, and session contracts are present; fixture-based provider stubbing is available, so no live OpenAI credential is required for focused tests.
+- [x] `G-REQ-READY` and `G-PRD-ALLOWED` specify all authorization conditions. No product decision or external setup blocks planning or implementation.
+- [x] The UI screen contract and mapped reference captures are identified; no new UI design decision is needed.
 
 ## Scope
 
-### 포함
+### Include
 
-- Requirements 검토 목록(누락/충돌/미정/수용기준 부족/stale) 화면과 `Requirements 검토 완료` 확인 행동(`DOC-403`)
-- PRD 탭·API 잠금과 잠금 해제 조건, 잠금 안내 화면(`DOC-404`)
-- PRD 생성: 코드 plan → `PRD_DRAFT`(FINAL) → `PRD_REVIEW`(DEFAULT) → 선택적 `PRD_REPAIR`(FINAL, 1회)
+1. Requirements review summary and deterministic ready eligibility from the persisted document and sections: required sections present; every P0 requirement has an observable acceptance criterion; no unresolved review issue, stale/conflict section, or revision drift. Explicit deferred decisions remain open issues and do not independently block ready.
+2. `Requirements 검토 완료` action enabled only when eligible. Confirmation shows P0 requirement count, acceptance-criteria count, open-issue count, and source design revision. On explicit confirmation, revalidate the latest aggregate and atomically persist `ready`, `readyAt`, and `readyDesignRevision`.
+3. PRD tab lock state and actionable `Requirements 검토로 이동` screen. Direct URL navigation and the API are both guarded; client visibility is not authorization.
+4. Shared `G-PRD-ALLOWED` validation before any provider call: Requirements status `ready`, its revision equals current design revision, no Requirements section stale/conflict, and no duplicate running generation for the same logical request.
+5. Deterministic PRD plan with required product-oriented sections and requirement/source links. Invalid coverage or references stop before `PRD_DRAFT`.
+6. PRD pipeline on the same immutable Requirements/design snapshot: `PRD_DRAFT` FINAL (`gpt-5.6-terra`, low, 40,000 input / 10,000 output max) → `PRD_REVIEW` DEFAULT (`gpt-5-mini`, low) → optional `PRD_REPAIR` FINAL once, for identified problem sections only → DEFAULT review again. Use registered tasks/schemas, budget guard, and ledger; no inline prompts or model fallback.
+7. Validate requirement/source IDs, schema, and semantic alignment. Problem/goal/user/scope must match Requirements; new features, unsupported facts, fabricated metrics, and edits to healthy sections are rejected. Successful output is saved atomically with ordered sections, source links, job and activity. Leave it as a reviewable document; do not set it `ready` automatically.
+8. Preserve prior documents and design on guard, plan, budget, provider, schema, or persistence failure. Surface actionable blocked reasons and keep safe retry semantics/idempotency from the existing generation contract.
 
-### 제외
+### Exclude
 
-- Requirements 최초 생성(`DOC-PR-01`에서 완료)
-- 섹션 직접 편집과 영향 미리보기(`DOC-PR-04`)
-- 문서 간 정합성 검토(`DOC-PR-03`)
+- Requirements first generation, deterministic Requirements plan, and its Mini draft/review (`DOC-PR-01`, merged).
+- Direct section editing/impact preview (`DOC-405`, `DOC-PR-04`), partial patch and cross-document consistency review (`DOC-406/407`, `DOC-PR-03`).
+- New auth model, AI provider abstraction, model changes, broad document workspace redesign, export, setup guide, unrelated full regression, and live-provider golden evaluation.
 
-## 연결 근거
-
-- 요구사항: `DOC-003`
-- Delivery 작업: `DOC-403`, `DOC-404`
-- AI 작업: `AI-007`(plan/draft/review/repair 상한)
-- 결정: `DEC-015`, `DEC-021`, `DEC-028`, `DEC-031`
-- 화면 설계: [문서 작업 공간](../../ui/04-document-workspace.md) `UI-DOC-006`, [문서 청사진 F-PRD-LOCKED, F-PRD-DRAFT](../../ui/screens/05-documents-and-guide.md)
-- 선행 PR: `DOC-PR-01`(순서 17, `review_required` Requirements)
-
-## 선행 조건 (Definition of Ready)
-
-- `DOC-PR-01`이 사용자에 의해 머지됨
-- Requirements 문서가 `review_required` 상태인 fixture 프로젝트(정상/충돌 있음/수용기준 부족 각각) 준비됨
-
-## 작업 단위별 구현 개요
-
-**DOC-403 요구사항 검토와 `ready`**
-- 검토 목록: 누락, 충돌, 미정, 수용 기준 부족, stale 섹션
-- 모든 조건 충족 시에만 `Requirements 검토 완료` 행동 활성화, 명시적 미정은 차단하지 않고 오픈 이슈로 유지
-- 사용자 확인 시 P0 요구사항/수용기준/오픈이슈/기준 revision을 함께 검증 후 `ready`로 저장, 확정 시각과 revision 기록
-
-**DOC-404 PRD 잠금과 생성**
-- `requirements.status !== "ready"`면 PRD 탭·`documents/generate(prd)` API 모두 거부(URL 직접 접근 포함, 서버가 최종 검증)
-- 잠금 화면에 부족 항목 개수와 `Requirements 검토로 이동` 단일 행동 표시
-- PRD 생성은 `ready` Requirements와 동일 `designRevision`에서 시작: 코드 plan → `PRD_DRAFT`(FINAL, low, maxInput 40000/maxOutput 10000) → `PRD_REVIEW`(DEFAULT, low) → 필요 시 `PRD_REPAIR`(FINAL, 1회)
-- PRD의 목표·사용자·범위가 Requirements와 다르면 `ready`로 표시하지 않음
-
-## 프로세스 / 상태 전이
+## State and failure behavior
 
 ```mermaid
 flowchart TD
-    A[Requirements: review_required] --> B[검토 목록 표시]
-    B --> C{모든 ready 조건 충족}
-    C -- 아니오 --> B
-    C -- 예 --> D[Requirements 검토 완료 버튼 활성화]
-    D --> E[사용자 확인]
-    E --> F[Requirements: ready, revision·시각 기록]
-    F --> G[PRD 탭 잠금 해제]
-    G --> H[코드 plan]
-    H --> I[PRD_DRAFT · FINAL]
-    I --> J[PRD_REVIEW · DEFAULT]
-    J --> K{품질 gate}
-    K -- repairable --> L[PRD_REPAIR · FINAL · 1회]
-    L --> J
-    K -- 통과 --> M[사용자 최종 PRD 검토]
-
-    N[Requirements: not ready] -.URL 직접 접근.-> O[서버 거절, 잠금 안내 화면]
+  A[Requirements review_required] --> B{G-REQ-READY}
+  B -- fail --> C[Show actionable blockers; ready action disabled]
+  C --> A
+  B -- pass --> D[Show counts and revision]
+  D --> E{User confirms}
+  E -- no --> A
+  E -- yes --> F[Re-read and atomically save Requirements ready]
+  F --> G[Unlock PRD tab]
+  H[PRD tab, direct route, or API request] --> I{G-PRD-ALLOWED}
+  I -- fail --> J[Lock view; zero provider calls]
+  I -- pass --> K[Capture same-revision snapshot]
+  K --> L[Deterministic PRD plan and coverage check]
+  L -- invalid --> M[Fail before draft; preserve prior document]
+  L -- valid --> N[Terra draft]
+  N --> O[Mini review]
+  O --> P{verdict}
+  P -- repairable and unused --> Q[Terra repair of issue sections once]
+  Q --> O
+  P -- user review or exhausted --> R[Save review_required issues atomically]
+  P -- pass --> S[Save reviewable PRD draft atomically]
+  N -. provider/schema/budget/storage failure .-> T[Preserve prior state; safe retry]
 ```
 
-## 데이터/API 영향
+An in-flight revision change cannot silently produce a current document: compare the captured revision at the persistence boundary and mark affected sections stale / document `review_required` per the existing aggregate contract. Do not broaden `GeneratedDocument.status`; stale/conflict belongs to section `syncStatus`.
 
-- `POST /api/blueprint/documents/generate`(`documentType: "prd"`)에 선행 조건 서버 검증 추가(`requirements.status === "ready"` && 동일 `designRevision`)
-- Requirements 문서에 `readyAt`, `readyDesignRevision` 필드 추가
-- PRD 목표/사용자/범위 필드에 Requirements 대응 필드와의 자동 비교 검증 추가
+## Acceptance criteria
 
-## Acceptance Criteria
+### Happy path
 
-### Happy Path
-Given Requirements의 모든 ready 조건이 충족됐을 때, when 사용자가 `Requirements 검토 완료`를 확인하면, then Requirements가 `ready`로 저장되고 PRD 탭 잠금이 해제되어 같은 revision으로 PRD 생성이 시작된다.
+- When every `G-REQ-READY` condition is true, the confirmation action is available and reports the specified counts and revision. Only explicit user confirmation updates Requirements to `ready` and unlocks PRD.
+- With ready Requirements at the current revision, valid deterministic plan/link coverage produces one FINAL PRD draft and one DEFAULT review; when review passes, the resulting PRD is traceable to requirement IDs and source IDs and remains reviewable, not automatically ready.
+- Repairable review findings cause at most one FINAL repair of only affected sections followed by DEFAULT review.
 
-### Failure Case
-Given Requirements가 `ready`가 아닐 때, when 사용자가 PRD URL에 직접 접근하거나 PRD 생성 API를 직접 호출하면, then 서버가 요청을 거절하고 화면은 부족 항목을 안내하는 잠금 화면을 표시한다.
+### Failure paths
 
-### Boundary
-Given 시스템이 계산한 ready 조건이 모두 충족됐을 때, when 사용자가 아직 `Requirements 검토 완료`를 확인하지 않았다면, then 자동으로 `ready`로 전환되지 않는다.
+- Missing section, missing P0 acceptance criterion, unresolved review issue, stale/conflict section, or design revision drift disables/denies ready and explains the cause. Explicit deferred items stay visible as open issues without blocking on their own.
+- Before Requirements is ready, after a detected revision drift, while a relevant section is stale/conflicted, or on duplicate active request, PRD UI/API denies generation and provider-call count remains zero. The API requires server HMAC proofs bound to the authenticated actor and exact Requirements document/revision/content, so client-fabricated ready documents cannot bypass explicit confirmation.
+- Project/design aggregates are canonical in browser IndexedDB. The client rereads the latest local revision before ready confirmation and PRD generation, and the atomic local save checks for drift afterward. The server cannot independently verify the latest private IndexedDB revision or close a race during remote generation; this limitation must remain explicit until project data has a server-readable canonical store. Invalid plan, schema, reference, semantic alignment, budget, or storage results never partially replace a prior document.
+- If the one repair does not resolve issues or requires a user decision, persist/display review issues; do not perform another repair, upgrade models, or claim PRD quality pass.
 
-## 예상 변경 파일
+### Boundary and UI
 
-- `src/domain/blueprint/document.ts`(readyAt, readyDesignRevision 필드)
-- `src/features/documents/requirementsReadyGate.ts`
-- `src/features/documents/prdGeneration.ts`
-- `api/blueprint/documents/generate.js`(prd 분기 및 선행 조건 검증)
-- `src/components/blueprint/review-panel.tsx`(PRD 잠금 안내)
-- `tests/contract/documents-generate-prd.test.ts`, `tests/domain/requirementsReadyGate.test.ts`
+- System eligibility alone never writes `ready`; canceling confirmation leaves stored status unchanged.
+- If revision/status changes between opening confirmation and submit, revalidation rejects the stale action without marking ready.
+- Desktop and mobile affected views expose the lock reason and one clear return action; the confirmation is keyboard operable, has visible focus, and restores focus on dismissal. PRD contents remain readable at the affected viewport without a forced wide table.
 
-## 테스트 계획
+## Expected implementation files
 
-1. 조건 미충족 시 `Requirements 검토 완료` 비활성화(component)
-2. 조건 충족해도 확인 전 자동 ready 전환 없음(unit)
-3. `ready` 아닌 상태에서 PRD 탭/URL/API 모두 차단(contract+E2E)
-4. 같은 revision에서 PRD 생성 성공(contract)
-5. 목표·사용자·범위 불일치 시 ready 미표시(unit)
-6. Terra 호출이 PRD draft/repair에만 사용됨(contract)
+Use existing modules from DOC-PR-01 and the current architecture where equivalent behavior exists. Likely changes are the document readiness/PRD generation domain module, authenticated documents generation route, project document navigation/review UI and its local styles, plus focused unit/contract/browser tests. Do not duplicate the prior plan/schema/generation abstractions or change production files during this planning stage.
 
-## UI 증거 계획
+## Focused validation matrix
 
-- desktop 1440×900: 검토 목록(조건 미충족), 검토 완료 확인, PRD 잠금 안내, PRD 생성 완료 4개 상태
-- mobile 390×844: 동일 4개 상태
-- Playwright + Agent Browser로 PRD URL 직접 접근 시 잠금 화면 검증
+| Concern | Required focused evidence | Candidate command |
+| --- | --- | --- |
+| Ready eligibility and explicit confirmation | Each ready blocker; deferred-only allowed; no implicit ready; stale confirmation rejected | `node --test tests/unit/doc-pr-02-requirements-ready.test.js` |
+| API guard and PRD pipeline | Not-ready/revision/stale/conflict/duplicate each causes zero provider calls; exact plan → FINAL draft → DEFAULT review → optional single FINAL repair → DEFAULT review sequence; valid links and semantic alignment; hard budget and atomic rollback | `node --test tests/contract/doc-pr-02-prd-generation.test.js tests/contract/doc-pr-02-prd-api.test.js` |
+| Changed user flow | Confirmation, locked direct URL/API path, unlocked generation, review issue state; focused keyboard/focus and mobile behavior only if changed UI requires it | `npx playwright test tests/e2e/doc-pr-02-prd-readiness.spec.ts --workers=1` |
+| Documentation integrity | Changed flowchart parses; whitespace clean | `npm run docs:check:mermaid` (if Mermaid changes); `git diff --check` |
+| Build | Only if production code/build inputs change | `npm run build` |
 
-## 코드 리뷰·QA 체크리스트
+Use synthetic fixtures and stubbed provider. No full suite, unrelated browser flow, mandatory screenshot set, or Agent Browser duplication. Exact test filenames may be adjusted to existing implementation conventions, but coverage above remains required.
 
-- [ ] ready 전환이 사용자 명시적 확인 없이 발생하지 않는지 확인
-- [ ] PRD 생성 API가 서버 측에서 ready 선행 조건을 재검증하는지 확인(클라이언트 우회 방지)
-- [ ] Terra가 Requirements 경로에 사용되지 않는지 확인
-- [ ] repair가 PRD당 1회로 제한되는지 확인
+## Risks and limits
 
-## Done Checklist
+- Ready confirmation and generation must share the canonical client aggregate contract while the API independently guards requests. The implementation should not claim server-authoritative design revision lookup if project aggregates remain browser-local.
+- Requirements ready and PRD generation require atomic re-read/revalidation to avoid stale-confirmation and duplicate-request races.
+- Terra is used only for PRD draft and one repair. Budget denial must happen before each corresponding provider request.
+- Existing product design text says PRD should not be shown as ready when goals/users/scope diverge; deterministic validation must reject or leave it in review, never treat model verdict alone as authorization.
 
-- [ ] Requirements implemented
-- [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
-- [ ] 화면 변경 시 desktop/mobile 캡처 완료
-- [ ] 사용자 PR 머지 확인
+## Traceability checklist
 
-## 실행 시 추가 문서
+| Requirement/task | Planned observable proof |
+| --- | --- |
+| `DOC-003` / `DOC-403` | Ready prerequisites, explicit confirmation, counts/revision, persisted timestamp/revision, blockers and revalidation |
+| `DOC-003` / `DOC-404` | UI + server guard, same revision, deterministic PRD plan, required structure, no unauthorized generation |
+| `AI-007` | Coverage stops draft; structured linked sections; review is non-mutating; problem-section-only repair at most once; no ready automation |
 
-- 이 폴더에 구현 중/후 `test-results.md`, `review-notes.md`, `qa-report.md` 등을 추가로 생성한다(지금은 생성하지 않음).
+`docs/delivery/traceability.md` already maps `DOC-003` to `DOC-403`/`DOC-404` and `AI-007` to its pipeline tasks, so no traceability table change is required during planning.
+
+## Done checklist
+
+- [ ] Focused ready and PRD pipeline/API tests pass.
+- [ ] Changed browser interaction and directly affected accessibility/responsive path pass where UI changed.
+- [ ] Build passes if production code/build inputs changed; Mermaid check passes if the diagram changes; `git diff --check` passes.
+- [ ] Independent review and QA pass on the same final HEAD; configured checks pass.
+- [ ] PR lifecycle gate passes and GitHub confirms merge before DOC-PR-03 begins.

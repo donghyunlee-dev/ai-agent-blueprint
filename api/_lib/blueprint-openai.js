@@ -1,4 +1,4 @@
-import { validateModelConfiguration } from "../../src/infrastructure/ai/model-registry.js";
+import { aiModelRegistry, validateModelConfiguration } from "../../src/infrastructure/ai/model-registry.js";
 
 const fields = [
   "serviceName", "serviceDesc", "features", "env", "users", "os", "db", "dbExist", "dbType",
@@ -54,8 +54,15 @@ function extractOutputText(payload) {
   return values.join("\n");
 }
 
-export async function requestStructuredOutput({ name, schema, messages, signal, reasoningEffort }) {
-  const { apiKey, model } = getOpenAiConfig();
+export async function requestStructuredOutput({ name, schema, messages, signal, reasoningEffort, model }) {
+  const { apiKey, model: defaultModel } = getOpenAiConfig();
+  const allowedModels = new Set(Object.values(aiModelRegistry.profiles).map((profile) => profile.model));
+  if (model && !allowedModels.has(model)) {
+    const error = new Error("AI_MODEL_NOT_REGISTERED");
+    error.statusCode = 503;
+    throw error;
+  }
+  const resolvedModel = model ?? defaultModel;
   if (!apiKey) {
     const error = new Error("OPENAI_NOT_CONFIGURED");
     error.statusCode = 503;
@@ -70,7 +77,7 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, input: messages, ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}), text: { format: { type: "json_schema", name, strict: true, schema } } }),
+      body: JSON.stringify({ model: resolvedModel, input: messages, ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}), text: { format: { type: "json_schema", name, strict: true, schema } } }),
       signal: controller.signal,
     });
     if (!response.ok) {
