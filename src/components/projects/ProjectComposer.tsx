@@ -194,6 +194,7 @@ export function ProjectComposer({
           </p>
           <span id="project-idea-count" aria-live="polite">{idea.length}/1000</span>
         </div>
+        <p className="project-file-guidance">TXT, Markdown, 텍스트 PDF · 파일당 최대 10 MiB · 프로젝트당 최대 5개</p>
         <div className="project-composer-footer">
           <input
             ref={fileInput}
@@ -211,7 +212,6 @@ export function ProjectComposer({
             {isPending ? <><span className="project-spinner" aria-hidden="true" />프로젝트 만드는 중</> : <>Blueprint 시작 <span aria-hidden="true">→</span></>}
           </button>
         </div>
-        <p className="project-file-guidance">TXT, Markdown, 텍스트 PDF · 파일당 최대 10 MiB · 프로젝트당 최대 5개</p>
       </form>
       {selectedFiles.length > 0 ? (
         <div className="project-selected-files-block">

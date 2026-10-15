@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addSourceFiles, removeSource, retrySourceFile } from '../../src/features/sources/source-upload-command.js';
+import { selectedFileForSourceResult } from '../../src/features/sources/source-file-correlation.js';
 
 function repositoryWith(sources = []) {
   let aggregate = { project: { id: 'project-one', ownerKey: 'owner-one', updatedAt: 'before' }, sources, messages: [{ id: 'keep-me' }] };
@@ -74,6 +75,23 @@ test('reports a failed status save without claiming extraction success or changi
   assert.equal(results[0].extractionStatus, 'failed');
   assert.equal(repository.aggregate.sources.find((source) => source.id === 'old').extractedText, 'saved before failure');
   assert.equal(repository.aggregate.sources.some((source) => source.extractedText === 'must not claim saved'), false);
+});
+
+test('correlates identical-name and identical-size upload results to their original file index', async () => {
+  const repository = repositoryWith();
+  const originalTransact = repository.transact.bind(repository);
+  let calls = 0;
+  repository.transact = async (...args) => { calls += 1; if (calls === 5) throw new Error('quota'); return originalTransact(...args); };
+  const first = { ...file('same.md'), content: 'first text' };
+  const later = { ...file('same.md'), content: 'later text' };
+  assert.equal(first.size, later.size);
+  const results = await addSourceFiles({ ownerKey: 'owner-one', projectId: 'project-one', files: [first, later], repository, extract: async (selected) => ({ extractionStatus: 'ready', extractedText: selected.content, preview: selected.content, textHash: 'hash' }) });
+  assert.equal(results[0].fileIndex, 0);
+  assert.equal(results[1].fileIndex, 1);
+  assert.equal(results[1].errorCode, 'STORAGE_FAILED');
+  assert.notEqual(results[0].id, results[1].id);
+  assert.equal(selectedFileForSourceResult(results[1], [first, later]), later);
+  assert.equal(selectedFileForSourceResult(results[1], [first, later]).content, 'later text');
 });
 
 test('retries a source whose terminal state could not be persisted', async () => {

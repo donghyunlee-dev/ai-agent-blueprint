@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { extractSourceFile } from '../../src/features/sources/source-extraction.js';
+import { extractSourceFile, flattenPdfTextItems } from '../../src/features/sources/source-extraction.js';
 
 const file = (bytes) => ({ arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) });
 
@@ -20,4 +20,18 @@ test('rejects invalid UTF-8 without exposing decoder details', async () => {
 test('returns a stable failure code when reading the file fails', async () => {
   const source = await extractSourceFile({ arrayBuffer: async () => { throw new Error('secret file bytes'); } }, 'txt');
   assert.deepEqual(source, { extractionStatus: 'failed', errorCode: 'EXTRACTION_FAILED' });
+});
+
+test('orders PDF text top-to-bottom and flattens table cells left-to-right', () => {
+  const text = flattenPdfTextItems([
+    [
+      { str: 'Goals', transform: [1, 0, 0, 1, 72, 740] },
+      { str: 'South', transform: [1, 0, 0, 1, 72, 680] },
+      { str: 'North', transform: [1, 0, 0, 1, 72, 700] },
+      { str: '12', transform: [1, 0, 0, 1, 160, 680] },
+      { str: '7', transform: [1, 0, 0, 1, 160, 700] },
+    ],
+    [{ str: 'Next page', transform: [1, 0, 0, 1, 72, 740] }],
+  ]);
+  assert.equal(text, 'Goals\n\nNorth 7\n\nSouth 12\n\nNext page');
 });

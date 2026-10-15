@@ -6,6 +6,8 @@ export interface SourceUploadResult extends Partial<SourceDocument> {
   status?: string;
   errorCode?: string;
   message?: string;
+  /** Index in the original selection; transient correlation only, never persisted on SourceDocument. */
+  fileIndex?: number;
 }
 export function addSourceFiles(options: {
   ownerKey: string;

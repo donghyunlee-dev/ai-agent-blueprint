@@ -104,8 +104,14 @@ test('keeps a successful sibling when another file extraction fails and releases
 test('project start saves the idea and selected source through the same extraction path', async ({ page }) => {
   await page.route('**/api/auth/session', (route: any) => route.fulfill({ status: 200, json: { authenticated: true, user: identity } }));
   await page.goto('/');
+  const guidance = page.locator('.project-file-guidance');
+  const picker = page.getByLabel('참고 파일 선택');
+  await expect(guidance).toHaveText('TXT, Markdown, 텍스트 PDF · 파일당 최대 10 MiB · 프로젝트당 최대 5개');
+  await expect(picker).toHaveAttribute('accept', '.txt,.md,.markdown,.pdf,text/plain,text/markdown,application/pdf');
+  await expect(page.getByRole('button', { name: '파일 첨부' })).toBeVisible();
+  expect(await guidance.evaluate((element, input) => Boolean(element.compareDocumentPosition(input as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await picker.elementHandle())).toBeTruthy();
   await page.getByLabel('만들고 싶은 제품이나 해결할 문제').fill('업로드한 참고 자료에서 시작하는 프로젝트');
-  await page.getByLabel('참고 파일 선택').setInputFiles({ name: 'start.md', mimeType: 'text/markdown', buffer: Buffer.from('# Start\nCreated with a source.') });
+  await picker.setInputFiles({ name: 'start.md', mimeType: 'text/markdown', buffer: Buffer.from('# Start\nCreated with a source.') });
   await page.getByRole('button', { name: /Blueprint 시작/ }).click();
   await expect(page).toHaveURL(/\/blueprints\//);
   await expect(page.getByRole('heading', { name: '참고 자료', exact: true })).toBeVisible();

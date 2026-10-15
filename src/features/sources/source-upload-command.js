@@ -34,13 +34,13 @@ async function extractAndPersist({ ownerKey, projectId, row, file, validation, r
 
 export async function addSourceFiles({ ownerKey, projectId, files, repository, onAggregate, extract = extractSourceFile }) {
   if (!ownerKey || !projectId || !repository) throw new Error('SOURCE_CONTEXT_REQUIRED');
-  const outcomes = files.map((file) => ({ file, validation: validateSourceFile(file) }));
+  const outcomes = files.map((file, fileIndex) => ({ file, fileIndex, validation: validateSourceFile(file) }));
   const accepted = outcomes.filter((item) => item.validation.valid);
-  const rejected = outcomes.filter((item) => !item.validation.valid).map(({ file, validation }) => ({ fileName: file.name, status: 'rejected', errorCode: validation.errorCode, message: SOURCE_ERROR_MESSAGES[validation.errorCode] }));
+  const rejected = outcomes.filter((item) => !item.validation.valid).map(({ file, fileIndex, validation }) => ({ fileName: file.name, fileIndex, status: 'rejected', errorCode: validation.errorCode, message: SOURCE_ERROR_MESSAGES[validation.errorCode] }));
   const reservation = await repository.transact(ownerKey, projectId, (latest) => {
     const slots = Math.max(0, MAX_ACTIVE_SOURCES - countActiveSources(latest.sources));
     const reservedFiles = accepted.slice(0, slots);
-    const overflow = accepted.slice(slots).map(({ file }) => ({ fileName: file.name, status: 'rejected', errorCode: 'SOURCE_LIMIT', message: SOURCE_ERROR_MESSAGES.SOURCE_LIMIT }));
+    const overflow = accepted.slice(slots).map(({ file, fileIndex }) => ({ fileName: file.name, fileIndex, status: 'rejected', errorCode: 'SOURCE_LIMIT', message: SOURCE_ERROR_MESSAGES.SOURCE_LIMIT }));
     const now = new Date().toISOString();
     const rows = reservedFiles.map(({ file, validation }) => ({
       id: createId(), projectId, fileName: file.name, mediaType: validation.mediaType, size: file.size,
@@ -52,9 +52,12 @@ export async function addSourceFiles({ ownerKey, projectId, files, repository, o
   onAggregate?.(reservation.aggregate);
   const results = [];
 
-  for (let index = 0; index < reservation.rows.length; index += 1) results.push(await extractAndPersist({
-    ownerKey, projectId, row: reservation.rows[index], ...reservation.reservedFiles[index], repository, onAggregate, extract,
-  }));
+  for (let index = 0; index < reservation.rows.length; index += 1) {
+    const result = await extractAndPersist({
+      ownerKey, projectId, row: reservation.rows[index], ...reservation.reservedFiles[index], repository, onAggregate, extract,
+    });
+    results.push({ ...result, fileIndex: reservation.reservedFiles[index].fileIndex });
+  }
   return [...rejected, ...reservation.overflow, ...results];
 }
 

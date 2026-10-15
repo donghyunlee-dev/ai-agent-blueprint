@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type { BlueprintAggregate, SourceDocument } from '../../domain/blueprint/types.js';
 import { addSourceFiles, removeSource, retrySourceFile } from '../../features/sources/source-upload-command.js';
+import { selectedFileForSourceResult } from '../../features/sources/source-file-correlation.js';
 import { countActiveSources, MAX_ACTIVE_SOURCES, SOURCE_ERROR_MESSAGES, validateSourceFile } from '../../features/sources/source-validation.js';
 import type { ProjectRepository } from '../../infrastructure/storage/indexeddb-project-repository.js';
 import '../../styles/source-documents.css';
@@ -44,11 +45,11 @@ export function SourceDocuments({ aggregate, repository, onAggregate, beforeMuta
       });
       const storageFailures = results.filter((result) => result.id && result.errorCode === 'STORAGE_FAILED');
       for (const result of storageFailures) {
-        const file = files.find((item) => item.name === result.fileName && item.size === result.size);
+        const file = selectedFileForSourceResult(result, files);
         if (file && result.id) retryFiles.current.set(result.id, file);
       }
       if (storageFailures.length) setLocalOutcomes((current) => ({ ...current, ...Object.fromEntries(storageFailures.filter((result) => result.id).map((result) => [result.id!, result])) }));
-      setLocalRejected(results.filter((result) => result.status === 'rejected').map((result) => ({ id: globalThis.crypto.randomUUID(), fileName: result.fileName, size: files.find((file) => file.name === result.fileName)?.size ?? 0, errorCode: result.errorCode ?? 'SOURCE_LIMIT' })));
+      setLocalRejected(results.filter((result) => result.status === 'rejected').map((result) => ({ id: globalThis.crypto.randomUUID(), fileName: result.fileName, size: result.fileIndex === undefined ? 0 : files[result.fileIndex]?.size ?? 0, errorCode: result.errorCode ?? 'SOURCE_LIMIT' })));
       const failures = results.filter((result) => ['failed', 'unsupported'].includes(result.extractionStatus ?? '') || result.status === 'rejected').length;
       setMessage(failures ? `${results.length - failures}개 파일 처리 완료 · ${failures}개 확인 필요` : `${results.length}개 파일을 추출하고 저장했습니다.`);
     } catch {
