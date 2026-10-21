@@ -4,6 +4,7 @@ const supportedExecutables = new Set([
 ]);
 const shellBuiltins = new Set(['cd','export','echo','printf','pwd','mkdir','cp','mv','rm','cat','chmod','chown','source','set','unset','test','which','command','env','touch','ln','ls','grep','sed','awk','head','tail','true','false']);
 const actionVerbs = new Set(['add','apply','build','check','clean','configure','create','delete','deploy','destroy','disable','down','enable','exec','get','install','init','list','login','logout','plan','pull','push','restart','run','set','start','status','stop','test','update','upgrade','up','version']);
+const proseDeterminers = new Set(['a','an','the','this','that','these','those','my','your','our','their','its']);
 
 function splitShellCommands(value) {
   return value.split(/&&|\|\||[;|]/).map((item) => item.trim()).filter(Boolean);
@@ -54,7 +55,11 @@ export function extractSetupGuideCommands(markdown) {
   for (const match of outsideFences.matchAll(/`([^`\n]+)`/g)) add(match[1], {strict:true});
 
   const proseCue = /\b(?:run|execute|use|install|start|build|launch|command(?:\s+(?:is|as|below))?)\s*[:：]?\s+([^\n]+)|(?:실행(?:하세요|합니다|해)?|설치(?:하세요|합니다|해)?|명령(?:어)?(?:은|으로)?\s*[:：]?)\s*([^\n]+)/giu;
-  for (const match of outsideFences.matchAll(proseCue)) add(match[1] ?? match[2], {split:false,strict:true});
+  for (const match of outsideFences.matchAll(proseCue)) {
+    const candidate = match[1] ?? match[2];
+    const firstWord = cleanCommand(candidate).split(/\s+/,1)[0]?.toLowerCase();
+    if (!proseDeterminers.has(firstWord)) add(candidate, {split:false,strict:true});
+  }
 
   for (const line of outsideFences.split(/\r?\n/)) {
     const command = cleanCommand(line.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/,''));

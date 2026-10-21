@@ -491,4 +491,57 @@
     "commandEvidence": []
   }
 }
+,
+{
+  "id": "setup-guide-use-guide-as-reference-prose",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "Use the setup guide as a reference.",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": []
+  }
+},
+{
+  "id": "setup-guide-run-process-after-review-prose",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "Run the setup process after reviewing the guide.",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": []
+  }
+}
 ]

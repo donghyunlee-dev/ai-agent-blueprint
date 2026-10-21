@@ -28,3 +28,5 @@ The generated setup guide remains read-only in the application, per the accepted
 - Synthetic golden fixtures: 31/31 passed, including unknown plain-name commands in action prose, inline code, and text fences.
 - Setup guide Playwright E2E: 2/2 passed (desktop Chromium and mobile Chromium).
 - Production build and `git diff --check`: passed.
+
+- A fresh review caught action prose false positives; regression cases now confirm “Use the setup guide as a reference” and “Run the setup process after reviewing the guide” remain ordinary prose.
