@@ -2,13 +2,11 @@
 
 ## Overview
 
-확정 기술 결정, 운영·배포·보안 제약, 관련 참고 자료 근거로 Agent가 설정 가이드 전체를 새로 생성한다. 명령어·버전은 확정 설계와 업로드된 자료에서 근거를 찾을 수 있는 내용만 작성하고, 가이드 본문에 "실행 전 최신 버전과 명령어를 직접 확인하라"는 고정 면책 문구를 포함한다(`DEC-041`).
+확정 기술 결정, 운영·배포·보안 제약, 관련 참고 자료 근거로 Agent가 설정 가이드 전체를 새로 생성한다. 명령어·버전은 확정 설계와 업로드된 자료에서 근거를 찾을 수 있는 내용만 작성하고, 가이드 본문에 "실행 전 최신 버전과 명령어를 직접 확인하라"는 고정 면책 문구를 포함한다(`DEC-041`). 사용자가 가이드를 승인해 `ready`로 만들어야 프로젝트를 `completed`로 전환할 수 있다(`DEC-045`).
 
 ## Background
 
-이 PR은 원래 `GDE-504 설정 가이드 명령·버전 검증 방식`이 미결정이라 `docs/delivery/development-pr-review-qa-workflow.md` PR 단위표에서 `blocked`였다. 2026-09-16 리빌드 착수 준비 정리(`PREP-PR-01`)에서 사용자가 "확정 설계/자료 근거만 인용 + 면책 문구" 방식으로 결정했고(`DEC-041`, `docs/product/10-decision-log.md`), `docs/delivery/05-sources-guides-export.md`의 GDE-504 절과 `docs/delivery/traceability.md`의 `DOC-007`이 이미 `ready`/`planned`으로 갱신됐다. 이 계획은 그 결정을 실제 구현 범위로 옮긴다.
-
-**주의(구현 전 확인 필요):** `docs/ui/screens/05-documents-and-guide.md`의 F-GUIDE-DRAFT 화면 설계는 아직 "G07 명령·버전 검증 방식 미확정"이라는 예전 문구를 담고 있다. 이 PR 착수 전에 해당 UI 문서를 `DEC-041` 기준으로 갱신해야 화면 문구가 실제 정책과 어긋나지 않는다(이번 계획 작성 범위 밖 — 별도로 처리 필요).
+`DEC-041`에서 명령·버전의 근거 정책을 확정했고, `DEC-045`에서 프로젝트 완료에 사용자 승인된 ready 설정 가이드가 필요하다고 결정했다. `docs/delivery/05-sources-guides-export.md`와 `docs/delivery/traceability.md`는 이 정책을 반영한다. `SETUP_GUIDE_DRAFT` task, versioned prompt와 JSON Schema 등록은 제품 정책 결정이 아니라 GDE-PR-01 안에서 수행할 구현 범위다. F-GUIDE-DRAFT의 구식 G07 문구는 DEC-PR-01에서 `DEC-041` 기준으로 바로잡는다.
 
 ## Scope
 
@@ -19,6 +17,9 @@
 - 근거 없는 명령·버전을 추측하지 않고 오픈 이슈로 표시
 - 가이드 상단 고정 면책 문구 삽입
 - `draft` 상태 표시, 사용자 승인 전 상태
+- `SETUP_GUIDE_DRAFT`를 `AiTaskType` 및 허용 model profile에 등록
+- versioned prompt template과 strict JSON Schema를 registry에 등록
+- prompt/schema 계약과 근거 검증을 golden eval gate에 포함
 
 ### 제외
 
@@ -30,23 +31,27 @@
 
 - 요구사항: `DOC-007`
 - Delivery 작업: `GDE-504` (`docs/delivery/05-sources-guides-export.md`)
-- 결정: `DEC-016`, `DEC-041`
-- 화면 설계: `docs/ui/screens/05-documents-and-guide.md` F-GUIDE-DRAFT (갱신 필요, 위 Background 참고)
+- 결정: `DEC-016`, `DEC-041`, `DEC-045`
+- 화면 설계: `docs/ui/screens/05-documents-and-guide.md` F-GUIDE-DRAFT
 - 선행 PR: `SRC-PR-02`(근거 연결), `DOC-PR-01`~`DOC-PR-04`(Requirements~PRD 생성과 직접 편집 영향, 확정 기술 결정 원천)
+- 선행 문서 unit: `DEC-PR-01` (read-only extracted text policy, setup-guide completion gate, and UI/delivery contract alignment)
 
 ## 선행 조건 (Definition of Ready)
 
 - `DOC-PR-01`~`DOC-PR-04`가 머지되어 확정 기술 결정과 PRD가 존재함
 - `SRC-PR-02`가 머지되어 source excerpt 근거 연결이 가능함
-- `docs/ui/screens/05-documents-and-guide.md` F-GUIDE-DRAFT의 G07 문구가 `DEC-041` 기준으로 갱신됨
+- `DEC-PR-01`가 병합되어 `DEC-044`/`DEC-045`를 반영한 계약 문서가 정합됨
+- F-GUIDE-DRAFT가 근거 상태와 사용자 승인·ready 완료 gate를 표현함
 
 ## 작업 단위별 구현 개요
 
 1. **입력 조립**: 확정 기술 결정, 운영/배포/보안 제약, 관련 source excerpt를 `DocumentPlanBuilder`류 결정론적 절차로 모은다(API 호출 아님).
-2. **가이드 생성 AI 호출**: 확정 설계 + 근거 excerpt만 컨텍스트로 전달하고, 근거 없는 버전/명령을 만들지 말라는 system/developer 규칙을 강제한다.
-3. **면책 문구 고정 삽입**: AI 출력과 무관하게 애플리케이션이 문서 최상단에 "실행 전 최신 버전과 명령어를 직접 확인하라" 문구를 항상 붙인다.
-4. **오픈 이슈 표시**: 근거가 부족한 항목은 확정 사실로 서술하지 않고 오픈 이슈 섹션에 표시한다.
-5. **draft 상태와 승인 흐름**: 생성 직후 `draft`로 표시하고, 사용자 승인 전에도 다운로드는 허용하되 문서 첫 부분에 초안 상태를 포함한다(`docs/ui/screens/05-documents-and-guide.md` F-GUIDE-DRAFT 참고).
+2. **Task/prompt/schema 등록**: `SETUP_GUIDE_DRAFT`를 `AiTaskType`에 추가하고 model profile, prompt version, schema ID/version 및 template 변수를 registry contract에 등록한다.
+3. **Golden eval 확장**: source-backed command/version, missing evidence, injection, schema/reference failure cases를 fixture/eval에 포함하고 mandatory gate를 통과시킨다.
+4. **가이드 생성 AI 호출**: 확정 설계 + 근거 excerpt만 컨텍스트로 전달하고, 근거 없는 버전/명령을 만들지 말라는 system/developer 규칙을 강제한다.
+5. **면책 문구 고정 삽입**: AI 출력과 무관하게 애플리케이션이 문서 최상단에 "실행 전 최신 버전과 명령어를 직접 확인하라" 문구를 항상 붙인다.
+6. **오픈 이슈 표시**: 근거가 부족한 항목은 확정 사실로 서술하지 않고 오픈 이슈 섹션에 표시한다.
+7. **draft 상태와 승인 흐름**: 생성 직후 `draft`로 표시하고, 사용자 승인 전에도 다운로드는 허용하되 문서 첫 부분에 초안 상태를 포함한다(`docs/ui/screens/05-documents-and-guide.md` F-GUIDE-DRAFT 참고).
 
 ## 프로세스 / 상태 전이
 
@@ -69,7 +74,7 @@ flowchart TD
 
 - `GeneratedDocument`에 `setup_guide` 문서 유형 추가(`DOC-401` 공통 프레임 확장)
 - `POST /api/blueprint/documents/generate` 요청에 `documentType: "setup_guide"` 케이스 추가
-- 서버 registry: `SETUP_GUIDE_DRAFT` task 신설 여부는 구현 시 `docs/product/12-ai-orchestration-and-model-policy.md`의 `AiTaskType`에 등록돼야 함(현재 목록에 없음 — 구현 전 확인 필요)
+- Server registry: `SETUP_GUIDE_DRAFT` is a new logical task, with explicit model profile mapping, prompt/schema versions, task limits and golden eval membership. No physical model ID is embedded in endpoint code.
 
 ## Acceptance Criteria
 
@@ -85,16 +90,25 @@ Given 근거가 될 확정 기술 결정이 부족한 프로젝트에서, when �
 
 Given 이미 생성된 draft 가이드가 있을 때, when 사용자가 관련 기술 결정을 변경한 뒤 재생성을 요청하면, then 이전 draft를 덮어쓰지 않고 변경된 근거만 반영한 새 draft가 만들어지며 면책 문구는 항상 유지된다.
 
+Given 가이드가 `draft`, `review_required` 또는 `stale` 상태일 때, when 사용자가 프로젝트 완료를 요청하면, then 완료 전환을 막고 가이드 검토 또는 최신 revision 기준 재생성을 안내한다. 사용자 승인으로 현재 설계 revision의 가이드가 `ready`가 된 뒤에만 프로젝트 완료를 허용한다(`DEC-045`).
+
+Given `SETUP_GUIDE_DRAFT` 호출이 구현되면, when prompt/schema registry와 golden eval 검증을 실행하면, then versioned task definition과 strict schema가 registry lookup/validation을 통과하고 근거 ID 오류·비근거 명령/버전·미승인 확정 표시는 0건이다.
+
 ## 예상 변경 파일
 
 - `api/blueprint/documents/generate.js` (setup_guide 케이스 추가)
 - `src/features/documents/setup-guide-plan-builder.ts` (신규)
 - `src/features/documents/setup-guide-view.tsx` (신규)
-- `docs/product/12-ai-orchestration-and-model-policy.md`, `docs/product/13-prompt-and-response-contracts.md` (SETUP_GUIDE task 등록 — 구현 착수 시 별도 소규모 문서 PR로 먼저 반영 권장)
+- `src/infrastructure/ai/model-registry.js`, `prompt-registry.js`, `schema-registry.js`, `schemas/index.js` (task/model/prompt/schema registration)
+- versioned setup guide prompt template and schema; relevant `tests/eval/golden` fixture(s)
+- `tests/unit/ai/prompt-registry.test.js`, `tests/unit/ai/schema-registry.test.js`, and task-specific contract tests
+- `docs/product/12-ai-orchestration-and-model-policy.md`, `docs/product/13-prompt-and-response-contracts.md`, `docs/product/14-ai-budget-evaluation-and-operations.md`, `docs/product/15-ai-prompt-template-spec.md` (registry, limits, eval and template contracts)
 
 ## 테스트 계획
 
 - 계약: setup_guide 생성 요청/응답 schema, 근거 부족 시 오픈 이슈 처리
+- registry contract: task and model-profile lookup, prompt/schema version matching, strict response schema and source reference validation, covered by focused unit/contract tests
+- eval: golden fixture registration and `npm run test:golden`; all setup-guide fixtures satisfy the expected evidence, command/version and no-auto-approval rules
 - 컨텐츠 검증: 면책 문구가 모든 생성 결과에 항상 포함되는지(AI 출력과 무관하게 애플리케이션이 강제)
 - E2E: 확정 설계 → 가이드 생성 → draft 검토 → 재생성 시 이전 근거 유지
 
@@ -109,6 +123,7 @@ Given 이미 생성된 draft 가이드가 있을 때, when 사용자가 관련 �
 - [ ] 근거 없는 버전/명령을 모델이 반환해도 그대로 노출되지 않는지(schema/도메인 검증)
 - [ ] `docs/guide/*` 정적 링크 모음으로 대체하지 않았는지
 - [ ] `AiTaskType` registry에 새 task가 등록되고 golden eval 대상에 포함됐는지
+- [ ] task limits, prompt/schema version pinning, and model profile mapping are explicit and covered by tests
 
 ## Done Checklist
 

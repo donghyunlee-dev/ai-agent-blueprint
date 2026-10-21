@@ -1,6 +1,6 @@
 # 대화·선택 프로세스 명세
 
-이 문서의 제품 규칙을 실제 상태 전이, guard와 테스트 경로로 적용하는 기준은 [Blueprint 프로세스 설계](../process/README.md)를 따른다.
+이 문서의 제품 규칙을 실제 상태 전이, guard와 테스트 경로로 적용하는 기준은 [Blueprint 프로세스 설계](../process/README.md)를 따른다. 앱의 추출 결과는 읽기 전용이며 사용자는 결과를 다운로드해 외부에서 수정할 수 있다(`DEC-044`). 프로젝트 `completed` 전이는 사용자가 승인한 `ready` 설정 가이드를 요구한다(`DEC-045`).
 
 ## 목적
 
@@ -37,7 +37,7 @@
 
 ## 대화·화면 단계 (비영속 phase)
 
-아래 표는 사용자에게 제공할 행동을 설명하는 conversation/UI phase이며 `BlueprintProject.processState`의 저장 enum이나 별도 도메인 상태 머신이 아니다. 영속 project transition과 guard의 정본은 [프로세스 상태 머신](../process/02-state-machine.md)이다. `document_editing`은 현재 문서에 대응하는 `requirements_draft` 또는 `prd_draft`에서 표현하고, `completed`는 프로젝트 상태로 저장하지 않는다(PRD draft 생성 후에도 사용자는 검토·내보내기·대화를 계속할 수 있다). `error`는 [프로세스 상태 머신](../process/02-state-machine.md)의 재개 정보를 가진 작업 오류 overlay다.
+아래 표는 사용자에게 제공할 행동을 설명하는 conversation/UI phase이며 `BlueprintProject.processState`의 저장 enum이나 별도 도메인 상태 머신이 아니다. 영속 project transition과 guard의 정본은 [프로세스 상태 머신](../process/02-state-machine.md)이다. `document_editing`은 현재 문서에 대응하는 `requirements_draft` 또는 `prd_draft`에서 표현한다. 이 표의 `completed`는 UI phase 이름이다. 별도로 `BlueprintProject.status: completed`는 사용자가 설정 가이드를 승인해 현재 revision의 `ready` 가이드가 있을 때만 저장할 수 있다(`DEC-045`). PRD draft 생성 후에도 사용자는 검토·내보내기·대화를 계속할 수 있다. `error`는 [프로세스 상태 머신](../process/02-state-machine.md)의 재개 정보를 가진 작업 오류 overlay다.
 
 | 상태 | 진입 조건 | 사용자에게 제공할 행동 | 종료 조건 |
 | --- | --- | --- | --- |
@@ -48,7 +48,7 @@
 | `conflict_review` | 확정 항목과 충돌 | 기존 유지, 새 값 선택, 수정 | 충돌 해결 |
 | `document_ready` | 준비 조건 충족 | 문서 생성, 질문 계속 | 사용자 선택 |
 | `document_editing` | 요구사항명세서 또는 PRD 생성 완료 | 직접 편집, 부분 보완, 검토 | 준비 완료, 내보내기 또는 추가 대화 |
-| `completed` | 최종 검토 완료 | 다운로드, 다시 열기 | 사용자가 작업 재개 가능 |
+| `completed` | 사용자가 승인한 `ready` 설정 가이드가 존재하고 완료를 요청함 | 다운로드, 다시 열기 | 사용자가 작업 재개 가능 |
 | `error` | 요청 또는 저장 실패 | 재시도, 입력 수정 | 성공 또는 취소 |
 
 상태 전이는 클라이언트가 결정한다. Agent 응답은 다음 상태 후보를 제공할 수 있지만 스키마 검증과 현재 프로젝트 상태를 통과해야 한다.
