@@ -2,7 +2,7 @@
 
 - QA: `blueprint-qa-reviewer` agent (`decisions_qa`)
 - 결과: **PASS**
-- 검증한 base/head: `5a326055acc91b76ce33f3d5345579d5bffff3b0` → `d5989af74c34997d465adfec3fd80f2eecec9675`
+- 검증 범위: PR #27 전체 문서 diff
 - 유형: 문서 QA; 화면·runtime 변경 없음
 
 확인 결과:
@@ -13,4 +13,4 @@
 - `git diff --check`와 Mermaid 40개 검증이 통과했다.
 - UI/runtime QA는 문서 전용 변경에 적용되지 않는다.
 
-PR #27의 이 QA 확인 시 GitHub 자동 체크는 통과했고, 별도 독립 review gate도 PASS였다. 현재 파일들은 그 gate 결과를 기록한다.
+QA reviewer는 PR #27의 현재 final HEAD를 검증했다. GitHub 자동 체크와 별도 독립 review gate도 PASS였다. 정확한 base/head는 PR gate 기록에 연결된다.

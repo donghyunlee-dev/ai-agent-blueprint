@@ -2,7 +2,7 @@
 
 - Reviewer: `blueprint-code-reviewer` agent (`decisions_review_final2`)
 - 결과: **PASS**
-- 검토한 base/head: `5a326055acc91b76ce33f3d5345579d5bffff3b0` → `d5989af74c34997d465adfec3fd80f2eecec9675`
+- 검토 범위: PR #27 전체 문서 diff
 - 차단 finding: 없음
 
 확인 사항:
@@ -12,4 +12,4 @@
 - `SETUP_GUIDE_DRAFT` registry/prompt/schema/golden eval이 GDE-PR-01 구현 범위에 들어가고 선행 차단 작업으로 중복 등록되지 않았다.
 - SRC-PR-02 병합 상태와 정책 문서·작업 순서가 정합하다.
 
-최종 PR HEAD 재확인: reviewer가 PR #27의 동일한 base에서 head `d5989af74c34997d465adfec3fd80f2eecec9675`를 읽기 전용으로 재검토해 PASS를 확인했다. 새로운 blocker는 없었다.
+Reviewer가 PR #27의 현재 final HEAD를 읽기 전용으로 재검토해 PASS를 확인했다. 정확한 base/head는 PR gate 기록에 연결된다. 새로운 blocker는 없었다.
