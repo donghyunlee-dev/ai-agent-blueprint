@@ -28,7 +28,26 @@ export function buildSetupGuidePlan(aggregate) {
   return {projectId:aggregate.project.id,projectTitle:redactSensitiveText(aggregate.project.title),designRevision:aggregate.project.designRevision,confirmedDesignItems,referenceDesignItemIds:(aggregate.designItems??[]).filter((item)=>!item.archivedAt).map(({id})=>id),sourceExcerpts,openIssues,sections:SETUP_GUIDE_SECTIONS.map((section)=>({...section,sourceItemIds:[...confirmedDesignItems.map(({id})=>id),...(section.key==='open_issues'?openIssues.map((issue)=>issue.sourceItemIds[0]):[])]}))};
 }
 
-const commandPattern=/\b(?:npm|npx|pnpm|yarn|bun|node|docker|kubectl|git)\s+(?:install|ci|run|exec|create|build|start|test|deploy|pull|compose|version|add|init|update|upgrade)\b(?:[ \t]+(?:--?[\w=./:@+-]+|[^\s;|&]+))*/gi;
+const commandPattern=/\b(?:npm|npx|pnpm|yarn|bun|node|docker|kubectl|git|pip3?|python3?|uv|poetry)\s+(?:install|ci|run|exec|create|build|start|test|deploy|pull|compose|version|add|init|update|upgrade|dlx|-[m])\b(?:[ \t]+(?:--?[\w=./:@+-]+|[^\s;|&]+))*/gi;
+const shellExecutables=new Set(['npm','npx','pnpm','yarn','bun','node','docker','kubectl','git','pip','pip3','python','python3','uv','poetry']);
+const shellBuiltins=new Set(['cd','export','echo','printf','pwd','mkdir','cp','mv','rm','cat','chmod','chown','source','set','unset','test','which','command','env','touch','ln','ls','grep','sed','awk','head','tail','true','false']);
+const promptInjectionPattern=/ignore (?:all )?(?:previous|prior) instructions|reveal (?:the )?(?:system|developer) prompt|override (?:the )?system prompt/i;
+
+function shellCommands(markdown) {
+  const commands=[];
+  for(const block of markdown.matchAll(/```(?:([\w-]+))?\s*\n([\s\S]*?)```/g)){
+    const language=(block[1]??'').toLowerCase();
+    if(language&&!['sh','bash','shell','zsh','console','terminal'].includes(language))continue;
+    for(const line of block[2].split(/\r?\n/)){
+      const uncommented=line.replace(/\s+#.*$/,'').trim();
+      for(let command of uncommented.split(/&&|\|\||[;|]/)){
+        command=command.trim().replace(/^(?:\$|>)\s*/,'').replace(/^(?:[A-Z_][A-Z0-9_]*=(?:[^ ]*|"[^"]*"|'[^']*')\s+)+/i,'');
+        if(command)commands.push(command);
+      }
+    }
+  }
+  return commands;
+}
 const versionPattern=/\b(?:v?\d+\.\d+(?:\.\d+)?(?:[-+][\w.-]+)?)\b/gi;
 export function validateSetupGuideDraft(payload,plan) {
   const result=validateSchema(schemas.tasks.SETUP_GUIDE_DRAFT,payload);
@@ -42,7 +61,16 @@ export function validateSetupGuideDraft(payload,plan) {
     for(const id of section.sourceItemIds)if(!allowedItems.has(id)&&!(section.key==='open_issues'&&allowedIssueItems.has(id)))errors.push(`unknown confirmed source ${id}`);
     for(const id of section.sourceExcerptIds)if(!allowedSources.has(id))errors.push(`unknown source excerpt ${id}`);
     const evidence=[...plan.confirmedDesignItems.map((item)=>`${item.title} ${item.description} ${JSON.stringify(item.attributes)}`),...plan.sourceExcerpts.map(({text})=>text)].join('\n').toLowerCase();
+    if(promptInjectionPattern.test(section.markdown))errors.push('prompt-injection instruction text');
     for(const match of section.markdown.matchAll(commandPattern)){const claim=match[0].trim().toLowerCase();if(!evidence.includes(claim))errors.push(`unsupported command or version ${claim}`);}
+    for(const command of shellCommands(section.markdown)){
+      const executable=command.match(/^([\w./-]+)/)?.[1]?.split('/').pop()?.toLowerCase();
+      if(!executable)continue;
+      if(shellBuiltins.has(executable))continue;
+      if(!shellExecutables.has(executable)){errors.push(`unrecognized command ${executable}`);continue;}
+      const invocation=command.match(commandPattern)?.[0];
+      if(!invocation)errors.push(`unsupported command form ${command}`);
+    }
     for(const match of section.markdown.matchAll(versionPattern)){const claim=match[0].toLowerCase();if(!evidence.includes(claim))errors.push(`unsupported command or version ${claim}`);}
   }
   const expectedIssues=new Set(plan.openIssues.map(({id})=>id));
