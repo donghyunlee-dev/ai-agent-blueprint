@@ -23,3 +23,11 @@ Base: `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`
 - The Playwright flow expands read-only source excerpt provenance and verifies its ID is persisted on the generated section.
 - The provenance flow uses a secret-bearing first excerpt and confirms later excerpt IDs, locations, and redacted display text remain aligned.
 - Agent Browser is unavailable (`command -v agent-browser` returned no executable). The flow was exercised in Playwright Chromium at both viewports.
+
+## Independent QA
+
+- Result: PASS at implementation head 20264b0f911587426fa5cdfaeefb52d53060683e; code review also passed at that head.
+- npx playwright test tests/e2e/gde-pr-01-setup-guide.spec.ts --workers=1: 2/2, desktop and mobile Chromium.
+- Independent ephemeral Playwright Chromium checks at 1440x900 and 390x844: keyboard generation, generic open issue for empty decisions, no editable guide controls, approval, and completion with current ready guide passed.
+- Source excerpt IDs, redaction, locations, read-only display, command evidence, and current revision/section gates passed.
+- Live provider generation and production browser behavior: N/A; synthetic/local fixtures and mocked AI/provider endpoints were used.

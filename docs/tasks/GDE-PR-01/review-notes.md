@@ -38,3 +38,10 @@ The user selected **A**: explanatory prose such as “Use npm as the package man
 - Latest correction retains the approved explanatory prose examples, including “Use npm as the package manager.”
 - A confirmed constraint without a confirmed technical decision still receives the generic technical-decision open issue; a confirmed technical decision suppresses it.
 - Declarative prose beginning with supported executable names is accepted; runnable syntax such as npm install and extensionless node/python script commands, npm ci, docker compose, and sudo-wrapped commands (including option values) still receive complete argument evidence checks.
+
+## Independent review and QA
+
+- Code review: PASS at implementation head 20264b0f911587426fa5cdfaeefb52d53060683e; no material findings.
+- QA: PASS at the same implementation head. Desktop/mobile Chromium (2/2), focused unit/contracts (46/46), golden fixtures (46/46), keyboard generation/approval/completion, read-only guide, source excerpt provenance/redaction, and current-revision completion gates passed.
+- Live provider generation and production browser behavior were N/A; runtime used synthetic fixtures and mocked providers, with API approval covered by the contract suite.
+- User-authorized next boundary: stop at ready_to_merge. Merge remains unauthorized.
