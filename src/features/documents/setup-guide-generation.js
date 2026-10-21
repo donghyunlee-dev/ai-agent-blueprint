@@ -6,7 +6,6 @@ import { buildSetupGuidePlan, SETUP_GUIDE_DISCLAIMER, SETUP_GUIDE_SECTIONS, vali
 export async function generateSetupGuide({aggregate,runTask,logicalRequestId='',attemptId='',generationJobId,now=()=>new Date().toISOString(),idFactory=()=>globalThis.crypto.randomUUID()}={}) {
   if(typeof runTask!=='function')throw new TypeError('runTask is required');
   const plan=buildSetupGuidePlan(aggregate);
-  if(!plan.confirmedDesignItems.length)throw Object.assign(new Error('SETUP_GUIDE_BLOCKED'),{blockers:['CONFIRMED_DESIGN_MISSING']});
   const definition=getPromptDefinition('SETUP_GUIDE_DRAFT');
   const output=await runTask('SETUP_GUIDE_DRAFT',{plan,designItems:plan.confirmedDesignItems,sourceExcerpts:plan.sourceExcerpts,openIssues:plan.openIssues,designRevision:plan.designRevision});
   const metadata=validateResponseMetadata(output,{task:'SETUP_GUIDE_DRAFT',promptVersion:definition.promptVersion,schemaVersion:definition.schemaVersion,designRevision:plan.designRevision});

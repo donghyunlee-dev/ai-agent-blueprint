@@ -36,6 +36,16 @@ test('setup guide open issues include unresolved states but omit resolved or rej
   assert.deepEqual(plan.openIssues.map(({sourceItemIds}) => sourceItemIds[0]), ['d3','d4','d5']);
 });
 
+test('setup guide with no technical decisions creates a generic issue and empty section references', () => {
+  const sourceAggregate = structuredClone(aggregate);
+  sourceAggregate.designItems = [];
+  sourceAggregate.sources = [];
+  const plan = buildSetupGuidePlan(sourceAggregate);
+  assert.deepEqual(plan.confirmedDesignItems, []);
+  assert.deepEqual(plan.openIssues, [{id:'OPEN-SETUP-GUIDE-TECHNICAL-DECISIONS',title:'기술 결정 확인 필요',description:'설정 가이드를 완성하려면 필요한 기술 결정을 설계에서 확인해 주세요. 근거가 확인되지 않은 명령어와 버전은 작성하지 않습니다.',sourceItemIds:[]}]);
+  assert.ok(plan.sections.every((section) => section.sourceItemIds.length === 0));
+});
+
 test('setup guide keeps raw excerpt IDs stable while redacting secret text', () => {
   const sourceAggregate = structuredClone(aggregate);
   sourceAggregate.designItems[0].evidence = [
@@ -82,6 +92,20 @@ test('setup guide rejects unsupported curl and ungrounded npm commands in action
     assert.equal(result.valid, false, markdown);
     assert.ok(result.errors.some((error) => error.includes('unsupported') || error.includes('unrecognized')), result.errors.join('\n'));
   }
+});
+
+test('setup guide checks command-like actions in all fences and wrappers against complete evidence', () => {
+  const sourceAggregate = structuredClone(aggregate);
+  sourceAggregate.designItems[0].description = 'npm install';
+  const plan = buildSetupGuidePlan(sourceAggregate);
+  const makePayload = (markdown) => ({sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:key==='installation'?markdown:'설정 내용을 확인합니다.',sourceItemIds,sourceExcerptIds:[]})),openIssues:plan.openIssues});
+  for (const markdown of ['```powershell\nterraform apply -auto-approve\n```', '```text\nsystemctl restart app\n```', 'Run terraform apply -auto-approve.', '`systemctl restart app`', 'Run sudo npm install.']) {
+    const result = validateSetupGuideDraft(makePayload(markdown), plan);
+    assert.equal(result.valid, false, markdown);
+    assert.ok(result.errors.some((error) => error.includes('unsupported') || error.includes('unrecognized')), result.errors.join('\n'));
+  }
+  const grounded = validateSetupGuideDraft(makePayload('```powershell\nterraform apply -auto-approve\n```'), {...plan,confirmedDesignItems:plan.confirmedDesignItems.map((item)=>({...item,description:`${item.description} terraform apply -auto-approve`}))});
+  assert.equal(grounded.valid,true,grounded.errors.join('\n'));
 });
 
 test('setup guide rejects unevidenced Python and package runner commands inside shell fences', () => {
@@ -138,6 +162,17 @@ test('setup guide redacts secrets from model context and generated markdown', as
 test('setup guide keeps excerpt provenance IDs on generated sections for read-only inspection', async () => {
   const result = await generateSetupGuide({aggregate, runTask: async (_task, input) => ({task:'SETUP_GUIDE_DRAFT',promptVersion:'v1',schemaVersion:'v1',designRevision:3,payload:{sections:input.plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:'검토합니다.',sourceItemIds,sourceExcerptIds:key==='prerequisites'?['s1:0']:[] })),openIssues:input.plan.openIssues},referencedItemIds:input.plan.referenceDesignItemIds,referencedSourceIds:input.plan.sourceExcerpts.map(({id})=>id),warnings:[]})});
   assert.deepEqual(result.sections[0].sourceExcerptIds, ['s1:0']);
+});
+
+test('setup guide generates the complete draft without confirmed decisions and carries the generic open issue', async () => {
+  const emptyAggregate = structuredClone(aggregate);
+  emptyAggregate.designItems = [];
+  emptyAggregate.sources = [];
+  const result = await generateSetupGuide({aggregate:emptyAggregate,runTask:async(_task,input)=>({task:'SETUP_GUIDE_DRAFT',promptVersion:'v1',schemaVersion:'v1',designRevision:3,payload:{sections:input.plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:'기술 결정 확인 후 설정을 진행합니다.',sourceItemIds,sourceExcerptIds:[]})),openIssues:input.plan.openIssues},referencedItemIds:input.plan.referenceDesignItemIds,referencedSourceIds:[],warnings:[]})});
+  assert.equal(result.document.status,'draft');
+  assert.equal(result.sections.length,8);
+  assert.deepEqual(result.document.openIssues.map(({id})=>id),['OPEN-SETUP-GUIDE-TECHNICAL-DECISIONS']);
+  assert.ok(result.sections.every((section)=>!/\b(?:npm|curl|terraform|systemctl)\s+\w+/i.test(section.markdown)));
 });
 
 test('setup guide task is versioned and uses DEFAULT with explicit budgets', () => {

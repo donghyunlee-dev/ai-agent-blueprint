@@ -317,6 +317,46 @@
     "targetContext":{"commandEvidence":["npm install"]}
   },
   {
+    "id":"setup-guide-powershell-terraform-without-evidence",
+    "task":"SETUP_GUIDE_DRAFT",
+    "schemaVersion":"v1",
+    "expectedPass":false,
+    "expectedErrors":["setup guide command lacks complete evidence"],
+    "response":{"sections":[{"key":"installation","title":"설치 순서","markdown":"```powershell\nterraform apply -auto-approve\n```","sourceItemIds":[],"sourceExcerptIds":[]}],"openIssues":[]},
+    "manifest":{"designItemIds":[],"sourceExcerptIds":[],"recentMessageIds":[],"summaryIds":[]},
+    "targetContext":{"commandEvidence":[]}
+  },
+  {
+    "id":"setup-guide-text-systemctl-without-evidence",
+    "task":"SETUP_GUIDE_DRAFT",
+    "schemaVersion":"v1",
+    "expectedPass":false,
+    "expectedErrors":["setup guide command lacks complete evidence"],
+    "response":{"sections":[{"key":"installation","title":"설치 순서","markdown":"```text\nsystemctl restart app\n```","sourceItemIds":[],"sourceExcerptIds":[]}],"openIssues":[]},
+    "manifest":{"designItemIds":[],"sourceExcerptIds":[],"recentMessageIds":[],"summaryIds":[]},
+    "targetContext":{"commandEvidence":[]}
+  },
+  {
+    "id":"setup-guide-prose-terraform-without-evidence",
+    "task":"SETUP_GUIDE_DRAFT",
+    "schemaVersion":"v1",
+    "expectedPass":false,
+    "expectedErrors":["setup guide command lacks complete evidence"],
+    "response":{"sections":[{"key":"installation","title":"설치 순서","markdown":"Run terraform apply -auto-approve.","sourceItemIds":[],"sourceExcerptIds":[]}],"openIssues":[]},
+    "manifest":{"designItemIds":[],"sourceExcerptIds":[],"recentMessageIds":[],"summaryIds":[]},
+    "targetContext":{"commandEvidence":[]}
+  },
+  {
+    "id":"setup-guide-inline-sudo-npm-without-evidence",
+    "task":"SETUP_GUIDE_DRAFT",
+    "schemaVersion":"v1",
+    "expectedPass":false,
+    "expectedErrors":["setup guide command lacks complete evidence"],
+    "response":{"sections":[{"key":"installation","title":"설치 순서","markdown":"`sudo npm install unverified-package`","sourceItemIds":[],"sourceExcerptIds":[]}],"openIssues":[]},
+    "manifest":{"designItemIds":[],"sourceExcerptIds":[],"recentMessageIds":[],"summaryIds":[]},
+    "targetContext":{"commandEvidence":["npm install"]}
+  },
+  {
     "id":"setup-guide-schema-failure",
     "task":"SETUP_GUIDE_DRAFT",
     "schemaVersion":"v1",
