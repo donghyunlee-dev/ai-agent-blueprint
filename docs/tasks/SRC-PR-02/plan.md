@@ -1,6 +1,6 @@
 # SRC-PR-02 — 근거 연결
 
-**Status: in_progress — implementation and self-validation complete; independent review and QA pending.** Planning base: `origin/main` at `aee5afddcdf32d4da7d46e1aebf260522670a780` (PR #25, verified 2026-10-21). Scope: `SRC-503` (`SRC-002`). The user approved the excerpt and citation-mapping decisions recorded below.
+**Status: in_progress — implementation, self-validation, independent review, and QA passed on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`; exact-final-head check is pending after adding evidence records.** Planning base: `origin/main` at `aee5afddcdf32d4da7d46e1aebf260522670a780` (PR #25, verified 2026-10-21). Scope: `SRC-503` (`SRC-002`). The user approved the excerpt and citation-mapping decisions recorded below.
 
 ## 사용자 결과
 
@@ -123,13 +123,13 @@ Do not run a broad suite, live OpenAI request, full-app QA, or screenshot captur
 
 ## Review and QA checklist
 
-- [ ] Approved excerpt selection and durable-ID mapping implemented exactly.
-- [ ] Only ready, project-owned, bounded excerpts enter `TURN_ANALYZE`; content is not logged.
-- [ ] Model evidence must refer to a sent excerpt; normalization cannot bind arbitrary or removed sources.
-- [ ] Inspector shows filename, quoted excerpt, location, and empty/deleted state accessibly.
-- [ ] Removal previews unique impacted design-item count and recomputes atomically; cancel/failure preserve state.
-- [ ] Confirmed removal retains items, nested unrelated evidence, and all unrelated aggregate fields.
-- [ ] Focused unit/contract and Playwright checks pass on the exact final SHA.
+- [x] Approved excerpt selection and durable-ID mapping implemented exactly.
+- [x] Only ready, project-owned, bounded excerpts enter `TURN_ANALYZE`; content is not logged.
+- [x] Model evidence must refer to a sent excerpt; normalization cannot bind arbitrary or removed sources.
+- [x] Inspector shows filename, quoted excerpt, location, and empty/deleted state accessibly.
+- [x] Removal previews unique impacted design-item count and recomputes atomically; cancel/failure preserve state.
+- [x] Confirmed removal retains items, nested unrelated evidence, and all unrelated aggregate fields.
+- [x] Focused unit/contract and Playwright checks pass on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`.
 
 ### Implementer validation — 2026-10-21
 
@@ -143,6 +143,6 @@ Do not run a broad suite, live OpenAI request, full-app QA, or screenshot captur
 - [x] Missing product contract resolved and Definition of Ready complete.
 - [x] `SRC-002` behavior and focused acceptance checks pass.
 - [x] Implementer self-validation and build pass; exact results recorded.
-- [ ] Independent code review passes on final SHA.
-- [ ] Independent focused QA passes on the same SHA.
+- [x] Independent code review passes on implementation SHA; final evidence-only head recheck is pending and recorded on PR #26.
+- [x] Independent focused QA passes on implementation SHA; final evidence-only head recheck is pending and recorded on PR #26.
 - [ ] User-authorized PR lifecycle gate passes and GitHub confirms merge.
