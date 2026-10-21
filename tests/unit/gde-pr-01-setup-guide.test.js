@@ -56,6 +56,16 @@ test('setup guide adds a generic issue when all technical decision records are r
   assert.deepEqual(plan.openIssues.map(({id})=>id), ['OPEN-SETUP-GUIDE-TECHNICAL-DECISIONS']);
 });
 
+test('generic setup issue depends on a confirmed technical decision, not a confirmed constraint', () => {
+  const constraintOnly = structuredClone(aggregate);
+  constraintOnly.designItems = [{id:'constraint-1',type:'constraint',title:'서버 배포 제약',status:'confirmed',attributes:{},evidence:[]}];
+  assert.ok(buildSetupGuidePlan(constraintOnly).openIssues.some(({id})=>id==='OPEN-SETUP-GUIDE-TECHNICAL-DECISIONS'));
+
+  const withTechnicalDecision = structuredClone(aggregate);
+  withTechnicalDecision.designItems = [{id:'decision-1',type:'technical_decision',title:'Node 버전',status:'confirmed',attributes:{},evidence:[]}];
+  assert.ok(!buildSetupGuidePlan(withTechnicalDecision).openIssues.some(({id})=>id==='OPEN-SETUP-GUIDE-TECHNICAL-DECISIONS'));
+});
+
 test('setup guide keeps raw excerpt IDs stable while redacting secret text', () => {
   const sourceAggregate = structuredClone(aggregate);
   sourceAggregate.designItems[0].evidence = [

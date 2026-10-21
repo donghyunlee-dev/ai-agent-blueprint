@@ -24,7 +24,7 @@ The generated setup guide remains read-only in the application, per the accepted
 
 ## Latest correction validation
 
-- Focused unit and contract suites: 42/42 passed.
+- Focused unit and contract suites: 43/43 passed.
 - Synthetic golden fixtures: 34/34 passed, including unknown plain-name command rejection and ordinary explanatory prose cases.
 - Setup guide Playwright E2E: 2/2 passed (desktop Chromium and mobile Chromium).
 - Production build and `git diff --check`: passed.
@@ -36,3 +36,4 @@ The generated setup guide remains read-only in the application, per the accepted
 The user selected **A**: explanatory prose such as “Use npm as the package manager” is accepted. Syntactically runnable command forms, including unsupported plain-name invocations, inline commands, and fenced commands, remain subject to fail-closed evidence validation.
 
 - Latest correction retains the approved explanatory prose examples, including “Use npm as the package manager.”
+- A confirmed constraint without a confirmed technical decision still receives the generic technical-decision open issue; a confirmed technical decision suppresses it.
