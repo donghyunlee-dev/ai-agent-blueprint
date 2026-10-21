@@ -1,6 +1,6 @@
 # SRC-PR-02 — 근거 연결
 
-**Status: in_progress — implementation, self-validation, independent review, and QA passed on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`; exact-final-head check is pending after adding evidence records.** Planning base: `origin/main` at `aee5afddcdf32d4da7d46e1aebf260522670a780` (PR #25, verified 2026-10-21). Scope: `SRC-503` (`SRC-002`). The user approved the excerpt and citation-mapping decisions recorded below.
+**Status: in_progress — implementation, self-validation, independent review, and QA passed on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`; final PR gate evidence is tracked against the current PR head.** Planning base: `origin/main` at `aee5afddcdf32d4da7d46e1aebf260522670a780` (PR #25, verified 2026-10-21). Scope: `SRC-503` (`SRC-002`). The user approved the excerpt and citation-mapping decisions recorded below.
 
 ## 사용자 결과
 
@@ -143,6 +143,7 @@ Do not run a broad suite, live OpenAI request, full-app QA, or screenshot captur
 - [x] Missing product contract resolved and Definition of Ready complete.
 - [x] `SRC-002` behavior and focused acceptance checks pass.
 - [x] Implementer self-validation and build pass; exact results recorded.
-- [x] Independent code review passes on implementation SHA; final evidence-only head recheck is pending and recorded on PR #26.
-- [x] Independent focused QA passes on implementation SHA; final evidence-only head recheck is pending and recorded on PR #26.
+- [x] Independent code review passes on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`.
+- [x] Independent focused QA passes on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`.
+- [ ] Final PR head review and QA.
 - [ ] User-authorized PR lifecycle gate passes and GitHub confirms merge.

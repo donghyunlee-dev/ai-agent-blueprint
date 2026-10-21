@@ -1,6 +1,6 @@
 # SRC-PR-02 implementation validation
 
-**Status:** implementer self-validation passed. Focused independent review and QA passed on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`; final evidence-only commit will receive a fresh exact-head review and QA recorded on PR #26.
+**Status:** implementer self-validation, focused independent review, and QA passed on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`. These results identify that implementation revision; final PR gate evidence is tracked against the current PR head.
 
 ## Focused validation
 
@@ -24,5 +24,5 @@ No live provider request or broad regression suite was run. AI responses were mo
 - [x] Implementer focused tests, build, and diff check.
 - [x] Independent code review on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`.
 - [x] Independent focused QA on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`.
-- [ ] Exact final-head review/QA evidence commit check.
+- [ ] Final PR head review/QA and configured checks.
 - [ ] PR lifecycle gate and merge verification.
