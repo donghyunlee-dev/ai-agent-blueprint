@@ -2,53 +2,38 @@
 
 ## Purpose
 
-Use the repository's reference screenshots as the visual foundation for Blueprint screens. This document records how product requirements, `docs/template/` captures, the existing React application, and implementation evidence fit together. It does not prescribe a third-party design system or component package.
+Use [the Blueprint redesign map](../blueprint-design/README.md) to choose the visual reference for each supported screen. The seven `docs/blueprint-design/` images guide hierarchy, layout, density, stage emphasis, and color direction. They do not authorize new product capabilities, routes, data, or assets.
 
 ## Sources of truth
 
-1. User-visible behavior, state transitions, and data rules come from the product and process specifications.
-2. Layout, information hierarchy, content density, and interaction patterns come from the relevant captures indexed in [`docs/template/README.md`](../template/README.md).
-3. Accessibility, responsive behavior, and security requirements in the UI specifications remain mandatory even when a capture does not show them.
-4. The application keeps its current React and TypeScript runtime. Screen-specific controls use semantic HTML and local CSS; shared components are introduced only where the application already has a clear reuse need.
+1. Product, security, domain, document, accessibility, and responsive contracts define behavior and gates.
+2. `docs/blueprint-design/README.md` maps the primary redesign images to home, conversation, proposal review, readiness, Requirements, and PRD.
+3. For a state absent from those images, use the corresponding [template reference](../template/README.md) and the [screen state matrix](../ui/screen-state-matrix.md).
+4. Existing React, TypeScript, semantic HTML, and local CSS are the implementation base. Extract a shared component only for a real shared contract.
 
 ## Reference selection
 
-Before a UI change:
+Before changing a screen, read its UI specification and state matrix, open its full-size primary image, and record the filename and observed pattern. Identify the parts backed by current routes and actions. For loading, empty, error, validation, overlay, and completed variants, use the fallback reference and existing behavior. After the final UI change, capture the implemented flow at 1440×900 and 390×844, plus every affected state.
 
-1. Read the UI screen state matrix and the exact screen specification.
-2. Open the matching full-size capture(s) from `docs/template/README.md`.
-3. Record the image filename and the layout or state pattern it informs in the task plan.
-4. Identify differences required by Blueprint product behavior, keyboard access, contrast, responsive layouts, and supported content length.
-5. Capture the final implementation at the required viewports and states after the last review fix.
+The design board includes global Templates, Knowledge Library, Settings, notifications, voice input, project search/filter, sample projects, and new technical design flows. Those are outside this redesign. The home uses the existing idea input, attachment, and recent-project actions; the project workspace uses the existing routes and proposal/readiness/document commands.
 
-Do not embed the supplied screenshots as rendered UI, copy their raster content into product assets, or treat every screenshot as an in-scope feature. The captures are visual references only.
+## Layout interpretation
 
-## Visual principles observed in the references
-
-- Use a light, neutral workspace with restrained accent color and compact navigation.
-- Keep the project frame stable while the active work area changes.
-- Let conversation, documents, and selected-item details have distinct but connected regions.
-- Keep document content and task status more prominent than decoration.
-- Explain empty states with the next useful action; show generation progress near the result.
-- Preserve enough space for reading long documents and reviewing structured items.
+- The common frame identifies the project, save state, signed-in user, and supported navigation.
+- The project path reads `대화 → 제안 검토 → 설계 → Requirements → PRD`. The highlighted step follows the real route or in-page state.
+- Each step owns the wide primary work area. A summary, issue list, table of contents, or item detail is secondary to that step. A permanent three-panel layout is not required across steps.
+- The five readiness cards group the existing ten `DESIGN_SECTIONS` for display only. `computeDesignReadiness()` continues to decide blockers and the Requirements gate; PRD still requires ready Requirements.
+- Source files, consistency review, export, and setup guide remain reachable through existing flows even where the images omit them.
+- On narrow viewports, primary content precedes secondary content or opens it through a labelled control. Hidden regions leave the keyboard and accessibility tree. A fixed composer or footer cannot cover content or safe areas.
 
 ## Implementation constraints
 
-- Do not add a legacy external UI package, third-party design system, global design-system CSS, MCP integration, or another component framework for visual parity. Use local CSS and application-scoped custom properties informed by the selected captures.
-- Do not introduce arbitrary icon or component dependencies when semantic HTML and existing application patterns suffice.
-- Use CSS custom properties for repeated local values, with names scoped to the Blueprint application. Keep color choices consistent with the reference captures and meet text-contrast requirements.
-- Use buttons for actions, links for navigation, labels for inputs, and programmatically connected descriptions and errors.
-- Dialogs, drawers, tabs, and popovers must support keyboard operation, visible focus, correct focus return, and inactive-content focus isolation.
-- Follow the defined 1440×900 and 390×844 evidence viewports; add intermediate breakpoints only as needed by content.
-
-## Migration note
-
-The current prototype still has legacy external UI package imports. The dependency and importing screens must be removed together in the product UI migration PR so each PR continues to build. Do not conceal the imports or expand the migration PR into an unrelated product-wide screen rewrite.
+Do not embed a reference screenshot, copy its raster contents into a product asset, add an external design system, or introduce an unsupported menu placeholder. Use local semantic HTML/CSS and application-scoped CSS custom properties for repeated values. Keep status text visible without relying on color. Dialogs, drawers, links, tabs, and forms retain their keyboard, focus, validation, and failure-recovery contracts.
 
 ## Verification checklist
 
-- The implementation report names the reference image(s) used.
-- The implemented layout preserves the required workflow and product scope.
-- Keyboard, focus, text contrast, responsive layout, loading, empty, error, and completed states are verified where applicable.
-- Final-HEAD screenshots are attached to the PR for 1440×900 and 390×844 and match the tested build.
-- `docs/template/` reference images are not included as implementation screenshots or product UI assets.
+- The implementation report names the primary image and any state fallback used.
+- The tested route, action, and displayed data exist in the current application.
+- The project flow, proposal transaction, readiness gate, document edits, and support actions still work.
+- Keyboard, focus, 200% zoom, responsive content order, reduced motion, and changed states are verified.
+- Final-HEAD UI screenshots at 1440×900 and 390×844 show the tested implementation. Reference screenshots are never submitted as implementation evidence.

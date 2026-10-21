@@ -63,6 +63,23 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | NFR-006 | CON-205, QLT-605 | 한글 UI·응답·문서 | ready |
 | NFR-007 | QLT-604, QLT-606 | 행동 이벤트 미전송 | ready |
 
+## 화면 개편 요구사항
+
+이 개편은 기존 요구사항의 완료 이력을 바꾸지 않는다. [시각 기준](../blueprint-design/README.md)과 [개편 계획](../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md)에 따라 다음 PR이 표현 계층을 소유한다.
+
+| 요구사항 | 소유 PR | 검증 지점 | 상태 |
+| --- | --- | --- | --- |
+| UIR-001 시각 기준 | UIR-PR-01 | 이미지 7장, 화면별 fallback, 비범위와 링크 | in_progress |
+| UIR-002 범위 보존 | UIR-PR-01~06 | 기존 route/data/action과 미지원 메뉴 부재 | in_progress |
+| UIR-003 공통 셸·홈 | UIR-PR-02 | 시작·파일·최근·한도와 공통 CSS | planned |
+| UIR-004 단계 프레임 | UIR-PR-03 | 5단계 현재 위치·gate·직접 URL | planned |
+| UIR-005 대화 | UIR-PR-03 | 질문·답·summary·job·composer | planned |
+| UIR-006 제안 검토 | UIR-PR-04 | 단건·수정·거절·일괄·충돌 transaction | planned |
+| UIR-007 준비도 표현 | UIR-PR-05 | 10개 원본 영역의 5개 카드 표현과 기존 gate | planned |
+| UIR-008 문서 | UIR-PR-06 | Requirements·PRD 상태·편집·보완·내보내기 | planned |
+| UIR-009 지원 흐름 | UIR-PR-06 | 자료·정합성·가이드·완료 접근성 | planned |
+| UIR-010 반응형·접근성 | UIR-PR-02~06, QLT-PR-01 | 최종 HEAD 화면과 5개 viewport·키보드 | planned |
+
 ## 현재 차단 항목
 
 | 요구사항 | 필요한 결정 |

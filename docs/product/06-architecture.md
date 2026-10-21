@@ -8,7 +8,7 @@ React·TypeScript·Vite 기반 애플리케이션에서 Google OIDC 인증, 프�
 
 - 런타임은 `react@18.3.1`, `react-dom@18.3.1`로 고정한다.
 - UI는 기존 React·TypeScript 런타임 위에서 semantic HTML과 Blueprint 소유 CSS로 구현한다.
-- 레이아웃과 시각 계층은 [`docs/template/`](../template/README.md)의 관련 캡처를 기준으로 하며, 제품 명세가 동작 계약을 정의한다.
+- 현재 화면의 레이아웃과 시각 계층은 [`docs/blueprint-design/`](../blueprint-design/README.md)의 해당 시안을 주 기준으로 한다. 시안에 없는 상태는 [`docs/template/`](../template/README.md)을 참고하며, 제품 명세가 동작 계약을 정의한다.
 - UI 디자인 시스템 패키지, 외부 UI MCP, 전역 디자인 시스템 stylesheet를 새 화면 구현에 추가하지 않는다.
 - 현재 프로토타입의 legacy UI package imports는 화면 마이그레이션 PR에서 의존성과 함께 제거한다.
 

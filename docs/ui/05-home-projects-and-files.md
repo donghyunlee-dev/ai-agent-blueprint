@@ -7,21 +7,19 @@
 이 화면은 `F-AUTH-CHECK`에서 유효한 세션과 owner namespace가 확정된 뒤에만 렌더링한다.
 
 ```text
-Navbar
-Container max-w-6xl
-  hero copy (center, max readable width)
-  start composer (dominant surface)
-    idea Textarea
-    attach | Blueprint 시작
-  example prompts
-  product preview (첫 스크롤 경계 안 또는 바로 아래)
+지원 목적지만 있는 탐색
+중앙 제목과 시작 composer
+  idea Textarea
+  기존 첨부 | Blueprint 시작
+기존 예시가 있을 때만 입력 시작점
+최근 프로젝트 또는 첫 프로젝트 안내
 ```
 
 - Navbar 높이는 작업 공간 AppBar와 동일하다.
 - hero 위·아래는 `--spacing-2xl`, 제목과 설명은 `--spacing-md`.
 - 시작 composer 최대 폭은 문서 읽기 폭과 동일하고 `--color-surface`, `--radius-card`, `--shadow-raised`를 사용한다.
 - 제목은 `Typography h1`, 설명은 `body`, CTA는 `Button primary lg`.
-- 대표 시각 요소는 통계 카드가 아니라 대화 답변 → 제안 → 문서 반영의 연결 장면 하나다.
+- 주 시안은 [홈 화면](../blueprint-design/README.md)이다. 사진·로고·샘플 프로젝트·새 시작 카드를 추가하지 않는다.
 
 ## 입력 상태
 
@@ -42,7 +40,7 @@ Container max-w-6xl
 - 데스크톱은 2열 Grid, 모바일은 1열이다.
 - 각 프로젝트 Card에는 프로젝트명, 마지막 수정, 준비 상태, 현재 문서와 `계속하기`가 있다.
 - Card 전체 클릭과 내부 행동의 중복 tab stop을 만들지 않는다.
-- 20개를 페이지에 모두 길게 노출하기보다 최초 6개와 `전체 보기`를 제공한다. 전체 목록에서도 최대 데이터 수는 20개다.
+- 현재 구현된 최근 프로젝트 목록에서 최대 20개 데이터와 이어서 작업 행동을 유지한다. 별도 `전체 보기` route나 검색·필터 대시보드를 만들지 않는다.
 
 빈 상태는 “아직 프로젝트가 없습니다”와 첫 composer로 포커스를 보내는 행동을 제공한다.
 

@@ -15,13 +15,14 @@
 ## 데스크톱 레이아웃
 
 ```text
+Project frame: Requirements 또는 PRD 단계
 DocumentHeader: title | revision · saved · sync | review/export actions
-┌─ ToC 220 ─┬─ Article max --bp-document-line ─┬─ issue rail 240 ─┐
-│ own scroll│ centered in remaining space       │ optional        │
-└───────────┴───────────────────────────────────┴─────────────────┘
+┌─ ToC ─────┬─ section overview / selected article ───────────┐
+│ section  │ 실제 문서 데이터, 상태, 편집·보완 행동             │
+└───────────┴───────────────────────────────────────────────────┘
 ```
 
-기본 작업공간 Inspector가 열리면 issue rail을 Inspector가 대신하므로 둘을 동시에 노출하지 않는다. 본문 주변 여백은 최소 `--spacing-lg`, 섹션 사이 `--spacing-xl`을 사용한다.
+주 시안은 [Requirements와 PRD 화면](../blueprint-design/README.md)이다. 섹션 목록/요약과 선택한 본문을 같은 단계에서 탐색한다. 이슈·영향 상세는 선택할 때만 열고 목차, 본문과 동시에 좁은 열을 강제하지 않는다. 기존 문서 section과 gate·edit·patch·export 동작을 그대로 사용한다.
 
 ## DocumentHeader
 
@@ -39,7 +40,7 @@ DocumentHeader: title | revision · saved · sync | review/export actions
 
 ## 본문
 
-- `article`의 최대 폭은 `--bp-document-line`, 중앙 정렬한다.
+- `article`은 긴 문장을 읽을 수 있는 폭으로 제한하고 남은 주 작업 영역에서 읽는다.
 - 문서 제목은 화면 AppBar/DocumentHeader와 중복되므로 본문에서는 h1을 반복하지 않는다.
 - 섹션 h2와 하위 h3는 순서를 건너뛰지 않는다.
 - 섹션 hover 시 오른쪽에 `편집`, `AI로 보완` ghost actions를 표시하고 키보드 focus-within에서도 동일하게 노출한다.
@@ -73,7 +74,7 @@ Cancel secondary | Save primary
 ## Requirements ready와 PRD 잠금
 
 - Requirements 상태가 ready가 아니면 PRD 탭에 lock icon과 이유를 제공한다.
-- 잠긴 탭을 선택하면 빈 문서를 보여주지 않고 `UI-DOC-006` 안내 화면을 중앙에 표시한다.
+- 잠긴 PRD 단계로 이동하면 빈 문서를 보여주지 않고 `UI-DOC-006` 안내 화면을 주 영역에 표시한다.
 - 안내에는 부족/충돌/수용 기준 없음 개수와 `Requirements 검토로 이동` primary 행동 하나를 둔다.
 - 모든 ready 조건을 충족하면 `Requirements 검토 완료` 행동을 활성화한다. 사용자가 확인한 뒤에만 ready가 되고 PRD 잠금이 해제된다.
 
@@ -85,7 +86,7 @@ Cancel secondary | Save primary
 
 ## 설정 가이드 변형
 
-설정 가이드는 같은 문서 작업 공간을 사용하되 상단 전역 문서 탭이 아니라 내보내기 메뉴에서 연다. 사용자가 명시적으로 승인해 `ready`로 바꾸기 전에는 프로젝트 완료를 허용하지 않으며, `draft`, `review_required`, `stale` 상태는 완료 조건에 맞지 않는다(`DEC-045`).
+설정 가이드는 같은 문서 작업 공간을 사용하되 다섯 번째 단계가 아닌 PRD 이후 산출물 링크·행동에서 연다. 기존 `/blueprints/:projectId/setup_guide` 경로를 유지한다. 사용자가 명시적으로 승인해 `ready`로 바꾸기 전에는 프로젝트 완료를 허용하지 않으며, `draft`, `review_required`, `stale` 상태는 완료 조건에 맞지 않는다(`DEC-045`).
 
 - DocumentHeader에 `초안`, 기준 설계 revision과 생성 시각을 표시한다.
 - 목차는 사전 조건, 설치, 환경 변수, 실행, 검증, 실패 시 확인 순서다.

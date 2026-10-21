@@ -2,6 +2,8 @@
 
 ## 부분 화면
 
+시각 기준은 [제안 검토·설계 준비 시안](../blueprint-design/README.md)이다. 제안 검토는 독립 단계로, 설계 준비는 5개 요약과 기존 10개 원본 영역으로 배치한다. 이 문서의 Inspector·Diff 동작은 해당 단계에서 항목을 열었을 때 적용한다.
+
 | ID | 영역 | 사용자 목표 |
 | --- | --- | --- |
 | `UI-DES-001` | 설계 개요 | 영역별 확정·미정·재검토 상태 파악 |
@@ -10,22 +12,24 @@
 | `UI-PROP-001` | 변경안 검토 | 제안을 승인·수정·거절 |
 | `UI-PROP-002` | 충돌 비교 | 기존값과 제안값 중 유효한 상태 결정 |
 
-## 중앙 설계 화면
+## 설계 단계 주 영역
 
 ```text
-RegionHeader: 설계 / 상태 설명 / 검토 N개
-ReadinessStrip: 부족 | 작업 가능 | 준비 완료 + 영역별 누락
-SectionNav: 제품 정의 · 사용자 · 목표 · 범위 · 기능 · 제약 · 성공·위험
+RegionHeader: 설계 / 상태 설명 / 실제 blocker와 다음 행동
+ReadinessOverview: 기존 10개 영역을 묶는 5개 카드
+SectionNav: 기존 DESIGN_SECTIONS 10개 영역
 DesignItemList
   row: title | state | relation count | updated
   row...
 ```
 
-상단 두 영역은 중앙 스크롤 안에서 sticky로 겹치지 않게 쌓는다. 본문 padding은 `--spacing-lg`, 섹션 간격은 `--spacing-xl`, 행 내부는 `--spacing-md`다.
+상단 상태와 5개 표현 카드는 주 영역에서 읽고, 선택한 원본 영역의 항목은 그 뒤에 보여준다. 긴 콘텐츠와 sticky 요소가 겹치지 않게 한다.
 
 ## 준비 상태
 
-- 숫자, 원형 차트와 퍼센트를 사용하지 않는다.
+- `4/5` 같은 새 점수나 임의 퍼센트를 만들지 않는다. 시안의 진행 막대는 실제 readiness gate가 아니다.
+- 5개 카드의 원본 영역: 제품과 문제=`product/problem/outcomes`, 사용자=`users/scenarios`, 기능과 범위=`features/scope`, 데이터와 연동=`data`, 보안과 운영=`identity/operations`.
+- `computeDesignReadiness()`의 10개 영역, blocker, `insufficient/workable/ready`, Requirements gate를 그대로 사용한다. 그룹 카드에서 각 원본 영역과 원인을 열 수 있어야 한다.
 - 대표 상태는 `StatusBadge`로 `부족`, `작업 가능`, `준비 완료`를 텍스트로 표시한다.
 - 상태 아래 한 줄에 `필수 미정 2 · 재검토 1 · 명시적 보류 3`처럼 원인을 제시한다.
 - 원인을 선택하면 해당 항목 목록으로 필터링하고 첫 항목 제목에 포커스를 둔다.
@@ -38,7 +42,7 @@ DesignItemList
 | 가운데 | 영역/요구사항 개수 | `caption` |
 | 오른쪽 | 상태와 갱신 시각 | `StatusBadge`, `caption` |
 
-행은 Card 모음이 아니라 구분선 목록이다. hover는 `--color-surface-raised`, selected는 `--color-brand-subtle`과 왼쪽 brand 표시를 사용한다. 행 전체는 button 또는 link 의미를 가져야 한다.
+원본 10개 영역의 행은 선택·상세 진입이 가능해야 한다. hover와 selected는 색상뿐 아니라 상태 문구와 포커스로 구분한다. 행 전체는 button 또는 link 의미를 가져야 한다.
 
 ## Inspector
 
@@ -53,7 +57,7 @@ history disclosure
 sticky footer: context actions
 ```
 
-블록 사이 `Divider`, 블록 내부 `Stack gap={2}`, 전체 padding `--spacing-md`를 사용한다. Inspector 폭에서 2열 표를 사용하지 않는다.
+블록은 구분선과 일관된 간격으로 나눈다. 좁은 상세 영역에서 2열 표를 강제하지 않는다.
 
 상태별 footer:
 
@@ -67,7 +71,7 @@ sticky footer: context actions
 
 ## 변경안 검토
 
-단일 제안은 Inspector에서 처리한다. 여러 필드 또는 충돌은 `DiffView` 정보 구조를 사용하는 전체 높이 Drawer/Modal로 확장한다.
+제안 검토 단계는 미처리 항목과 이유, 영향, 단건 승인·수정·거절을 주 영역에 표시한다. 확정 항목과 남은 처리 수는 보조 영역에 둔다. 여러 필드 또는 충돌은 `DiffView` 정보 구조의 Drawer/Modal로 확장한다.
 
 - 상단: 변경 유형, 대상, 현재 위치 `2/5`, 남은 수
 - 본문: `변경 전`과 `제안값` 비교, 변경 없는 필드는 기본 접힘
@@ -88,7 +92,7 @@ sticky footer: context actions
 | 상태 | 표시 |
 | --- | --- |
 | 첫 설계 없음 | `EmptyState`: 대화에서 아이디어 설명 |
-| 영역에 항목 없음 | 영역 설명 + `AI에게 질문 요청` |
+| 영역에 항목 없음 | 영역 설명 + 기존 대화 단계로 이동 |
 | 항목 로딩 | 제목과 행 형태의 `Skeleton` |
 | 상세 없음 | “항목을 선택하세요” 보조 문구 |
 | 근거 삭제됨 | `Alert warning`: 근거 없음, 재검토 행동 |
@@ -97,7 +101,7 @@ sticky footer: context actions
 ## 완료 판정
 
 - 확정·제안·미정·재검토·충돌을 흑백 캡처에서도 텍스트/아이콘으로 구분한다.
-- 항목 선택 시 중앙 목록의 위치가 유지되고 상세만 바뀐다.
+- 항목 선택 시 원본 영역 목록의 위치가 유지되고 상세만 바뀐다.
 - 제안 승인 후 다음 미처리 제안으로 포커스가 이동한다.
 - 390px에서 비교 내용이 좌우로 잘리지 않고 전후 관계가 유지된다.
-- 설계 변경 영향이 항목, 요구사항, PRD 중 어디에 발생하는지 Inspector에서 확인된다.
+- 설계 변경 영향이 항목, 요구사항, PRD 중 어디에 발생하는지 항목 상세에서 확인된다.

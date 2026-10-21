@@ -1,6 +1,6 @@
 # UI reference screenshots
 
-`docs/template/` contains the visual reference captures for Blueprint UI work. Read this index and inspect the relevant full-size images before changing a screen. The screenshots guide information hierarchy, layout, density, and interaction patterns; they are not assets to embed or pixel-perfect targets. Product behavior, accessibility, security, and responsive requirements in the product specifications remain binding.
+`docs/template/` contains the earlier visual reference captures. For the current UI overhaul, first use [the Blueprint redesign map](../blueprint-design/README.md) and its matching full-size image. Use the references below for states or details absent from the new images. These captures guide hierarchy and behavior; they are not product assets or pixel-perfect targets. Product, security, accessibility, and responsive requirements remain binding.
 
 ## Reference map
 
@@ -29,8 +29,8 @@ The captures are also catalogued in [the benchmark analysis](../research/manyfas
 
 ## Implementation guidance
 
-- Match the calm neutral canvas, compact navigation, clear document hierarchy, and restrained accent color visible in the relevant capture.
-- Keep the project frame stable as users move between conversation and deliverables.
+- Use the new screen-specific Blueprint image for the main layout. Carry forward the calm canvas, document hierarchy, and state patterns here where the new image is silent.
+- Keep the project context stable as users move through conversation, proposal review, readiness, and documents.
 - Make empty, working, complete, and error states explain what happened and what the user can do next.
 - Recreate controls with the application's existing framework and local semantic HTML/CSS. Do not add `기존 공유 UI 라이브러리`, Agent Blueprint design tokens, or another component library for visual parity.
 - Preserve text contrast, visible focus, keyboard operation, reduced-motion preferences, and the specified mobile layout even where the capture does not show them.
