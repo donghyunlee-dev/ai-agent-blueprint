@@ -34,7 +34,7 @@
 | 22 | `SRC-PR-01` 파일 제한·추출 | 5단계 | merged (#24; merge `f169cf7da310dc446fdb02b7006817c65703ea12`; final head `8fa05f6b4032713c1d30c6bb0da2b7f706704233`; focused unit 13/13, Playwright 6/6, build, diff-check; review/QA pass) | [plan](SRC-PR-01/plan.md) · [tests](SRC-PR-01/test-results.md) |
 | 23 | `SRC-PR-02` 근거 연결 | 5단계 | merged (PR #26; merge `5a326055acc91b76ce33f3d5345579d5bffff3b0`) | [plan](SRC-PR-02/plan.md) |
 | 24 | `EXP-PR-01` 문서 복사·다운로드 | 5단계 | merged (#25; merge `aee5afddcdf32d4da7d46e1aebf260522670a780`) | [plan](EXP-PR-01/plan.md) · [tests](EXP-PR-01/test-results.md) |
-| 25 | `DEC-PR-01` 자료 수정·설정 가이드 완료 정책 | 5단계 | ready (documentation-only) | [plan](DEC-PR-01/plan.md) |
+| 25 | `DEC-PR-01` 자료 수정·설정 가이드 완료 정책 | 5단계 | ready_to_merge (PR #27; validation, independent review/QA and CI pass) | [plan](DEC-PR-01/plan.md) · [tests](DEC-PR-01/test-results.md) · [review](DEC-PR-01/review-notes.md) · [QA](DEC-PR-01/qa-report.md) |
 | 26 | `SRC-PR-03` 추출 결과 다운로드 | 5단계 | planned | [plan](SRC-PR-03/plan.md) |
 | 27 | `GDE-PR-01` 설정 가이드 | 5단계 | planned | [plan](GDE-PR-01/plan.md) |
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | planned | [plan](QLT-PR-01/plan.md) |
