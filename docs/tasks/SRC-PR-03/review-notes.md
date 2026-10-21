@@ -14,4 +14,5 @@
 - Reviewer: `blueprint-code-reviewer` agent
 - 결과: `fail` on `7a1ea7b6faac776250023281299330f71e8e3808`.
 - P2: 계획에 적힌 긴 파일명 다운로드와 두 viewport에서 source row/action 배치가 테스트되지 않았다.
-- 조치: UTF-8 filename을 suffix 포함 255 bytes로 codepoint 경계에서 제한했다. 200자 Unicode filename 다운로드와 두 viewport의 row/action geometry E2E를 추가했다. Unit 6/6, build, E2E 2/2 통과; 새 head 독립 재리뷰 대기.
+- 조치: UTF-8 filename을 suffix 포함 255 bytes로 codepoint 경계에서 제한했다. 200자 Unicode filename 다운로드와 두 viewport의 row/action geometry E2E를 추가했다. Unit 6/6, build, E2E 2/2 통과.
+- 재리뷰: `blueprint-code-reviewer` agent, 결과 `pass` on `40d283d27ebf85d6c24cb96432c48196a8a9faf1` (base `1ee6ff4f879389cefce1892b2cba5b8037c4ba39`). P1 URL cleanup 및 P2 긴 파일명 finding 해결, 추가 finding 없음.
