@@ -2,7 +2,7 @@
 
 ## Status
 
-`ready_to_merge`: independent code review and QA passed on implementation head 20264b0f911587426fa5cdfaeefb52d53060683e. Head 12b2023cfb3ae0253fca4f587b2b7d22e8afa2b0 adds only status and QA evidence documentation; the configured GitHub golden-eval check on that head has passed. Final independent review/QA refresh is being recorded on the documentation-only head. PR #29 remains draft until that refresh completes. Merge is not authorized.
+`ready_to_merge`: independent code review and QA passed on implementation head 20264b0f911587426fa5cdfaeefb52d53060683e. Final PR head 62e7deea18e72f2b2e1099ff6a1fe6f5c1b0e745 adds only documentation status/results; exact-head code review passed and GitHub golden-eval passed. QA evidence applies to the unchanged production code. PR #29 remains draft; merge is not authorized.
 
 ## Resolved findings
 
