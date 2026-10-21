@@ -23,15 +23,19 @@ SRC-PR-01은 텍스트 추출과 preview를 제공하고 원본 바이너리 장
 
 ## 연결 근거
 
-- 요구사항: `SRC-001`, `SRC-002`
-- Delivery 작업: `SRC-502`, `SRC-503`
-- 결정: `DEC-044`, `DEC-043`
-- 선행 PR: `SRC-PR-01`, `SRC-PR-02`, `DEC-PR-01`
+- 요구사항: `SRC-001` in `docs/product/03-requirements.md`.
+- Delivery 작업: `SRC-502` in `docs/delivery/05-sources-guides-export.md`. `SRC-503`/`SRC-002` 근거 연결은 SRC-PR-02에서 완료됐으며 이 PR 범위가 아니다.
+- 결정: `DEC-044` in `docs/product/10-decision-log.md`.
+- 데이터/UI 계약: `SourceDocument`와 `EvidenceRef` in `docs/product/05-data-spec.md`; `UI-FILE-001` in `docs/ui/05-home-projects-and-files.md`.
+- 선행 PR: SRC-PR-01 (#24, 파일 제한·추출), SRC-PR-02 (#26, 근거 연결), DEC-PR-01 (#27, 읽기 전용·외부 수정 정책). 모두 현재 `main`에 병합됐다.
+- 시각 참고: `docs/template/README.md`의 `image (17).png`를 파일 첨부 진입점의 정보 위계 참고로 사용한다. 이 이미지는 작업 공간 파일 행을 보여 주지 않으므로 구현 증거를 대체하지 않는다.
 
 ## Definition of Ready
 
-- `DEC-PR-01`이 병합되어 read-only 및 다운로드 정책이 기본 브랜치에 있음
-- SRC-PR-01의 기존 제한·추출 동작과 SRC-PR-02의 근거 보존 계약이 병합되어 있음
+- [x] SRC-PR-01 (#24), SRC-PR-02 (#26), DEC-PR-01 (#27)이 현재 기본 브랜치에 병합되어 있다.
+- [x] `SRC-001`/`SRC-502` 범위, `DEC-044` 읽기 전용 결정, SourceDocument/EvidenceRef 불변 경계와 관찰 가능한 정상·실패·경계 수용 기준이 확인됐다.
+- [x] UI-FILE-001, 데스크톱·모바일 동작, 키보드 접근성 및 최종 화면 증거 기준이 확인됐다.
+- [x] 데이터 schema/API 변경이 필요하지 않으며 미결정 제품 정책이 없다. 다운로드한 외부 수정본의 앱 재가져오기 동작은 이 PR에서 정의하지 않는다.
 
 ## 작업 흐름
 
@@ -58,10 +62,11 @@ Given 다운로드가 완료되면, then 다운로드 동작은 기존 source의
 
 ## 예상 변경 파일
 
-- Source file row / extracted text download action
-- source download helper and focused unit/contract tests
-- source upload browser tests for ready, unavailable, and no-mutation flows
-- 관련 UI 명세 및 acceptance evidence
+- `src/components/projects/SourceDocuments.tsx`의 ready source 행과 read-only preview/download action 및 직접 관련된 local style.
+- `src/features/sources/`의 다운로드 helper와 선언 파일(필요한 경우), helper unit/contract tests.
+- `tests/e2e/`의 SRC-PR-03 범위 브라우저 검증: ready 다운로드, non-ready 불가, 다운로드 전후 데이터 불변.
+- `docs/ui/05-home-projects-and-files.md`는 구현으로 기존 명세가 불완전하거나 부정확해지는 경우에만 필요한 범위로 갱신한다.
+- 최종 HEAD의 화면 캡처는 저장소에 커밋하지 않고 `.pr-artifacts/SRC-PR-03/` 또는 PR artifact에 둔다.
 
 ## 데이터/API 영향
 
@@ -71,33 +76,35 @@ Given 다운로드가 완료되면, then 다운로드 동작은 기존 source의
 
 ## 검증 계획
 
-- 다운로드된 Blob의 UTF-8 텍스트가 추출 결과와 byte-for-byte 일치
-- ready 전 상태에서는 다운로드 불가
-- 다운로드 동작 전후 source, hash, evidence와 design item이 불변
-- desktop/mobile에서 keyboard accessible action과 파일명 확인
-- focused tests, Playwright, production build, `git diff --check`
+- focused unit/contract tests: UTF-8 Blob 내용이 저장된 `extractedText`와 byte-for-byte 일치, 파일명 정제(경로 구분자/제어 문자/빈 이름), URL 생성·회수 실패 처리를 확인한다.
+- ready 상태만 다운로드 가능하며 queued/extracting/failed/unsupported 및 archived source에는 action이 없거나 비활성이고 파일이 생성되지 않는다.
+- Playwright Chromium: 실제 다운로드 파일명과 byte 내용을 확인하고 다운로드 전후 `SourceDocument`, `textHash`, `EvidenceRef`, 연결된 `DesignItem` snapshot이 동일함을 검증한다. 추출 결과 preview는 read-only여야 한다.
+- desktop 1440×900 및 mobile 390×844에서 다운로드 action의 키보드 조작, 접근 가능한 이름, visible focus, 긴 파일명과 행 배치를 확인한다.
+- `npm run build`와 `git diff --check`를 실행한다. OpenAI 요청은 필요하지 않다.
 
 ## UI 증거 계획
 
-- desktop 1440×900, mobile 390×844에서 source row와 다운로드 action 확인
-- ready, extracting/failed 상태에서 action 활성 여부 확인
-- download 후 preview 및 linked evidence가 변하지 않음을 확인
+- 최종 PR HEAD에서 `.pr-artifacts/SRC-PR-03/` 또는 PR artifact로 데스크톱 1440×900과 모바일 390×844 캡처를 첨부한다.
+- 각 viewport에서 ready 다운로드 action, non-ready(extracting 및 failed/unsupported 중 영향받는 상태) action 상태, 키보드 focus 상태를 캡처하거나 증거로 설명한다.
+- 다운로드 후 read-only preview와 linked evidence 화면이 그대로임을 같은 데이터와 viewport 흐름에서 확인한다. 캡처는 실제 검증 증거이며 template 참조 이미지를 대체물로 사용하지 않는다.
+- Agent Browser와 Playwright Chromium이 모두 사용 가능하면 둘 다 검증한다. Agent Browser를 쓸 수 없으면 tool catalog와 실행 파일 확인 결과를 기록하고 Playwright Chromium으로 동일 흐름을 검증한다.
 
 ## 코드 리뷰·QA 체크리스트
 
-- [ ] 원본 파일과 추출 결과 파일을 사용자가 구분할 수 있음
-- [ ] 비-ready source의 결과를 다운로드하지 못함
-- [ ] 파일명 정제가 경로 traversal / OS 구분자 입력을 차단함
-- [ ] 다운로드가 기존 source, hash, evidence와 design item을 변경하지 않음
-- [ ] desktop/mobile keyboard access와 focus state 검증
+- [x] 원본 파일과 추출 결과 파일을 사용자가 구분할 수 있음
+- [x] 비-ready source의 결과를 다운로드하지 못함
+- [x] 파일명 정제가 경로 traversal / OS 구분자 입력을 차단함
+- [x] 다운로드가 기존 source, hash, evidence와 design item을 변경하지 않음
+- [x] preview가 read-only이고 외부 수정본의 앱 재가져오기 동작을 임의로 추가하지 않음
+- [x] desktop 1440×900/mobile 390×844의 ready, non-ready, keyboard/focus 증거가 final HEAD에서 확인됨
 
 ## Done Checklist
 
-- [ ] 다운로드 정책 구현과 오류/경계 테스트 통과
-- [ ] 독립 코드 리뷰와 QA 통과
-- [ ] CI 필수 check 통과
-- [ ] final-head 증거와 traceability 갱신
+- [x] 다운로드 정책 구현과 오류/경계 테스트 통과
+- [x] 독립 코드 리뷰와 QA 통과
+- [x] CI 필수 check 통과
+- [x] final-head 증거와 traceability 갱신
 
 ## 상태
 
-planned. 구현 전 최신 기본 브랜치에서 `$pr-development-loop`를 수행한다.
+ready_to_merge. 긴 파일명과 두 viewport 검증을 포함해 구현자 자체 검증, 독립 리뷰·QA와 PR required checks가 통과했다. merge는 사용자가 전체 lifecycle을 요청하지 않아 대기한다.

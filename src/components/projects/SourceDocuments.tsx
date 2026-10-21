@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react';
 import type { BlueprintAggregate, SourceDocument } from '../../domain/blueprint/types.js';
 import { addSourceFiles, removeSource, retrySourceFile, sourceRemovalImpact } from '../../features/sources/source-upload-command.js';
 import { selectedFileForSourceResult } from '../../features/sources/source-file-correlation.js';
+import { canDownloadSourceResult, downloadSourceResult } from '../../features/sources/source-result-download.js';
 import { countActiveSources, MAX_ACTIVE_SOURCES, SOURCE_ERROR_MESSAGES, validateSourceFile } from '../../features/sources/source-validation.js';
 import type { ProjectRepository } from '../../infrastructure/storage/indexeddb-project-repository.js';
 import '../../styles/source-documents.css';
@@ -30,6 +31,7 @@ export function SourceDocuments({ aggregate, repository, onAggregate, beforeMuta
   const [message, setMessage] = useState(initialMessage);
   const [localRejected, setLocalRejected] = useState<{id:string;fileName:string;size:number;errorCode?:string}[]>([]);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState(false);
   const [removalTarget, setRemovalTarget] = useState<{ sourceId:string; impactCount:number } | null>(null);
   const [localOutcomes, setLocalOutcomes] = useState<Record<string, Partial<SourceDocument>>>({});
   const activeCount = countActiveSources(aggregate.sources);
@@ -120,6 +122,12 @@ export function SourceDocuments({ aggregate, repository, onAggregate, beforeMuta
     finally { setBusy(false); }
   }
 
+  function handleDownload(source: SourceDocument) {
+    setDownloadError(false);
+    try { downloadSourceResult(source); }
+    catch { setDownloadError(true); }
+  }
+
   return <section className="source-documents" aria-labelledby="source-documents-title">
     <div className="source-documents-heading"><div><h2 id="source-documents-title">참고 자료</h2><p>TXT, Markdown, 텍스트 PDF · 파일당 최대 10 MiB · 프로젝트당 최대 5개</p></div>
       <input ref={input} className="source-file-input" type="file" multiple accept=".txt,.md,.markdown,.pdf,text/plain,text/markdown,application/pdf" aria-label="참고 파일 추가" onChange={handleSelect} />
@@ -134,7 +142,7 @@ export function SourceDocuments({ aggregate, repository, onAggregate, beforeMuta
           {displaySource.errorCode ? <p className="source-error">{SOURCE_ERROR_MESSAGES[displaySource.errorCode] ?? SOURCE_ERROR_MESSAGES.EXTRACTION_FAILED}</p> : null}
           <p className="source-sensitive-notice">민감한 정보가 포함되어 있는지 확인하고, 공유 전에 필요한 내용을 제거해 주세요.</p>
         </div>
-        <div className="source-row-actions">{displaySource.errorCode === 'STORAGE_FAILED' && retryFiles.current.has(source.id) ? <button type="button" disabled={busy} onClick={() => void handleRetry(source.id)}>저장 다시 시도</button> : null}{displaySource.extractionStatus === 'ready' ? <button type="button" onClick={() => setPreviewId(previewId === source.id ? null : source.id)} aria-expanded={previewId === source.id}>{previewId === source.id ? '미리보기 닫기' : '미리보기'}</button> : null}<button type="button" disabled={busy} onClick={(event) => { removalTrigger.current = event.currentTarget; setMessage(''); setRemovalTarget({ sourceId:source.id, impactCount:sourceRemovalImpact(aggregate, source.id) }); }}>제거</button></div>
+        <div className="source-row-actions">{displaySource.errorCode === 'STORAGE_FAILED' && retryFiles.current.has(source.id) ? <button type="button" disabled={busy} onClick={() => void handleRetry(source.id)}>저장 다시 시도</button> : null}{displaySource.extractionStatus === 'ready' ? <button type="button" onClick={() => setPreviewId(previewId === source.id ? null : source.id)} aria-expanded={previewId === source.id}>{previewId === source.id ? '미리보기 닫기' : '미리보기'}</button> : null}{canDownloadSourceResult(displaySource) ? <button type="button" onClick={() => handleDownload(displaySource)}>추출 결과 다운로드</button> : null}<button type="button" disabled={busy} onClick={(event) => { removalTrigger.current = event.currentTarget; setMessage(''); setRemovalTarget({ sourceId:source.id, impactCount:sourceRemovalImpact(aggregate, source.id) }); }}>제거</button></div>
         {previewId === source.id ? <pre className="source-preview">{displaySource.extractedText}</pre> : null}
       </li>;
       })}
@@ -148,5 +156,6 @@ export function SourceDocuments({ aggregate, repository, onAggregate, beforeMuta
     </dialog> : null}
     {!aggregate.sources.length && !localRejected.length ? <p className="source-empty-state">아직 참고 자료가 없습니다. 자료를 추가하면 이 프로젝트에 저장됩니다.</p> : null}
     {message ? <p className="source-operation-message" role="status">{message}</p> : null}
+    {downloadError ? <p className="source-operation-message" role="alert">추출 결과 다운로드를 시작하지 못했습니다. 다시 시도해 주세요.</p> : null}
   </section>;
 }
