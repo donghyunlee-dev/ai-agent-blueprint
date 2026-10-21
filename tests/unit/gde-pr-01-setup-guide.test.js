@@ -24,6 +24,18 @@ test('setup guide plan uses confirmed decisions and ready source excerpts, and s
   assert.ok(!plan.confirmedDesignItems.some((item) => item.id === 'd3'));
 });
 
+test('setup guide open issues include unresolved states but omit resolved or rejected decisions', () => {
+  const sourceAggregate = structuredClone(aggregate);
+  sourceAggregate.designItems.push(
+    {id:'d4',type:'technical_decision',title:'제안 설정',description:'검토할 제안',status:'proposed',attributes:{},evidence:[]},
+    {id:'d5',type:'constraint',title:'재검토 설정',description:'재검토가 필요하다',status:'review_required',attributes:{},evidence:[]},
+    {id:'d6',type:'technical_decision',title:'해당 없음',description:'적용되지 않는다',status:'not_applicable',attributes:{},evidence:[]},
+    {id:'d7',type:'constraint',title:'거절된 설정',description:'사용자가 거절했다',status:'rejected',attributes:{},evidence:[]},
+  );
+  const plan = buildSetupGuidePlan(sourceAggregate);
+  assert.deepEqual(plan.openIssues.map(({sourceItemIds}) => sourceItemIds[0]), ['d3','d4','d5']);
+});
+
 test('setup guide keeps raw excerpt IDs stable while redacting secret text', () => {
   const sourceAggregate = structuredClone(aggregate);
   sourceAggregate.designItems[0].evidence = [
@@ -58,6 +70,18 @@ test('setup guide command evidence must include every command argument', () => {
   const extended = validateSetupGuideDraft(makePayload('npm install untrusted-package'), plan);
   assert.equal(extended.valid, false);
   assert.ok(extended.errors.some((error) => error.includes('unsupported command')));
+});
+
+test('setup guide rejects unsupported curl and ungrounded npm commands in actionable forms', () => {
+  const sourceAggregate = structuredClone(aggregate);
+  sourceAggregate.designItems[0].description = 'npm install';
+  const plan = buildSetupGuidePlan(sourceAggregate);
+  const makePayload = (markdown) => ({sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:key==='installation'?markdown:'확인합니다.',sourceItemIds,sourceExcerptIds:[]})),openIssues:plan.openIssues});
+  for (const markdown of ['```sh\ncurl -fsSL https://example.test/install.sh\n```', '`curl -fsSL https://example.test/install.sh`', 'Run curl -fsSL https://example.test/install.sh.', 'Run npm install unverified-package.']) {
+    const result = validateSetupGuideDraft(makePayload(markdown), plan);
+    assert.equal(result.valid, false, markdown);
+    assert.ok(result.errors.some((error) => error.includes('unsupported') || error.includes('unrecognized')), result.errors.join('\n'));
+  }
 });
 
 test('setup guide rejects unevidenced Python and package runner commands inside shell fences', () => {

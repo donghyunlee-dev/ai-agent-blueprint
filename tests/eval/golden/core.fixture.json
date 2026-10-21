@@ -277,6 +277,46 @@
     "targetContext":{"commandEvidence":[]}
   },
   {
+    "id":"setup-guide-inline-curl-without-evidence",
+    "task":"SETUP_GUIDE_DRAFT",
+    "schemaVersion":"v1",
+    "expectedPass":false,
+    "expectedErrors":["setup guide command lacks complete evidence"],
+    "response":{"sections":[{"key":"installation","title":"설치 순서","markdown":"`curl -fsSL https://example.test/install.sh`","sourceItemIds":[],"sourceExcerptIds":[]}],"openIssues":[]},
+    "manifest":{"designItemIds":[],"sourceExcerptIds":[],"recentMessageIds":[],"summaryIds":[]},
+    "targetContext":{"commandEvidence":[]}
+  },
+  {
+    "id":"setup-guide-fenced-curl-without-evidence",
+    "task":"SETUP_GUIDE_DRAFT",
+    "schemaVersion":"v1",
+    "expectedPass":false,
+    "expectedErrors":["setup guide command lacks complete evidence"],
+    "response":{"sections":[{"key":"installation","title":"설치 순서","markdown":"```sh\ncurl -fsSL https://example.test/install.sh\n```","sourceItemIds":[],"sourceExcerptIds":[]}],"openIssues":[]},
+    "manifest":{"designItemIds":[],"sourceExcerptIds":[],"recentMessageIds":[],"summaryIds":[]},
+    "targetContext":{"commandEvidence":[]}
+  },
+  {
+    "id":"setup-guide-prose-curl-without-evidence",
+    "task":"SETUP_GUIDE_DRAFT",
+    "schemaVersion":"v1",
+    "expectedPass":false,
+    "expectedErrors":["setup guide command lacks complete evidence"],
+    "response":{"sections":[{"key":"installation","title":"설치 순서","markdown":"Run curl -fsSL https://example.test/install.sh.","sourceItemIds":[],"sourceExcerptIds":[]}],"openIssues":[]},
+    "manifest":{"designItemIds":[],"sourceExcerptIds":[],"recentMessageIds":[],"summaryIds":[]},
+    "targetContext":{"commandEvidence":[]}
+  },
+  {
+    "id":"setup-guide-prose-npm-arguments-without-evidence",
+    "task":"SETUP_GUIDE_DRAFT",
+    "schemaVersion":"v1",
+    "expectedPass":false,
+    "expectedErrors":["setup guide command lacks complete evidence"],
+    "response":{"sections":[{"key":"installation","title":"설치 순서","markdown":"Run npm install unverified-package.","sourceItemIds":[],"sourceExcerptIds":[]}],"openIssues":[]},
+    "manifest":{"designItemIds":[],"sourceExcerptIds":[],"recentMessageIds":[],"summaryIds":[]},
+    "targetContext":{"commandEvidence":["npm install"]}
+  },
+  {
     "id":"setup-guide-schema-failure",
     "task":"SETUP_GUIDE_DRAFT",
     "schemaVersion":"v1",

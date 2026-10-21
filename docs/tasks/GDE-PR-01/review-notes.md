@@ -11,9 +11,11 @@
 - `sourceExcerptIds` are persisted and shown in a read-only inspection panel.
 - Runtime output and golden evaluation share deterministic English/Korean instruction detection. Matching text rejects the whole draft; the accepted policy may reject legitimate text that resembles an instruction.
 - Excerpt IDs are assigned against raw source excerpts before displayed text is redacted; desktop/mobile E2E verifies IDs, locations, and sanitized text stay aligned.
+- Command extraction/evidence checks are shared by runtime and golden evaluation across code fences, inline code, command-leading lines, and action phrases; ungrounded commands and unsupported executables are rejected.
+- Setup-guide open issues include only `proposed`, `deferred`, and `review_required`; `not_applicable` and `rejected` remain resolved or excluded.
 
 ## Review decision and correction
 
-The user selected **A**: keep the security contract in GDE-PR-01, detect English and Korean instruction patterns deterministically, and reject the whole draft on a match. False-positive rejection of legitimate text resembling an instruction is accepted.
+The user selected **A**: keep the security contract in GDE-PR-01, detect English and Korean instruction patterns deterministically, and reject the whole draft on a match. False-positive rejection of legitimate text resembling an instruction is accepted. The latest review also prompted shared command extraction/evidence validation and status-accurate open issues; both now have unit and golden coverage.
 
 The generated setup guide remains read-only in the application, per the accepted product decision.
