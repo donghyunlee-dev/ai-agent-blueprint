@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSessionState();
     setStatus("redirecting");
     try {
-      const response = await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+      const response = await fetch("/api/auth/session", { method: "POST", credentials: "same-origin" });
       if (!response.ok) throw new Error("LOGOUT_FAILED");
       window.location.replace("/login");
       return true;

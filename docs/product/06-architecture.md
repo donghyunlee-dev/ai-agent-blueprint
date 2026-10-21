@@ -122,7 +122,7 @@ src/
 └─ styles/
 ```
 
-서버 함수는 `api/auth/`에 login, callback, session, logout을 두고 공통 Google OAuth client와 세션 검증은 `api/_lib/`에 둔다. `/api/blueprint/*` handler는 같은 `requireSession` 경계를 사용한다.
+서버 함수는 `api/auth/`에 login, callback, session endpoint를 둔다. `GET /api/auth/session`은 현재 인증 상태를 반환하고, `POST /api/auth/session`은 same-origin 검증 후 로그아웃 cookie를 만료시킨다. 공통 Google OAuth client와 세션 검증은 `api/_lib/`에 둔다. `/api/blueprint/*` handler는 같은 `requireSession` 경계를 사용한다.
 
 도메인 기능은 `features/`에 두고, 여러 기능이 공유하는 상태 전이와 엔터티 규칙만 `domain/blueprint/`에 둔다. 페이지 컴포넌트는 데이터 조합과 레이아웃만 담당한다.
 

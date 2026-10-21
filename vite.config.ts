@@ -58,7 +58,6 @@ export default defineConfig(({ mode }) => {
                 "/api/auth/google/start": "api/auth/google/start.js",
                 "/api/auth/google/callback": "api/auth/google/callback.js",
                 "/api/auth/session": "api/auth/session.js",
-                "/api/auth/logout": "api/auth/logout.js",
               };
               const authPath = authHandlerPath[url.pathname];
               if (authPath) {
