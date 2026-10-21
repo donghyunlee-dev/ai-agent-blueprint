@@ -15,8 +15,49 @@ test('synthetic golden fixtures pass deterministic schema, reference, and forbid
 
 test('every task has a passing synthetic fixture without provider calls', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
-  assert.equal(fixtures.length, 13);
+  assert.equal(fixtures.length, 46);
   for (const fixture of fixtures) assert.deepEqual(evaluateGoldenFixture(fixture), { pass: true, errors: [] }, fixture.id);
+});
+
+test('setup guide golden fixtures exercise evidence, injection, schema, and source-reference rejection paths', async () => {
+  const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
+  const setupFixtures = fixtures.filter((fixture) => fixture.task === 'SETUP_GUIDE_DRAFT');
+  assert.deepEqual(setupFixtures.map(({id})=>id), [
+    'setup-guide-draft-evidence-and-open-issue-contract',
+    'setup-guide-missing-command-evidence',
+    'setup-guide-prompt-injection-output',
+    'setup-guide-prompt-injection-disregard-prior',
+    'setup-guide-prompt-injection-korean',
+    'setup-guide-inline-curl-without-evidence',
+    'setup-guide-fenced-curl-without-evidence',
+    'setup-guide-prose-curl-without-evidence',
+    'setup-guide-prose-npm-arguments-without-evidence',
+    'setup-guide-powershell-terraform-without-evidence',
+    'setup-guide-text-systemctl-without-evidence',
+    'setup-guide-prose-terraform-without-evidence',
+    'setup-guide-inline-sudo-npm-without-evidence',
+    'setup-guide-schema-failure',
+    'setup-guide-invalid-excerpt-reference',
+    'setup-guide-prose-unknown-plain-command',
+    'setup-guide-inline-unknown-plain-command',
+    'setup-guide-text-fence-unknown-plain-command',
+    'setup-guide-use-guide-as-reference-prose',
+    'setup-guide-run-process-after-review-prose',
+    'setup-guide-use-npm-as-package-manager-prose',
+    'setup-guide-npm-default-package-manager-prose',
+    'setup-guide-docker-selected-runtime-prose',
+    'setup-guide-npm-install-package-name-command',
+    'setup-guide-node-extensionless-script-without-full-evidence',
+    'setup-guide-python-extensionless-script-without-full-evidence',
+    'setup-guide-npm-ci-without-evidence',
+    'setup-guide-npm-ci-options-with-incomplete-evidence',
+    'setup-guide-docker-compose-with-incomplete-evidence',
+    'setup-guide-sudo--e-npm-ci-without-evidence',
+    'setup-guide-sudo--e-npm-ci-exact-evidence',
+    'setup-guide-sudo--u-root-npm-ci-without-evidence',
+    'setup-guide-sudo--u-root-npm-ci-exact-evidence',
+  ]);
+  for (const fixture of setupFixtures) assert.deepEqual(evaluateGoldenFixture(fixture), {pass:true,errors:[]}, fixture.id);
 });
 
 test('golden gate rejects invalid schema, unknown references, and model-authored confirmation outcomes', () => {

@@ -51,8 +51,8 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | DOC-004 | DOC-405 | 영향 미리보기와 항목별 제외, transaction | done (DOC-PR-04 #23 merge `1178050576338245d1b5bdbd913e3b19cff669df`, head `2b0497a5a693d09858dbf41f8bcec098cca85f58`; unit 5/5, Playwright 6/6 plus related browser contracts 4/4, build; independent review/QA pass) |
 | DOC-005 | DOC-406 | 선택 범위 patch | done (DOC-PR-03 #22 merge `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`, head `775ec6bd14ee1ec38e04768b205750cc870c7ad6`; tests 36/36, Playwright desktop/mobile 1/1 each, build; independent review/QA pass) |
 | DOC-006 | DOC-407 | 불일치 위치와 proposal | done (DOC-PR-03 #22 merge `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`, head `775ec6bd14ee1ec38e04768b205750cc870c7ad6`; tests 36/36, Playwright desktop/mobile 1/1 each, build; independent review/QA pass) |
-| DOC-007 | GDE-504 | 전체 생성, 근거 기반 명령·버전과 면책 문구, 사용자 승인 ready와 프로젝트 완료 guard | ready (GDE-PR-01 planned; implementation includes task/prompt/schema registration and golden eval coverage) |
-| SRC-001 | SRC-501, SRC-502, SRC-PR-03 | 형식·크기·개수·추출, 추출 결과 다운로드 | ready_to_merge (SRC-PR-01 merged PR #24; SRC-PR-03 PR #28 self-validation, independent review/QA and required checks pass) |
+| DOC-007 | GDE-504 | 전체 생성, 근거 기반 명령·버전과 면책 문구, 사용자 승인 ready와 프로젝트 완료 guard | in_progress (GDE-PR-01; base `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`) |
+| SRC-001 | SRC-501, SRC-502, SRC-PR-03 | 형식·크기·개수·추출, 추출 결과 다운로드 | done (SRC-PR-01 merged PR #24; SRC-PR-03 merged PR #28 `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`) |
 | SRC-002 | SRC-503 | 근거 preview와 제거 | done (SRC-PR-02 merged PR #26; merge `5a326055acc91b76ce33f3d5345579d5bffff3b0`; implementation, independent review and QA passed) |
 | EXP-001 | EXP-505 | 개별 복사·다운로드 | done (EXP-PR-01 merged PR #25; merge `aee5afddcdf32d4da7d46e1aebf260522670a780`) |
 | NFR-001 | FND-002, QLT-601 | 키보드, 이름, 대비 | ready |

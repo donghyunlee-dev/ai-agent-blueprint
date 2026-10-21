@@ -7,7 +7,7 @@ import { getSchemaDefinition, getSchemaDefinitionAtVersion } from '../../../src/
 
 test('all AI tasks resolve versioned prompt and JSON Schema definitions', () => {
   const registry = getPromptRegistry();
-  assert.equal(Object.keys(registry).length, 13);
+  assert.equal(Object.keys(registry).length, 14);
   for (const task of Object.keys(registry)) {
     const definition = getPromptDefinition(task);
     assert.ok(definition.systemTemplate.length > 20);

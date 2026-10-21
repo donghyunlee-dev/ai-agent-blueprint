@@ -1,6 +1,8 @@
 import { validateReferences } from './context-manifest.js';
 import { getSchemaDefinition } from './schema-registry.js';
 import { validateSchema } from './schemas/index.js';
+import { containsPromptInjectionInstruction } from './prompt-injection.js';
+import { validateSetupGuideCommandEvidence } from './setup-guide-output-validation.js';
 
 export function evaluateGoldenFixture(fixture) {
   const errors = [];
@@ -15,7 +17,20 @@ export function evaluateGoldenFixture(fixture) {
   const referenceResult = validateReferences(fixture.response, fixture.manifest, fixture.targetContext);
   errors.push(...referenceResult.errors);
   errors.push(...inspectProhibitedOutcomes(fixture.response, fixture.targetContext));
-  return { pass: errors.length === 0, errors };
+  errors.push(...inspectSetupGuideOutput(fixture));
+  const expectedPass=fixture.expectedPass!==false;
+  if(expectedPass&&errors.length===0)return {pass:true,errors:[]};
+  if(!expectedPass&&errors.length>0&&(fixture.expectedErrors??[]).every((expected)=>errors.some((error)=>error.includes(expected))))return {pass:true,errors:[]};
+  return { pass:false, errors:errors.length?errors:['fixture outcome did not match expectedPass'] };
+}
+
+function inspectSetupGuideOutput(fixture) {
+  if(fixture.task!=='SETUP_GUIDE_DRAFT')return [];
+  const errors=[];
+  const markdown=(fixture.response?.sections??[]).map((section)=>section.markdown??'').join('\n');
+  if(containsPromptInjectionInstruction(markdown))errors.push('setup guide contains prompt-injection instruction text');
+  for(const issue of validateSetupGuideCommandEvidence(markdown,fixture.targetContext?.commandEvidence??[]))errors.push(`setup guide command lacks complete evidence or uses unsupported executable: ${issue.command}`);
+  return errors;
 }
 
 export function inspectProhibitedOutcomes(response, targetContext = {}) {

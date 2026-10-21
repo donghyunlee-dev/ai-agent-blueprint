@@ -35,6 +35,14 @@ $10 단위의 선불 API 크레딧으로 여러 MVP 프로젝트를 반복할 �
 
 Plan 검증이 실패하면 draft를 호출하지 않는다. Requirements가 `ready`가 아니면 PRD 호출은 0회다.
 
+### 설정 가이드
+
+| 문서 | plan | draft | review/repair | 기본 API 호출 |
+| --- | --- | ---: | ---: | ---: |
+| 설정 가이드 | 코드 0회 | 1 DEFAULT | 없음 | 1 |
+
+설정 가이드는 confirmed 설계와 관련 source excerpt를 deterministic plan에 모은 뒤 한 번 작성한다. 승인과 ready 전환은 코드가 담당한다.
+
 ## 프로젝트 시나리오 예산
 
 | 시나리오 | 자유 분석 | LIGHT 보조 | 추천 | compaction | 문서 | 예상 총 호출 |

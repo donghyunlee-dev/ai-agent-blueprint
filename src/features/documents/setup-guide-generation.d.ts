@@ -1,0 +1,3 @@
+import type { BlueprintAggregate, GeneratedDocument, DocumentSection, GenerationJob } from '../../domain/blueprint/types.js';
+export function generateSetupGuide(args:{aggregate:BlueprintAggregate;runTask:(task:string,input:Record<string,unknown>)=>Promise<unknown>;logicalRequestId?:string;attemptId?:string;generationJobId?:string;now?:()=>string;idFactory?:()=>string}):Promise<{document:GeneratedDocument;sections:DocumentSection[];job:GenerationJob;plan:Record<string,unknown>;processStatus:string}>;
+export function commitSetupGuideResult(aggregate:BlueprintAggregate,result:{document:GeneratedDocument;sections:DocumentSection[];job:GenerationJob},currentRevision?:number):BlueprintAggregate;
