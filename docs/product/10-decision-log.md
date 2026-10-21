@@ -99,3 +99,9 @@ Google OAuth/OIDC가 유일한 로그인 방식이다. 별도 OTP 입력, Gmail 
 | --- | --- | --- |
 | DEC-044 | 앱에서 추출 결과는 읽기 전용이다. 사용자는 결과를 내려받아 외부에서 수정할 수 있다. 앱은 기존 source의 추출 텍스트와 근거를 편집으로 덮어쓰지 않는다. | 요구사항, 자료·가이드, 데이터, UI, 개발 계획 |
 | DEC-045 | 프로젝트를 `completed`로 전환하려면 설정 가이드가 존재하고 사용자가 승인해 `ready` 상태여야 한다. `draft`, `review_required`, `stale` 가이드는 완료 조건을 충족하지 않는다. | PRD, 요구사항, 프로세스, 데이터, 자료·가이드, UI, 개발 계획 |
+
+## 2026-10-22 화면 개편 시각 기준 결정
+
+| ID | 결정 | 반영 문서 |
+| --- | --- | --- |
+| DEC-046 | 현재 화면 개편은 `docs/blueprint-design/`의 화면별 시안을 주 시각 기준으로 사용한다. 시안에 없는 상태는 `docs/template/`을 보조 기준으로 사용한다. 시안에만 있는 기능은 범위에 추가하지 않는다. 이는 DEC-037과 DEC-039의 시각 참고 우선순위를 대체하며, 최종 HEAD 화면 증거와 semantic HTML/CSS 요구는 유지한다. | AGENTS, UI design, architecture, delivery plan, PR workflow |

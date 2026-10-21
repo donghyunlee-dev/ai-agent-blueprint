@@ -52,7 +52,7 @@
 
 - 연결된 P0/P1 수용 기준을 자동 테스트 또는 명시된 수동 검증으로 확인했다.
 - 로딩, 빈 상태, 오류, 재시도와 중복 실행을 확인했다.
-- UI 변경이면 `docs/template/README.md`의 관련 캡처를 확인하고 구현 근거를 작업 기록에 남겼다.
+- UI 변경이면 `docs/blueprint-design/README.md`의 관련 주 시안과 필요한 `docs/template/README.md` 상태 캡처를 확인하고 구현 근거를 작업 기록에 남겼다.
 - [상세 화면 설계](../ui/README.md)의 해당 `UI-*` 식별자와 필수 viewport·상태 증거를 충족했다.
 - semantic HTML/CSS와 기존 React 구조를 사용했고 새 UI design system dependency를 추가하지 않았다.
 - 키보드, 포커스, 이름·설명·오류 연결을 확인했다.

@@ -10,7 +10,7 @@ Google 로그인부터 프로젝트 시작과 PRD 생성까지 기능 간 전이
 - 인증 선행 단계는 홈과 모든 후속 단계보다 먼저 완료한다.
 - 인증 구현 전 Google Cloud OAuth client, consent screen, 정확한 환경별 callback URI와 서버 secret 설정을 준비한다.
 - 단계마다 동작 가능한 제품 상태를 유지한다.
-- UI 구현 전 `docs/template/README.md`에서 관련 화면 캡처와 상태를 확인한다.
+- UI 구현 전 `docs/blueprint-design/README.md`에서 관련 주 시안을 확인하고, 시안에 없는 상태는 `docs/template/README.md`에서 확인한다.
 - 프런트엔드 런타임과 screenshot 기준은 [UI 참고 이미지 통합 명세](09-ui-reference-integration.md)를 따른다.
 - Agent 출력은 strict schema로 검증하고 검증 실패 결과를 상태에 반영하지 않는다.
 - AI 구현은 [AI 오케스트레이션](12-ai-orchestration-and-model-policy.md), [프롬프트 계약](13-prompt-and-response-contracts.md), [AI 예산·평가](14-ai-budget-evaluation-and-operations.md)를 따른다.
@@ -78,7 +78,7 @@ Google OIDC로 사용자를 인증하고 Blueprint session, 보호 API와 사용
 
 - `react`와 `react-dom`을 `18.3.1`로 맞추고 대응하는 타입 패키지를 사용
 - 이전 UI 라이브러리 의존성과 import를 제거하고 Blueprint 소유 semantic HTML/CSS로 전환
-- `docs/template/README.md`의 관련 캡처를 화면 레이아웃과 시각 계층의 구현 근거로 연결
+- `docs/blueprint-design/README.md`의 관련 주 시안을 화면 레이아웃과 시각 계층의 구현 근거로 연결하고, 필요한 상태는 `docs/template/README.md`를 보조 근거로 연결
 - 접근성, keyboard operation, responsive behavior와 화면 상태 검증을 제품 UI 계약에 포함
 - 데이터 명세의 타입을 TypeScript 계약으로 정의
 - 질문 카탈로그의 필수 영역과 조건부 질문 목록 확정
@@ -95,7 +95,7 @@ Google OIDC로 사용자를 인증하고 Blueprint session, 보호 API와 사용
 
 - `npm ls react react-dom`에 React 18 계열이 하나만 존재함
 - 제품 코드와 package manifest에서 legacy shared UI dependency와 관련 integration이 제거됨
-- 적용 대상의 UI 화면이 관련 template 캡처를 참고해 구현되고 desktop/mobile 검증이 완료됨
+- 적용 대상의 UI 화면이 관련 Blueprint 시안을 주 기준으로 구현되고, 필요한 template 상태 참고와 desktop/mobile 검증이 완료됨
 - 모든 P0 요구사항이 타입 또는 테스트 가능한 행동과 연결됨
 - 상태 enum이 요구사항, 데이터와 API에서 동일함
 - 정상 응답, 충돌, 스키마 오류 예제가 준비됨

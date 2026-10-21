@@ -25,7 +25,7 @@ Current history uses short imperative messages such as `Initial commit` and `Add
 
 During the rebuild, invoke `$pr-development-loop` for code, documentation, UI, or repository configuration changes intended for a PR. Follow `docs/delivery/development-pr-review-qa-workflow.md`, implement one PR unit at a time from the latest `main`, and require self-validation, independent code review, and independent QA. The loop may merge only after every gate passes and the user requested the full PR lifecycle; otherwise stop at `ready_to_merge`. Do not start the next implementation unit until the current PR is verified merged.
 
-For visible UI work, read `docs/template/README.md`, use its mapped screenshots as visual references, and attach final-HEAD development screenshots to the PR for at least 1440×900 and 390×844, plus every affected loading, empty, error, validation, overlay, or completed state. Verify the same flow with Playwright Chromium and Agent Browser when both are available. If Agent Browser is unavailable in the current execution environment, record the tool-catalog and executable checks and use Playwright Chromium for the complete independent QA flow; its absence alone does not block QA. Keep implementation, code review, and QA in separate agent contexts.
+For visible UI work, read `docs/blueprint-design/README.md` and its mapped screenshots as the primary visual references. Read `docs/template/README.md` for states absent from the new designs. Attach final-HEAD development screenshots to the PR for at least 1440×900 and 390×844, plus every affected loading, empty, error, validation, overlay, or completed state. Verify the same flow with Playwright Chromium and Agent Browser when both are available. If Agent Browser is unavailable in the current execution environment, record the tool-catalog and executable checks and use Playwright Chromium for the complete independent QA flow; its absence alone does not block QA. Keep implementation, code review, and QA in separate agent contexts.
 
 ## Security & Configuration Tips
 Keep secrets such as `OPENAI_API_KEY` in local environment files only, never in tracked HTML or Markdown. Treat `.env` values, deployment tokens, and internal server details as non-committable data.
@@ -50,10 +50,10 @@ Keep secrets such as `OPENAI_API_KEY` in local environment files only, never in 
 
 ## UI 구현 규칙
 
-- 시각적 기준은 `docs/template/README.md`가 연결하는 `docs/template/` 캡처다.
+- 현재 화면 개편의 주 시각 기준은 `docs/blueprint-design/README.md`가 연결하는 시안이다. 시안에 없는 상태는 `docs/template/README.md`의 캡처를 보조 기준으로 사용한다.
 - 관련 캡처를 직접 확인하고 화면 명세의 동작·접근성 요구와 함께 적용한다.
 - 새 UI에 legacy external UI package나 외부 디자인 시스템을 추가하지 않는다.
-- `docs/template/` 캡처에 맞춰 제품 화면의 local CSS를 구현하고, 반복 값만 앱 범위의 CSS custom properties로 묶는다.
+- 현재 화면은 `docs/blueprint-design/` 시안의 정보 위계와 배치에 맞춰 local CSS로 구현하고, 반복 값만 앱 범위의 CSS custom properties로 묶는다.
 - 기존 프레임워크와 파일 구조를 유지하고 semantic HTML, 키보드 접근성과 반응형 동작을 구현한다.
 - 캡처 이미지를 제품 화면에 그대로 배경이나 합성물로 사용하지 않는다. 동작하는 인터페이스를 구현한다.
 
@@ -73,3 +73,4 @@ Keep secrets such as `OPENAI_API_KEY` in local environment files only, never in 
 | 2026-07-02 | Add conversational Blueprint delivery team | `AGENTS.md`, `.agents/skills/conversational-blueprint-workflow/`, `.codex/agents/` | Make the product redesign workflow reusable |
 | 2026-10-13 | Add Codex PR development loop, stage agents, and guarded hooks | `.agents/skills/pr-development-loop/`, `.codex/agents/`, `.codex/hooks.json` | Run implementation, review, QA, and authorized merge as a bounded loop |
 | 2026-10-13 | Replace Agent Blueprint UI guidance with template screenshot references | `AGENTS.md`, product and delivery UI guidance, `docs/template/README.md` | Make repository screenshots the visual source of truth |
+| 2026-10-22 | Prioritize Blueprint redesign screenshots for current UI work | `AGENTS.md`, product and delivery UI guidance, `docs/blueprint-design/README.md` | Align implementation references with the approved redesign |

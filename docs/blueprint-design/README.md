@@ -16,7 +16,7 @@
 | 홈·프로젝트 시작 | [윈드소프트 모던 SaaS 대시보드.png](./윈드소프트%20모던%20SaaS%20대시보드.png), [디자인 보드.png](./windsoft%20한국어%20SaaS%20UI%20디자인%20보드.png) 1번 | 지원 목적지의 간결한 탐색, 중앙 시작 입력, 최근 프로젝트 | [image (17).png](../template/image%20(17).png) |
 | 대화·질문 | [회의실 예약 서비스 UI 캔버스.png](./회의실%20예약%20서비스%20UI%20캔버스.png), 디자인 보드 5번 | 프로젝트 제목과 단계 위치, 넓은 대화 흐름, 현재 질문, 보조 요약, 접근 가능한 입력창 | [image (16).png](../template/image%20(16).png), [image (15).png](../template/image%20(15).png) |
 | 제안 검토·충돌 | [회의실 예약 서비스 제안 검토 대시보드.png](./회의실%20예약%20서비스%20제안%20검토%20대시보드.png), 디자인 보드 6번 | 제안별 행동, 근거, 처리 상태와 남은 수 | 기존 [제안·충돌 상태 계약](../ui/screens/03-proposal-and-conflict.md) |
-| 설계 준비 | [회의실 예약 서비스 설계 준비 대시보드.png](./회의실%20예약%20서비스%20설계%20준비%20대시보드.png), 디자인 보드 7번 | 상단 상태 설명과 5개 요약 카드에서 세부 영역 진입 | 기존 [10개 영역·상세 계약](../ui/screens/04-design-and-readiness.md) |
+| 설계 준비 | [회의실 예약 서비스 설계 준비 대시보드.png](./회의실%20예약%20서비스%20설계%20준비%20대시보드.png) | 상단 상태 설명과 5개 요약 카드에서 세부 영역 진입 | 기존 [10개 영역·상세 계약](../ui/screens/04-design-and-readiness.md) |
 | Requirements | [회의실 예약 서비스 요구사항 대시보드.png](./회의실%20예약%20서비스%20요구사항%20대시보드.png), 디자인 보드 8번 | 문서 상태, 목차, 섹션 요약·상세, 수정 행동 | [image (11).png](../template/image%20(11).png), [image (10).png](../template/image%20(10).png), [image (9).png](../template/image%20(9).png) |
 | PRD | [한국어 PRD 대시보드 화면.png](./한국어%20PRD%20대시보드%20화면.png), 디자인 보드 9번 | 문서 상태, 목차, 구조화된 섹션과 상세 | [image (14).png](../template/image%20(14).png), [image (12).png](../template/image%20(12).png), [image (13).png](../template/image%20(13).png) |
 
