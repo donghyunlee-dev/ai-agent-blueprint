@@ -24,7 +24,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--color-page) 0%, var(--color-page-alt) 100%);
+  background: var(--color-page);
   color: var(--color-text-strong);
 }
 
@@ -36,6 +36,11 @@ button,
 input,
 textarea {
   font: inherit;
+}
+
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 #root {
@@ -51,4 +56,16 @@ textarea {
 .reveal.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal {
+    opacity: 1;
+    transition: none;
+    transform: none;
+  }
 }
