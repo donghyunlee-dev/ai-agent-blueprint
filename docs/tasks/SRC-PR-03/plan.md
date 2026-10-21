@@ -107,4 +107,4 @@ Given 다운로드가 완료되면, then 다운로드 동작은 기존 source의
 
 ## 상태
 
-ready_to_merge. 수정된 코드의 자체 검증, 독립 코드 리뷰·QA와 PR required checks가 통과했다. merge는 사용자가 전체 lifecycle을 요청하지 않아 대기한다.
+fix_required. final-head review가 긴 파일명 다운로드와 행 배치 검증 누락을 지적해 보완 중이다.

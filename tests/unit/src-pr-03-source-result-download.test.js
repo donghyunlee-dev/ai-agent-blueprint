@@ -24,6 +24,12 @@ test('creates a safe filename with a distinct extracted-result suffix and final 
   assert.equal(createSourceResultFilename('quarter\u0000\r\nname.md'), 'quarter-name-extracted-result.txt');
 });
 
+test('caps UTF-8 filename length at 255 bytes while preserving the extracted-result suffix', () => {
+  const filename = createSourceResultFilename(`${'長'.repeat(200)}.md`);
+  assert.equal(filename, `${'長'.repeat(78)}-extracted-result.txt`);
+  assert.equal(new TextEncoder().encode(filename).length, 255);
+});
+
 test('downloads exact extracted text as UTF-8 text and releases URL and anchor', () => {
   const calls = [];
   const deferred = [];

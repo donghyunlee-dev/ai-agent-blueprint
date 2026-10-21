@@ -1,4 +1,6 @@
 const INVALID_FILENAME_CHARACTERS = /[\\/:<>"|?*\u0000-\u001f\u007f-\u009f]/g;
+const SOURCE_RESULT_SUFFIX = '-extracted-result.txt';
+const MAX_FILENAME_BYTES = 255;
 
 export function canDownloadSourceResult(source) {
   return Boolean(source
@@ -9,14 +11,25 @@ export function canDownloadSourceResult(source) {
 }
 
 export function createSourceResultFilename(fileName) {
-  const safeBase = String(fileName ?? '')
+  const normalizedBase = String(fileName ?? '')
     .normalize('NFC')
     .replace(INVALID_FILENAME_CHARACTERS, '-')
     .replace(/\.[^.]*$/, '')
     .replace(/[. ]+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^[.-]+|[.-]+$/g, '');
-  return `${safeBase || 'source'}-extracted-result.txt`;
+  const safeBase = normalizedBase || 'source';
+  const encoder = new TextEncoder();
+  const maxBaseBytes = MAX_FILENAME_BYTES - encoder.encode(SOURCE_RESULT_SUFFIX).length;
+  let baseBytes = 0;
+  let truncatedBase = '';
+  for (const character of safeBase) {
+    const characterBytes = encoder.encode(character).length;
+    if (baseBytes + characterBytes > maxBaseBytes) break;
+    truncatedBase += character;
+    baseBytes += characterBytes;
+  }
+  return `${truncatedBase || 'source'}${SOURCE_RESULT_SUFFIX}`;
 }
 
 export function downloadSourceResult(source, dependencies = {}) {

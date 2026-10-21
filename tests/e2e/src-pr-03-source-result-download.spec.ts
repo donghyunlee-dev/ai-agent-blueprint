@@ -8,13 +8,15 @@ const projectId = 'src-pr-03-project';
 const now = '2026-10-21T00:00:00.000Z';
 const sourceId = 'ready-policy';
 const extractedText = '예약 취소 정책\n추출된 내용은 그대로 내려받습니다.';
+const longFileName = `${'長'.repeat(200)}.md`;
+const longExtractedText = '긴 파일 이름 자료의 추출 결과입니다.';
 
 async function seed(page: any) {
   await page.route('**/api/auth/session', (route: any) => route.fulfill({ status: 200, json: { authenticated: true, user: identity } }));
   const ownerKey = await deriveOwnerKey(identity);
   const databaseName = databaseNameForOwner(ownerKey);
   await page.goto('/');
-  await page.evaluate(async ({ databaseName, ownerKey, projectId, now, sourceId, extractedText }: any) => {
+  await page.evaluate(async ({ databaseName, ownerKey, projectId, now, sourceId, extractedText, longFileName, longExtractedText }: any) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(databaseName, 1);
       request.onupgradeneeded = () => { const value = request.result; value.createObjectStore('projects', { keyPath: 'id' }); const activities = value.createObjectStore('activities', { keyPath: ['projectId', 'id'] }); activities.createIndex('projectId', 'projectId', { unique: false }); };
@@ -22,12 +24,12 @@ async function seed(page: any) {
     });
     const project = { id: projectId, ownerKey, schemaVersion: 1, title: '추출 결과 다운로드', status: 'active', activeDocumentType: 'design', activeThreadId: 'thread', processState: 'intake', designRevision: 1, readiness: { state: 'insufficient', areas: [], pendingProposalCount: 0, conflictCount: 0 }, createdAt: now, updatedAt: now, lastOpenedAt: now };
     const source = { id: sourceId, projectId, fileName: '../../예약\u0000정책.md', mediaType: 'text/markdown', size: extractedText.length, extractionStatus: 'ready', extractedText, preview: extractedText.slice(0, 1200), textHash: 'sha256-original', createdAt: now };
-    const sources = [source, { ...source, id: 'queued-source', fileName: 'queued.txt', extractionStatus: 'queued', extractedText: undefined }, { ...source, id: 'extracting-source', fileName: 'working.txt', extractionStatus: 'extracting', extractedText: undefined }, { ...source, id: 'failed-source', fileName: 'failed.txt', extractionStatus: 'failed', extractedText: undefined }, { ...source, id: 'unsupported-source', fileName: 'unsupported.txt', extractionStatus: 'unsupported', extractedText: undefined }, { ...source, id: 'empty-source', fileName: 'empty.txt', extractedText: '  ' }, { ...source, id: 'archived-source', fileName: 'archived.txt', archivedAt: now }];
+    const sources = [source, { ...source, id: 'long-filename-source', fileName: longFileName, size: longExtractedText.length, extractedText: longExtractedText, preview: longExtractedText, textHash: 'sha256-long' }, { ...source, id: 'queued-source', fileName: 'queued.txt', extractionStatus: 'queued', extractedText: undefined }, { ...source, id: 'extracting-source', fileName: 'working.txt', extractionStatus: 'extracting', extractedText: undefined }, { ...source, id: 'failed-source', fileName: 'failed.txt', extractionStatus: 'failed', extractedText: undefined }, { ...source, id: 'unsupported-source', fileName: 'unsupported.txt', extractionStatus: 'unsupported', extractedText: undefined }, { ...source, id: 'empty-source', fileName: 'empty.txt', extractedText: '  ' }, { ...source, id: 'archived-source', fileName: 'archived.txt', archivedAt: now }];
     const reference = { id: 'evidence-one', sourceType: 'file', sourceId, excerpt: '예약 취소 정책', location: '1행', createdAt: now };
     const aggregate = { project, thread: { id: 'thread', projectId, title: project.title, status: 'active', createdAt: now, updatedAt: now }, messages: [{ id: 'message', threadId: 'thread', logicalRequestId: 'request', role: 'user', kind: 'text', content: '정책을 참고합니다.', createdAt: now }], answers: [], sources, designItems: [{ id: 'item', projectId, type: 'constraint', title: '취소 정책', description: '정책 확인', status: 'confirmed', attributes: {}, evidence: [reference], acceptanceCriteria: [], relatedItemIds: [], createdAt: now, updatedAt: now, confirmedAt: now }], proposals: [], documents: [], sections: [], generationJobs: [], requestLedgerEntries: [], contextManifests: [], activityEntries: [] };
     const tx = db.transaction(['projects', 'activities'], 'readwrite'); tx.objectStore('projects').put({ id: projectId, schemaVersion: 1, ...aggregate });
     await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); db.close();
-  }, { databaseName, ownerKey, projectId, now, sourceId, extractedText });
+  }, { databaseName, ownerKey, projectId, now, sourceId, extractedText, longFileName, longExtractedText });
   return databaseName;
 }
 
@@ -74,6 +76,29 @@ test('downloads the ready extracted text read-only with safe filename and access
   const before = await storedAggregate(page, databaseName);
   const outputDir = testInfo.outputPath('artifacts');
   await mkdir(outputDir, { recursive: true });
+  const longRow = page.locator('.source-row').filter({ hasText: '長'.repeat(200) });
+  await longRow.scrollIntoViewIfNeeded();
+  const viewport = page.viewportSize()!;
+  const longRowBox = await longRow.boundingBox();
+  const longDownloadButton = longRow.getByRole('button', { name: '추출 결과 다운로드' });
+  const longDownloadBox = await longDownloadButton.boundingBox();
+  expect(longRowBox).not.toBeNull();
+  expect(longDownloadBox).not.toBeNull();
+  expect(longRowBox!.x).toBeGreaterThanOrEqual(0);
+  expect(longRowBox!.x + longRowBox!.width).toBeLessThanOrEqual(viewport.width);
+  expect(longRowBox!.y).toBeGreaterThanOrEqual(0);
+  expect(longRowBox!.y + longRowBox!.height).toBeLessThanOrEqual(viewport.height);
+  expect(longDownloadBox!.x).toBeGreaterThanOrEqual(0);
+  expect(longDownloadBox!.x + longDownloadBox!.width).toBeLessThanOrEqual(viewport.width);
+  expect(longDownloadBox!.y).toBeGreaterThanOrEqual(0);
+  expect(longDownloadBox!.y + longDownloadBox!.height).toBeLessThanOrEqual(viewport.height);
+  const longDownloadPromise = page.waitForEvent('download');
+  await longDownloadButton.click();
+  const longDownload = await longDownloadPromise;
+  expect(longDownload.suggestedFilename()).toBe(`${'長'.repeat(78)}-extracted-result.txt`);
+  expect(Buffer.byteLength(longDownload.suggestedFilename(), 'utf8')).toBe(255);
+  expect(await downloadBytes(longDownload)).toEqual(Buffer.from(longExtractedText, 'utf8'));
+  await readyRow.scrollIntoViewIfNeeded();
   await downloadButton.focus();
   await expect(downloadButton).toBeFocused();
   const outlineWidth = await downloadButton.evaluate((element) => getComputedStyle(element).outlineWidth);

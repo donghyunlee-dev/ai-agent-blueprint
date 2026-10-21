@@ -1,8 +1,8 @@
 # SRC-PR-03 독립 QA
 
-- 결과: `pass`
+- 이전 head 결과: `pass`, 현재 코드 변경 전의 기록이며 긴 파일명 추가 후 재QA 대기.
 - QA reviewer: `blueprint-qa-reviewer` agent
-- 검증 대상: base `1ee6ff4f879389cefce1892b2cba5b8037c4ba39`, PR HEAD `237ee080a0418115830096999c79fa208fb446e9`.
+- 이전 검증 대상: base `1ee6ff4f879389cefce1892b2cba5b8037c4ba39`, PR HEAD `237ee080a0418115830096999c79fa208fb446e9`. 긴 파일명 후속 변경 전의 기록이며 새 head QA가 필요하다.
 - 환경: Playwright Chromium, 데스크톱 1440×900과 모바일 390×844. Agent Browser tool 및 `agent-browser` 실행 파일은 사용할 수 없어 Playwright로 동일 범위를 검증했다.
 
 ## 실행 증거
@@ -15,4 +15,4 @@
 - 최종 viewport 캡처 `.pr-artifacts/SRC-PR-03/desktop-1440x900.png`, `mobile-390x844.png`를 확인했다. 모바일 다운로드 action이 source row 안에 보인다.
 - template reference `docs/template/image (17).png`는 파일 진입점의 위계를 참고하는 데 사용했고 실제 source row 검증을 대신하지 않았다.
 
-수정 finding은 없었다. 본 QA는 production AI/API 호출을 사용하지 않았다.
+해당 당시 head에서는 수정 finding이 없었다. 본 QA는 production AI/API 호출을 사용하지 않았다.
