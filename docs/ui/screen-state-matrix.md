@@ -2,9 +2,9 @@
 
 ## 목적
 
-라우트 수와 관계없이 사용자 여정의 각 시점에 어떤 화면 조합이 나타나는지 고정한다. 하나의 상태를 캡처했을 때 표시·비표시 영역과 주요 행동을 판정할 수 있어야 한다.
+라우트 수와 관계없이 사용자 여정의 각 시점에 어떤 단계와 주·보조 영역이 나타나는지 고정한다. 로그인/홈을 제외한 프로젝트 Frame은 공통 프레임과 `대화 → 제안 검토 → 설계 → Requirements → PRD`의 현재 위치를 보여준다. 보조 영역은 단계에 필요한 경우에만 표시한다. 시각 기준은 [개편 시안 매핑](../blueprint-design/README.md)이다.
 
-| Frame | 경로/도메인 상태 | 대화 | 중앙 | 상세/오버레이 | 주요 행동 | 성공 후 |
+| Frame | 경로/도메인 상태 | 현재 단계 | 주 영역 | 보조/오버레이 | 주요 행동 | 성공 후 |
 | --- | --- | --- | --- | --- | --- | --- |
 | `F-AUTH-CHECK` | 모든 최초 진입, session checking | 없음 | 인증 확인 loading | 없음 | 없음 | login/home/returnTo |
 | `F-LOGIN` | `/login`, unauthenticated | 없음 | 제품 소개 + Google 로그인 | 없음 | Google로 계속 | Google OAuth callback |
@@ -14,22 +14,22 @@
 | `F-HOME-EMPTY` | `/`, 프로젝트 0 | 없음 | 홈 시작 composer | 없음 | Blueprint 시작 | 신규 프로젝트 |
 | `F-HOME-RECENT` | `/`, 프로젝트 1~20 | 없음 | 시작 + 최근 목록 | 없음 | 계속하기/새로 시작 | 선택 workspace |
 | `F-PROJECT-LIMIT` | 21번째 생성 | 없음 | 홈 dim | 삭제 확인 Modal | 삭제하고 만들기 | 신규 workspace |
-| `F-INTAKE` | `intake` | 첫 입력 기록 | 설계 빈 상태 | AI 데이터 안내 1회 | 확인하고 분석 | extracting |
-| `F-EXTRACTING` | `extracting` | 단계 상태 | 빈/기존 설계 유지 | 없음 | 중단 | proposal_review/error |
-| `F-PROPOSAL` | `proposal_review` | 답변 + 제안 수 | 설계 항목 후보 | 제안 Inspector | 승인/수정/거절 | 다음 제안/질문 |
-| `F-DISCOVERY` | `discovering` | 현재 QuestionCard | 설계 개요 | 선택 항목 Inspector | 답변 제출 | proposal/extracting |
-| `F-CONFLICT` | `conflict_review` | 충돌 안내 | 기존 설계 유지 | Diff Drawer | 값 선택 | discovering |
-| `F-DESIGN-WORKABLE` | 설계 workable | 질문 계속 가능 | 준비 상태 + 항목 | 선택 상세 | 질문 계속/요구사항 생성 | document generation |
-| `F-REQ-GENERATING` | requirements generating | 유지 | 기존/빈 문서 + 단계 | 없음 | 중단 가능 여부 | req draft/error |
-| `F-REQ-DRAFT` | requirements draft | 유지 | 목차 + 문서 | issue Inspector | 편집/AI 보완/검토 | ready 후보 |
-| `F-REQ-READY` | requirements ready | 유지 | ready 문서 | 없음 | PRD 생성 | PRD generating |
-| `F-PRD-LOCKED` | requirements not ready | 유지 | 잠금 안내 | 없음 | Requirements 검토 | req draft |
-| `F-PRD-DRAFT` | PRD draft | 유지 | 목차 + 문서 | issue Inspector | 편집/검토 | PRD ready |
-| `F-DOC-IMPACT` | dirty section save | 유지 | 편집 배경 유지 | 영향 미리보기 Modal | 확인하고 저장 | stale 계산 |
-| `F-DOC-STALE` | design revision 변경 | 유지 | 읽기 가능 + warning | 영향 섹션 | 갱신 검토 | patch/regenerate |
-| `F-GUIDE-DRAFT` | guide draft | 유지 | 설정 가이드 문서 | 없음 | 승인/복사 | approved/export |
-| `F-AI-ERROR` | turn/generate 실패 | 입력 유지 | 기존 결과 유지 | 지역 Alert | 다시 시도 | 원래 흐름 |
-| `F-SAVE-ERROR` | IndexedDB 실패 | 그대로 | 그대로 | AppBar error | 다시 시도 | 저장됨 |
+| `F-INTAKE` | `intake` | 대화 | 첫 입력·현재 질문 | AI 데이터 안내 1회 | 확인하고 분석 | extracting |
+| `F-EXTRACTING` | `extracting` | 대화 | 입력·기존 답변·실제 처리 상태 | 요약 유지 | 중단 가능 여부 | proposal_review/error |
+| `F-PROPOSAL` | `proposal_review` | 제안 검토 | 미처리 제안·근거·행동 | 확정 내용·남은 수 | 승인/수정/거절 | 다음 제안/질문 |
+| `F-DISCOVERY` | `discovering` | 대화 | 메시지·현재 QuestionCard·composer | 확정·미결정 요약 | 답변 제출 | proposal/extracting |
+| `F-CONFLICT` | `conflict_review` | 제안 검토 | 기존 설계와 제안 비교 | Diff Drawer/Modal | 값 선택 | proposal/discovering |
+| `F-DESIGN-WORKABLE` | 설계 workable | 설계 | 5개 요약→원본 10개 영역·항목 | 선택 상세와 blocker | 질문 계속/Requirements 생성 | document generation |
+| `F-REQ-GENERATING` | requirements generating | Requirements | 기존/빈 문서 + 실제 상태 | 목차·기존 내용 유지 | 중단 가능 여부 | req draft/error |
+| `F-REQ-DRAFT` | requirements draft | Requirements | 목차·섹션 요약/본문 | 문제 상세 | 편집/AI 보완/검토 | ready 후보 |
+| `F-REQ-READY` | requirements ready | Requirements | ready 문서 | 상태·문서 행동 | PRD 생성 | PRD generating |
+| `F-PRD-LOCKED` | requirements not ready | PRD | 잠금 이유와 이동 행동 | 없음 | Requirements 검토 | req draft |
+| `F-PRD-DRAFT` | PRD draft | PRD | 목차·섹션 요약/본문 | 문제 상세 | 편집/검토 | PRD ready |
+| `F-DOC-IMPACT` | dirty section save | 현재 문서 | 편집 원문 유지 | 영향 미리보기 Modal | 확인하고 저장 | stale 계산 |
+| `F-DOC-STALE` | design revision 변경 | 현재 문서 | 읽기 가능 + warning | 영향 섹션 | 갱신 검토 | patch/regenerate |
+| `F-GUIDE-DRAFT` | guide draft | PRD 이후 산출물 | 설정 가이드 문서 | 상태·복사 | 승인/복사 | approved/export |
+| `F-AI-ERROR` | turn/generate 실패 | 발생 단계 유지 | 기존 입력·결과 유지 | 지역 Alert | 다시 시도 | 원래 흐름 |
+| `F-SAVE-ERROR` | 저장 실패 | 발생 단계 유지 | 미저장 입력 유지 | 프레임 저장 오류 | 다시 시도 | 저장됨 |
 | `F-404` | 이전/알 수 없는 경로 | 없음 | 404 EmptyState | 없음 | 새 Blueprint 시작 | 홈/new |
 
 ## Frame 공통 판정
@@ -38,7 +38,7 @@
 
 - project title과 현재 revision
 - 대화 메시지 수, 현재 질문과 미처리 제안 수
-- 중앙 탭, 문서 상태와 선택 section/item
+- 현재 단계, 문서 상태와 선택 section/item
 - 저장 상태, Agent 상태와 파일 상태
 - viewport와 열린 overlay
 - 기대 initial focus와 다음 주요 행동
@@ -61,6 +61,6 @@
 
 - `f-discovery--desktop-wide--light`
 - `f-proposal--mobile--light`
-- `f-doc-stale--desktop-min--dark`
+- `f-doc-stale--desktop-min--light`
 
-P0 Frame은 light 전체와 dark 대표 6개(`LOGIN`, `HOME`, `DISCOVERY`, `PROPOSAL`, `REQ-DRAFT`, `AI-ERROR`)를 검수한다.
+P0 Frame의 밝은 화면과 변경된 오류·빈·완료 상태를 검수한다. 어두운 테마의 새 구현은 이번 개편 범위에 포함되지 않는다.

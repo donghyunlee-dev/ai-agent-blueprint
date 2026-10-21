@@ -1,5 +1,7 @@
 # 생성·준비 완료·오류 상태
 
+이 Frame들은 [Blueprint 새 시안](../../blueprint-design/README.md)에 없는 상태의 fallback이다. 각 상태는 현재 `Requirements`/`PRD`/대화 단계 안에서만 나타나며 공통 프레임과 사용자 입력을 유지한다.
+
 ## F-REQ-GENERATING
 
 기존 문서가 없으면 DocumentWorkspace 골격과 생성 상태를, 기존 문서가 있으면 기존 문서 위 header 아래에 생성 상태를 표시한다.
@@ -13,7 +15,7 @@ Requirements                     생성 중 · rev.12
 • 수용 기준 연결하기
 • 정합성 확인하기
 
-대화와 설계는 계속 볼 수 있습니다.              [중단]
+다른 단계는 그대로 접근할 수 있습니다.          [중단 가능 여부]
 ```
 
 - 단계는 `pending/current/done`만 사용한다.
@@ -95,7 +97,7 @@ AppBar: 저장 실패 [다시 시도]
 
 ## Mobile
 
-- 생성과 오류 상태는 현재 작업 모드 상단에 표시하고 composer를 가리지 않는다.
+- 생성과 오류 상태는 현재 단계의 주 영역에 표시하고 대화 composer를 가리지 않는다.
 - AppBar 공간이 부족하면 `저장 실패` 전체 문구를 유지하고 마지막 저장 시간은 tooltip/상세로 이동한다.
 - stale 영향 목록은 Drawer로 열고 닫은 뒤 `영향 보기` trigger로 복귀한다.
 

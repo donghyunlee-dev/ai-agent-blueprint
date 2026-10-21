@@ -14,7 +14,7 @@ Blueprint는 주로 하나의 작업 공간 라우트에서 동작하지만 다�
 - 모바일에서 탭, Drawer 또는 Modal로 독립 전환된다.
 - 단독 캡처와 수용 기준으로 검수할 수 있다.
 
-따라서 `/blueprints/:projectId` 한 라우트는 `Shell`, `Conversation`, `QuestionForm`, `DesignBoard`, `Inspector`, `DocumentWorkspace`, `Overlay`의 부분 화면으로 나눈다.
+따라서 `/blueprints/:projectId`와 문서 하위 경로는 공통 `Shell` 위에 `Conversation`, `ProposalReview`, `DesignBoard`, `DocumentWorkspace` 단계를 보여준다. `QuestionForm`, 요약, Inspector, 목차와 Overlay는 해당 단계의 부분 화면이다. 모든 단계를 고정 3패널로 조립하지 않는다.
 
 `/login`은 제품 홈보다 먼저 나타나는 독립 화면이며 자체 확인 중, 기본, redirect, 오류와 만료 상태를 가진다.
 
@@ -38,12 +38,12 @@ Blueprint는 주로 하나의 작업 공간 라우트에서 동작하지만 다�
 충돌 시 아래 순서로 판단한다.
 
 1. 확정된 제품 결정과 접근성 요구사항
-2. 이 디렉터리의 화면별 위치·상태 계약
-3. [`docs/template/README.md`](../template/README.md)의 관련 screenshot reference
-4. 기존 React 구조와 semantic HTML/CSS
-5. 구현 편의
+2. [Blueprint 개편 시안 매핑](../blueprint-design/README.md)과 이 디렉터리의 현재 단계·상태 계약
+3. 해당 `docs/blueprint-design/` 이미지의 배치·밀도·위계
+4. 새 시안에 없는 상태를 위한 [`docs/template/README.md`](../template/README.md)의 관련 캡처
+5. 기존 React 구조와 semantic HTML/CSS
 
-참고 이미지는 완성 화면을 그대로 복제하라는 지시가 아니라 화면 위계와 배치를 설명하는 근거다. Blueprint 도메인 상태와 접근성 계약을 유지한다.
+참고 이미지는 화면 위계와 배치를 설명하는 근거다. 시안에만 있는 메뉴·데이터·기능은 구현하지 않으며 Blueprint 도메인 상태와 접근성 계약을 유지한다.
 
 ## 화면 명세 공통 항목
 
@@ -52,7 +52,7 @@ Blueprint는 주로 하나의 작업 공간 라우트에서 동작하지만 다�
 - `UI-*` 식별자와 사용자 목표
 - 상위 영역과 화면 내 위치
 - 너비·높이·내부 여백·요소 간격
-- 참고한 template image와 관찰한 화면 패턴
+- 참고한 blueprint-design 이미지와 필요한 template 상태 fallback
 - local CSS custom property와 레이아웃 값
 - 기본·hover·focus·selected·disabled·loading·error·empty 상태
 - 키보드와 포커스 이동
@@ -70,6 +70,8 @@ Blueprint는 주로 하나의 작업 공간 라우트에서 동작하지만 다�
 | `UI-DES-*`, `UI-INS-*`, `UI-PROP-*` | `DSG-301`~`DSG-307` |
 | `UI-DOC-*`, `UI-GDE-*` | `DOC-401`~`DOC-407`, `GDE-504`, `EXP-505` |
 | 오버레이·반응형·시각 QA | `QLT-601`~`QLT-607` |
+
+개편 구현의 화면별 소유권은 [UIR-PR-01~06 계획](../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md)을 따른다. 이 PR에서는 문서 계약만 정렬하고 공통 CSS는 UIR-PR-02부터 구현한다.
 
 개발 PR은 연결된 `UI-*` 식별자를 적고 [시각 QA](07-visual-acceptance.md)의 필수 증거를 첨부한다.
 

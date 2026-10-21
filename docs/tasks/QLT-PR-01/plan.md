@@ -13,7 +13,7 @@
 ### 포함
 
 - `QLT-601` 접근성: landmark/heading, 폼 label 연결, Drawer/Modal focus trap, live region, WCAG AA 대비, reduced motion
-- `QLT-602` 반응형: 모바일 360×800/390×844, 태블릿 768×1024, 데스크톱 1280×800/1440×900 5개 viewport 전체 화면 레이아웃 검증
+- `QLT-602` 반응형: 390×844, 768×1024, 1024×768, 1280×800, 1440×900의 5개 기준 viewport와 360×800 경계 확인
 - `QLT-603` 성능: 초기 앱 셸 인터랙티브 2.5초 목표, 긴 대화/문서 렌더링, 10MB 파일 추출, 자동 저장 중 입력 응답성
 
 ### 제외
@@ -28,19 +28,19 @@
 - Delivery 작업: `docs/delivery/06-quality-and-release.md` QLT-601, QLT-602, QLT-603
 - 결정: 없음(신규 결정 불필요, 기존 화면 명세를 그대로 검증)
 - 화면 설계: `docs/ui/06-overlays-responsive-and-states.md`, `docs/ui/07-visual-acceptance.md`, `docs/ui/screen-state-matrix.md`
-- 선행 PR: 인증 선행~`DOC-PR-04`, `SRC-PR-02`, `EXP-PR-01`(0~5단계 전체 화면이 존재해야 함)
+- 선행 PR: 기존 인증·문서·자료 흐름과 `UIR-PR-01`~`UIR-PR-06`이 모두 병합돼 새 화면이 존재해야 함
 - 차단 gate: `NFR-002`의 지원 브라우저 범위는 `docs/delivery/traceability.md` 기준 아직 미결정 — 이 결정이 나기 전에는 "지원 브라우저" 항목만 `blocked`로 남기고 나머지(viewport/키보드/성능)는 진행한다.
 
 ## 선행 조건 (Definition of Ready)
 
-- 0~5단계에 속한 모든 PR 단위가 사용자에 의해 머지됨
+- 0~5단계와 `UIR-PR-01`~`UIR-PR-06`이 병합됨
 - `docs/ui/screen-state-matrix.md`의 상태 fixture가 실제 화면과 어긋나지 않음
 - 브라우저 지원 범위 결정(`NFR-002`)이 완료되거나, 완료 전까지는 Chromium 계열만 기준으로 진행하기로 별도 합의됨
 
 ## 작업 단위별 구현 개요
 
 1. **QLT-601 접근성 감사**: 기존 화면(로그인, 홈, 작업 셸, 대화, 설계 보드, 문서, 파일) 각각에 대해 landmark 순서, heading 위계, 폼 label/description/error 연결, Radio/Checkbox 실제 의미, Drawer/Modal focus trap과 close 시 focus 복귀, live region 알림, 대비, reduced motion을 점검하고 결함을 수정한다.
-2. **QLT-602 반응형 감사**: `docs/ui/06-overlays-responsive-and-states.md`의 반응형 상태표(AppBar/Conversation/Work surface/Inspector/ToC/Question options/Diff/Requirement table)를 5개 viewport에서 실제로 확인하고, 브레이크포인트 전환 시 현재 입력·선택·스크롤 위치가 초기화되지 않는지 검증한다.
+2. **QLT-602 반응형 감사**: `docs/ui/06-overlays-responsive-and-states.md`의 단계별 주·보조 영역, 목차, 질문 옵션, 비교, 요구사항 목록을 5개 기준 viewport에서 확인하고, 브레이크포인트 전환 시 현재 입력·선택·스크롤 위치가 초기화되지 않는지 검증한다.
 3. **QLT-603 성능 측정**: 앱 셸 TTI, 긴 대화/문서 렌더링, 10MB 파일 검증·추출, 자동 저장 중 타이핑 응답성을 측정하고 LIGHT/DEFAULT/FINAL 작업별 latency·비용을 분리 기록한다. 번들 크기 경고와 불필요한 의존성을 정리한다.
 4. 결함 수정은 화면별로 별도 커밋하되 이 PR 안에서 처리한다(새 PR로 분리하지 않음 — 회귀 수정이므로).
 
@@ -49,14 +49,14 @@
 ```mermaid
 flowchart TD
     A[화면 컴포넌트 렌더링] --> B{viewport}
-    B -->|"≥1280"| C[3패널 고정 레이아웃]
-    B -->|"1024–1279"| D[좌측 34% + 우측 66%]
-    B -->|"768–1023"| E[독립 모드 전환]
-    B -->|"<768"| F[축약 AppBar + 모드 탭]
+    B -->|"≥1280"| C[현재 단계의 넓은 주 영역과 보조 영역]
+    B -->|"1024–1279"| D[보조 영역 재배치와 문서 읽기 폭]
+    B -->|"768–1023"| E[단계 이동과 한 열 중심]
+    B -->|"<768"| F[한 열 단계 화면과 safe area]
     C --> G[키보드 탐색 검증]
     D --> G
     E --> G
-    F --> H[모바일 모드 탭: 대화/중앙탭/검토]
+    F --> H[현재 단계와 보조 상세 이동]
     H --> G
     G --> I{focus trap 필요}
     I -->|Drawer/Modal 열림| J[focus 진입 → 닫을 때 trigger 복귀]
@@ -79,7 +79,7 @@ flowchart TD
 Given 로그인부터 문서 다운로드까지 이어지는 핵심 화면이 모두 구현돼 있다
 When 키보드만으로 전체 흐름을 수행한다
 Then 프로젝트 생성부터 문서 다운로드까지 마우스 없이 완료된다
-And 5개 기준 viewport(360×800, 390×844, 768×1024, 1280×800, 1440×900) 모두에서 레이아웃이 깨지지 않는다
+And 5개 기준 viewport(390×844, 768×1024, 1024×768, 1280×800, 1440×900) 모두에서 레이아웃이 깨지지 않는다
 
 ### Failure Case
 
@@ -103,18 +103,18 @@ Then 페이지 전체 수평 스크롤이 발생하지 않는다
 
 - Playwright: 5개 viewport project로 핵심 화면 스냅샷·상호작용 테스트
 - Playwright: 키보드만으로 로그인→프로젝트 생성→질문 답변→제안 승인→문서 이동→다운로드→로그아웃 시나리오
-- Agent Browser: 동일 시나리오의 DOM/포커스 순서 수동 재검증
+- Agent Browser: 사용 가능하면 동일 시나리오를 검증한다. 불가하면 도구 목록·실행 파일을 기록하고 Playwright Chromium으로 전체 흐름을 검증한다.
 - 성능: Lighthouse 또는 동등 도구로 TTI 측정, 자동 저장 중 keydown-to-paint 지연 측정
 
 ## UI 증거 계획
 
-- desktop 1440×900, 1280×800 / tablet 768×1024 / mobile 390×844, 360×800 각 화면 캡처
+- desktop 1440×900, 1280×800 / compact 1024×768 / tablet 768×1024 / mobile 390×844 각 화면 캡처; 360×800 경계도 확인
 - Drawer/Modal 열림·닫힘 focus 상태 캡처
 - reduced-motion 설정에서의 전환 캡처
 
 ## 코드 리뷰·QA 체크리스트
 
-- [ ] semantic controls와 관련 `docs/template/` references가 사용됐는지, 중복된 로컬 component 없이 접근성 계약을 만족하는지
+- [ ] semantic controls와 관련 `docs/blueprint-design/` 주 시안·필요한 `docs/template/` 상태 fallback이 사용됐는지, 중복된 로컬 component 없이 접근성 계약을 만족하는지
 - [ ] 접근성 수정이 기존 확정 동작(다른 요구사항)을 깨지 않았는지
 - [ ] 5개 viewport 모두에서 실제 캡처로 확인했는지 (문서상 주장이 아니라 증거)
 - [ ] 성능 계측이 사용자 원문/대화 내용을 기록하지 않는지

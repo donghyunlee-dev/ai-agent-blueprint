@@ -4,6 +4,8 @@
 
 이 문서는 대표 Frame의 실제 조립 순서와 기대 콘텐츠를 보여준다. `[A01]` 형식은 와이어프레임, 요소표와 수용 기준을 연결하는 annotation ID다.
 
+현재 주 시안과 화면별 fallback은 [Blueprint 디자인 매핑](../../blueprint-design/README.md)을 따른다. 아래 Frame은 선택한 단계의 주 콘텐츠와 해당 보조 영역을 설명하며, 모든 프로젝트 화면에 3패널을 동시에 고정하라는 뜻이 아니다.
+
 ## 문서
 
 1. [로그인과 세션](00-login-and-session.md)
@@ -31,7 +33,7 @@ Frame: F-DISCOVERY
 Annotations: D01-D12
 Viewport: desktop-wide, mobile
 Interactive patterns: navigation, question input, item status, primary action
-Reference images: docs/template/image (16).png, docs/template/image (15).png
+Reference images: docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png; state fallback docs/template/image (16).png, docs/template/image (15).png
 Evidence: screenshot, keyboard scenario, automated test
 Differences: none or approved difference link
 ```

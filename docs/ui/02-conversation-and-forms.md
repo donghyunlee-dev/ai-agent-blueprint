@@ -11,26 +11,23 @@
 | `UI-CONV-004` | 처리 상태 | Agent가 하는 일과 실패 복구 확인 |
 | `UI-CONV-005` | 응답 block | 설명·추천·제안·준비도·다음 행동 구분 |
 
-## 패널 배치
+## 대화 단계 배치
 
 ```text
-┌─ header: title + source count ─┐
-│ AI notice / error Alert        │ 필요할 때만
-├────────────────────────────────┤
-│ message history                │ flex:1, overflow-y:auto
-│ completed answer summary       │
-│ current QuestionCard           │ 마지막 주 상호작용
-├────────────────────────────────┤
-│ agent work status              │ 조건부
-│ composer + attach + send       │ sticky bottom
-└────────────────────────────────┘
+프로젝트 제목 + 5단계 탐색
+┌─ 대화의 주 작업 ────────────────┬─ 보조 요약 ──────────────┐
+│ 이전 메시지·완료 답변            │ 확정·미결정 내용           │
+│ 현재 QuestionCard              │ 참고 자료·다음 결정        │
+│ Agent 상태·지역 오류             │                           │
+│ composer + attach + send        │                           │
+└────────────────────────────────┴───────────────────────────┘
 ```
 
-패널 내부 좌우 padding은 `--spacing-md`, 메시지 그룹 간격은 `--spacing-lg`, 같은 발화의 메타와 본문은 `--spacing-xs`를 사용한다.
+대화는 넓은 주 작업 영역을 차지한다. 보조 요약은 실제 aggregate의 확정·미결정 내용에서 만들고, 390px에서는 대화 뒤에 배치하거나 명시적 제어로 연다. 주 시안은 [대화 캔버스](../blueprint-design/README.md)다. 메시지 그룹과 질문·composer 간격은 앱 범위 CSS 변수로 일관되게 조정한다.
 
 ## 메시지
 
-- Agent 메시지는 전체 폭 텍스트 흐름이며 Avatar 카드로 감싸지 않는다.
+- Agent 메시지는 텍스트 흐름으로 읽고 장식용 프로필·사진 자산을 추가하지 않는다.
 - 사용자 메시지는 오른쪽 정렬된 `--color-brand-subtle` 표면으로 최대 패널 폭의 88%를 사용한다.
 - 시스템 진행과 오류는 각각 `Alert info`, `Alert danger`를 사용한다.
 - 완료 답변 요약은 질문 제목, 확정 답, `수정` ghost 행동을 한 행에 둔다.
@@ -46,7 +43,7 @@
 | `question` | QuestionCard | 답변 제출·보조 행동 |
 | `explanation` | `Alert info` + 비교 목록 | 같은 질문으로 돌아가기 |
 | `recommendation` | 추천 badge, 이유, trade-off | proposal 검토, 자동 선택 없음 |
-| `proposal_summary` | 발견 영역·개수 요약 | Inspector 제안 검토 |
+| `proposal_summary` | 발견 영역·개수 요약 | 제안 검토 단계로 이동 |
 | `conflict_notice` | 경고 요약 | Diff Drawer 열기 |
 | `readiness_notice` | 상태 badge와 부족 영역 | 질문 계속/문서 생성 |
 | `next_action` | 단계 완료 surface | 검토 또는 다음 산출물 |
@@ -105,7 +102,7 @@ padding `--spacing-md`, 내부 주요 그룹 `--spacing-md`, footer 상단은 `-
 ## Composer
 
 - `Textarea`와 `Button primary`를 기본 조합으로 사용한다.
-- 첨부는 `Button ghost` + Icon으로 입력 왼쪽에 둔다.
+- 기존 파일 첨부 행동은 입력 옆의 이름 있는 버튼으로 둔다. 시안의 마이크는 추가하지 않는다.
 - Enter는 줄바꿈, `Ctrl/Cmd+Enter`는 전송이다. 단축키를 입력 설명에 제공한다.
 - 전송 중 입력 원문은 화면에 유지하되 중복 전송 버튼을 비활성화한다.
 - 모바일에서는 safe-area를 포함해 하단 고정하고 키보드가 열렸을 때 현재 입력이 가려지지 않는다.

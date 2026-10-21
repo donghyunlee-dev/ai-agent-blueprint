@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define behavior and accessibility contracts for local screen controls. Visual structure comes from the relevant captures indexed in [`docs/template/README.md`](../template/README.md); screen-specific behavior remains defined by each UI specification. This document does not require a shared UI package.
+Define behavior and accessibility contracts for local screen controls. The primary visual structure comes from [the Blueprint redesign map](../blueprint-design/README.md); [template captures](../template/README.md) cover states absent from the redesign images. Screen behavior remains defined by each UI specification. This document does not require a shared UI package.
 
 ## Semantic element mapping
 
@@ -14,7 +14,7 @@ Define behavior and accessibility contracts for local screen controls. Visual st
 | Choose one option | `<input type="radio">` | Shared named group, selected state exposed to assistive technology |
 | Choose multiple options | `<input type="checkbox">` | Independent checked state and selection limits stated in text |
 | Expand or collapse content | `<button aria-expanded>` | Controlled region relationship and keyboard operation |
-| Switch workspace panel | Tablist semantics or navigation links | Use tabs only for in-place panel switching; keep URL navigation as links |
+| Move between the five project stages | Navigation links or in-place controls | Use links for document routes; use buttons or true tabs for project modes without URL changes. Show current and gated states. |
 | Show modal dialog | `<dialog>` or equivalent dialog pattern | Accessible name, focus containment, Escape policy, focus return |
 | Announce progress or result | Status/live region | Concise updates without moving focus unexpectedly |
 | Display a state | Text plus optional icon/color | Never rely on color alone |
@@ -45,5 +45,5 @@ Blueprint feature components may combine domain state, such as proposal review o
 
 - Each interactive element uses the right semantic role and is operable with keyboard alone.
 - Screen readers receive names, state changes, validation errors, and progress updates.
-- The layout follows the selected reference capture while meeting responsive and accessibility requirements.
+- The layout follows the selected blueprint-design image and any needed state fallback while meeting responsive and accessibility requirements.
 - New screens add no `기존 공유 UI 라이브러리`, Agent Blueprint design tokens, or UI component package dependencies.

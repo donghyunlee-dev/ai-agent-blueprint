@@ -27,7 +27,7 @@ PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현�
 7. 현재 PR이 기본 브랜치에 병합됐다는 확인 전에는 다음 PR의 구현을 시작하지 않는다.
 8. 미결정·차단 요구사항은 임의로 구현하지 않고 별도 PR 단위도 시작하지 않는다.
 9. 각 PR은 변경 동작과 직접 영향받는 계약만 테스트한다. 전체 회귀는 별도 품질 단계에서 수행한다.
-10. UI PR의 검증은 변경된 화면 동작과 직접 영향받는 반응형·접근성 조건에 한정한다. 캡처는 선택적 증거다.
+10. UI PR의 검증은 변경된 화면 동작과 직접 영향받는 반응형·접근성 조건에 한정한다. UIR 개편 UI PR은 최종 HEAD의 1440×900·390×844 및 영향을 받은 상태 캡처를 필수 증거로 남긴다. 문서 전용 PR에는 화면 캡처가 필요 없다.
 11. 단계별 구현은 Codex `$pr-development-loop` skill과 별도 planner, implementer, code-reviewer, QA agent 규칙을 따른다.
 
 ## PR 개발 단위 기준
@@ -94,7 +94,7 @@ flowchart TD
 - implementer는 production/test 파일을 쓰지만 자신의 최종 코드 리뷰나 QA를 승인하지 않는다.
 - reviewer와 QA는 서로 다른 agent context를 사용한다. QA는 diff뿐 아니라 실행 중 화면과 프로세스를 검증한다.
 - 구현 agent를 병렬 실행해 공유 파일을 수정하지 않는다. 리뷰와 QA는 앞 단계 산출물에 의존하므로 순차 실행한다.
-- UI 작업은 `docs/template/README.md`와 화면별 연결 이미지를 시각 참고 근거로 기록한다. third-party UI package, design tokens, stylesheet, or MCP를 UI 기준으로 새로 추가하지 않는다.
+- UI 개편 작업은 `docs/blueprint-design/README.md`의 주 시안과 시안에 없는 상태에 필요한 `docs/template/README.md` fallback을 기록한다. third-party UI package, design tokens, stylesheet, or MCP를 UI 기준으로 새로 추가하지 않는다.
 - 프로젝트 `.codex/hooks.json`은 workflow context를 제공하고 gate 누락 상태의 PR merge, 일반·간접 `main` 직접 push, Git aliases와 `gh api`/`curl` GitHub API merge를 차단한다. merge hook은 프로세스 잠금 안에서 최신 PR HEAD와 리뷰·QA 증거가 일치하는지 확인하고 15분 1회 허가를 소비한다. hook은 Codex에서 검토·신뢰된 뒤 실행된다. GitHub `main` branch protection도 pull request를 요구하도록 설정해 hook을 우회하는 외부 push를 막는다.
 
 ## 역할과 책임
@@ -103,7 +103,7 @@ flowchart TD
 
 - 허용된 PR 범위만 변경한다.
 - 테스트를 기능과 함께 작성한다.
-- UI 작업에서 참고한 `docs/template/` 이미지와 semantic HTML/CSS 구현 범위를 기록한다.
+- UI 작업에서 참고한 `docs/blueprint-design/` 주 이미지와 필요한 `docs/template/` 상태 이미지, semantic HTML/CSS 구현 범위를 기록한다.
 - build, 자동 테스트와 self-check 결과를 PR에 첨부한다.
 - finding을 수정하고 수정 영향 범위를 설명한다.
 - PR을 머지하지 않는다.
@@ -123,7 +123,7 @@ flowchart TD
 - UI 변경은 변경된 데스크톱·모바일 동작과 직접 영향받는 키보드, 포커스, 반응형 조건을 검증한다.
 - AI 작업은 변경에 직접 관련된 fixture schema, 호출 수, model profile과 실패 시 상태 보존을 확인한다.
 - 코드 리뷰 결과를 반복하는 대신 실행 증거를 남긴다.
-- 캡처는 설명 가치가 있는 경우 최종 HEAD에서 선택적으로 첨부한다. 캡처 자체는 QA 통과 gate가 아니다.
+- UIR 화면 개편 PR은 최종 HEAD의 1440×900·390×844 및 영향을 받은 상태 캡처를 첨부한다. 캡처만으로 QA를 통과시키지 않는다.
 
 ### 사용자 승인자
 
@@ -142,7 +142,7 @@ flowchart TD
 - 선행 PR의 `merged` 상태
 - 관찰 가능한 수용 기준
 - 정상·실패·경계 테스트 목록
-- UI 변경 시 화면 ID, viewport와 `docs/template/` image 근거
+- UI 변경 시 화면 ID, viewport와 `docs/blueprint-design/` 주 이미지·필요한 `docs/template/` fallback 근거
 - 데이터/API 변경 시 schema, migration과 rollback 영향
 - 미결정 차단 항목 0건
 
@@ -152,7 +152,7 @@ PR 생성 전 최소 검증:
 
 - 변경 동작과 직접 영향받는 계약을 검증하는 관련 단위·통합·계약 테스트만 실행한다. 전체 suite는 결과가 넓은 회귀 위험을 보여줄 때 그 이유를 기록하고 추가한다.
 - `npm run build`는 production code, dependency 또는 build configuration 변경이 있을 때 실행한다.
-- UI 변경 시 Playwright Chromium으로 변경된 핵심 경로와 직접 영향받는 viewport/접근성 조건을 검증한다. Agent Browser가 있으면 같은 범위에서 선택적으로 함께 쓸 수 있다. 사용할 수 없는 도구의 부재만으로 QA를 차단하지 않는다.
+- UI 변경 시 Playwright Chromium으로 변경된 핵심 경로와 직접 영향받는 viewport/접근성 조건을 검증한다. Agent Browser가 사용 가능하면 같은 흐름도 검증한다. 사용할 수 없으면 도구 목록·실행 파일 확인을 기록하고 Playwright Chromium으로 전체 QA 흐름을 검증한다.
 - 변경된 실패·빈 상태·loading·재시도 동작이 있는 경우 해당 상태만 검증한다.
 - secret, token, 사용자 원문과 임시 결과 파일 미포함 확인
 - 관련 Mermaid 문서 변경 시 `npm run docs:check:mermaid`
@@ -225,7 +225,7 @@ QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`�
 - 증거:
 
 ## Screenshots
-- 선택적으로 캡처 링크 (없어도 gate 통과 가능)
+- UIR 화면 개편 PR이면 필수 최종 HEAD 캡처 링크; 문서 전용 또는 기타 PR은 해당 작업 계약의 증거 기준
 - 첨부 시 검증 대상 동작을 설명하는 viewport/state만 포함
 
 ## Risk
@@ -240,11 +240,11 @@ QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`�
 
 스크린샷·녹화·대용량 로그는 PR 첨부나 CI artifact로 보관하고 저장소 루트에 커밋하지 않는다. 저장소에는 지속적으로 필요한 fixture와 테스트 코드만 남긴다.
 
-### UI 검증 및 선택적 캡처
+### UI 검증 및 캡처
 
 - QA는 변경된 화면의 사용자 행동과 직접 영향받는 반응형·접근성 조건을 검증한다. 전체 앱 회귀나 관련 없는 상태를 반복하지 않는다.
-- 적합한 viewport 수는 변경에 따라 정한다. 특정 고정 viewport 개수나 다섯 화면 캡처 세트는 요구하지 않는다. NFR/품질 PR에서 별도로 지정한 반응형 범위는 해당 PR에서 검증한다.
-- 캡처는 결과 설명이나 finding 재현에 도움이 될 때만 최종 검증 HEAD에서 선택적으로 첨부한다. 캡처의 부재는 `ready_to_merge`를 막지 않는다.
+- UIR 화면 개편 PR은 변경 화면의 1440×900·390×844와 영향을 받은 loading/empty/error/validation/overlay/completed 상태를 최종 HEAD에서 캡처한다. 문서 전용 UIR-PR-01에는 적용하지 않는다. 중간 viewport 검증은 직접 영향 범위와 QLT 계획을 따른다.
+- 캡처는 테스트한 데이터·상태·viewport와 일치해야 한다. UI 변경 PR에서 필수 캡처가 없으면 `ready_to_merge`로 보내지 않는다. 캡처만으로 동작·접근성 QA를 대신하지 않는다.
 - 첨부할 경우 secret, token, 개인 이메일, 운영 데이터와 로컬 경로를 제외한다. 임시 파일은 gitignored `.pr-artifacts/<pr-unit>/`에 둔다.
 
 ## PR 단위 실행 순서
@@ -284,6 +284,8 @@ QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`�
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | QLT-604, 605, 608 | 전체 프로세스와 보안·모델 회귀 통과 | planned |
 | 30 | `QLT-PR-03` 사용자 검증·출시 정리 | QLT-606, 607 | P0 결함 0건과 release checklist | planned |
 
+현재 화면 개편은 위 완료 이력을 바꾸지 않고 [UI 개편 계획](../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md)의 독립 PR 순서로 진행한다. `UIR-PR-01`은 문서 계약, `UIR-PR-02`는 공통 셸·홈과 CSS 기반, `UIR-PR-03`은 단계·대화, `UIR-PR-04`는 제안, `UIR-PR-05`는 준비도 표현, `UIR-PR-06`은 문서·지원 흐름을 소유한다. 각 후속 PR은 앞 PR의 GitHub 병합을 확인한 최신 `main`에서 시작한다. 기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
+
 `blocked` 행은 필요한 제품 결정이 기록되기 전까지 건너뛰고 다음 비의존 PR로 순서를 재계획할 수 있다. 단, 의존하는 후속 PR은 시작할 수 없다. 실제 개발 중 PR이 너무 크면 수용 기준을 보존한 채 `-A`, `-B`로 분할하고 이 표와 추적표를 먼저 갱신한다.
 
 ## 머지 후 절차
@@ -305,8 +307,8 @@ QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`�
 1. `blueprint-task-planner`가 plan과 화면·상태 acceptance를 작성한다.
 2. `blueprint-implementer`가 TDD 구현과 self-check를 수행한다.
 3. `blueprint-code-reviewer`가 별도 context에서 diff와 spec을 검토한다.
-4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 변경된 사용자 경로와 직접 영향받는 desktop/mobile 반응형·접근성 조건을 Playwright Chromium으로 검증한다. Agent Browser는 사용 가능하고 유용하면 같은 범위에서 보조적으로 쓸 수 있다.
-5. 필요한 경우 QA가 설명에 도움이 되는 최종 HEAD 캡처를 선택적으로 첨부한다.
+4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 변경된 사용자 경로와 직접 영향받는 desktop/mobile 반응형·접근성 조건을 Playwright Chromium으로 검증한다. Agent Browser가 사용 가능하면 같은 흐름을 확인한다.
+5. UIR 화면 개편 PR은 필수 최종 HEAD 상태 캡처를 첨부한다.
 6. 전체 PR lifecycle 요청이면 gate 통과 후 Agent가 PR을 병합하고 결과를 확인한다. 요청이 없으면 `ready_to_merge`에서 멈춘다.
 
 ### Agent 또는 QA 실패
