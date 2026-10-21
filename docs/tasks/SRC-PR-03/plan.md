@@ -107,4 +107,4 @@ Given 다운로드가 완료되면, then 다운로드 동작은 기존 source의
 
 ## 상태
 
-fix_required. 독립 리뷰가 비동기 object URL 정리 결함을 찾아 수정과 회귀 검증을 진행 중이다.
+code_review. 첫 독립 리뷰의 비동기 object URL 정리 finding을 수정했고 focused unit, production build와 desktop/mobile Playwright를 재검증했다. 새 head의 독립 리뷰를 요청한다.
