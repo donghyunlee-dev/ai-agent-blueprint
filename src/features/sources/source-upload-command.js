@@ -76,11 +76,45 @@ export async function retrySourceFile({ ownerKey, projectId, sourceId, file, rep
   return extractAndPersist({ ownerKey, projectId, row: reservation.row, file, validation, repository, onAggregate, extract });
 }
 
-export async function removeSource({ ownerKey, projectId, sourceId, repository, onAggregate }) {
-  const result = await repository.transact(ownerKey, projectId, (latest) => ({
-    status: 'removed',
-    aggregate: { ...latest, sources: latest.sources.filter((source) => source.id !== sourceId) },
-  }));
+function sourceRefersToSource(ref, sourceId) {
+  return ref?.sourceType === 'file' && ref.sourceId === sourceId;
+}
+
+export function sourceRemovalImpact(aggregate, sourceId) {
+  return new Set((aggregate.designItems ?? []).filter((item) => !item.archivedAt && (
+    (item.evidence ?? []).some((ref) => sourceRefersToSource(ref, sourceId))
+    || (item.acceptanceCriteria ?? []).some((criterion) => (criterion.evidence ?? []).some((ref) => sourceRefersToSource(ref, sourceId)))
+  )).map((item) => item.id)).size;
+}
+
+function removeSourceAndReferences(latest, sourceId) {
+  return {
+    ...latest,
+    project: { ...latest.project, updatedAt:new Date().toISOString() },
+    sources: latest.sources.filter((source) => source.id !== sourceId),
+    designItems: latest.designItems.map((item) => ({
+      ...item,
+      evidence: (item.evidence ?? []).filter((ref) => !sourceRefersToSource(ref, sourceId)),
+      acceptanceCriteria: (item.acceptanceCriteria ?? []).map((criterion) => ({
+        ...criterion,
+        evidence: (criterion.evidence ?? []).filter((ref) => !sourceRefersToSource(ref, sourceId)),
+      })),
+    })),
+  };
+}
+
+export async function removeSource({ ownerKey, projectId, sourceId, repository, onAggregate, expectedImpactCount }) {
+  const result = await repository.transact(ownerKey, projectId, (latest) => {
+    const impactCount = sourceRemovalImpact(latest, sourceId);
+    if (expectedImpactCount !== undefined && expectedImpactCount !== impactCount) return { status: 'impact_changed', impactCount, currentAggregate: latest };
+    return { status: 'removed', impactCount, aggregate: removeSourceAndReferences(latest, sourceId) };
+  });
+  if (result?.status === 'impact_changed') {
+    const error = new Error('SOURCE_REMOVAL_IMPACT_CHANGED');
+    error.impactCount = result.impactCount;
+    error.currentAggregate = result.currentAggregate;
+    throw error;
+  }
   if (!result?.aggregate) throw new Error('SOURCE_REMOVE_FAILED');
   onAggregate?.(result.aggregate);
   return result.aggregate;

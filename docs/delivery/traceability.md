@@ -53,8 +53,8 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | DOC-006 | DOC-407 | 불일치 위치와 proposal | done (DOC-PR-03 #22 merge `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`, head `775ec6bd14ee1ec38e04768b205750cc870c7ad6`; tests 36/36, Playwright desktop/mobile 1/1 each, build; independent review/QA pass) |
 | DOC-007 | GDE-504 | 전체 생성, 근거 기반 명령·버전과 면책 문구, draft 검증 | ready |
 | SRC-001 | SRC-501, SRC-502 | 형식·크기·개수·추출 | done (SRC-PR-01 PR #24; final head `8fa05f6b4032713c1d30c6bb0da2b7f706704233`, merge `f169cf7da310dc446fdb02b7006817c65703ea12`; focused unit 13/13, Playwright desktop/mobile 6/6, build, diff-check; independent review/QA gates passed; AI synthetic eval and Vercel checks passed) |
-| SRC-002 | SRC-503 | 근거 preview와 제거 | blocked (SRC-PR-02 plan; approved excerpt-selection/size policy and request-excerpt to durable EvidenceRef ID mapping are missing) |
-| EXP-001 | EXP-505 | 개별 복사·다운로드 | in_progress (EXP-PR-01 implementation on base `f169cf7da310dc446fdb02b7006817c65703ea12`) |
+| SRC-002 | SRC-503 | 근거 preview와 제거 | in_progress (approved excerpt policy and durable citation mapping; implementation complete; review/QA pending) |
+| EXP-001 | EXP-505 | 개별 복사·다운로드 | done (EXP-PR-01 merged PR #25; merge `aee5afddcdf32d4da7d46e1aebf260522670a780`) |
 | NFR-001 | FND-002, QLT-601 | 키보드, 이름, 대비 | ready |
 | NFR-002 | PRJ-105, QLT-602 | responsive desktop/tablet/mobile layout | in_progress (PRJ-105 done #12; QLT-602 pending) |
 | NFR-003 | QLT-603 | 셸, 긴 콘텐츠, 입력 응답 | ready |

@@ -12,7 +12,7 @@ function request(body, authenticated = true) {
   return { method: 'POST', headers: { host: 'localhost:3000', origin: 'http://localhost:3000', cookie: authenticated ? buildSessionCookieHeader(value).split(';')[0] : '' }, body };
 }
 const body = { logicalRequestId: 'logical-1234567890123456', attemptId: 'attempt-1', projectSummary: { projectId: 'p1', title: 'Test', designRevision: 0 }, answer: { questionId: 'q1', answerMode: 'text', action: 'answer', customText: 'hello' }, recentMessages: [{ id: 'm1', role: 'user', kind: 'text', content: 'hello' }], relevantDesignItems: [], sources: [] };
-const output = { task: 'TURN_ANALYZE', promptVersion: 'v1', schemaVersion: 'v1', designRevision: 0, payload: { blocks: [{ type: 'assistant_text', content: '확인했습니다.' }], proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
+const output = { task: 'TURN_ANALYZE', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 0, payload: { blocks: [{ type: 'assistant_text', content: '확인했습니다.' }], proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
 
 test('turn endpoint requires a valid session before any provider or store side effect', async () => {
   let providerCalls = 0;
@@ -109,6 +109,24 @@ test('turn endpoint validates, calls the injected provider, and replays success 
   await handler(request({ ...body, attemptId: 'attempt-2' }), retry, deps);
   assert.deepEqual(retry.body, first.body);
   assert.equal(calls, 1);
+});
+
+test('turn endpoint accepts only request-local excerpt IDs as file citation IDs', async () => {
+  const requestBody = { ...body, sources:[{ id:'request-excerpt', sourceId:'canonical-source', text:'계약 해지는 30일 전에 알립니다.', location:'문단 2' }] };
+  const fileProposal = (sourceId) => ({ operation:'create', targetType:'design_item', after:{ type:'constraint', title:'계약 해지', description:'30일 전에 알립니다.' }, rationale:'자료에 명시됨', evidence:[{ sourceType:'file', sourceId, excerpt:'계약 해지는 30일 전에 알립니다.' }], affectedItemIds:[] });
+  const responseWithCitation = (sourceId) => ({ ...output, payload:{ ...output.payload, proposals:[fileProposal(sourceId)] }, referencedSourceIds:[sourceId] });
+
+  const invalid = response();
+  let invalidCalls = 0;
+  await handler(request(requestBody), invalid, { store:createMemoryAuthStore(), requestStructuredOutput:async () => { invalidCalls++; return responseWithCitation('canonical-source'); } });
+  assert.equal(invalid.statusCode, 502);
+  assert.equal(invalid.body.error, 'AI_INVALID_OUTPUT');
+  assert.equal(invalidCalls, 2);
+
+  const valid = response();
+  await handler(request({ ...requestBody, logicalRequestId:'logical-2234567890123456' }), valid, { store:createMemoryAuthStore(), requestStructuredOutput:async () => responseWithCitation('request-excerpt') });
+  assert.equal(valid.statusCode, 200);
+  assert.equal(valid.body.proposals[0].evidence[0].sourceId, 'request-excerpt');
 });
 
 test('turn endpoint enforces the task input cap before provider invocation', async () => {

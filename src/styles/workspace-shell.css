@@ -213,6 +213,12 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .design-inspector-block h4 { margin: 0; color: var(--color-text-muted); font-size: 11px; }
 .design-inspector-block ul { display: grid; gap: 8px; margin: 8px 0 0; padding-left: 18px; }
 .design-inspector-block li { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.design-evidence-preview { display: grid; gap: 5px; margin: 9px 0; padding: 10px 11px; border-left: 3px solid var(--color-border-strong); background: var(--color-page); overflow-wrap: anywhere; }
+.design-evidence-preview strong { color: var(--color-text-strong); font-size: 12px; }
+.design-evidence-preview blockquote { margin: 0; color: var(--color-text-body); font-size: 12px; line-height: 1.55; }
+.design-evidence-preview small { color: var(--color-text-muted); font-size: 11px; }
+.design-evidence-preview.is-deleted { border-left-color: #ad6b00; background: #fff9e9; }
+.design-criterion-evidence { margin-top: 5px; }
 @media (max-width: 767px) {
   .design-board { gap: 14px; }
   .design-readiness { padding: 14px; }

@@ -32,8 +32,8 @@
 | 20 | `DOC-PR-03` 부분 보완·정합성 | 4단계 | merged (#22; merge `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`; tests 36/36, Playwright desktop/mobile 1/1 each, build; review/QA pass) | [plan](DOC-PR-03/plan.md) · [tests](DOC-PR-03/test-results.md) |
 | 21 | `DOC-PR-04` 직접 편집 영향 | 4단계 | merged (#23; merge `1178050576338245d1b5bdbd913e3b19cff669df`; unit 5/5, Playwright 6/6 and related browser contracts 4/4, build; review/QA pass) | [plan](DOC-PR-04/plan.md) · [tests](DOC-PR-04/test-results.md) |
 | 22 | `SRC-PR-01` 파일 제한·추출 | 5단계 | merged (#24; merge `f169cf7da310dc446fdb02b7006817c65703ea12`; final head `8fa05f6b4032713c1d30c6bb0da2b7f706704233`; focused unit 13/13, Playwright 6/6, build, diff-check; review/QA pass) | [plan](SRC-PR-01/plan.md) · [tests](SRC-PR-01/test-results.md) |
-| 23 | `SRC-PR-02` 근거 연결 | 5단계 | blocked (excerpt selection/size and durable citation ID mapping decision required) | [plan](SRC-PR-02/plan.md) |
-| 24 | `EXP-PR-01` 문서 복사·다운로드 | 5단계 | in progress (base `f169cf7da310dc446fdb02b7006817c65703ea12`; Requirements/PRD first, guide integrated by GDE-PR-01) | [plan](EXP-PR-01/plan.md) · [tests](EXP-PR-01/test-results.md) |
+| 23 | `SRC-PR-02` 근거 연결 | 5단계 | in progress (approved policy; implementation and self-validation complete; review/QA pending) | [plan](SRC-PR-02/plan.md) |
+| 24 | `EXP-PR-01` 문서 복사·다운로드 | 5단계 | merged (#25; merge `aee5afddcdf32d4da7d46e1aebf260522670a780`) | [plan](EXP-PR-01/plan.md) · [tests](EXP-PR-01/test-results.md) |
 | 25 | `GDE-PR-01` 설정 가이드 | 5단계 | planned | [plan](GDE-PR-01/plan.md) |
 | 26 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | planned | [plan](QLT-PR-01/plan.md) |
 | 27 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | planned | [plan](QLT-PR-02/plan.md) |

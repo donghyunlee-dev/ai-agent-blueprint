@@ -9,6 +9,7 @@ import { AiConsentGate } from './AiConsentGate.js';
 import type { MutableRefObject } from 'react';
 import type { CatalogQuestion } from '../../features/conversation/questionEngine.js';
 import { normalizeProposals } from '../../features/proposals/normalize-proposals.js';
+import { selectSourceExcerpts } from '../../features/sources/source-excerpt-selection.js';
 
 type QuestionAnswerDraft = { action:'answer'|'unknown'|'recommend'|'defer'|'skip'; selectedValues:string[]; customText:string; numberValue?:number; rangeValue?:{start:number;end:number}; rankedValues?:string[] };
 type AiTurnComposerProps = {
@@ -47,7 +48,7 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
     aggregateRef.current = updated;
     onAggregateChange(updated);
   }
-  async function send(payload: Record<string, unknown>, logicalRequestId: string, attemptId: string) {
+  async function send(payload: Record<string, unknown>, logicalRequestId: string, attemptId: string, sourceExcerpts: {id:string;sourceId:string;text:string;location?:string}[] = []) {
     const now = new Date().toISOString();
     const nextJob: GenerationJob = { id: crypto.randomUUID(), projectId, logicalRequestId, attemptId, type:'TURN_ANALYZE', promptVersion:promptRegistry.TURN_ANALYZE.promptVersion, schemaVersion:promptRegistry.TURN_ANALYZE.schemaVersion, modelProfile:'DEFAULT', resolvedModel:aiModelRegistry.profiles.DEFAULT.model, reasoningEffort:aiModelRegistry.tasks.TURN_ANALYZE.reasoning, designRevision:(aggregate.project.designRevision ?? 0), status:'running', targetIds:[], startedAt:now };
     updateJob(nextJob);
@@ -66,7 +67,7 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
         return;
       }
       const latest = aggregateRef.current;
-      const normalized = normalizeProposals({ projectId, logicalRequestId, proposals: Array.isArray(data.proposals) ? data.proposals : [], existingProposals: latest.proposals, designItems: latest.designItems, sections: latest.sections, messages: latest.messages, sources: latest.sources.filter((source) => source.extractionStatus === 'ready'), createdAt: new Date().toISOString() });
+      const normalized = normalizeProposals({ projectId, logicalRequestId, proposals: Array.isArray(data.proposals) ? data.proposals : [], existingProposals: latest.proposals, designItems: latest.designItems, sections: latest.sections, messages: latest.messages, sources: latest.sources.filter((source) => source.extractionStatus === 'ready'), sourceExcerpts, createdAt: new Date().toISOString() });
       const proposals = normalized.proposals as ChangeProposal[];
       const ids = proposals.map((proposal) => proposal.id);
       const nextBlocks: DisplayBlock[] = [{type:'assistant_text',content:data.assistantMessage}, ...(ids.length ? [{type:'proposal_summary' as const,proposalIds:ids}] : [])];
@@ -97,8 +98,9 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
     aggregateRef.current = withUserMessage; onAggregateChange(withUserMessage);
     const context = compactConversationContext({messages:withUserMessage.messages,summary:withUserMessage.thread.summary,threshold:20});
     const contextMessages = context.compacted ? [{id:`summary-${projectId}`,role:'assistant' as const,kind:'text' as const,content:JSON.stringify(context.summary)},...context.originalMessages] : context.originalMessages.filter((message)=>message.role!=='system');
-    const payload = { projectSummary:{projectId,title:current.project.title,designRevision:current.project.designRevision ?? 0}, ...(question ? {question:requestQuestion(question)} : {}), answer:{questionId:question?.id ?? `free_${projectId}`,answerMode:'text',action:'answer',customText:text}, recentMessages:contextMessages.map(({id,role,kind,content})=>({id,role,kind:kind==='question'?'question':'text',content})), relevantDesignItems:current.designItems.filter((item)=>item.status==='confirmed').map(({id,type,key,title,description,attributes})=>({id,type,...(key?{key}:{}),title,description,attributes})), sources:[] };
-    await send(payload,logicalRequestId,crypto.randomUUID());
+    const sourceExcerpts = selectSourceExcerpts({ projectId, query:[question?.prompt, question?.help, text].filter(Boolean).join('\n'), sources:current.sources });
+    const payload = { projectSummary:{projectId,title:current.project.title,designRevision:current.project.designRevision ?? 0}, ...(question ? {question:requestQuestion(question)} : {}), answer:{questionId:question?.id ?? `free_${projectId}`,answerMode:'text',action:'answer',customText:text}, recentMessages:contextMessages.map(({id,role,kind,content})=>({id,role,kind:kind==='question'?'question':'text',content})), relevantDesignItems:current.designItems.filter((item)=>item.status==='confirmed').map(({id,type,key,title,description,attributes})=>({id,type,...(key?{key}:{}),title,description,attributes})), sources:sourceExcerpts };
+    await send(payload,logicalRequestId,crypto.randomUUID(),sourceExcerpts);
   }
   async function saveConsent(value: {acceptedAt:string;consentVersion:string}) {
     const current = aggregateRef.current;

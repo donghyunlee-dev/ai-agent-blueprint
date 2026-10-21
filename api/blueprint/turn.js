@@ -178,7 +178,7 @@ export default async function handler(req, res, deps = {}) {
 
     const manifest = {
       designItemIds: body.relevantDesignItems.map((item) => item.id),
-      sourceExcerptIds: body.sources.flatMap((source) => [source.id, source.sourceId]),
+      sourceExcerptIds: prepared.promptInput.sourceExcerpts.map((source) => source.id),
       recentMessageIds: body.recentMessages.map((message) => message.id),
       currentQuestionId: body.question?.id || body.answer.questionId,
     };

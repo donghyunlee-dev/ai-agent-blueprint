@@ -20,6 +20,15 @@
 .source-preview { grid-column: 1 / -1; max-height: 220px; overflow: auto; margin: 0; padding: 10px; border-radius: 7px; background: var(--color-surface-muted); color: var(--color-text-body); font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .source-empty-state { padding: 12px 0 2px; }
 .source-operation-message { margin: 10px 0 0; color: var(--color-text-muted); font-size: 12px; }
+.source-removal-dialog { width: min(440px, calc(100vw - 32px)); max-width: none; padding: 22px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); color: var(--color-text-body); box-shadow: 0 16px 48px rgb(20 32 48 / 22%); }
+.source-removal-dialog::backdrop { background: rgb(20 32 48 / 38%); }
+.source-removal-dialog h3 { margin: 0 0 10px; color: var(--color-text-strong); font-size: 16px; }
+.source-removal-dialog p { color: var(--color-text-muted); font-size: 13px; line-height: 1.55; }
+.source-removal-dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.source-removal-dialog button { min-height: 38px; padding: 0 12px; border: 1px solid var(--color-border-strong); border-radius: 8px; background: var(--color-surface); color: var(--color-text-strong); font: inherit; cursor: pointer; }
+.source-removal-dialog button:focus-visible { outline: 3px solid #78aaff; outline-offset: 2px; }
+.source-removal-dialog button:last-child { border-color: #b42318; background: #b42318; color: #fff; }
+.source-removal-dialog button:disabled { opacity: .58; cursor: not-allowed; }
 @media (max-width: 600px) {
   .source-documents { padding: 12px; }
   .source-documents-heading { align-items: flex-start; }

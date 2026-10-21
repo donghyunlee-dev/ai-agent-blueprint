@@ -108,7 +108,7 @@ USER_INPUT:
 - returnToQuestionId는 현재 questionId와 같아야 한다.
 ```
 
-## `TURN_ANALYZE` — `turn.analyze.v1`
+## `TURN_ANALYZE` — `turn.analyze.v2`
 
 ```text
 사용자의 최신 자유 답변과 허용된 자료 발췌에서 설계 변경 후보를 추출한다.
@@ -125,6 +125,8 @@ Proposal 규칙:
 - proposal 하나는 target 하나와 create/update/delete 의도 하나만 가진다.
 - 최대 8개다.
 - evidence는 제공된 message/source ID만 참조한다.
+- 파일 근거 `sourceId`에는 제공된 발췌의 request-local `id`만 사용한다. 발췌 객체의 원본 `sourceId`는 인용 ID로 사용하지 않는다.
+- 파일 근거 `excerpt`는 해당 발췌 텍스트에서 그대로 복사한 연속 문구여야 한다.
 - 사용자 발언에 없는 값으로 빈칸을 채우지 않는다.
 - confidence가 높아도 confirmed로 표시하지 않는다.
 

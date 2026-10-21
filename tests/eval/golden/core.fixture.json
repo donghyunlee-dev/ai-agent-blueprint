@@ -42,7 +42,7 @@
   {
     "id": "turn-analyze-basic",
     "task": "TURN_ANALYZE",
-    "schemaVersion": "v1",
+    "schemaVersion": "v2",
     "response": {
       "blocks": [
         {
