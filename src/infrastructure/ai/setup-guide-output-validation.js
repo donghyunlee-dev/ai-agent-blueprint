@@ -28,7 +28,8 @@ function looksLikeExecutable(command, strict = false) {
   if (!executable || shellBuiltins.has(executable)) return false;
   if (supportedExecutables.has(executable)) return true;
   const action = command.trim().split(/\s+/,2)[1]?.replace(/^["']|["']$/g,'').toLowerCase();
-  return strict && (/-|\/|\./.test(executable) || (action && actionVerbs.has(action)));
+  const hasArguments = command.trim().split(/\s+/).length > 1;
+  return strict && hasArguments && (/[-/.]/.test(executable) || (action && actionVerbs.has(action)) || /^[a-z][a-z0-9_-]*$/i.test(executable));
 }
 
 export function extractSetupGuideCommands(markdown) {
@@ -57,7 +58,7 @@ export function extractSetupGuideCommands(markdown) {
 
   for (const line of outsideFences.split(/\r?\n/)) {
     const command = cleanCommand(line.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/,''));
-    if (command.includes(' ') && looksLikeExecutable(command,true)) commands.push(command);
+    if (command.includes(' ') && looksLikeExecutable(command)) commands.push(command);
   }
 
   const seen = new Set();

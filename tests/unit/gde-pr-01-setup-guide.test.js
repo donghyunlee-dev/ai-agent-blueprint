@@ -36,7 +36,7 @@ test('setup guide open issues include unresolved states but omit resolved or rej
   assert.deepEqual(plan.openIssues.map(({sourceItemIds}) => sourceItemIds[0]), ['d3','d4','d5']);
 });
 
-test('setup guide with no technical decisions creates a generic issue and empty section references', () => {
+test('setup guide with no confirmed technical decisions creates a generic issue and empty section references', () => {
   const sourceAggregate = structuredClone(aggregate);
   sourceAggregate.designItems = [];
   sourceAggregate.sources = [];
@@ -44,6 +44,16 @@ test('setup guide with no technical decisions creates a generic issue and empty 
   assert.deepEqual(plan.confirmedDesignItems, []);
   assert.deepEqual(plan.openIssues, [{id:'OPEN-SETUP-GUIDE-TECHNICAL-DECISIONS',title:'기술 결정 확인 필요',description:'설정 가이드를 완성하려면 필요한 기술 결정을 설계에서 확인해 주세요. 근거가 확인되지 않은 명령어와 버전은 작성하지 않습니다.',sourceItemIds:[]}]);
   assert.ok(plan.sections.every((section) => section.sourceItemIds.length === 0));
+});
+
+test('setup guide adds a generic issue when all technical decision records are rejected or not applicable', () => {
+  const sourceAggregate = structuredClone(aggregate);
+  sourceAggregate.designItems = [
+    {id:'rejected-1',type:'technical_decision',title:'거절된 설정',status:'rejected'},
+    {id:'na-1',type:'constraint',title:'해당 없음',status:'not_applicable'},
+  ];
+  const plan = buildSetupGuidePlan(sourceAggregate);
+  assert.deepEqual(plan.openIssues.map(({id})=>id), ['OPEN-SETUP-GUIDE-TECHNICAL-DECISIONS']);
 });
 
 test('setup guide keeps raw excerpt IDs stable while redacting secret text', () => {
@@ -80,6 +90,18 @@ test('setup guide command evidence must include every command argument', () => {
   const extended = validateSetupGuideDraft(makePayload('npm install untrusted-package'), plan);
   assert.equal(extended.valid, false);
   assert.ok(extended.errors.some((error) => error.includes('unsupported command')));
+});
+
+test('setup guide fails closed for unknown plain-name commands in action, inline, and fenced contexts', () => {
+  const plan = buildSetupGuidePlan(aggregate);
+  const makePayload = (markdown) => ({sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:key==='installation'?markdown:'설정 내용을 확인합니다.',sourceItemIds,sourceExcerptIds:[]})),openIssues:plan.openIssues});
+  for (const markdown of ['Run mytool foo.', '`mytool foo`', '```text\nmytool foo\n```']) {
+    const result = validateSetupGuideDraft(makePayload(markdown), plan);
+    assert.equal(result.valid, false, markdown);
+    assert.ok(result.errors.some((error) => error.includes('unrecognized command')), result.errors.join('\n'));
+  }
+  const ordinaryProse = validateSetupGuideDraft(makePayload('mytool foo is a helpful phrase.'), plan);
+  assert.equal(ordinaryProse.valid, true, ordinaryProse.errors.join('\n'));
 });
 
 test('setup guide rejects unsupported curl and ungrounded npm commands in actionable forms', () => {
