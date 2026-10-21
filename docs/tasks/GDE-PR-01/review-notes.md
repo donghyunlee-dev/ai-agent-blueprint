@@ -2,7 +2,7 @@
 
 ## Status
 
-`code_review` after the user selected policy A for the command/prose boundary: explanatory prose may mention executable names, while syntactically runnable commands remain subject to fail-closed evidence validation. PR #29 remains a draft pending fresh independent review on the latest head. QA has not started because code review has not passed.
+`ready_to_merge`: independent code review and QA passed on implementation head 20264b0f911587426fa5cdfaeefb52d53060683e. Head 12b2023cfb3ae0253fca4f587b2b7d22e8afa2b0 adds only status and QA evidence documentation; the configured GitHub golden-eval check on that head has passed. Final independent review/QA refresh is being recorded on the documentation-only head. PR #29 remains draft until that refresh completes. Merge is not authorized.
 
 ## Resolved findings
 
