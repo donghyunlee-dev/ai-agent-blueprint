@@ -49,11 +49,12 @@
 | 홈 | `윈드소프트 모던 SaaS 대시보드.png`, `windsoft 한국어 SaaS UI 디자인 보드.png` 1번 | `image (17).png` |
 | 대화 | `회의실 예약 서비스 UI 캔버스.png`, 디자인 보드 5번 | `image (16).png`, `image (15).png` |
 | 제안 | `회의실 예약 서비스 제안 검토 대시보드.png`, 디자인 보드 6번 | 기존 proposal/conflict 상태 계약 |
-| 준비도 | `회의실 예약 서비스 설계 준비 대시보드.png`, 디자인 보드 7번 | 기존 10영역/inspector/mobile 계약 |
+| 준비도 | `회의실 예약 서비스 설계 준비 대시보드.png` | 기존 10영역/inspector/mobile 계약 |
 | Requirements | `회의실 예약 서비스 요구사항 대시보드.png`, 디자인 보드 8번 | `image (11).png`, `image (10).png`, `image (9).png` |
 | PRD | `한국어 PRD 대시보드 화면.png`, 디자인 보드 9번 | `image (14).png`, `image (12).png`, `image (13).png` |
 
 디자인 보드 1장과 단일 화면 6장으로 이미지 7장을 모두 다룬다.
+디자인 보드 7번의 기술 설계 흐름은 이번 준비도 화면에 적용하지 않는다.
 
 ## 현재 구현 대응
 

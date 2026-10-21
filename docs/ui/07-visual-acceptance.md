@@ -75,16 +75,18 @@
 
 ## 완료 게이트
 
-개별 UIR UI PR은 다음 조건을 모두 통과해야 `done`이다. QLT-PR-01은 위의 전체 범위에 같은 기준을 적용한다.
+개별 UIR UI PR은 다음 조건을 모두 통과해야 `done`이다.
 
 - 변경 화면의 1440×900·390×844와 영향을 받은 상태 캡처가 작업 기록에 연결됨
 - Playwright Chromium 시각·행동 검증 완료. Agent Browser를 사용할 수 있으면 같은 흐름을 검증하고, 사용할 수 없으면 도구 목록·실행 파일 확인 결과를 남긴다.
-- 직접 영향받은 중간 viewport의 레이아웃 전환을 확인하고, QLT-PR-01에서 5개 기준 viewport 전체를 확인함
+- 직접 영향받은 중간 viewport의 레이아웃 전환을 확인함
 - 키보드와 focus transition 표 검증 완료
 - 사용한 `docs/blueprint-design/` 주 이미지, 필요한 `docs/template/` fallback과 반영한 패턴 기록
 - raw visual value와 중복 primitive 검사 통과
 - P0/P1 UI 결함 없음
 - 알려진 차이는 의도, 영향과 후속 작업을 명시
+
+후속 QLT-PR-01은 개별 PR의 병합 이후 위 표의 전체 화면·상태를 5개 기준 viewport에서 통합 감사한다. 이 감사는 앞선 UIR UI PR의 완료 조건이 아니다.
 
 ## 실패 판정 예시
 
