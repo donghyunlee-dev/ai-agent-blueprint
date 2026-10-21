@@ -571,4 +571,89 @@
     "commandEvidence": []
   }
 }
+,
+{
+  "id": "setup-guide-npm-default-package-manager-prose",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "npm is the default package manager.",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": []
+  }
+},
+{
+  "id": "setup-guide-docker-selected-runtime-prose",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "Docker is the selected container runtime.",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": []
+  }
+},
+{
+  "id": "setup-guide-npm-install-package-name-command",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "expectedPass": false,
+  "expectedErrors": [
+    "setup guide command lacks complete evidence or uses unsupported executable"
+  ],
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "npm install package-name",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": [
+      "npm install"
+    ]
+  }
+}
 ]

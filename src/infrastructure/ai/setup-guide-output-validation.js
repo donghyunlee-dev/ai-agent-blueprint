@@ -3,7 +3,7 @@ const supportedExecutables = new Set([
   'curl','wget','ssh','scp','rsync','tar','make','bash','sh','apt','apt-get','brew','go','cargo','composer','ruby','gem','terraform','systemctl','sudo','irm','iwr','invoke-webrequest','invoke-restmethod','install-module','set-executionpolicy','start-process','get-command',
 ]);
 const shellBuiltins = new Set(['cd','export','echo','printf','pwd','mkdir','cp','mv','rm','cat','chmod','chown','source','set','unset','test','which','command','env','touch','ln','ls','grep','sed','awk','head','tail','true','false']);
-const actionVerbs = new Set(['add','apply','build','check','clean','configure','create','delete','deploy','destroy','disable','down','enable','exec','get','install','init','list','login','logout','plan','pull','push','restart','run','set','start','status','stop','test','update','upgrade','up','version']);
+const actionVerbs = new Set(['add','apply','build','check','clean','clone','commit','configure','create','delete','deploy','destroy','disable','dlx','down','enable','exec','fetch','get','i','install','init','list','login','logout','merge','plan','pull','push','restart','run','set','start','status','stop','test','update','upgrade','up','version']);
 const proseDeterminers = new Set(['a','an','the','this','that','these','those','my','your','our','their','its']);
 const proseConnectors = new Set(['as','for','with','to','by','from','after','before','because','while','when','which','who','where','whether','and','or','but']);
 
@@ -32,6 +32,20 @@ function looksLikeExecutable(command, strict = false) {
   const action = command.trim().split(/\s+/,2)[1]?.replace(/^["']|["']$/g,'').toLowerCase();
   const hasArguments = command.trim().split(/\s+/).length > 1;
   return strict && hasArguments && (/[-/.]/.test(executable) || (action && actionVerbs.has(action)) || /^[a-z][a-z0-9_-]*$/i.test(executable));
+}
+
+function looksLikeRunnableSupportedCommand(command) {
+  const words = command.trim().split(/\s+/);
+  let executable = words[0]?.split('/').pop()?.toLowerCase();
+  let argument = words[1]?.replace(/^['"]|['"]$/g,'').toLowerCase();
+  if (!supportedExecutables.has(executable)) return false;
+  if (executable === 'sudo') {
+    executable = words[1]?.toLowerCase();
+    argument = words[2]?.replace(/^['"]|['"]$/g,'').toLowerCase();
+    if (!supportedExecutables.has(executable)) return false;
+  }
+  if (!argument) return false;
+  return actionVerbs.has(argument) || argument.startsWith('-') || /[./\\]/.test(argument) || /\.[a-z0-9]{1,8}$/i.test(argument);
 }
 
 export function extractSetupGuideCommands(markdown) {
@@ -66,7 +80,7 @@ export function extractSetupGuideCommands(markdown) {
 
   for (const line of outsideFences.split(/\r?\n/)) {
     const command = cleanCommand(line.replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/,''));
-    if (command.includes(' ') && looksLikeExecutable(command)) commands.push(command);
+    if (command.includes(' ') && looksLikeRunnableSupportedCommand(command)) commands.push(command);
   }
 
   const seen = new Set();
