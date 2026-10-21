@@ -96,6 +96,7 @@ type BlueprintProcessState =
 - `title`은 공백을 제거한 1~100자다.
 - `activeThreadId`는 존재하는 대화 스레드를 가리킨다.
 - `ready`는 필수 준비 조건을 만족할 때만 설정한다.
+- `completed` 전환에는 해당 프로젝트의 `setup_guide`가 존재하고 사용자가 승인한 `status: "ready"`여야 한다. 문서 `designRevision`이 현재 프로젝트 revision과 같고 모든 section이 `syncStatus: "current"`여야 한다. `draft`, `review_required`, 또는 stale/conflict 설정 가이드는 조건을 만족하지 않는다(`DEC-045`).
 - `designRevision`은 승인된 공통 설계 변경마다 원자적으로 1씩 증가한다. 필드가 없는 기존 aggregate는 `0`으로 취급한다.
 - 프로젝트마다 하나의 `ConversationThread`만 생성한다.
 - `ownerKey`는 현재 인증 사용자 범위와 일치해야 하며 다른 범위의 프로젝트는 존재하지 않는 것처럼 처리한다.
@@ -337,6 +338,7 @@ interface DocumentSection {
 - 직접 편집과 설계 변경이 충돌하면 `conflict` 상태로 검토한다.
 - `prd` 문서는 같은 프로젝트의 `requirements` 문서가 `ready`일 때만 생성할 수 있다.
 - `setup_guide`는 Agent가 프로젝트별로 전체 생성하며 승인 전 문서 상태는 `draft`다.
+- `setup_guide`는 명시적인 사용자 검토·승인 후에만 `ready`가 된다. 현재 설계 revision과 일치하지 않거나 stale/conflict section이 있는 가이드는 `ready` 완료 조건으로 인정하지 않는다.
 
 ## GenerationJob
 
@@ -534,3 +536,4 @@ interface ProjectSummary {
 - 텍스트가 추출되지 않는 PDF는 `unsupported`로 처리하고 Agent 컨텍스트에 포함하지 않는다.
 - PDF 표는 셀의 읽기 순서를 유지한 일반 텍스트로 평탄화하고 원래 표 레이아웃 복원을 보장하지 않는다.
 - 원본 바이너리는 장기 보관하지 않고 추출 텍스트, 해시와 메타데이터만 로컬에 유지한다.
+- 추출 텍스트는 앱 안에서 수정할 수 없으며 다운로드를 제공한다(`DEC-044`). 다운로드 동작은 저장된 추출 텍스트, source hash와 evidence를 변경하지 않는다.

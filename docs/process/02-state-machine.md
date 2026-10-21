@@ -79,6 +79,10 @@ UI의 `F-PRD-LOCKED`, `F-SAVE-ERROR`, `F-DOC-STALE`은 독립 도메인 상태�
 | `PS_REQ_READY` + revision mismatch | PRD 생성 | Requirements review_required 전환 후 차단 |
 | 모든 processing 상태 | 같은 trigger 재실행 | 중복 요청 차단 또는 같은 request 연결 |
 
+## 프로젝트 완료 guard
+
+`BlueprintProject.status`의 lifecycle transition이며 `BlueprintProcessState` 전이가 아니다. `status: completed`는 프로젝트에 `setup_guide`가 있고 사용자가 승인한 `status: ready`이며, 문서 revision이 현재 설계 revision과 같고 모든 section이 current일 때만 허용한다. 설정 가이드가 없거나 `draft`, `review_required`, stale/conflict 상태면 프로젝트를 완료 상태로 바꾸지 않고 검토 또는 갱신을 안내한다(`DEC-045`).
+
 ## 파생 상태 우선순위
 
 UI Frame은 아래 높은 우선순위를 먼저 적용한다.

@@ -172,6 +172,8 @@
 - 프로젝트마다 하나의 연속 대화만 제공한다.
 - 요구사항명세서가 `ready` 상태가 된 뒤에만 PRD를 생성한다.
 - 설정 가이드는 Agent가 확정 설계와 참고 자료를 바탕으로 전체 내용을 새로 작성한다.
+- 프로젝트를 `completed`로 표시하려면 사용자가 설정 가이드를 승인해 `ready` 상태로 만들고, 문서 revision이 현재 설계 revision과 일치하며 모든 section이 current여야 한다. `draft`, `review_required`, stale/conflict 상태로는 완료할 수 없다(`DEC-045`).
+- 추출 결과는 앱에서 읽기 전용이며 사용자는 결과를 내려받아 외부에서 수정할 수 있다(`DEC-044`).
 - 리빌드 이전 로컬 데이터는 마이그레이션하지 않으며 `/survey`, `/prd`는 404로 처리한다.
 - 운영 행동 분석을 수집하지 않고 사용자 테스트와 QA로 성공 지표를 검증한다.
 
@@ -250,4 +252,4 @@ AI task router, LIGHT/DEFAULT profile, 상황별 DisplayBlock, prompt version과
 
 ## 오픈 이슈
 
-이전 오픈 이슈였던 설정 가이드 검증 방식과 편집 영향 미리보기 항목별 제외는 `DEC-040`, `DEC-041`로 확정됐다(`docs/product/10-decision-log.md`).
+이전 오픈 이슈였던 편집 영향 미리보기 항목별 제외와 설정 가이드 명령·버전 근거 정책은 `DEC-040`, `DEC-041`로 확정됐다. 추출 결과 수정 정책과 설정 가이드 완료 gate는 `DEC-044`, `DEC-045`로 확정됐다(`docs/product/10-decision-log.md`).
