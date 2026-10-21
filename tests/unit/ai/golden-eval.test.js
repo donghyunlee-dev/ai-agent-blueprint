@@ -15,8 +15,21 @@ test('synthetic golden fixtures pass deterministic schema, reference, and forbid
 
 test('every task has a passing synthetic fixture without provider calls', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
-  assert.equal(fixtures.length, 14);
+  assert.equal(fixtures.length, 18);
   for (const fixture of fixtures) assert.deepEqual(evaluateGoldenFixture(fixture), { pass: true, errors: [] }, fixture.id);
+});
+
+test('setup guide golden fixtures exercise evidence, injection, schema, and source-reference rejection paths', async () => {
+  const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
+  const setupFixtures = fixtures.filter((fixture) => fixture.task === 'SETUP_GUIDE_DRAFT');
+  assert.deepEqual(setupFixtures.map(({id})=>id), [
+    'setup-guide-draft-evidence-and-open-issue-contract',
+    'setup-guide-missing-command-evidence',
+    'setup-guide-prompt-injection-output',
+    'setup-guide-schema-failure',
+    'setup-guide-invalid-excerpt-reference',
+  ]);
+  for (const fixture of setupFixtures) assert.deepEqual(evaluateGoldenFixture(fixture), {pass:true,errors:[]}, fixture.id);
 });
 
 test('golden gate rejects invalid schema, unknown references, and model-authored confirmation outcomes', () => {

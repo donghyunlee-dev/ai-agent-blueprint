@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildSetupGuidePlan, validateSetupGuideDraft, SETUP_GUIDE_DISCLAIMER, setupGuideCompletionBlockers } from '../../src/features/documents/setup-guide-plan-builder.js';
+import { generateSetupGuide } from '../../src/features/documents/setup-guide-generation.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 
@@ -31,6 +32,40 @@ test('setup guide draft rejects unsupported command or version claims and inject
   const safe = validateSetupGuideDraft({ ...payload, sections:payload.sections.map((section) => ({...section,markdown:'환경을 확인합니다.'})) }, plan);
   assert.equal(safe.valid, true, safe.errors.join('\n'));
   assert.equal(safe.sections[0].markdown.startsWith(SETUP_GUIDE_DISCLAIMER), true);
+});
+
+test('setup guide command evidence must include every command argument', () => {
+  const sourceAggregate = structuredClone(aggregate);
+  sourceAggregate.designItems[0].description = 'Use npm install';
+  sourceAggregate.designItems[0].evidence = [];
+  const plan = buildSetupGuidePlan(sourceAggregate);
+  const makePayload = (markdown) => ({ sections: plan.sections.map(({key,title,sourceItemIds}) => ({key,title,markdown,sourceItemIds,sourceExcerptIds:[]})), openIssues:plan.openIssues });
+  assert.equal(validateSetupGuideDraft(makePayload('npm install'), plan).valid, true);
+  const extended = validateSetupGuideDraft(makePayload('npm install untrusted-package'), plan);
+  assert.equal(extended.valid, false);
+  assert.ok(extended.errors.some((error) => error.includes('unsupported command')));
+});
+
+test('setup guide redacts secrets from model context and generated markdown', async () => {
+  const secret = 'sk-proj-abcdefghijklmnopqrstuvwxyz1234567890';
+  const sourceAggregate = structuredClone(aggregate);
+  sourceAggregate.designItems[1].description = `OPENAI_API_KEY=${secret}`;
+  sourceAggregate.sources[0].extractedText += `\nOPENAI_API_KEY=${secret}`;
+  sourceAggregate.designItems[0].evidence.push({sourceId:'s1',excerpt:`OPENAI_API_KEY=${secret}`});
+  const plan = buildSetupGuidePlan(sourceAggregate);
+  assert.doesNotMatch(JSON.stringify(plan), new RegExp(secret));
+  assert.match(JSON.stringify(plan), /\[REDACTED\]/);
+  const generated = await generateSetupGuide({aggregate:sourceAggregate,runTask:async(_task,input)=>{
+    assert.doesNotMatch(JSON.stringify(input),new RegExp(secret));
+    return {task:'SETUP_GUIDE_DRAFT',promptVersion:'v1',schemaVersion:'v1',designRevision:3,payload:{sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:`OPENAI_API_KEY=${secret}`,sourceItemIds,sourceExcerptIds:[]})),openIssues:plan.openIssues},referencedItemIds:plan.referenceDesignItemIds,referencedSourceIds:plan.sourceExcerpts.map(({id})=>id),warnings:[]};
+  }});
+  assert.doesNotMatch(JSON.stringify(generated.sections),new RegExp(secret));
+  assert.match(JSON.stringify(generated.sections),/\[REDACTED\]/);
+});
+
+test('setup guide keeps excerpt provenance IDs on generated sections for read-only inspection', async () => {
+  const result = await generateSetupGuide({aggregate, runTask: async (_task, input) => ({task:'SETUP_GUIDE_DRAFT',promptVersion:'v1',schemaVersion:'v1',designRevision:3,payload:{sections:input.plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:'검토합니다.',sourceItemIds,sourceExcerptIds:key==='prerequisites'?['s1:0']:[] })),openIssues:input.plan.openIssues},referencedItemIds:input.plan.referenceDesignItemIds,referencedSourceIds:input.plan.sourceExcerpts.map(({id})=>id),warnings:[]})});
+  assert.deepEqual(result.sections[0].sourceExcerptIds, ['s1:0']);
 });
 
 test('setup guide task is versioned and uses DEFAULT with explicit budgets', () => {

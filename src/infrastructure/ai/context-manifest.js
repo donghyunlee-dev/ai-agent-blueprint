@@ -10,7 +10,7 @@ export function validateReferences(response, manifest, targetContext) {
  const issueIds=new Set([...(targetContext?.issueIds??[]),...(targetContext?.issues??[]).map(item=>typeof item==='string'?item:item.id)]);
  const proposalIds=new Set([...(targetContext?.proposalIds??[]),...(targetContext?.proposals??[]).map(item=>typeof item==='string'?item:item.id),(response.proposals??[]).map(proposal=>proposal.id)].filter(Boolean));
  const itemReferenceFields=new Set(['referencedItemIds','affectedItemIds','relatedItemIds','itemIds','sourceItemIds']);
- const sourceReferenceFields=new Set(['referencedSourceIds','sourceMessageIds']);
+ const sourceReferenceFields=new Set(['referencedSourceIds','sourceMessageIds','sourceExcerptIds']);
  const visit=(value,path='$',parentKey='')=>{
   if(Array.isArray(value)){value.forEach((child,index)=>visit(child,`${path}[${index}]`,parentKey));return;}
   if(!value||typeof value!=='object')return;

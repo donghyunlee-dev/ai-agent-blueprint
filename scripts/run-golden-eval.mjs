@@ -12,7 +12,7 @@ for (const file of fixtureFiles) {
   for (const fixture of Array.isArray(parsed) ? parsed : [parsed]) {
     count += 1;
     const result = evaluateGoldenFixture(fixture);
-    if (result.pass) console.log(`PASS ${fixture.id}`);
+    if (result.pass) console.log(`PASS ${fixture.id}${fixture.expectedPass === false ? ' (expected rejection)' : ''}`);
     else {
       failures.push({ id: fixture.id, errors: result.errors });
       console.error(`FAIL ${fixture.id}: ${result.errors.join('; ')}`);

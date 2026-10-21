@@ -1,8 +1,28 @@
 import type { BlueprintAggregate, GeneratedDocument, DocumentSection } from '../../domain/blueprint/types.js';
 import { DocumentExportActions } from './DocumentExportActions.js';
+import { redactSensitiveText } from '../../features/documents/sensitive-text.js';
 import '../../styles/setup-guide.css';
 
+function sourceExcerptLookup(aggregate:BlueprintAggregate) {
+  const excerpts=new Map<string,{fileName:string;text:string;location?:string}>();
+  const designItems=aggregate.designItems.filter((item)=>!item.archivedAt&&item.status==='confirmed'&&['technical_decision','constraint','requirement','risk'].includes(item.type));
+  for(const source of aggregate.sources.filter((item)=>item.extractionStatus==='ready'&&!item.archivedAt&&item.extractedText)){
+    const extractedText=source.extractedText;
+    if(!extractedText)continue;
+    let index=0;
+    for(const ref of designItems.flatMap((item)=>item.evidence??[])){
+      if(ref.sourceId!==source.id||!ref.excerpt)continue;
+      const safeExcerpt=redactSensitiveText(ref.excerpt);
+      if(!extractedText.includes(safeExcerpt))continue;
+      excerpts.set(`${source.id}:${index}`,{fileName:source.fileName,text:safeExcerpt,location:ref.location});
+      index+=1;
+    }
+  }
+  return excerpts;
+}
+
 export function SetupGuideDocument({aggregate,document,sections,generating,error,readyError,onGenerate,onApprove,onComplete}:{aggregate:BlueprintAggregate;document?:GeneratedDocument;sections:DocumentSection[];generating:boolean;error:string|null;readyError:string|null;onGenerate:()=>void;onApprove:()=>void;onComplete:()=>void}) {
+  const excerpts=sourceExcerptLookup(aggregate);
   const current=document?.status==='ready'&&document.designRevision===aggregate.project.designRevision&&document.readyDesignRevision===aggregate.project.designRevision&&sections.length===document.sectionIds.length&&sections.every((section)=>section.syncStatus==='current');
   const status=current?'ready':document&&document.designRevision!==aggregate.project.designRevision?'stale':document?.status??'없음';
   return <section className="requirements-document setup-guide-document" aria-labelledby="setup-guide-title">
@@ -10,7 +30,7 @@ export function SetupGuideDocument({aggregate,document,sections,generating,error
     {generating?<p role="status" aria-live="polite">확정 설계와 자료 근거를 바탕으로 설정 가이드를 만들고 있습니다.</p>:null}
     {error?<div role="alert"><p>{error}</p><button type="button" onClick={onGenerate}>다시 생성</button></div>:null}
     {!document&&!generating?<div className="requirements-empty-state"><h3>확정 설계에서 설정 가이드를 만들 수 있습니다</h3><p>명령과 버전은 근거가 있는 경우에만 작성하고, 확인이 필요한 항목은 오픈 이슈로 남깁니다.</p><button type="button" className="design-requirements-action is-primary" onClick={onGenerate}>설정 가이드 생성</button></div>:null}
-    {document?<><nav aria-label="설정 가이드 목차">{[...sections].sort((a,b)=>a.order-b.order).map((section)=><a key={section.id} href={`#setup-guide-${section.key}`}>{section.title}</a>)}</nav>{[...sections].sort((a,b)=>a.order-b.order).map((section)=><article id={`setup-guide-${section.key}`} key={section.id}><h3>{section.title}</h3><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{section.markdown}</pre><small>설계 근거: {section.sourceItemIds.join(', ')||'없음'}</small></article>)}
+    {document?<><nav aria-label="설정 가이드 목차">{[...sections].sort((a,b)=>a.order-b.order).map((section)=><a key={section.id} href={`#setup-guide-${section.key}`}>{section.title}</a>)}</nav>{[...sections].sort((a,b)=>a.order-b.order).map((section)=><article id={`setup-guide-${section.key}`} key={section.id}><h3>{section.title}</h3><pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit'}}>{redactSensitiveText(section.markdown)}</pre><small>설계 근거: {section.sourceItemIds.join(', ')||'없음'}</small>{section.sourceExcerptIds?.length?<details><summary>자료 발췌 근거 {section.sourceExcerptIds.length}개</summary><ul>{section.sourceExcerptIds.map((id)=><li key={id}><strong>{excerpts.get(id)?.fileName??id}</strong>{excerpts.get(id)?.location?<span> · {excerpts.get(id)?.location}</span>:null}<blockquote>{excerpts.get(id)?.text??'이 자료 발췌를 현재 프로젝트에서 찾을 수 없습니다.'}</blockquote></li>)}</ul></details>:null}</article>)}
       {!generating?<button type="button" onClick={onGenerate}>최신 설계로 새 초안 생성</button>:null}
       {document.openIssues?.length?<section aria-labelledby="setup-guide-open-issues"><h3 id="setup-guide-open-issues">확인이 필요한 항목</h3><ul>{document.openIssues.map((issue)=><li key={issue.id}><strong>{issue.title}</strong><p>{issue.description}</p></li>)}</ul></section>:null}
       {document.status==='draft'&&document.designRevision===aggregate.project.designRevision&&sections.every((section)=>section.syncStatus==='current')?<section className="requirements-ready-review" aria-labelledby="setup-guide-approval"><h3 id="setup-guide-approval">가이드 검토와 승인</h3><p>모든 섹션을 확인한 뒤 승인하면 현재 설계 revision의 설정 가이드가 ready가 됩니다.</p>{readyError?<p role="alert">{readyError}</p>:null}<button type="button" className="design-requirements-action is-primary" onClick={onApprove}>설정 가이드 승인</button></section>:null}
