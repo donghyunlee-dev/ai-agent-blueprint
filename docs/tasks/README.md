@@ -36,7 +36,7 @@
 | 24 | `EXP-PR-01` 문서 복사·다운로드 | 5단계 | merged (#25; merge `aee5afddcdf32d4da7d46e1aebf260522670a780`) | [plan](EXP-PR-01/plan.md) · [tests](EXP-PR-01/test-results.md) |
 | 25 | `DEC-PR-01` 자료 수정·설정 가이드 완료 정책 | 5단계 | merged (PR #27; merge `1ee6ff4f879389cefce1892b2cba5b8037c4ba39`) | [plan](DEC-PR-01/plan.md) · [tests](DEC-PR-01/test-results.md) · [review](DEC-PR-01/review-notes.md) · [QA](DEC-PR-01/qa-report.md) |
 | 26 | `SRC-PR-03` 추출 결과 다운로드 | 5단계 | merged (PR #28; merge `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`) | [plan](SRC-PR-03/plan.md) · [tests](SRC-PR-03/test-results.md) · [review](SRC-PR-03/review-notes.md) · [QA](SRC-PR-03/qa-report.md) |
-| 27 | `GDE-PR-01` 설정 가이드 | 5단계 | code_review (선택된 정책 A 적용, 독립 재리뷰 대기) | [plan](GDE-PR-01/plan.md), [review notes](GDE-PR-01/review-notes.md) |
+| 27 | `GDE-PR-01` 설정 가이드 | 5단계 | blocked (명령 감지 범위와 무확정 설계 시 초안 생성 정책 결정 필요) | [plan](GDE-PR-01/plan.md), [review notes](GDE-PR-01/review-notes.md) |
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | planned | [plan](QLT-PR-01/plan.md) |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | planned | [plan](QLT-PR-02/plan.md) |
 | 30 | `QLT-PR-03` 사용자 검증·출시 정리 | 6단계 | planned | [plan](QLT-PR-03/plan.md) |

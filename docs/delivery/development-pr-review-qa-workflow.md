@@ -279,7 +279,7 @@ QA 결과는 `pass` 또는 `fail`이다. 재현할 수 없는 항목은 `pass`�
 | 24 | `EXP-PR-01` 문서 복사·다운로드 | EXP-505 | 안전한 개별 Markdown 내보내기 | merged (#25; merge `aee5afddcdf32d4da7d46e1aebf260522670a780`) |
 | 25 | `DEC-PR-01` 자료 수정·설정 가이드 완료 정책 | DEC-044, DEC-045 | 추출 결과 read-only/download, 사용자 승인된 setup guide 완료 gate, 병합 상태 동기화 | merged (PR #27; merge `1ee6ff4f879389cefce1892b2cba5b8037c4ba39`) |
 | 26 | `SRC-PR-03` 추출 결과 다운로드 | SRC-502 | 원본 파일과 구분되는 추출 텍스트 다운로드, 외부 편집, 원본 자료·근거 불변 | merged (PR #28; merge `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`) |
-| 27 | `GDE-PR-01` 설정 가이드 | GDE-504 | SETUP_GUIDE_DRAFT registry/prompt/schema와 golden eval, 근거 있는 가이드 생성·승인 gate | code_review (선택된 정책 A 적용, 독립 재리뷰 대기) |
+| 27 | `GDE-PR-01` 설정 가이드 | GDE-504 | SETUP_GUIDE_DRAFT registry/prompt/schema와 golden eval, 근거 있는 가이드 생성·승인 gate | blocked (명령 감지 범위와 무확정 설계 시 초안 생성 정책 결정 필요) |
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | QLT-601~603 | 지정 viewport와 키보드·성능 gate | planned |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | QLT-604, 605, 608 | 전체 프로세스와 보안·모델 회귀 통과 | planned |
 | 30 | `QLT-PR-03` 사용자 검증·출시 정리 | QLT-606, 607 | P0 결함 0건과 release checklist | planned |
