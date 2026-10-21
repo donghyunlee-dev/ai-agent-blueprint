@@ -656,4 +656,69 @@
     ]
   }
 }
+,
+{
+  "id": "setup-guide-node-extensionless-script-without-full-evidence",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "expectedPass": false,
+  "expectedErrors": [
+    "setup guide command lacks complete evidence or uses unsupported executable"
+  ],
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "node app",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": [
+      "node"
+    ]
+  }
+},
+{
+  "id": "setup-guide-python-extensionless-script-without-full-evidence",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "expectedPass": false,
+  "expectedErrors": [
+    "setup guide command lacks complete evidence or uses unsupported executable"
+  ],
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "python script",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": [
+      "python"
+    ]
+  }
+}
 ]

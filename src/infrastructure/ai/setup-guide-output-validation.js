@@ -6,6 +6,8 @@ const shellBuiltins = new Set(['cd','export','echo','printf','pwd','mkdir','cp',
 const actionVerbs = new Set(['add','apply','build','check','clean','clone','commit','configure','create','delete','deploy','destroy','disable','dlx','down','enable','exec','fetch','get','i','install','init','list','login','logout','merge','plan','pull','push','restart','run','set','start','status','stop','test','update','upgrade','up','version']);
 const proseDeterminers = new Set(['a','an','the','this','that','these','those','my','your','our','their','its']);
 const proseConnectors = new Set(['as','for','with','to','by','from','after','before','because','while','when','which','who','where','whether','and','or','but']);
+const scriptRunners = new Set(['node','python','python3','ruby','bash','sh','bun']);
+const declarativeWords = new Set(['is','are','was','were','be','been','being','runs','default','selected','supported','available']);
 
 function splitShellCommands(value) {
   return value.split(/&&|\|\||[;|]/).map((item) => item.trim()).filter(Boolean);
@@ -45,7 +47,8 @@ function looksLikeRunnableSupportedCommand(command) {
     if (!supportedExecutables.has(executable)) return false;
   }
   if (!argument) return false;
-  return actionVerbs.has(argument) || argument.startsWith('-') || /[./\\]/.test(argument) || /\.[a-z0-9]{1,8}$/i.test(argument);
+  const scriptArgument = scriptRunners.has(executable) && /^[a-z0-9_-]+$/i.test(argument) && !declarativeWords.has(argument);
+  return actionVerbs.has(argument) || argument.startsWith('-') || /[./\\]/.test(argument) || /\.[a-z0-9]{1,8}$/i.test(argument) || scriptArgument;
 }
 
 export function extractSetupGuideCommands(markdown) {

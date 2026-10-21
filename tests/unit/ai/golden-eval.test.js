@@ -15,7 +15,7 @@ test('synthetic golden fixtures pass deterministic schema, reference, and forbid
 
 test('every task has a passing synthetic fixture without provider calls', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
-  assert.equal(fixtures.length, 37);
+  assert.equal(fixtures.length, 39);
   for (const fixture of fixtures) assert.deepEqual(evaluateGoldenFixture(fixture), { pass: true, errors: [] }, fixture.id);
 });
 
@@ -47,6 +47,8 @@ test('setup guide golden fixtures exercise evidence, injection, schema, and sour
     'setup-guide-npm-default-package-manager-prose',
     'setup-guide-docker-selected-runtime-prose',
     'setup-guide-npm-install-package-name-command',
+    'setup-guide-node-extensionless-script-without-full-evidence',
+    'setup-guide-python-extensionless-script-without-full-evidence',
   ]);
   for (const fixture of setupFixtures) assert.deepEqual(evaluateGoldenFixture(fixture), {pass:true,errors:[]}, fixture.id);
 });

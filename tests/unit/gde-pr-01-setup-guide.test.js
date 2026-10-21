@@ -5,6 +5,7 @@ import { generateSetupGuide } from '../../src/features/documents/setup-guide-gen
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 import { redactSensitiveText, redactSensitiveValues } from '../../src/features/documents/sensitive-text.js';
+import { extractSetupGuideCommands } from '../../src/infrastructure/ai/setup-guide-output-validation.js';
 
 const aggregate = {
   project: { id:'p1', title:'앱', designRevision:3 },
@@ -103,6 +104,17 @@ test('setup guide command evidence must include every command argument', () => {
   const packageName = validateSetupGuideDraft(makePayload('npm install package-name'), plan);
   assert.equal(packageName.valid, false);
   assert.ok(packageName.errors.some((error) => error.includes('unsupported command')));
+});
+
+test('setup guide recognizes extensionless script arguments for supported runners', () => {
+  const plan = buildSetupGuidePlan(aggregate);
+  const makePayload = (markdown) => ({sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:key==='installation'?markdown:'설정 내용을 확인합니다.',sourceItemIds,sourceExcerptIds:[]})),openIssues:plan.openIssues});
+  for (const command of ['node app', 'python script', 'python3 worker']) {
+    assert.ok(extractSetupGuideCommands(command).includes(command), command);
+    const result = validateSetupGuideDraft(makePayload(command), plan);
+    assert.equal(result.valid, false, command);
+    assert.ok(result.errors.some((error) => error.includes('unsupported command')), result.errors.join('\n'));
+  }
 });
 
 test('setup guide fails closed for unknown plain-name commands in action, inline, and fenced contexts', () => {
