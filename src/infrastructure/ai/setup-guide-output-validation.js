@@ -8,6 +8,7 @@ const proseDeterminers = new Set(['a','an','the','this','that','these','those','
 const proseConnectors = new Set(['as','for','with','to','by','from','after','before','because','while','when','which','who','where','whether','and','or','but']);
 const scriptRunners = new Set(['node','python','python3','ruby','bash','sh','bun']);
 const declarativeWords = new Set(['is','are','was','were','be','been','being','runs','default','selected','supported','available']);
+const sudoOptionsWithValues = new Set(['-u','--user','-g','--group','-h','--host','-p','--prompt','-C','--chdir','-T','--type']);
 
 function splitShellCommands(value) {
   return value.split(/&&|\|\||[;|]/).map((item) => item.trim()).filter(Boolean);
@@ -36,16 +37,25 @@ function looksLikeExecutable(command, strict = false) {
   return strict && hasArguments && (/[-/.]/.test(executable) || (action && actionVerbs.has(action)) || /^[a-z][a-z0-9_-]*$/i.test(executable));
 }
 
+function wrappedExecutableIndex(words) {
+  if (words[0]?.toLowerCase() !== 'sudo') return 0;
+  let index = 1;
+  while (index < words.length) {
+    const option = words[index];
+    if (option === '--') return index + 1;
+    if (!option.startsWith('-')) return index;
+    if (!option.includes('=') && sudoOptionsWithValues.has(option)) index += 2;
+    else index += 1;
+  }
+  return index;
+}
+
 function looksLikeRunnableSupportedCommand(command) {
   const words = command.trim().split(/\s+/);
-  let executable = words[0]?.split('/').pop()?.toLowerCase();
-  let argument = words[1]?.replace(/^['"]|['"]$/g,'').toLowerCase();
+  const commandIndex = wrappedExecutableIndex(words);
+  const executable = words[commandIndex]?.split('/').pop()?.toLowerCase();
+  const argument = words[commandIndex + 1]?.replace(/^['"]|['"]$/g,'').toLowerCase();
   if (!supportedExecutables.has(executable)) return false;
-  if (executable === 'sudo') {
-    executable = words[1]?.toLowerCase();
-    argument = words[2]?.replace(/^['"]|['"]$/g,'').toLowerCase();
-    if (!supportedExecutables.has(executable)) return false;
-  }
   if (!argument) return false;
   const scriptArgument = scriptRunners.has(executable) && /^[a-z0-9_-]+$/i.test(argument) && !declarativeWords.has(argument);
   return actionVerbs.has(argument) || argument.startsWith('-') || /[./\\]/.test(argument) || /\.[a-z0-9]{1,8}$/i.test(argument) || scriptArgument;
@@ -101,7 +111,7 @@ export function validateSetupGuideCommandEvidence(markdown, evidenceValues) {
   for (const command of extractSetupGuideCommands(markdown)) {
     const executables = command.trim().split(/\s+/).map((token) => token.replace(/^["']|["']$/g,'').toLowerCase());
     const executable = executables[0];
-    const wrappedExecutable = executable === 'sudo' ? executables.find((token,index) => index>0&&!token.startsWith('-')) : executable;
+    const wrappedExecutable = executables[wrappedExecutableIndex(executables)];
     if (!supportedExecutables.has(executable) || (executable === 'sudo' && !supportedExecutables.has(wrappedExecutable))) {
       errors.push({command,reason:'unrecognized'});
       continue;

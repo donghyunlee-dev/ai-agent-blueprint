@@ -129,6 +129,23 @@ test('setup guide recognizes npm ci options and docker compose invocations in pl
   assert.ok(dockerOption.errors.some((error)=>error.includes('unsupported command')));
 });
 
+test('setup guide parses sudo flags and option values before wrapped executables', () => {
+  for (const command of ['sudo -E npm ci', 'sudo -u root npm ci']) {
+    assert.ok(extractSetupGuideCommands(command).includes(command), command);
+    const noEvidencePlan = buildSetupGuidePlan(aggregate);
+    const makePayload = (plan) => ({sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:key==='installation'?command:'설정 내용을 확인합니다.',sourceItemIds,sourceExcerptIds:[]})),openIssues:plan.openIssues});
+    const noEvidence = validateSetupGuideDraft(makePayload(noEvidencePlan), noEvidencePlan);
+    assert.equal(noEvidence.valid,false,command);
+    assert.ok(noEvidence.errors.some((error)=>error.includes('unsupported command')),noEvidence.errors.join('\n'));
+
+    const groundedAggregate = structuredClone(aggregate);
+    groundedAggregate.designItems[0].description = command;
+    const groundedPlan = buildSetupGuidePlan(groundedAggregate);
+    const grounded = validateSetupGuideDraft(makePayload(groundedPlan),groundedPlan);
+    assert.equal(grounded.valid,true,grounded.errors.join('\n'));
+  }
+});
+
 test('setup guide recognizes extensionless script arguments for supported runners', () => {
   const plan = buildSetupGuidePlan(aggregate);
   const makePayload = (markdown) => ({sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:key==='installation'?markdown:'설정 내용을 확인합니다.',sourceItemIds,sourceExcerptIds:[]})),openIssues:plan.openIssues});
