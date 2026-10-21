@@ -100,7 +100,7 @@ test('setup guide fails closed for unknown plain-name commands in action, inline
     assert.equal(result.valid, false, markdown);
     assert.ok(result.errors.some((error) => error.includes('unrecognized command')), result.errors.join('\n'));
   }
-  for (const prose of ['mytool foo is a helpful phrase.', 'Use the setup guide as a reference.', 'Run the setup process after reviewing the guide.']) {
+  for (const prose of ['mytool foo is a helpful phrase.', 'Use the setup guide as a reference.', 'Run the setup process after reviewing the guide.', 'Use npm as the package manager.']) {
     const ordinaryProse = validateSetupGuideDraft(makePayload(prose), plan);
     assert.equal(ordinaryProse.valid, true, `${prose}: ${ordinaryProse.errors.join('\n')}`);
   }

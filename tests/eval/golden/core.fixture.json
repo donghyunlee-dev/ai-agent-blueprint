@@ -544,4 +544,31 @@
     "commandEvidence": []
   }
 }
+,
+{
+  "id": "setup-guide-use-npm-as-package-manager-prose",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "Use npm as the package manager.",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": []
+  }
+}
 ]

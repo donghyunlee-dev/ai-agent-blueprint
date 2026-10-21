@@ -7,8 +7,8 @@ Base: `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`
 | Command | Result |
 | --- | --- |
 | `npx playwright test tests/e2e/gde-pr-01-setup-guide.spec.ts --workers=1` | Pass on latest correction head, desktop Chromium and mobile Chromium (2/2) |
-| `npm run test:golden` | Pass on latest correction head, 33/33 synthetic fixtures including seventeen setup-guide rejection cases and two ordinary-prose cases; no provider calls |
-| `node --test tests/unit/gde-pr-01-setup-guide.test.js tests/contract/gde-pr-01-setup-guide-api.test.js tests/contract/fnd-model-registry.test.js tests/unit/ai/prompt-registry.test.js tests/unit/ai/golden-eval.test.js` | Pass on latest correction head before prose regressions, 42/42; prose regressions also pass in the focused validator and golden tests |
+| `npm run test:golden` | Pass on latest correction head, 34/34 synthetic fixtures including unknown-command rejection and ordinary-prose cases; no provider calls |
+| `node --test tests/unit/gde-pr-01-setup-guide.test.js tests/contract/gde-pr-01-setup-guide-api.test.js tests/contract/fnd-model-registry.test.js tests/unit/ai/prompt-registry.test.js tests/unit/ai/golden-eval.test.js` | Pass on latest correction head, 42/42 |
 | `npm run build` | Pass on latest correction head, TypeScript and Vite production build |
 | `git diff --check` | Pass |
 

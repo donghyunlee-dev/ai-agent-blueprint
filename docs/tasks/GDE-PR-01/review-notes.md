@@ -2,7 +2,7 @@
 
 ## Status
 
-`code_review` after the user selected policy A for no-confirmed-decision projects. The latest correction rejects unknown plain-name commands in action prose, inline code, and fenced blocks, and generates a generic open issue when no technical decisions or constraints are confirmed, including rejected/not-applicable-only records. PR #29 remains a draft pending a fresh independent review on the corrected head; QA has not started.
+`code_review` after the user selected policy A for the command/prose boundary: explanatory prose may mention executable names, while syntactically runnable commands remain subject to fail-closed evidence validation. PR #29 remains a draft pending fresh independent review on the latest head. QA has not started because code review has not passed.
 
 ## Resolved findings
 
@@ -25,8 +25,14 @@ The generated setup guide remains read-only in the application, per the accepted
 ## Latest correction validation
 
 - Focused unit and contract suites: 42/42 passed.
-- Synthetic golden fixtures: 31/31 passed, including unknown plain-name commands in action prose, inline code, and text fences.
+- Synthetic golden fixtures: 34/34 passed, including unknown plain-name command rejection and ordinary explanatory prose cases.
 - Setup guide Playwright E2E: 2/2 passed (desktop Chromium and mobile Chromium).
 - Production build and `git diff --check`: passed.
 
 - A fresh review caught action prose false positives; regression cases now confirm “Use the setup guide as a reference” and “Run the setup process after reviewing the guide” remain ordinary prose.
+
+## Command/prose policy decision
+
+The user selected **A**: explanatory prose such as “Use npm as the package manager” is accepted. Syntactically runnable command forms, including unsupported plain-name invocations, inline commands, and fenced commands, remain subject to fail-closed evidence validation.
+
+- Latest correction retains the approved explanatory prose examples, including “Use npm as the package manager.”
