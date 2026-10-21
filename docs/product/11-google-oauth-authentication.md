@@ -73,7 +73,7 @@ sequenceDiagram
 
 ## 로그아웃과 만료
 
-- `POST /api/auth/logout`은 현재 Blueprint session을 폐기하고 cookie를 만료시킨다. 반복 호출은 안전하게 처리한다.
+- `GET /api/auth/session`은 인증 여부와 최소 사용자 표시 정보를 반환한다. `POST /api/auth/session`은 same-origin 검증 후 Blueprint session cookie를 만료시킨다. 로그아웃 반복 호출은 안전하게 처리한다.
 - 로그아웃 시 화면의 사용자 데이터와 메모리 상태를 정리한다. Google 계정 전체 로그아웃을 했다고 표현하지 않는다.
 - 만료 또는 무효 session은 보호 API에서 `401 AUTH_REQUIRED`로 처리한다. 화면은 저장되지 않은 사용자 입력을 다른 계정으로 넘기지 않고 재인증을 안내한다.
 
@@ -110,7 +110,6 @@ Production 및 인증을 사용하는 Preview 배포에는 두 Upstash 변수를
 api/auth/google/start.ts
 api/auth/google/callback.ts
 api/auth/session.ts
-api/auth/logout.ts
 api/_lib/google-oidc.ts
 api/_lib/session.ts
 api/_lib/require-session.ts

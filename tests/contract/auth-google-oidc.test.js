@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import startHandler from "../../api/auth/google/start.js";
 import callbackHandler from "../../api/auth/google/callback.js";
 import sessionHandler from "../../api/auth/session.js";
-import logoutHandler from "../../api/auth/logout.js";
 import { createMockReq, createMockRes } from "../fixtures/http.js";
 
 before(() => {
@@ -187,10 +186,10 @@ test("callback refuses unverified identities and leaks no credentials", async ()
   assert.doesNotMatch(JSON.stringify(res.headers), /private-code|private-id-token/);
 });
 
-test("logout clears the session cookie idempotently", async () => {
+test("session POST clears the session cookie idempotently", async () => {
   for (let call = 0; call < 2; call += 1) {
     const res = createMockRes();
-    await logoutHandler(createMockReq({ method: "POST", url: "/api/auth/logout", headers: { host: "app.example", origin: "http://app.example" } }), res);
+    await sessionHandler(createMockReq({ method: "POST", url: "/api/auth/session", headers: { host: "app.example", origin: "http://app.example" } }), res);
     assert.equal(res.statusCode, 204);
     assert.match(res.headers["Set-Cookie"], /Max-Age=0/);
   }

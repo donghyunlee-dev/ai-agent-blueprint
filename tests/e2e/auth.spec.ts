@@ -78,13 +78,16 @@ test("세션 만료 응답은 보호 내용을 가리고 재인증 안내를 보
 test("Blueprint 로그아웃은 사용자 메뉴에서 한 번만 수행되고 뒤로 가도 보호 화면을 보이지 않는다", async ({ page }, testInfo) => {
   let sessionActive = true;
   let logoutCalls = 0;
-  await page.route("**/api/auth/session", (route) => sessionActive
-    ? route.fulfill({ status: 200, json: { authenticated: true, user: { issuer: "https://accounts.google.com", subject: "qa-user", email: "verified@example.test" } } })
-    : route.fulfill({ status: 401, json: { error: "AUTH_REQUIRED" } }));
-  await page.route("**/api/auth/logout", async (route) => {
-    logoutCalls += 1;
-    sessionActive = false;
-    await route.fulfill({ status: 204, body: "" });
+  await page.route("**/api/auth/session", async (route) => {
+    if (route.request().method() === "POST") {
+      logoutCalls += 1;
+      sessionActive = false;
+      await route.fulfill({ status: 204, body: "" });
+      return;
+    }
+    await route.fulfill({ status: sessionActive ? 200 : 401, json: sessionActive
+      ? { authenticated: true, user: { issuer: "https://accounts.google.com", subject: "qa-user", email: "verified@example.test" } }
+      : { error: "AUTH_REQUIRED" } });
   });
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "아이디어를 제품 설계로 구체화하세요" })).toBeVisible();

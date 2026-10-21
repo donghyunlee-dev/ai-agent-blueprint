@@ -47,6 +47,11 @@ test.describe("AuthProvider identity race integration", () => {
     let lateAFinished = false;
     let releaseLogout!: () => void;
     await page.route("**/api/auth/session", async (route) => {
+      if (route.request().method() === "POST") {
+        await new Promise<void>((resolve) => { releaseLogout = resolve; });
+        await route.fulfill({ status: 500, json: { error: "LOGOUT_FAILED" } });
+        return;
+      }
       sessionCalls += 1;
       if (sessionCalls === 1) return fulfillSession(route, "user-a");
       if (sessionCalls === 2) {
@@ -57,11 +62,6 @@ test.describe("AuthProvider identity race integration", () => {
       }
       await route.fulfill({ status: 401, json: { error: "AUTH_REQUIRED" } });
     });
-    await page.route("**/api/auth/logout", async (route) => {
-      await new Promise<void>((resolve) => { releaseLogout = resolve; });
-      await route.fulfill({ status: 500, json: { error: "LOGOUT_FAILED" } });
-    });
-
     await mountProvider(page);
     await expectProvider(page, "authenticated", "user-a", true, "user-a");
     await expect(page.getByTestId("memory-project-status")).toContainText("user-a:present");
