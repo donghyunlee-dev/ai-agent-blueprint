@@ -1,6 +1,6 @@
 # SRC-PR-02 — 근거 연결
 
-**Status: blocked — excerpt selection contract required.** Planning base: `origin/main` at merge commit `f169cf7da310dc446fdb02b7006817c65703ea12` (PR #24, merged 2026-10-15). Scope: `SRC-503` (`SRC-002`).
+**Status: in_progress — implementation, self-validation, independent review, and QA passed on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`; final PR gate evidence is tracked against the current PR head.** Planning base: `origin/main` at `aee5afddcdf32d4da7d46e1aebf260522670a780` (PR #25, verified 2026-10-21). Scope: `SRC-503` (`SRC-002`). The user approved the excerpt and citation-mapping decisions recorded below.
 
 ## 사용자 결과
 
@@ -20,14 +20,22 @@
 - [x] SRC-PR-01 is merged on current main; project source storage and `DesignItem.evidence` already exist.
 - [x] DSG-PR-01~03 and the design-item Inspector are merged.
 - [x] Scope, requirement, delivery task, normal/failure/boundary outcomes, affected UI, and focused validation are identified.
-- [ ] Product contract defines how to derive bounded, relevant excerpts from ready `SourceDocument.extractedText` before sending them to `TURN_ANALYZE` (selection/chunking rule and maximum per-source/total text). Existing docs require “necessary excerpts only” but define no retrieval/selection rule. Sending each entire file would violate the data-minimization contract.
-- [ ] Product/data contract defines the mapping between a request-local `SourceExcerpt.id` (the ID checked by the context manifest) and durable `EvidenceRef` fields. Today `validateReferences` expects returned evidence `sourceId` to be a manifest excerpt ID, while `normalizeProposals` validates `sourceId` against persisted `SourceDocument.id`; choosing a mapping in implementation would change observable citation behavior and data semantics.
+- [x] User approved the bounded excerpt-selection policy and deterministic implementation semantics below.
+- [x] User approved request-local excerpt IDs for citation validation and canonical `EvidenceRef.sourceId = SourceDocument.id` persistence, with exact quote and location.
 
-**Exact unblock input:** approve one excerpt-selection/size policy and one durable citation mapping. A compatible candidate for review is: create bounded paragraph excerpts only from ready sources; assign each request excerpt a unique ID and keep its source document ID/location; on proposal normalization map the excerpt ID back to `EvidenceRef.sourceId = SourceDocument.id` and copy the quoted excerpt/location. This candidate is not approved and must not be implemented as a decided contract without confirmation.
+## Approved excerpt and citation policy
+
+- Include excerpts only from ready `SourceDocument` records belonging to the current project.
+- Prioritize paragraphs relevant to the current turn and question. The implementation uses deterministic lexical relevance; ties preserve source/document order.
+- Include at most 2 paragraphs and 1,200 characters per source, and at most 6,000 excerpt-text characters per request. The character limit counts excerpt text only, excluding metadata and separators.
+- Omit overflow rather than relying on provider truncation. If a paragraph exceeds the remaining per-source character budget, omit that paragraph intact to preserve quote fidelity.
+- Assign each request excerpt a unique request-local `SourceExcerpt.id` for model citation validation. Preserve its canonical `SourceDocument.id`, exact text, and source location in the request mapping.
+- Validate every returned file citation against the request-local excerpt IDs actually sent. On proposal normalization, persist `EvidenceRef.sourceType = "file"`, `EvidenceRef.sourceId = SourceDocument.id`, and the exact cited excerpt and location.
+- The lexical relevance rule, stable ordering, intact-paragraph omission, and text-only character accounting are implementation semantics under the user-approved caps; they do not expand the approved product behavior.
 
 ## Scope
 
-### Included after the missing contract is approved
+### Included
 
 - Build request excerpts exclusively from ready project sources and include only the approved bounded selection in `TURN_ANALYZE`; keep non-ready, removed, and other-project sources out.
 - Validate model evidence against the exact excerpts sent; persist file evidence on accepted/edited-and-accepted design items, preserving quote and location for preview.
@@ -42,10 +50,10 @@
 - User-editing evidence, restoring removed files/evidence, generic evidence management, or redesign of proposal review.
 - Requirements/guides/exports and unrelated AI context changes.
 
-## Implementation outline after unblock
+## Implementation outline
 
-1. Add a focused excerpt projection/selection function implementing the approved limit and location semantics, without persisting duplicate source text.
-2. Wire the selected ready-source excerpts into `AiTurnComposer`'s existing `TURN_ANALYZE` payload; validate returned evidence IDs and normalize them into canonical `EvidenceRef` data before proposals can be saved.
+1. Add a focused excerpt projection/selection function implementing the approved relevance, limits, stable ordering, omission, and location semantics, without persisting duplicate source text.
+2. Wire the selected ready-source excerpts into `AiTurnComposer`'s existing `TURN_ANALYZE` payload; validate returned request-local excerpt IDs and normalize them to canonical source IDs and exact `EvidenceRef` quote/location before proposals can be saved.
 3. Add evidence preview to the existing Inspector and make missing file references render a clear deleted-evidence state without hiding other evidence.
 4. Add a source-removal impact preview and confirmation. Recompute impact and remove matching refs inside the same latest-aggregate `ProjectRepository.transact`; do not delete design items or partially save.
 5. Add direct unit/contract and one focused Playwright flow. Keep AI provider mocked; no unrelated suite or screenshot set.
@@ -75,7 +83,7 @@ flowchart TD
 
 ### Happy path
 
-Given a ready source and an approved excerpt-selection policy, when the user sends a turn, then only policy-bounded excerpts from that project’s ready sources are included; an accepted proposal linked to one of those excerpts stores its source filename reference, exact quote, and location, and the Inspector preview shows all three after reload.
+Given ready sources and a user turn, when the user sends it, then only relevant, policy-bounded paragraphs from that project’s ready sources are included; an accepted proposal citing one of the request-local excerpt IDs stores the canonical source filename reference, exact quote, and location, and the Inspector preview shows all three after reload.
 
 ### Failure cases
 
@@ -92,8 +100,8 @@ Given one source is referenced by five distinct design items (including duplicat
 
 | Concern | Focused check | Required result |
 | --- | --- | --- |
-| Excerpt policy | Unit/contract tests for ready-state filtering, project/source ID mapping, excerpt size/selection boundary, and omitted text | Approved policy is enforced; non-ready/foreign/over-limit material is never sent |
-| Evidence validation | Unit tests for allowed excerpt ID, unknown/stale ID, durable source mapping, quote/location normalization | Unknown IDs fail closed; valid citations map to the exact source and excerpt |
+| Excerpt policy | Unit/contract tests for ready-state and project filtering, deterministic lexical ranking and source-order ties, 2-paragraph/1,200-character per-source and 6,000-character request boundaries, intact-paragraph overflow omission, and exact location | Approved policy is enforced; non-ready/foreign/over-limit material is never sent and excerpt text is not altered |
+| Evidence validation | Unit tests for request-local IDs actually sent, unknown/stale/unsent IDs, canonical source mapping, and exact quote/location normalization | Unknown IDs fail closed; valid citations map to the exact source and excerpt |
 | Removal transaction | Unit/repository tests for unique impact count, duplicate refs, nested criteria, cancellation, transaction failure, and preservation of unrelated refs/items | Correct count; atomic cleanup; no design item loss or unrelated evidence mutation |
 | Inspector/removal UI | One scoped Playwright spec for evidence preview, impact dialog, cancel, confirm, and visible no-evidence state at desktop and mobile layout | Filename/quote/location and exact affected count are accessible; cancel/confirm outcomes persist after reload |
 | Build and diff | `npm run build`; `git diff --check` | Both pass |
@@ -108,26 +116,34 @@ Do not run a broad suite, live OpenAI request, full-app QA, or screenshot captur
 
 ## Risks
 
-- Sending entire files as excerpts can violate source-minimization requirements and increase prompt exposure/cost; the missing selection and size policy is the current blocker.
+- Relevance ranking can select different paragraphs if normalization or tie ordering changes; tests must lock the deterministic ordering and ensure quote text is preserved exactly.
 - Excerpt ID versus source ID mismatch can either reject valid model citations or attach a citation to the wrong file; tests must exercise the complete request-to-persisted-reference mapping.
 - Concurrent/stale UI state can undercount impacts; compute count and cleanup against the latest aggregate inside the transaction, and require confirmation against the displayed latest count.
 - A source may support several items and have duplicate/nested refs; count unique design items, remove only matching file refs, and retain other evidence.
 
 ## Review and QA checklist
 
-- [ ] Approved excerpt selection and durable-ID mapping implemented exactly.
-- [ ] Only ready, project-owned, bounded excerpts enter `TURN_ANALYZE`; content is not logged.
-- [ ] Model evidence must refer to a sent excerpt; normalization cannot bind arbitrary or removed sources.
-- [ ] Inspector shows filename, quoted excerpt, location, and empty/deleted state accessibly.
-- [ ] Removal previews unique impacted design-item count and recomputes atomically; cancel/failure preserve state.
-- [ ] Confirmed removal retains items, nested unrelated evidence, and all unrelated aggregate fields.
-- [ ] Focused unit/contract and Playwright checks pass on the exact final SHA.
+- [x] Approved excerpt selection and durable-ID mapping implemented exactly.
+- [x] Only ready, project-owned, bounded excerpts enter `TURN_ANALYZE`; content is not logged.
+- [x] Model evidence must refer to a sent excerpt; normalization cannot bind arbitrary or removed sources.
+- [x] Inspector shows filename, quoted excerpt, location, and empty/deleted state accessibly.
+- [x] Removal previews unique impacted design-item count and recomputes atomically; cancel/failure preserve state.
+- [x] Confirmed removal retains items, nested unrelated evidence, and all unrelated aggregate fields.
+- [x] Focused unit/contract and Playwright checks pass on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`.
+
+### Implementer validation — 2026-10-21
+
+- `node --test tests/unit/src-pr-02-source-evidence.test.js tests/contract/fnd-context-validation.test.js tests/unit/dsg-pr-01-proposals.test.js tests/contract/turn-api.test.js tests/unit/ai/prompt-registry.test.js tests/unit/ai/golden-eval.test.js` — 51 passed, 0 failed.
+- `npx playwright test tests/e2e/src-pr-02-evidence-linking.spec.ts --workers=1` — 2 passed (desktop Chromium and mobile Chromium). Installed the configured Playwright Chromium binaries with `npx playwright install chromium`.
+- `npm run build` — passed (`tsc -b` and Vite production build).
+- `git diff --check` — passed.
 
 ## Done checklist
 
-- [ ] Missing product contract resolved and Definition of Ready complete.
-- [ ] `SRC-002` behavior and focused acceptance checks pass.
-- [ ] Implementer self-validation and build pass; exact results recorded.
-- [ ] Independent code review passes on final SHA.
-- [ ] Independent focused QA passes on the same SHA.
+- [x] Missing product contract resolved and Definition of Ready complete.
+- [x] `SRC-002` behavior and focused acceptance checks pass.
+- [x] Implementer self-validation and build pass; exact results recorded.
+- [x] Independent code review passes on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`.
+- [x] Independent focused QA passes on implementation SHA `e89825d9c7a6d445855486467a94a817e34e8a60`.
+- [ ] Final PR head review and QA.
 - [ ] User-authorized PR lifecycle gate passes and GitHub confirms merge.

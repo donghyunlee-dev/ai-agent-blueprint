@@ -7,10 +7,12 @@ function keyFor(proposal) {
 
 const designTypes = new Set(['product_definition','problem','goal','user_role','scenario','scope','out_of_scope','requirement','constraint','technical_decision','success_metric','risk','open_issue']);
 
-export function normalizeProposals({ projectId, logicalRequestId, proposals, existingProposals = [], designItems = [], sections = [], messages = [], sources = [], idFactory = () => globalThis.crypto.randomUUID(), createdAt = new Date().toISOString() }) {
+export function normalizeProposals({ projectId, logicalRequestId, proposals, existingProposals = [], designItems = [], sections = [], messages = [], sources = [], sourceExcerpts = [], idFactory = () => globalThis.crypto.randomUUID(), createdAt = new Date().toISOString() }) {
   if (!projectId || !logicalRequestId || !Array.isArray(proposals)) throw new Error('PROPOSAL_PAYLOAD_INVALID');
   const messageIds = new Set(messages.map((item) => item.id));
   const sourceIds = new Set(sources.map((item) => item.id));
+  const sourcesById = new Map(sources.map((item) => [item.id, item]));
+  const excerptById = new Map(sourceExcerpts.map((excerpt) => [excerpt.id, excerpt]));
   const knownTargets = {
     design_item: new Set(designItems.filter((item) => !item.archivedAt).map((item) => item.id)),
     acceptance_criterion: new Set(designItems.filter((item) => !item.archivedAt).flatMap((item) => item.acceptanceCriteria.map((criterion) => criterion.id))),
@@ -32,11 +34,17 @@ export function normalizeProposals({ projectId, logicalRequestId, proposals, exi
       if (item.targetType === 'document_section' && ((value.title !== undefined && typeof value.title !== 'string') || (value.markdown !== undefined && typeof value.markdown !== 'string'))) throw new Error('PROPOSAL_PAYLOAD_INVALID');
     }
     if (item.operation === 'create' && item.targetType === 'acceptance_criterion' && !item.affectedItemIds.some((id) => knownTargets.design_item.has(id))) throw new Error('PROPOSAL_TARGET_INVALID');
-    for (const ref of item.evidence) {
+    const evidence = item.evidence.map((ref) => {
       if (!ref || !['message', 'file', 'agent_inference'].includes(ref.sourceType) || typeof ref.sourceId !== 'string') throw new Error('PROPOSAL_EVIDENCE_INVALID');
       if (ref.sourceType === 'message' && !messageIds.has(ref.sourceId)) throw new Error('PROPOSAL_EVIDENCE_INVALID');
-      if (ref.sourceType === 'file' && !sourceIds.has(ref.sourceId)) throw new Error('PROPOSAL_EVIDENCE_INVALID');
-    }
+      if (ref.sourceType !== 'file') return ref;
+      const excerpt = excerptById.get(ref.sourceId);
+      const source = excerpt && sourcesById.get(excerpt.sourceId);
+      const quote = typeof ref.excerpt === 'string' ? ref.excerpt : excerpt?.text;
+      if (!excerpt || !source || !sourceIds.has(source.id) || !quote || !excerpt.text.includes(quote)) throw new Error('PROPOSAL_EVIDENCE_INVALID');
+      const { location: _untrustedLocation, ...fileRef } = ref;
+      return { ...fileRef, sourceId: source.id, excerpt: quote, ...(excerpt.location ? { location: excerpt.location } : {}) };
+    });
     const key = keyFor({ ...item, logicalRequestId });
     if (seen.has(key)) continue;
     seen.add(key);
@@ -45,7 +53,7 @@ export function normalizeProposals({ projectId, logicalRequestId, proposals, exi
       ...item,
       ...(item.targetId ? { targetId: item.targetId } : {}),
       id: idFactory(), projectId, logicalRequestId, status: 'pending', createdAt,
-      evidence: hasUserEvidence ? item.evidence.map((ref) => ({ ...ref, id: ref.id ?? idFactory(), createdAt: ref.createdAt ?? createdAt })) : [{ id: idFactory(), sourceType: 'agent_inference', sourceId: logicalRequestId, excerpt: item.rationale.trim(), createdAt }],
+      evidence: hasUserEvidence ? evidence.map((ref) => ({ ...ref, id: ref.id ?? idFactory(), createdAt: ref.createdAt ?? createdAt })) : [{ id: idFactory(), sourceType: 'agent_inference', sourceId: logicalRequestId, excerpt: item.rationale.trim(), createdAt }],
       affectedItemIds: [...new Set(item.affectedItemIds)], rationale: item.rationale.trim(),
     });
   }

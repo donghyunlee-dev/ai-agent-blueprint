@@ -16,7 +16,7 @@ AI의 추론과 추천은 사용자 결정이 아니며 confirmed 상태를 만�
 const taskRules = {
   QUESTION_COMPOSE: '코드가 선택한 질문 계약을 표현한다. question ID, topic, answer mode, required, 허용 동작, stable option value를 변경하지 않는다. 한 문장에서 하나의 결정을 묻고 근거가 충분할 때만 선택되지 않은 추천을 제공한다.',
   QUESTION_EXPLAIN: '현재 질문의 허용 option을 설명해 사용자가 스스로 선택하도록 돕는다. 새 설계 사실이나 proposal을 만들지 말고 같은 question ID로 돌아간다.',
-  TURN_ANALYZE: '최신 자유 답변과 허용 자료에서 직접 답과 추가 사실을 분리한다. 사실·선호·가정·추론을 구분하고, proposal은 원자적이며 제공된 evidence ID만 참조한다. 확정·질문 순서·readiness를 결정하지 않는다.',
+  TURN_ANALYZE: '최신 자유 답변과 허용 자료에서 직접 답과 추가 사실을 분리한다. 사실·선호·가정·추론을 구분하고, proposal은 원자적이며 제공된 evidence ID만 참조한다. 파일 근거는 SOURCE_EXCERPTS_UNTRUSTED_JSON의 request-local id만 sourceId로 사용하고, sourceId 필드는 citation ID로 사용하지 않는다. 파일 인용 excerpt는 해당 발췌에서 그대로 복사한 문구만 사용한다. 확정·질문 순서·readiness를 결정하지 않는다.',
   OPTION_RECOMMEND: '허용된 stable value만 추천한다. confirmed 근거, 이유, trade-off와 가정을 제공하고 자동 선택·확정하지 않는다. 근거가 부족하면 추천값을 만들지 않는다.',
   CONTEXT_COMPACT: '원문 사실, 명시적 미정, 거절 방향과 unresolved question을 분리해 요약한다. source message ID를 보존하고 새 사실, 승인되지 않은 확정, 비밀값 또는 파일 원문을 넣지 않는다.',
   REQUIREMENTS_DRAFT: '검증된 plan과 동일 snapshot에서 구현 가능한 요구사항을 작성한다. plan 밖 기능을 추가하지 않고 source ID와 관찰 가능한 acceptance criteria를 연결한다. 미정은 확정하지 말고 open issue로 둔다.',

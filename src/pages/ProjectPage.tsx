@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import type { BlueprintAggregate } from "../domain/blueprint/types.js";
+import type { BlueprintAggregate, EvidenceRef, SourceDocument } from "../domain/blueprint/types.js";
 import { useAuth } from "../features/auth/AuthProvider";
 import { createDebouncedProjectSaver, formatSavedTime } from "../features/projects/projectAutosave.js";
 import type { ProjectSaveState } from "../features/projects/projectAutosave.js";
@@ -51,6 +51,16 @@ function formatConflictValue(value: unknown, targetType: BlueprintAggregate["pro
   const fields = targetType === "design_item" ? [["항목", "title"], ["설명", "description"]] : targetType === "acceptance_criterion" ? [["수용 기준", "text"]] : [["섹션 제목", "title"], ["문서 내용", "markdown"]];
   const lines = fields.flatMap(([label, key]) => record[key] === undefined || record[key] === null || record[key] === "" ? [] : [`${label}: ${String(record[key])}`]);
   return lines.length ? lines.join(" · ") : "저장된 값 없음";
+}
+
+function EvidencePreview({ evidence, sources }: { evidence:EvidenceRef; sources:SourceDocument[] }) {
+  if (evidence.sourceType !== "file") return <p key={evidence.id}>{evidence.excerpt ?? evidence.sourceId}</p>;
+  const source = sources.find((item) => item.id === evidence.sourceId && !item.archivedAt);
+  return <div key={evidence.id} className={`design-evidence-preview${source ? "" : " is-deleted"}`} role={source ? undefined : "status"} aria-label={source ? undefined : "삭제된 자료 근거"}>
+    <strong>{source?.fileName ?? "삭제된 자료"}</strong>
+    {evidence.excerpt ? <blockquote>{evidence.excerpt}</blockquote> : <p>저장된 인용 발췌가 없습니다.</p>}
+    {evidence.location ? <small>{evidence.location}</small> : null}
+  </div>;
 }
 
 function proposalConflictComparison(aggregate: BlueprintAggregate, proposal: BlueprintAggregate["proposals"][number]) {
@@ -833,9 +843,9 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           <div className="workspace-inspector-content">{selectedDesignItem ? <div className="design-inspector">
             <p className="workspace-readiness-label">설계 항목 · {designReadiness.blockers.some((blocker) => blocker.key === "conflicts" && blocker.itemIds.includes(selectedDesignItem.id)) ? "충돌" : selectedDesignItem.status === "confirmed" ? "확정" : selectedDesignItem.status === "review_required" ? "재검토 필요" : selectedDesignItem.status === "not_applicable" ? "해당 없음" : selectedDesignItem.status === "deferred" ? "미정 · 오픈 이슈" : "제안 검토"}</p>
             <h3>{selectedDesignItem.title}</h3><p>{selectedDesignItem.description || "설명 없음"}</p>
-            <section className="design-inspector-block"><h4>근거</h4>{selectedDesignItem.evidence.length ? selectedDesignItem.evidence.map((evidence) => <p key={evidence.id}>{evidence.excerpt ?? evidence.sourceId}</p>) : <p>연결된 근거가 없습니다.</p>}</section>
+            <section className="design-inspector-block"><h4>근거</h4>{selectedDesignItem.evidence.length ? selectedDesignItem.evidence.map((evidence) => <EvidencePreview key={evidence.id} evidence={evidence} sources={aggregate.sources} />) : <p>연결된 근거가 없습니다.</p>}</section>
             <section className="design-inspector-block"><h4>관련 항목</h4>{selectedDesignItem.relatedItemIds.length ? <ul>{selectedDesignItem.relatedItemIds.map((id) => <li key={id}>{aggregate.designItems.find((item) => item.id === id)?.title ?? id}</li>)}</ul> : <p>연결된 항목이 없습니다.</p>}</section>
-            {selectedDesignItem.acceptanceCriteria.length ? <section className="design-inspector-block"><h4>수용 기준</h4><ul>{selectedDesignItem.acceptanceCriteria.map((criterion) => <li key={criterion.id}>{criterion.text} · {criterion.status === "confirmed" ? "확정" : "재검토 필요"}</li>)}</ul></section> : null}
+            {selectedDesignItem.acceptanceCriteria.length ? <section className="design-inspector-block"><h4>수용 기준</h4><ul>{selectedDesignItem.acceptanceCriteria.map((criterion) => <li key={criterion.id}>{criterion.text} · {criterion.status === "confirmed" ? "확정" : "재검토 필요"}{criterion.evidence.length ? <div className="design-criterion-evidence" aria-label={`${criterion.text} 근거`}>{criterion.evidence.map((evidence) => <EvidencePreview key={evidence.id} evidence={evidence} sources={aggregate.sources} />)}</div> : null}</li>)}</ul></section> : null}
           </div> : <><p className="workspace-readiness-label">진행 상태</p><p className="workspace-readiness-value">{readinessLabel(aggregate.project.readiness.state)}</p><p>확인할 제안 {aggregate.project.readiness.pendingProposalCount}개 · 충돌 {aggregate.project.readiness.conflictCount}개</p><div className="workspace-inspector-next"><strong>다음 단계</strong><p>아이디어를 대화에서 구체화한 뒤 문서 작업을 이어가세요.</p></div></>}
           <button type="button" onClick={closeInspector}>닫기</button></div>
         </aside>

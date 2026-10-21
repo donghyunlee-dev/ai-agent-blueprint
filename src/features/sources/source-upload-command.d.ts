@@ -21,9 +21,11 @@ export function removeSource(options: {
   ownerKey: string;
   projectId: string;
   sourceId: string;
+  expectedImpactCount?: number;
   repository: ProjectRepository;
   onAggregate?: (aggregate: BlueprintAggregate) => void;
 }): Promise<BlueprintAggregate>;
+export function sourceRemovalImpact(aggregate: BlueprintAggregate, sourceId: string): number;
 export function retrySourceFile(options: {
   ownerKey: string;
   projectId: string;

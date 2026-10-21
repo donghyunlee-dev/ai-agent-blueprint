@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { evaluateGoldenFixture } from '../../../src/infrastructure/ai/golden-eval.js';
 
 const validFixture = {
-  id: 'turn-analyze-basic', task: 'TURN_ANALYZE', schemaVersion: 'v1',
+  id: 'turn-analyze-basic', task: 'TURN_ANALYZE', schemaVersion: 'v2',
   response: { blocks: [{ type: 'assistant_text', content: '확인했습니다.' }], proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } },
   manifest: { designItemIds: ['i1'], sourceExcerptIds: ['s1'], recentMessageIds: ['m1'], summaryIds: [] },
 };

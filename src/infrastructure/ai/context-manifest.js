@@ -18,7 +18,7 @@ export function validateReferences(response, manifest, targetContext) {
    const childPath=`${path}.${key}`;
    if(Array.isArray(child)&&itemReferenceFields.has(key)) for(const id of child) if(!itemIds.has(id)) errors.push(`${childPath}: unknown item ${id}`);
    if(Array.isArray(child)&&sourceReferenceFields.has(key)) for(const id of child) if(!sourceIds.has(id)) errors.push(`${childPath}: unknown source ${id}`);
-   if(key==='sourceId'&&!sourceIds.has(child)) errors.push(`${childPath}: unknown source ${child}`);
+   if(key==='sourceId'&&typeof child==='string'&&!sourceIds.has(child)) errors.push(`${childPath}: unknown source ${child}`);
    if(key==='requirementIds'&&Array.isArray(child)) for(const id of child) if(!requirementIds.has(id)) errors.push(`${childPath}: unknown requirement ${id}`);
    if(key==='openIssueIds'&&Array.isArray(child)) for(const id of child) if(!openIssueIds.has(id)) errors.push(`${childPath}: unknown open issue ${id}`);
    if((key==='questionId'||key==='returnToQuestionId')&&!questionIds.has(child)) errors.push(`${childPath}: unknown question ${child}`);
@@ -32,6 +32,12 @@ export function validateReferences(response, manifest, targetContext) {
   }
  };
  visit(response);
+ const sentExcerptIds=new Set(manifest.sourceExcerptIds ?? []);
+ for (const [proposalIndex, proposal] of (response.proposals ?? []).entries()) {
+  for (const [evidenceIndex, evidence] of (proposal.evidence ?? []).entries()) {
+   if (evidence?.sourceType==='file'&&!sentExcerptIds.has(evidence.sourceId)) errors.push(`$.proposals[${proposalIndex}].evidence[${evidenceIndex}].sourceId: unknown request excerpt ${evidence.sourceId}`);
+  }
+ }
  errors.push(...validateProposalTargets(response.proposals ?? [],targetContext).errors);
  return {valid:errors.length===0,errors};
 }
@@ -44,10 +50,13 @@ export function validateTurnContext(request, canonical) {
   const source=items.get(item.id);
   if (!source || source.projectId!==projectId || source.status!=='confirmed' || source.type!==item.type) errors.push(`design item ${item.id} is not a confirmed project item`);
  }
- const sources=new Map((canonical?.sourceDocuments ?? []).map(source=>[source.id,source]));
+  const sources=new Map((canonical?.sourceDocuments ?? []).map(source=>[source.id,source]));
+  const excerptIds=new Set();
  for (const excerpt of request?.sources ?? []) {
+  if (!excerpt?.id || excerptIds.has(excerpt.id)) errors.push(`source excerpt ${excerpt?.id ?? ''} has a missing or duplicate request ID`);
+  excerptIds.add(excerpt?.id);
   const source=sources.get(excerpt.sourceId);
-  if (!source || source.projectId!==projectId || source.extractionStatus!=='ready') errors.push(`source ${excerpt.sourceId} is not ready in this project`);
+  if (!source || source.projectId!==projectId || source.extractionStatus!=='ready' || source.archivedAt || typeof excerpt.text!=='string' || !source.extractedText?.includes(excerpt.text)) errors.push(`source ${excerpt.sourceId} is not ready in this project`);
  }
  return {valid:errors.length===0,errors};
 }

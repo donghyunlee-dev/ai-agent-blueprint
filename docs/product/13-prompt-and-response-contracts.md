@@ -220,7 +220,7 @@ interface ProposalPayload {
 }
 ```
 
-The application assigns `id`, `projectId`, `logicalRequestId`, `status`, and timestamps from the validated request/domain operation. Evidence IDs and timestamps are application-owned; each `sourceId` must be present in the supplied message/source context. Proposal target, operation, before/after, rationale and evidence semantics follow [data spec](05-data-spec.md) and [TURN_ANALYZE rules](15-prompt-template-spec.md#turn_analyze--turnanalyzev1). The strict schema must reject all additional properties.
+The application assigns `id`, `projectId`, `logicalRequestId`, `status`, and timestamps from the validated request/domain operation. Evidence IDs and timestamps are application-owned. A `TURN_ANALYZE` file citation must name a request-local excerpt ID actually sent; proposal normalization maps that ID to the canonical `SourceDocument.id`, exact quoted text, and location before persistence. Proposal target, operation, before/after, rationale and evidence semantics follow [data spec](05-data-spec.md) and [TURN_ANALYZE rules](15-prompt-template-spec.md#turn_analyze--turnanalyzev2). The strict schema must reject all additional properties.
 
 Document draft schemas use the source-backed content fields of `DocumentSection`:
 
