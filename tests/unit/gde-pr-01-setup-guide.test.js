@@ -106,6 +106,29 @@ test('setup guide command evidence must include every command argument', () => {
   assert.ok(packageName.errors.some((error) => error.includes('unsupported command')));
 });
 
+test('setup guide recognizes npm ci options and docker compose invocations in plain lines', () => {
+  for (const command of ['npm ci', 'npm ci --ignore-scripts', 'docker compose up']) {
+    assert.ok(extractSetupGuideCommands(command).includes(command), command);
+  }
+
+  const npmAggregate = structuredClone(aggregate);
+  npmAggregate.designItems[0].description = 'npm ci';
+  const npmPlan = buildSetupGuidePlan(npmAggregate);
+  const makePayload = (plan, markdown) => ({sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:key==='installation'?markdown:'설정 내용을 확인합니다.',sourceItemIds,sourceExcerptIds:[]})),openIssues:plan.openIssues});
+  assert.equal(validateSetupGuideDraft(makePayload(npmPlan,'npm ci'),npmPlan).valid,true);
+  const npmOption = validateSetupGuideDraft(makePayload(npmPlan,'npm ci --ignore-scripts'),npmPlan);
+  assert.equal(npmOption.valid,false);
+  assert.ok(npmOption.errors.some((error)=>error.includes('unsupported command')));
+
+  const dockerAggregate = structuredClone(aggregate);
+  dockerAggregate.designItems[0].description = 'docker compose up';
+  const dockerPlan = buildSetupGuidePlan(dockerAggregate);
+  assert.equal(validateSetupGuideDraft(makePayload(dockerPlan,'docker compose up'),dockerPlan).valid,true);
+  const dockerOption = validateSetupGuideDraft(makePayload(dockerPlan,'docker compose up -d'),dockerPlan);
+  assert.equal(dockerOption.valid,false);
+  assert.ok(dockerOption.errors.some((error)=>error.includes('unsupported command')));
+});
+
 test('setup guide recognizes extensionless script arguments for supported runners', () => {
   const plan = buildSetupGuidePlan(aggregate);
   const makePayload = (markdown) => ({sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:key==='installation'?markdown:'설정 내용을 확인합니다.',sourceItemIds,sourceExcerptIds:[]})),openIssues:plan.openIssues});

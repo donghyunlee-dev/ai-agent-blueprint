@@ -721,4 +721,99 @@
     ]
   }
 }
+,
+{
+  "id": "setup-guide-npm-ci-without-evidence",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "expectedPass": false,
+  "expectedErrors": [
+    "setup guide command lacks complete evidence or uses unsupported executable"
+  ],
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "npm ci",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": []
+  }
+},
+{
+  "id": "setup-guide-npm-ci-options-with-incomplete-evidence",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "expectedPass": false,
+  "expectedErrors": [
+    "setup guide command lacks complete evidence or uses unsupported executable"
+  ],
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "npm ci --ignore-scripts",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": [
+      "npm ci"
+    ]
+  }
+},
+{
+  "id": "setup-guide-docker-compose-with-incomplete-evidence",
+  "task": "SETUP_GUIDE_DRAFT",
+  "schemaVersion": "v1",
+  "expectedPass": false,
+  "expectedErrors": [
+    "setup guide command lacks complete evidence or uses unsupported executable"
+  ],
+  "response": {
+    "sections": [
+      {
+        "key": "installation",
+        "title": "설치 순서",
+        "markdown": "docker compose up",
+        "sourceItemIds": [],
+        "sourceExcerptIds": []
+      }
+    ],
+    "openIssues": []
+  },
+  "manifest": {
+    "designItemIds": [],
+    "sourceExcerptIds": [],
+    "recentMessageIds": [],
+    "summaryIds": []
+  },
+  "targetContext": {
+    "commandEvidence": [
+      "docker compose"
+    ]
+  }
+}
 ]

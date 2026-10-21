@@ -3,7 +3,7 @@ const supportedExecutables = new Set([
   'curl','wget','ssh','scp','rsync','tar','make','bash','sh','apt','apt-get','brew','go','cargo','composer','ruby','gem','terraform','systemctl','sudo','irm','iwr','invoke-webrequest','invoke-restmethod','install-module','set-executionpolicy','start-process','get-command',
 ]);
 const shellBuiltins = new Set(['cd','export','echo','printf','pwd','mkdir','cp','mv','rm','cat','chmod','chown','source','set','unset','test','which','command','env','touch','ln','ls','grep','sed','awk','head','tail','true','false']);
-const actionVerbs = new Set(['add','apply','build','check','clean','clone','commit','configure','create','delete','deploy','destroy','disable','dlx','down','enable','exec','fetch','get','i','install','init','list','login','logout','merge','plan','pull','push','restart','run','set','start','status','stop','test','update','upgrade','up','version']);
+const actionVerbs = new Set(['add','apply','build','check','ci','clean','clone','commit','compose','configure','create','delete','deploy','destroy','disable','dlx','down','enable','exec','fetch','get','i','install','init','list','login','logout','merge','plan','pull','push','restart','run','set','start','status','stop','test','update','upgrade','up','version']);
 const proseDeterminers = new Set(['a','an','the','this','that','these','those','my','your','our','their','its']);
 const proseConnectors = new Set(['as','for','with','to','by','from','after','before','because','while','when','which','who','where','whether','and','or','but']);
 const scriptRunners = new Set(['node','python','python3','ruby','bash','sh','bun']);
