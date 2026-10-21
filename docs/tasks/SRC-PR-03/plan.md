@@ -107,4 +107,4 @@ Given 다운로드가 완료되면, then 다운로드 동작은 기존 source의
 
 ## 상태
 
-code_review. 자체 검증 결과는 [test-results.md](test-results.md)에 기록했다. PR final HEAD에서 독립 코드 리뷰와 QA를 진행한다.
+fix_required. 독립 리뷰가 비동기 object URL 정리 결함을 찾아 수정과 회귀 검증을 진행 중이다.

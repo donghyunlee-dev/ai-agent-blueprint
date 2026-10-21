@@ -6,7 +6,7 @@
 
 | 명령/검증 | 결과 |
 | --- | --- |
-| `node --test tests/unit/src-pr-03-source-result-download.test.js` | 통과, 4/4. 다운로드 가능 상태, 안전한 파일명, UTF-8 텍스트와 URL/anchor 정리를 검증했다. |
+| `node --test tests/unit/src-pr-03-source-result-download.test.js` | 통과, 5/5. 다운로드 가능 상태, 안전한 파일명, UTF-8 텍스트, 비동기 URL 회수 및 URL 회수 오류 시 anchor 정리를 검증했다. |
 | `npm run build` | 통과 (`tsc -b`, Vite production build). |
 | `npx playwright test tests/e2e/src-pr-03-source-result-download.spec.ts --workers=1` | 통과, 2/2 (desktop Chromium 1440×900, mobile Chromium 390×844). 실제 파일명과 byte 내용, non-ready/archived 상태, keyboard/focus, read-only preview, IndexedDB aggregate 불변을 검증했다. |
 | `git diff --check` | 통과. |

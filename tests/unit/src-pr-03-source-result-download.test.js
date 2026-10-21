@@ -26,15 +26,34 @@ test('creates a safe filename with a distinct extracted-result suffix and final 
 
 test('downloads exact extracted text as UTF-8 text and releases URL and anchor', () => {
   const calls = [];
+  const deferred = [];
+  const anchor = { click: () => calls.push(['click']), remove: () => calls.push(['remove']) };
   const deps = {
     Blob: class { constructor(parts, options) { this.parts = parts; this.options = options; calls.push(['blob', parts, options]); } },
     URL: { createObjectURL: (blob) => { calls.push(['create', blob]); return 'blob:result'; }, revokeObjectURL: (url) => calls.push(['revoke', url]) },
-    document: { body: { appendChild: (anchor) => calls.push(['append', anchor]) }, createElement: () => ({ click: () => calls.push(['click']), remove: () => calls.push(['remove']) }) },
-    setTimeout: (callback, delay) => { calls.push(['defer', delay]); callback(); },
+    document: { body: { appendChild: (element) => calls.push(['append', element]) }, createElement: () => anchor },
+    setTimeout: (callback, delay) => { calls.push(['defer', delay]); deferred.push(callback); },
   };
   downloadSourceResult(readySource, deps);
   assert.deepEqual(calls[0], ['blob', ['예약 취소 정책'], { type: 'text/plain;charset=utf-8' }]);
+  assert.equal(anchor.download, 'policy-extracted-result.txt');
+  assert.deepEqual(calls.map(([name]) => name), ['blob', 'create', 'append', 'click', 'defer']);
+  deferred[0]();
   assert.deepEqual(calls.map(([name]) => name), ['blob', 'create', 'append', 'click', 'defer', 'revoke', 'remove']);
+  assert.deepEqual(calls.at(-2), ['revoke', 'blob:result']);
+});
+
+test('removes the anchor when deferred URL revocation throws', () => {
+  const calls = [];
+  let deferredCleanup;
+  const anchor = { click() {}, remove: () => calls.push('remove') };
+  downloadSourceResult(readySource, {
+    URL: { createObjectURL: () => 'blob:result', revokeObjectURL: (url) => { calls.push(`revoke:${url}`); throw new Error('revoke failed'); } },
+    document: { body: { appendChild() {} }, createElement: () => anchor },
+    setTimeout(callback) { deferredCleanup = callback; },
+  });
+  assert.doesNotThrow(() => deferredCleanup());
+  assert.deepEqual(calls, ['revoke:blob:result', 'remove']);
 });
 
 test('releases URL and anchor if download setup fails after URL creation', () => {

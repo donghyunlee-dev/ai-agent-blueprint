@@ -29,15 +29,16 @@ export function downloadSourceResult(source, dependencies = {}) {
   let objectUrl;
   let anchor;
   try {
-    objectUrl = urlApi.createObjectURL(blob);
+    const createdObjectUrl = urlApi.createObjectURL(blob);
+    objectUrl = createdObjectUrl;
     anchor = doc.createElement('a');
-    anchor.href = objectUrl;
+    anchor.href = createdObjectUrl;
     anchor.download = createSourceResultFilename(source.fileName);
     anchor.hidden = true;
     doc.body.appendChild(anchor);
     anchor.click();
     defer(() => {
-      try { urlApi.revokeObjectURL(objectUrl); }
+      try { urlApi.revokeObjectURL(createdObjectUrl); }
       catch { /* Cleanup must still remove the temporary download link. */ }
       finally { anchor.remove(); }
     }, 0);
