@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { generateRequirements } from '../../../src/features/documents/requirements-generation.js';
 import { generatePrd } from '../../../src/features/documents/prd-generation.js';
+import { generateSetupGuide } from '../../../src/features/documents/setup-guide-generation.js';
 import { schemas, validateSchema } from '../../../src/infrastructure/ai/schemas/index.js';
 import { getPromptDefinition } from '../../../src/infrastructure/ai/prompt-registry.js';
 import { aiModelRegistry } from '../../../src/infrastructure/ai/model-registry.js';
@@ -13,9 +14,10 @@ import { rejectCrossOriginMutation } from '../../_lib/require-session.js';
 import { requireSession } from '../../_lib/session.js';
 import { claimTurn, finishTurn, turnFingerprint, turnKey } from '../../_lib/turn-lifecycle.js';
 import { issueRequirementsGenerationArtifact, verifyRequirementsReadyArtifact } from '../../_lib/requirements-attestation.js';
+import { issueSetupGuideGenerationArtifact } from '../../_lib/requirements-attestation.js';
 
 const MAX_BODY_BYTES = 100_000;
-const TASKS = new Set(['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR', 'PRD_DRAFT', 'PRD_REVIEW', 'PRD_REPAIR']);
+const TASKS = new Set(['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR', 'SETUP_GUIDE_DRAFT', 'PRD_DRAFT', 'PRD_REVIEW', 'PRD_REPAIR']);
 const fail = (res, status, error, extra = {}) => sendJson(res, status, { error, ...extra });
 function ownerNamespace(user) {
   const secret = process.env.APP_SESSION_SECRET;
@@ -34,7 +36,8 @@ export default async function handler(req, res, deps = {}) {
   if (req.method !== 'POST') return fail(res, 405, 'METHOD_NOT_ALLOWED');
   const body = req.body;
   const isPrd = body?.documentType === 'prd';
-  const requestSchema = isPrd ? schemas.http.prdGenerateRequest : schemas.http.requirementsGenerateRequest;
+  const isSetupGuide = body?.documentType === 'setup_guide';
+  const requestSchema = isPrd ? schemas.http.prdGenerateRequest : isSetupGuide ? schemas.http.setupGuideGenerateRequest : schemas.http.requirementsGenerateRequest;
   if (Buffer.byteLength(JSON.stringify(body ?? {}), 'utf8') > MAX_BODY_BYTES || !validateSchema(requestSchema, body).valid) return fail(res, 400, 'INVALID_REQUEST');
   if (body.projectId !== body.project.id || body.designRevision !== body.project.designRevision || body.currentDesignRevision !== body.designRevision) return fail(res, 409, 'DESIGN_REVISION_MISMATCH');
   if (isPrd) {
@@ -47,7 +50,8 @@ export default async function handler(req, res, deps = {}) {
     store = deps.store ?? getAuthStore();
     key = turnKey(ownerNamespace(session.user), body.projectId, body.logicalRequestId);
     const attemptId = body.attemptId;
-    const claim = await claimTurn(store, key, turnFingerprint(body), attemptId, { task: 'REQUIREMENTS_DRAFT', designRevision: body.designRevision });
+    const claimTask = isSetupGuide ? 'SETUP_GUIDE_DRAFT' : isPrd ? 'PRD_DRAFT' : 'REQUIREMENTS_DRAFT';
+    const claim = await claimTurn(store, key, turnFingerprint(body), attemptId, { task: claimTask, designRevision: body.designRevision });
     if (claim.kind === 'conflict') return fail(res, 409, 'AI_REQUEST_CONFLICT');
     if (claim.kind === 'processing') return fail(res, 409, 'AI_REQUEST_IN_PROGRESS');
     if (claim.kind === 'unknown') return fail(res, 503, 'AI_REQUEST_UNKNOWN');
@@ -55,7 +59,8 @@ export default async function handler(req, res, deps = {}) {
     if (!await finishTurn(store, key, { status: 'running', attemptId })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
     const aggregate = isPrd
       ? { project: body.project, designItems: body.designItems, documents: body.documents, sections: body.sections, generationJobs: body.generationJobs, proposals: [] }
-      : { project: body.project, designItems: body.designItems, proposals: body.proposals };
+      : isSetupGuide ? { project:body.project,designItems:body.designItems,sources:body.sources,documents:[],sections:[],generationJobs:[],proposals:[],activityEntries:[] }
+        : { project: body.project, designItems: body.designItems, proposals: body.proposals };
     const generationJobId = crypto.randomUUID();
     const requestLedgerEntries = [];
     let usage = { foregroundCalls: 0, finalCalls: 0, inputTokens: 0, outputReasoningTokens: 0, estimatedCostUsd: 0 };
@@ -64,7 +69,8 @@ export default async function handler(req, res, deps = {}) {
       const definition = getPromptDefinition(task);
       const messages = definition.buildInput(isPrd
         ? { currentTarget: task === 'PRD_DRAFT' ? input.plan : task === 'PRD_REVIEW' ? { plan: input.plan, draft: input.draft } : { plan: input.plan, sections: input.sections, issues: input.issues }, confirmedDesignItems: input.requirements, unknownsAndConflicts: input.openIssues, designRevision: input.designRevision }
-        : { currentTarget: input.plan, confirmedDesignItems: input.designItems.filter((item) => item.status === 'confirmed'), unknownsAndConflicts: input.openIssues, designRevision: input.designRevision });
+        : isSetupGuide ? { currentTarget:input.plan,confirmedDesignItems:input.designItems,unknownsAndConflicts:input.openIssues,sourceExcerpts:input.sourceExcerpts,designRevision:input.designRevision }
+          : { currentTarget: input.plan, confirmedDesignItems: input.designItems.filter((item) => item.status === 'confirmed'), unknownsAndConflicts: input.openIssues, designRevision: input.designRevision });
       const taskConfig = aiModelRegistry.tasks[task];
       const inputTokens = estimateTokens(messages);
       const profile = taskConfig.profile;
@@ -90,8 +96,10 @@ export default async function handler(req, res, deps = {}) {
     };
     const result = isPrd
       ? await generatePrd({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask })
-      : await generateRequirements({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask });
-    if (!isPrd) result.document.generationArtifact = issueRequirementsGenerationArtifact(session.user, body.projectId, result.document, result.sections);
+      : isSetupGuide ? await generateSetupGuide({aggregate,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,generationJobId,runTask})
+        : await generateRequirements({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask });
+    if (isSetupGuide) result.document.generationArtifact = issueSetupGuideGenerationArtifact(session.user, body.projectId, result.document, result.sections);
+    else if (!isPrd) result.document.generationArtifact = issueRequirementsGenerationArtifact(session.user, body.projectId, result.document, result.sections);
     result.requestLedgerEntries = requestLedgerEntries;
     if (!await finishTurn(store, key, { status: 'succeeded', attemptId, result })) return fail(res, 503, 'AI_REQUEST_UNKNOWN');
     return sendJson(res, 200, result);
@@ -99,6 +107,7 @@ export default async function handler(req, res, deps = {}) {
     if (store && key) { try { const code = /^[A-Z0-9_:-]{1,80}$/.test(error.code ?? '') ? error.code : 'AI_GENERATION_FAILED'; await finishTurn(store, key, { status: 'failed', attemptId: req.body?.attemptId, errorCode: code }); } catch { /* Preserve the original error response. */ } }
     if (error?.message === 'AUTH_STORE_NOT_CONFIGURED') return fail(res, 503, 'AUTH_STORE_NOT_CONFIGURED');
     if (error?.message === 'REQUIREMENTS_BLOCKED') return fail(res, 409, 'REQUIREMENTS_BLOCKED', { blockers: error.blockers });
+    if (error?.message === 'SETUP_GUIDE_BLOCKED') return fail(res, 409, 'SETUP_GUIDE_BLOCKED', { blockers:error.blockers });
     if (error?.message === 'PRD_BLOCKED') return fail(res, 409, 'PRD_BLOCKED', { blockers: error.blockers });
     if (error?.message === 'DOCUMENT_PLAN_INVALID') return fail(res, 422, 'DOCUMENT_PLAN_INVALID');
     if (error?.message === 'DOCUMENT_OUTPUT_INVALID' || error?.message === 'AI_INVALID_OUTPUT') return fail(res, 502, 'AI_INVALID_OUTPUT');

@@ -45,6 +45,15 @@ export function issueRequirementsReadyArtifact(user, projectId, document, sectio
 export function verifyRequirementsReadyArtifact(user, projectId, document, sections, generationArtifact, readyArtifact) {
   return verifyRequirementsGenerationArtifact(user, projectId, document, sections, generationArtifact) && matches(verify(readyArtifact, 'requirements-ready-confirmation'), user, projectId, document, sections, 'requirements-ready-confirmation');
 }
+export function issueSetupGuideGenerationArtifact(user, projectId, document, sections) { return sign(payload(user,projectId,document,sections,'setup-guide-generation')); }
+export function verifySetupGuideGenerationArtifact(user,projectId,document,sections,token) { return matches(verify(token,'setup-guide-generation'),user,projectId,document,sections,'setup-guide-generation'); }
+export function issueSetupGuideReadyArtifact(user,projectId,document,sections,generationArtifact) {
+  if(!verifySetupGuideGenerationArtifact(user,projectId,document,sections,generationArtifact))return null;
+  return sign(payload(user,projectId,document,sections,'setup-guide-ready-confirmation'));
+}
+export function verifySetupGuideReadyArtifact(user,projectId,document,sections,generationArtifact,readyArtifact) {
+  return verifySetupGuideGenerationArtifact(user,projectId,document,sections,generationArtifact)&&matches(verify(readyArtifact,'setup-guide-ready-confirmation'),user,projectId,document,sections,'setup-guide-ready-confirmation');
+}
 
 function proposalDigest(proposal) {
   const evidence = (proposal.evidence ?? []).map(({ sourceType, sourceId, excerpt, location }) => ({ sourceType, sourceId, ...(excerpt === undefined ? {} : { excerpt }), ...(location === undefined ? {} : { location }) }));

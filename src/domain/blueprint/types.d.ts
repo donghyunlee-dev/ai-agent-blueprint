@@ -1,5 +1,5 @@
 export type BlueprintProcessState = 'intake'|'extracting'|'proposal_review'|'conflict_review'|'evaluating'|'discovering'|'document_ready'|'requirements_generating'|'requirements_draft'|'requirements_ready'|'prd_generating'|'prd_draft';
-export type AiTaskType = 'QUESTION_COMPOSE'|'QUESTION_EXPLAIN'|'TURN_ANALYZE'|'OPTION_RECOMMEND'|'CONTEXT_COMPACT'|'REQUIREMENTS_DRAFT'|'REQUIREMENTS_REVIEW'|'REQUIREMENTS_REPAIR'|'PRD_DRAFT'|'PRD_REVIEW'|'PRD_REPAIR'|'DOCUMENT_PATCH'|'CONSISTENCY_REVIEW';
+export type AiTaskType = 'QUESTION_COMPOSE'|'QUESTION_EXPLAIN'|'TURN_ANALYZE'|'OPTION_RECOMMEND'|'CONTEXT_COMPACT'|'REQUIREMENTS_DRAFT'|'REQUIREMENTS_REVIEW'|'REQUIREMENTS_REPAIR'|'SETUP_GUIDE_DRAFT'|'PRD_DRAFT'|'PRD_REVIEW'|'PRD_REPAIR'|'DOCUMENT_PATCH'|'CONSISTENCY_REVIEW';
 export type ModelProfile = 'LIGHT'|'DEFAULT'|'FINAL';
 export type DocumentType = 'requirements'|'prd'|'setup_guide';
 export interface BlueprintProject { id:string; ownerKey:string; schemaVersion:number; title:string; status:'active'|'ready'|'completed'|'archived'; activeDocumentType:DocumentType|'design'; activeThreadId:string; processState:BlueprintProcessState; readiness:ReadinessSummary; designRevision?:number; createdAt:string; updatedAt:string; lastOpenedAt:string; aiConsent?:{acceptedAt:string;consentVersion:string} }

@@ -25,10 +25,13 @@ import { bulkApproveProposals, bulkRejectProposals, classifyProposalConflicts, p
 import { DesignBoard } from "../features/design/DesignBoard.js";
 import { computeDesignReadiness } from "../features/design/readiness.js";
 import { RequirementsDocument } from "../components/blueprint/RequirementsDocument.js";
+import { SetupGuideDocument } from "../components/blueprint/SetupGuideDocument.js";
 import { DocumentExportActions } from "../components/blueprint/DocumentExportActions.js";
 import { commitRequirementsResult } from "../features/documents/requirements-generation.js";
 import { assessRequirementsReady, confirmRequirementsReady } from "../features/documents/requirements-ready.js";
 import { commitPrdResult, validatePrdAllowed } from "../features/documents/prd-generation.js";
+import { commitSetupGuideResult } from "../features/documents/setup-guide-generation.js";
+import { setupGuideCompletionBlockers } from "../features/documents/setup-guide-plan-builder.js";
 import { approveDocumentPatch, buildDocumentPatchProposals, prepareDocumentPatchApproval, rejectDocumentPatch, validateDocumentPatchOutput } from "../features/documents/document-refinement.js";
 import { commitConsistencyReview } from "../features/documents/consistency-review.js";
 import { previewDocumentImpact } from "../features/documents/document-impact-preview.js";
@@ -39,7 +42,8 @@ import { fetchBlueprintApi } from "../features/auth/sessionFetch.js";
 import "../styles/workspace-shell.css";
 
 const documentTypes = new Set(["design", "requirements", "prd", "setup_guide"]);
-const visibleDocumentTypes = ["design", "requirements", "prd"] as const;
+const visibleDocumentTypes = ["design", "requirements", "prd", "setup_guide"] as const;
+function stableJson(value:unknown):string { if(Array.isArray(value))return `[${value.map(stableJson).join(',')}]`;if(value&&typeof value==='object')return `{${Object.keys(value as object).sort().map((key)=>`${JSON.stringify(key)}:${stableJson((value as Record<string,unknown>)[key])}`).join(',')}}`;return JSON.stringify(value); }
 type LoadStatus = 'loading' | 'ready' | 'missing' | 'error';
 type ProjectSaver = ReturnType<typeof createDebouncedProjectSaver<BlueprintAggregate>>;
 function ImpactPreview({preview}:{preview:{targetIds:string[];itemIds:string[];documentIds:string[]}}) {
@@ -119,6 +123,9 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [requirementsReadyError, setRequirementsReadyError] = useState<string | null>(null);
   const [prdGenerating, setPrdGenerating] = useState(false);
   const [prdError, setPrdError] = useState<string | null>(null);
+  const [setupGuideGenerating,setSetupGuideGenerating]=useState(false);
+  const [setupGuideError,setSetupGuideError]=useState<string|null>(null);
+  const [setupGuideReadyError,setSetupGuideReadyError]=useState<string|null>(null);
   const [documentPatchBusy, setDocumentPatchBusy] = useState(false);
   const [documentPatchError, setDocumentPatchError] = useState<string | null>(null);
   const [consistencyReview, setConsistencyReview] = useState<{ status:'not_run'|'loading'|'completed'|'failed'; findings:Record<string,unknown>[]; error?:string } | null>(null);
@@ -743,6 +750,38 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     } finally { setPrdGenerating(false); }
   }
 
+  async function generateSetupGuideDraft() {
+    const snapshot=aggregateRef.current;
+    if(!ownerKey||!projectId||!snapshot||setupGuideGenerating)return;
+    setSetupGuideGenerating(true);setSetupGuideError(null);
+    try {
+      const repository=repositoryFactory();const current=await repository.get(ownerKey,projectId);
+      if(!current||current.project.designRevision!==snapshot.project.designRevision)throw new Error('DESIGN_REVISION_MISMATCH');
+      const response=await fetchBlueprintApi('/api/blueprint/documents/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({documentType:'setup_guide',projectId,designRevision:snapshot.project.designRevision,currentDesignRevision:current.project.designRevision,logicalRequestId:crypto.randomUUID(),attemptId:crypto.randomUUID(),project:{id:snapshot.project.id,title:snapshot.project.title,designRevision:snapshot.project.designRevision},designItems:snapshot.designItems.filter((item)=>['technical_decision','constraint','requirement','risk','open_issue'].includes(item.type)).map(({id,type,key,title,description,status,archivedAt,attributes,evidence})=>({id,type,key,title,description,status,archivedAt,attributes,evidence:evidence.map(({sourceId,excerpt,location})=>({sourceId,...(excerpt?{excerpt}:{}),...(location?{location}:{})}))})),sources:snapshot.sources.map(({id,extractionStatus,extractedText,archivedAt})=>({id,extractionStatus,...(extractedText?{extractedText}:{}),archivedAt}))})});
+      const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error==='SETUP_GUIDE_BLOCKED'?'확정된 기술 결정이 부족해 설정 가이드를 만들 수 없습니다.':'설정 가이드를 생성하지 못했습니다.');
+      const saved=await repository.transact(ownerKey,projectId,(latest)=>({status:'updated',aggregate:commitSetupGuideResult(latest,payload,latest.project.designRevision)}));
+      if(!saved.aggregate)throw new Error('SETUP_GUIDE_SAVE_FAILED');aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);
+    }catch(error){setSetupGuideError(error instanceof Error?error.message:'설정 가이드를 생성하지 못했습니다.');}finally{setSetupGuideGenerating(false);}
+  }
+
+  async function approveSetupGuide() {
+    if(!ownerKey||!projectId)return;setSetupGuideReadyError(null);
+    try {
+      const repository=repositoryFactory();const current=await repository.get(ownerKey,projectId);
+      const document=current?.documents.filter((item)=>item.type==='setup_guide').sort((a,b)=>b.version-a.version)[0];
+      if(!current)throw new Error('project-missing');if(!document)throw new Error('guide-not-found-before');if(!document.generationArtifact)throw new Error('generation-proof-missing');if(document.designRevision!==current.project.designRevision)throw new Error('revision-mismatch');
+      const sections=current.sections.filter((section)=>section.documentId===document.id);
+      const response=await fetchBlueprintApi('/api/blueprint/documents/setup-guide/ready',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmed:true,projectId,designRevision:current.project.designRevision,document,sections,generationArtifact:document.generationArtifact})});
+      const attestation=await response.json().catch(()=>({}));if(!response.ok||typeof attestation.readyConfirmationArtifact!=='string')throw new Error('invalid');
+      const readyAt=new Date().toISOString();const saved=await repository.transact(ownerKey,projectId,(latest)=>{const currentGuide=latest.documents.find((item)=>item.id===document.id);const latestSections=latest.sections.filter((section)=>section.documentId===document.id);if(latest.project.designRevision!==document.designRevision)throw new Error('revision-mismatch');if(!currentGuide)throw new Error('transaction-guide-missing');if(stableJson({document:currentGuide,sections:latestSections})!==stableJson({document,sections}))throw new Error('guide-content-mismatch');const updated={...currentGuide,status:'ready' as const,readyDesignRevision:latest.project.designRevision,readyAt,readyConfirmationArtifact:attestation.readyConfirmationArtifact,updatedAt:readyAt};return {status:'updated',aggregate:{...latest,documents:latest.documents.map((item)=>item.id===updated.id?updated:item),activityEntries:[...latest.activityEntries,{id:crypto.randomUUID(),projectId,targetType:'document',targetId:updated.id,action:'setup_guide_marked_ready',summary:`설정 가이드 승인 · design revision ${updated.readyDesignRevision}`,createdAt:readyAt}]}};});
+      if(!saved.aggregate)throw new Error('save');aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);
+    }catch(error){const message=error instanceof Error?error.message:'';setSetupGuideReadyError(message==='revision-mismatch'?'설계가 변경됐습니다. 최신 가이드로 다시 생성해 주세요.':message==='guide-not-found-before'?'저장된 설정 가이드가 없습니다. 새 가이드를 생성해 주세요.':message==='transaction-guide-missing'?'승인 저장 중 설정 가이드가 사라졌습니다. 최신 상태를 다시 확인해 주세요.':message==='generation-proof-missing'?'생성 확인이 없어 설정 가이드를 승인할 수 없습니다. 다시 생성해 주세요.':message==='project-missing'?'프로젝트를 찾을 수 없습니다.':message==='guide-content-mismatch'?'승인 요청 후 설정 가이드가 변경됐습니다. 최신 내용을 다시 검토해 주세요.':message==='invalid'?'설정 가이드 승인 확인이 유효하지 않습니다. 다시 검토해 주세요.':message==='save'?'설정 가이드를 저장하지 못했습니다. 다시 시도해 주세요.':`설정 가이드를 ready로 저장하지 못했습니다 (${message}).`);}
+  }
+
+  async function completeProject() {
+    if(!ownerKey||!projectId)return;const saved=await repositoryFactory().transact(ownerKey,projectId,(latest)=>{if(setupGuideCompletionBlockers(latest).length)throw new Error('SETUP_GUIDE_COMPLETION_BLOCKED');return {status:'updated',aggregate:{...latest,project:{...latest.project,status:'completed',updatedAt:new Date().toISOString()}}};});if(saved.aggregate){aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);}
+  }
+
   return (
     <main className="workspace-shell" style={{ "--workspace-conversation-width": `${conversationWidth}px` } as CSSProperties} data-mobile-mode={mobileMode}>
       <header className="workspace-appbar">
@@ -834,7 +873,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
                 </li>;
               })}</ol>
             </section> : null}
-            {designBoardVisible ? <DesignBoard aggregate={aggregate} readiness={designReadiness} selectedItemId={selectedDesignItemId} onSelectItem={openDesignItem} onContinueDeciding={continueDeciding} onOpenRequirements={openRequirements} /> : documentType === 'requirements' ? (() => { const saved = aggregate.documents.filter((document) => document.type === 'requirements').sort((a,b)=>b.version-a.version)[0]; const readySummary=saved?assessRequirementsReady(aggregate,saved):undefined; return <RequirementsDocument aggregate={aggregate} document={saved} sections={saved ? aggregate.sections.filter((section) => section.documentId === saved.id) : []} generating={requirementsGenerating} error={requirementsError} readySummary={readySummary} readyError={requirementsReadyError} patching={documentPatchBusy} patchError={documentPatchError} impactPreview={(targets)=>saved?previewDocumentImpact(aggregate,saved.id,targets):{targetIds:[],itemIds:[],documentIds:[]}} onRequestPatch={(targets)=>requestDocumentPatch(targets,'requirements')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generateRequirementsDraft()} onMarkReady={() => void markRequirementsReady()} onOpenPrd={() => navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/prd`)} />; })() : documentType === 'prd' ? <PrdDocument aggregate={aggregate} generating={prdGenerating} error={prdError} patching={documentPatchBusy} patchError={documentPatchError} onRequestPatch={(targets)=>requestDocumentPatch(targets,'prd')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generatePrdDraft()} /> : null}
+            {designBoardVisible ? <DesignBoard aggregate={aggregate} readiness={designReadiness} selectedItemId={selectedDesignItemId} onSelectItem={openDesignItem} onContinueDeciding={continueDeciding} onOpenRequirements={openRequirements} /> : documentType === 'requirements' ? (() => { const saved = aggregate.documents.filter((document) => document.type === 'requirements').sort((a,b)=>b.version-a.version)[0]; const readySummary=saved?assessRequirementsReady(aggregate,saved):undefined; return <RequirementsDocument aggregate={aggregate} document={saved} sections={saved ? aggregate.sections.filter((section) => section.documentId === saved.id) : []} generating={requirementsGenerating} error={requirementsError} readySummary={readySummary} readyError={requirementsReadyError} patching={documentPatchBusy} patchError={documentPatchError} impactPreview={(targets)=>saved?previewDocumentImpact(aggregate,saved.id,targets):{targetIds:[],itemIds:[],documentIds:[]}} onRequestPatch={(targets)=>requestDocumentPatch(targets,'requirements')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generateRequirementsDraft()} onMarkReady={() => void markRequirementsReady()} onOpenPrd={() => navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/prd`)} />; })() : documentType === 'prd' ? <PrdDocument aggregate={aggregate} generating={prdGenerating} error={prdError} patching={documentPatchBusy} patchError={documentPatchError} onRequestPatch={(targets)=>requestDocumentPatch(targets,'prd')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generatePrdDraft()} /> : documentType==='setup_guide'? (()=>{const saved=aggregate.documents.filter((item)=>item.type==='setup_guide').sort((a,b)=>b.version-a.version)[0];return <SetupGuideDocument aggregate={aggregate} document={saved} sections={saved?aggregate.sections.filter((section)=>section.documentId===saved.id):[]} generating={setupGuideGenerating} error={setupGuideError} readyError={setupGuideReadyError} onGenerate={()=>void generateSetupGuideDraft()} onApprove={()=>void approveSetupGuide()} onComplete={()=>void completeProject()}/>;})():null}
             {aggregate.designItems.some((item) => item.status === "review_required" && !item.archivedAt) ? <section className="proposal-review-required" aria-labelledby="review-required-title"><h2 id="review-required-title">선행 변경으로 재검토가 필요한 항목</h2><ul>{aggregate.designItems.filter((item) => item.status === "review_required" && !item.archivedAt).map((item) => <li key={item.id}><strong>{item.title}</strong><p>{String(item.attributes.reviewRequiredReason ?? "선행 결정 변경으로 확인이 필요합니다.")}</p></li>)}</ul></section> : null}
           </div>
         </section>
@@ -859,7 +898,8 @@ function documentTypeLabel(type: string) {
   if (type === "design") return "설계";
   if (type === "requirements") return "Requirements";
   if (type === "prd") return "PRD";
-  return "Setup Guide";
+  if (type === "setup_guide") return "설정 가이드";
+  return "문서";
 }
 
 function readinessLabel(state: string) {

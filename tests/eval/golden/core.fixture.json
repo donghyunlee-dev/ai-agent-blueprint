@@ -217,6 +217,26 @@
     }
   },
   {
+    "id": "setup-guide-draft-evidence-and-open-issue-contract",
+    "task": "SETUP_GUIDE_DRAFT",
+    "schemaVersion": "v1",
+    "response": {
+      "sections": [
+        {"key":"prerequisites","title":"사전 조건","markdown":"확정된 실행 환경을 확인합니다.","sourceItemIds":["decision-1"],"sourceExcerptIds":["excerpt-1"]},
+        {"key":"installation","title":"설치 순서","markdown":"확인된 명령만 실행합니다.","sourceItemIds":["decision-1"],"sourceExcerptIds":[]},
+        {"key":"environment","title":"환경 변수","markdown":"Secret은 서버 환경 변수에 보관합니다.","sourceItemIds":["decision-1"],"sourceExcerptIds":[]},
+        {"key":"integrations","title":"외부 서비스 연결","markdown":"확정된 연결 정보를 확인합니다.","sourceItemIds":["decision-1"],"sourceExcerptIds":[]},
+        {"key":"run_verify","title":"실행과 검증","markdown":"실행 결과를 확인합니다.","sourceItemIds":["decision-1"],"sourceExcerptIds":[]},
+        {"key":"troubleshooting","title":"실패 시 확인 사항","markdown":"오류 로그와 설정을 확인합니다.","sourceItemIds":["decision-1"],"sourceExcerptIds":[]},
+        {"key":"security","title":"보안 주의사항","markdown":"Secret을 공개하지 않습니다.","sourceItemIds":["decision-1"],"sourceExcerptIds":[]},
+        {"key":"open_issues","title":"오픈 이슈","markdown":"미정 데이터베이스를 확인해야 합니다.","sourceItemIds":["deferred-1"],"sourceExcerptIds":[]}
+      ],
+      "openIssues":[{"id":"OPEN-deferred-1","title":"데이터베이스","description":"저장소 선택이 미정입니다.","sourceItemIds":["deferred-1"]}]
+    },
+    "manifest":{"designItemIds":["decision-1","deferred-1"],"sourceExcerptIds":["excerpt-1"],"recentMessageIds":[],"summaryIds":[]},
+    "targetContext":{"sectionKeys":["prerequisites","installation","environment","integrations","run_verify","troubleshooting","security","open_issues"]}
+  },
+  {
     "id": "document-patch-baseline",
     "task": "DOCUMENT_PATCH",
     "schemaVersion": "v1",

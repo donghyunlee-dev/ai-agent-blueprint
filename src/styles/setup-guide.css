@@ -1,0 +1,9 @@
+.setup-guide-document > nav { display:flex; flex-wrap:wrap; gap:.5rem 1rem; margin-block:1rem; }
+.setup-guide-document > article { border-top:1px solid #e4e2dd; padding-block:1rem; }
+.setup-guide-document > article pre { overflow-wrap:anywhere; line-height:1.65; }
+.setup-guide-document > article small { display:block; color:#62615c; margin-top:.75rem; }
+.setup-guide-document > .requirements-ready-review { margin-top:1.5rem; }
+@media (max-width:767px) {
+  .setup-guide-document > nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .setup-guide-document > nav a { min-width:0; overflow-wrap:anywhere; }
+}

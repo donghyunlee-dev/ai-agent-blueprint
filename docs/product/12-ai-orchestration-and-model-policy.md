@@ -26,6 +26,7 @@ Blueprint의 AI 품질을 유지하면서 $10 단위의 선불 API 크레딧으�
 | 특별한 맥락형 질문 표현 | AI | 필요할 때만 `QUESTION_COMPOSE` |
 | 표준 선택, skip/defer, proposal 승인 | schema와 도메인 command | 없음 |
 | 자유 답변에서 복수 사실 추출 | AI | `TURN_ANALYZE` |
+| 설정 가이드 전체 초안 | AI + confirmed 설계/source 근거 검증 | `SETUP_GUIDE_DRAFT` |
 | 정적 도움말 | 질문 카탈로그 | 없음 |
 | 프로젝트 맥락형 추가 설명 | AI | 필요할 때만 `QUESTION_EXPLAIN` |
 | 사용자 맥락 기반 추천 | AI | `OPTION_RECOMMEND` |
@@ -66,6 +67,7 @@ Blueprint의 AI 품질을 유지하면서 $10 단위의 선불 API 크레딧으�
 | `REQUIREMENTS_DRAFT` | DEFAULT | low | 30,000 | 8,000 | deterministic plan 검증 후 |
 | `REQUIREMENTS_REVIEW` | DEFAULT | low | 36,000 | 3,000 | draft 후 |
 | `REQUIREMENTS_REPAIR` | DEFAULT | low | 24,000 | 5,000 | repairable issue가 있을 때 1회 |
+| `SETUP_GUIDE_DRAFT` | DEFAULT | low | 30,000 | 8,000 | 확정 기술 결정 또는 관련 근거가 있을 때 |
 | `PRD_DRAFT` | FINAL | low | 40,000 | 10,000 | Requirements ready 후 1회 |
 | `PRD_REVIEW` | DEFAULT | low | 48,000 | 4,000 | PRD draft 후 |
 | `PRD_REPAIR` | FINAL | low | 28,000 | 6,000 | repairable issue가 있을 때 1회 |
