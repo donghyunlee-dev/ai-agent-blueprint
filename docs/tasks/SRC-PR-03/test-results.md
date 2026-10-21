@@ -1,6 +1,6 @@
 # SRC-PR-03 검증 결과
 
-**Status:** 구현자 자체 검증 통과. 독립 코드 리뷰와 QA는 PR final HEAD에서 진행한다.
+**Status:** 구현자 자체 검증, 독립 코드 리뷰, 독립 QA와 PR required checks 통과. 리뷰 및 QA는 `237ee080a0418115830096999c79fa208fb446e9`에서 통과했다.
 
 ## 실행 결과
 
@@ -18,4 +18,4 @@
 - Agent Browser tool catalog에 사용 가능한 브라우저 도구가 없고 `command -v agent-browser`에서도 실행 파일을 찾지 못했다. Playwright Chromium으로 필요한 두 viewport를 확인했다.
 - `npm ci`는 의존성 파일 변경 없이 완료됐다. npm audit이 low 6, moderate 2, high 8의 취약점을 보고했으나 본 범위와 무관해 수정하지 않았다.
 
-외부 AI/API 호출은 실행하지 않았다. 독립 리뷰와 QA 결과는 별도 `review-notes.md`, `qa-report.md`에 기록한다.
+외부 AI/API 호출은 실행하지 않았다. 독립 리뷰와 QA 상세는 별도 `review-notes.md`, `qa-report.md`에 기록한다.

@@ -91,20 +91,20 @@ Given 다운로드가 완료되면, then 다운로드 동작은 기존 source의
 
 ## 코드 리뷰·QA 체크리스트
 
-- [ ] 원본 파일과 추출 결과 파일을 사용자가 구분할 수 있음
-- [ ] 비-ready source의 결과를 다운로드하지 못함
-- [ ] 파일명 정제가 경로 traversal / OS 구분자 입력을 차단함
-- [ ] 다운로드가 기존 source, hash, evidence와 design item을 변경하지 않음
-- [ ] preview가 read-only이고 외부 수정본의 앱 재가져오기 동작을 임의로 추가하지 않음
-- [ ] desktop 1440×900/mobile 390×844의 ready, non-ready, keyboard/focus 증거가 final HEAD에서 확인됨
+- [x] 원본 파일과 추출 결과 파일을 사용자가 구분할 수 있음
+- [x] 비-ready source의 결과를 다운로드하지 못함
+- [x] 파일명 정제가 경로 traversal / OS 구분자 입력을 차단함
+- [x] 다운로드가 기존 source, hash, evidence와 design item을 변경하지 않음
+- [x] preview가 read-only이고 외부 수정본의 앱 재가져오기 동작을 임의로 추가하지 않음
+- [x] desktop 1440×900/mobile 390×844의 ready, non-ready, keyboard/focus 증거가 final HEAD에서 확인됨
 
 ## Done Checklist
 
 - [x] 다운로드 정책 구현과 오류/경계 테스트 통과
-- [ ] 독립 코드 리뷰와 QA 통과
-- [ ] CI 필수 check 통과
-- [ ] final-head 증거와 traceability 갱신
+- [x] 독립 코드 리뷰와 QA 통과
+- [x] CI 필수 check 통과
+- [x] final-head 증거와 traceability 갱신
 
 ## 상태
 
-code_review. 첫 독립 리뷰의 비동기 object URL 정리 finding을 수정했고 focused unit, production build와 desktop/mobile Playwright를 재검증했다. 새 head의 독립 리뷰를 요청한다.
+ready_to_merge. 수정된 코드의 자체 검증, 독립 코드 리뷰·QA와 PR required checks가 통과했다. merge는 사용자가 전체 lifecycle을 요청하지 않아 대기한다.

@@ -35,7 +35,7 @@
 | 23 | `SRC-PR-02` 근거 연결 | 5단계 | merged (PR #26; merge `5a326055acc91b76ce33f3d5345579d5bffff3b0`) | [plan](SRC-PR-02/plan.md) |
 | 24 | `EXP-PR-01` 문서 복사·다운로드 | 5단계 | merged (#25; merge `aee5afddcdf32d4da7d46e1aebf260522670a780`) | [plan](EXP-PR-01/plan.md) · [tests](EXP-PR-01/test-results.md) |
 | 25 | `DEC-PR-01` 자료 수정·설정 가이드 완료 정책 | 5단계 | ready_to_merge (PR #27; validation, independent review/QA and CI pass) | [plan](DEC-PR-01/plan.md) · [tests](DEC-PR-01/test-results.md) · [review](DEC-PR-01/review-notes.md) · [QA](DEC-PR-01/qa-report.md) |
-| 26 | `SRC-PR-03` 추출 결과 다운로드 | 5단계 | code_review | [plan](SRC-PR-03/plan.md) · [tests](SRC-PR-03/test-results.md) · [review](SRC-PR-03/review-notes.md) |
+| 26 | `SRC-PR-03` 추출 결과 다운로드 | 5단계 | ready_to_merge (PR #28; self-validation, review, QA and CI pass) | [plan](SRC-PR-03/plan.md) · [tests](SRC-PR-03/test-results.md) · [review](SRC-PR-03/review-notes.md) · [QA](SRC-PR-03/qa-report.md) |
 | 27 | `GDE-PR-01` 설정 가이드 | 5단계 | planned | [plan](GDE-PR-01/plan.md) |
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | planned | [plan](QLT-PR-01/plan.md) |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | planned | [plan](QLT-PR-02/plan.md) |
