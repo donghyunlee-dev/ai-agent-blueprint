@@ -12,9 +12,8 @@ function sourceExcerptLookup(aggregate:BlueprintAggregate) {
     let index=0;
     for(const ref of designItems.flatMap((item)=>item.evidence??[])){
       if(ref.sourceId!==source.id||!ref.excerpt)continue;
-      const safeExcerpt=redactSensitiveText(ref.excerpt);
-      if(!extractedText.includes(safeExcerpt))continue;
-      excerpts.set(`${source.id}:${index}`,{fileName:source.fileName,text:safeExcerpt,location:ref.location});
+      if(!extractedText.includes(ref.excerpt))continue;
+      excerpts.set(`${source.id}:${index}`,{fileName:source.fileName,text:redactSensitiveText(ref.excerpt),location:ref.location});
       index+=1;
     }
   }

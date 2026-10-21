@@ -49,7 +49,7 @@
 
 1. **입력 조립**: 확정 기술 결정, 운영/배포/보안 제약, 관련 source excerpt를 `DocumentPlanBuilder`류 결정론적 절차로 모은다(API 호출 아님).
 2. **Task/prompt/schema 등록**: `SETUP_GUIDE_DRAFT`를 `AiTaskType`에 추가하고 model profile, prompt version, schema ID/version 및 template 변수를 registry contract에 등록한다.
-3. **Golden eval 확장**: source-backed command/version, missing evidence, injection, schema/reference failure cases를 fixture/eval에 포함하고 mandatory gate를 통과시킨다.
+3. **Golden eval 확장**: source-backed command/version, missing evidence, English/Korean prompt injection, schema/reference failure cases를 fixture/eval에 포함하고 mandatory gate를 통과시킨다. 선택된 보안 정책 A에 따라 deterministic instruction pattern이 포함되면 생성 초안 전체를 거부하며, 정상 문장과의 유사성으로 인한 false positive 가능성을 수용한다.
 4. **가이드 생성 AI 호출**: 확정 설계 + 근거 excerpt만 컨텍스트로 전달하고, 근거 없는 버전/명령을 만들지 말라는 system/developer 규칙을 강제한다.
 5. **면책 문구 고정 삽입**: AI 출력과 무관하게 애플리케이션이 문서 최상단에 "실행 전 최신 버전과 명령어를 직접 확인하라" 문구를 항상 붙인다.
 6. **오픈 이슈 표시**: 근거가 부족한 항목은 확정 사실로 서술하지 않고 오픈 이슈 섹션에 표시한다.

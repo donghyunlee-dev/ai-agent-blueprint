@@ -1,4 +1,5 @@
 import { schemas, validateSchema } from '../../infrastructure/ai/schemas/index.js';
+import { containsPromptInjectionInstruction } from '../../infrastructure/ai/prompt-injection.js';
 import { redactSensitiveText, redactSensitiveValues } from './sensitive-text.js';
 
 export const SETUP_GUIDE_DISCLAIMER = '> 실행 전 최신 버전과 명령어를 직접 확인하세요.';
@@ -22,7 +23,7 @@ export function buildSetupGuidePlan(aggregate) {
   const confirmedDesignItems=(aggregate.designItems??[]).filter((item)=>!item.archivedAt&&item.status==='confirmed'&&['technical_decision','constraint','requirement','risk'].includes(item.type)).map(({id,type,key,title,description,attributes,evidence})=>redactSensitiveValues({id,type,key,title,description,attributes:attributes??{},evidence:evidence??[]}));
   const openIssues=(aggregate.designItems??[]).filter((item)=>!item.archivedAt&&item.status!=='confirmed'&&['technical_decision','constraint'].includes(item.type)).map((item)=>redactSensitiveValues({id:`OPEN-${item.id}`,title:item.title,description:item.description||'설정 결정을 확인해야 합니다.',sourceItemIds:[item.id]}));
   const sourceExcerpts=(aggregate.sources??[]).filter((source)=>source.extractionStatus==='ready'&&!source.archivedAt&&source.extractedText).flatMap((source)=>{
-    const refs=confirmedDesignItems.flatMap((item)=>item.evidence??[]).filter((ref)=>ref.sourceId===source.id&&ref.excerpt&&source.extractedText.includes(ref.excerpt));
+    const refs=(aggregate.designItems??[]).filter((item)=>!item.archivedAt&&item.status==='confirmed'&&['technical_decision','constraint','requirement','risk'].includes(item.type)).flatMap((item)=>item.evidence??[]).filter((ref)=>ref.sourceId===source.id&&ref.excerpt&&source.extractedText.includes(ref.excerpt));
     return refs.map((ref,index)=>({id:`${source.id}:${index}`,sourceId:source.id,text:redactSensitiveText(ref.excerpt),location:ref.location}));
   });
   return {projectId:aggregate.project.id,projectTitle:redactSensitiveText(aggregate.project.title),designRevision:aggregate.project.designRevision,confirmedDesignItems,referenceDesignItemIds:(aggregate.designItems??[]).filter((item)=>!item.archivedAt).map(({id})=>id),sourceExcerpts,openIssues,sections:SETUP_GUIDE_SECTIONS.map((section)=>({...section,sourceItemIds:[...confirmedDesignItems.map(({id})=>id),...(section.key==='open_issues'?openIssues.map((issue)=>issue.sourceItemIds[0]):[])]}))};
@@ -31,7 +32,6 @@ export function buildSetupGuidePlan(aggregate) {
 const commandPattern=/\b(?:npm|npx|pnpm|yarn|bun|node|docker|kubectl|git|pip3?|python3?|uv|poetry)\s+(?:install|ci|run|exec|create|build|start|test|deploy|pull|compose|version|add|init|update|upgrade|dlx|-[m])\b(?:[ \t]+(?:--?[\w=./:@+-]+|[^\s;|&]+))*/gi;
 const shellExecutables=new Set(['npm','npx','pnpm','yarn','bun','node','docker','kubectl','git','pip','pip3','python','python3','uv','poetry']);
 const shellBuiltins=new Set(['cd','export','echo','printf','pwd','mkdir','cp','mv','rm','cat','chmod','chown','source','set','unset','test','which','command','env','touch','ln','ls','grep','sed','awk','head','tail','true','false']);
-const promptInjectionPattern=/ignore (?:all )?(?:previous|prior) instructions|reveal (?:the )?(?:system|developer) prompt|override (?:the )?system prompt/i;
 
 function shellCommands(markdown) {
   const commands=[];
@@ -61,7 +61,7 @@ export function validateSetupGuideDraft(payload,plan) {
     for(const id of section.sourceItemIds)if(!allowedItems.has(id)&&!(section.key==='open_issues'&&allowedIssueItems.has(id)))errors.push(`unknown confirmed source ${id}`);
     for(const id of section.sourceExcerptIds)if(!allowedSources.has(id))errors.push(`unknown source excerpt ${id}`);
     const evidence=[...plan.confirmedDesignItems.map((item)=>`${item.title} ${item.description} ${JSON.stringify(item.attributes)}`),...plan.sourceExcerpts.map(({text})=>text)].join('\n').toLowerCase();
-    if(promptInjectionPattern.test(section.markdown))errors.push('prompt-injection instruction text');
+    if(containsPromptInjectionInstruction(section.markdown))errors.push('prompt-injection instruction text');
     for(const match of section.markdown.matchAll(commandPattern)){const claim=match[0].trim().toLowerCase();if(!evidence.includes(claim))errors.push(`unsupported command or version ${claim}`);}
     for(const command of shellCommands(section.markdown)){
       const executable=command.match(/^([\w./-]+)/)?.[1]?.split('/').pop()?.toLowerCase();

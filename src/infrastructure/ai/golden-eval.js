@@ -1,6 +1,7 @@
 import { validateReferences } from './context-manifest.js';
 import { getSchemaDefinition } from './schema-registry.js';
 import { validateSchema } from './schemas/index.js';
+import { containsPromptInjectionInstruction } from './prompt-injection.js';
 
 export function evaluateGoldenFixture(fixture) {
   const errors = [];
@@ -26,7 +27,7 @@ function inspectSetupGuideOutput(fixture) {
   if(fixture.task!=='SETUP_GUIDE_DRAFT')return [];
   const errors=[];
   const markdown=(fixture.response?.sections??[]).map((section)=>section.markdown??'').join('\n');
-  if(/ignore (?:all )?(?:previous|prior) instructions|reveal (?:the )?(?:system|developer) prompt|override (?:the )?system prompt/i.test(markdown))errors.push('setup guide contains prompt-injection instruction text');
+  if(containsPromptInjectionInstruction(markdown))errors.push('setup guide contains prompt-injection instruction text');
   const evidence=(fixture.targetContext?.commandEvidence??[]).join('\n').toLowerCase();
   const commandPattern=/\b(?:npm|npx|pnpm|yarn|bun|node|docker|kubectl|git|pip3?|python3?|uv|poetry)\s+(?:install|ci|run|exec|create|build|start|test|deploy|pull|compose|version|add|init|update|upgrade|dlx|-[m])\b(?:[ \t]+(?:--?[\w=./:@+-]+|[^\s;|&]+))*/gi;
   for(const match of markdown.matchAll(commandPattern))if(!evidence.includes(match[0].trim().toLowerCase()))errors.push(`setup guide command lacks complete evidence: ${match[0]}`);
