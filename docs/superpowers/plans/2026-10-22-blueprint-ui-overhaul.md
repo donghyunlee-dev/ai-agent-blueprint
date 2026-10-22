@@ -182,7 +182,7 @@ function buildReadinessPresentationGroups(readiness: DesignReadiness): Readiness
 
 PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝트 영역이 주 시안과 크게 어긋난 것을 확인했다. PR #37은 홈 배치를 조정했지만 사용자는 최종 화면이 시안과 일치하지 않는다고 판단했다. 기준 시안과 실제 렌더의 픽셀 단위 비교를 거쳐 95% 이상 일치하는 corrective unit `UIR-PR-02C`를 PR #37 뒤에 추가한다. #37의 병합은 검증된 픽셀 동등성으로 간주하지 않는다. 상세 수용 기준과 증거 목록은 [UIR-PR-02C 계획](../../tasks/UIR-PR-02C/plan.md)을 따른다.
 
-`UIR-PR-02B` (#37)과 `UIR-PR-02C`가 모두 완료된 뒤 UIR-PR-03을 시작한다.
+`UIR-PR-02B` (#37)은 merged이고 `UIR-PR-02C` (#38)는 리뷰·QA 및 95% 픽셀 기준을 통과해 `ready_to_merge`다. 사용자가 PR #38을 병합한 뒤 UIR-PR-03을 시작한다.
 
 ### UIR-PR-03: 프로젝트 단계 frame과 대화
 

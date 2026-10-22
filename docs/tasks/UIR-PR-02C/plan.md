@@ -36,5 +36,8 @@ Rebuild the current home presentation against `docs/blueprint-design/윈드소�
 ## Delivery state
 
 - Predecessors verified: UIR-PR-02 (#35), UIR-PR-02A (#36), UIR-PR-02B (#37) merged to `main`.
-- Current unit: `in_progress` from latest merged `main`.
+- Current unit: `ready_to_merge`, PR #38 open and intentionally not merged.
+- Final code HEAD: `65dd93e65566c496bede041c181e96d031bdb47c`.
+- Final CI evidence: workflow run `39750688902`, 22/22 focused Playwright checks, 96.0078% unmasked pixel match at 1672×941, 0 transparent background pixels, inventories and report source hashes aligned.
+- Independent code review and QA passed at the same code HEAD. QA used a deterministic session fixture; it verified dynamic email rendering, not a live Google OAuth session.
 - Next UIR-PR-03 remains blocked until this correction is merged.
