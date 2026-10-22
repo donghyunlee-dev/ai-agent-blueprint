@@ -34,8 +34,10 @@ const result = await page.evaluate((threshold) => {
   actualCanvas.getContext('2d').drawImage(actualImage, 0, 0);
   const ref = refCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height).data;
   const actual = actualCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height).data;
-  const overlay = overlayCanvas.getContext('2d').createImageData(width, height);
-  const heat = heatCanvas.getContext('2d').createImageData(width, height);
+  const overlayContext = overlayCanvas.getContext('2d');
+  const heatContext = heatCanvas.getContext('2d');
+  const overlay = overlayContext.createImageData(width, height);
+  const heat = heatContext.createImageData(width, height);
   photoCanvas.getContext('2d').drawImage(document.querySelector('#photo'), 0, 0);
   const photoPixels = photoCanvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height).data;
   let nonOpaquePhotoPixels = 0;
@@ -59,6 +61,8 @@ const result = await page.evaluate((threshold) => {
     heat.data[i + 2] = delta <= threshold ? 0 : 0;
     heat.data[i + 3] = 255;
   }
+  overlayContext.putImageData(overlay, 0, 0);
+  heatContext.putImageData(heat, 0, 0);
   const save = (canvas, name) => ({ name, data: canvas.toDataURL('image/png').split(',')[1] });
   return {
     width, height, pixelCount: width * height, threshold,

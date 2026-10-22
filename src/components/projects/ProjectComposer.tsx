@@ -180,7 +180,7 @@ export function ProjectComposer({
           ref={textarea}
           id="project-idea"
           name="idea"
-          rows={1}
+          rows={4}
           maxLength={1000}
           value={idea}
           onChange={(event) => { resizeIdea(event.currentTarget); setIdea(event.target.value); setCreateError(''); setSaveFailed(false); }}
@@ -250,7 +250,7 @@ export function ProjectComposer({
 }
 
 function resizeIdea(element: HTMLTextAreaElement) {
-  element.style.height = '30px';
+  element.style.height = '64px';
   const height = Math.min(element.scrollHeight, 240);
   element.style.height = `${height}px`;
   element.style.overflowY = element.scrollHeight > 240 ? 'auto' : 'hidden';

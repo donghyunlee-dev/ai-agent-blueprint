@@ -182,7 +182,18 @@ function buildReadinessPresentationGroups(readiness: DesignReadiness): Readiness
 
 PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝트 영역이 주 시안과 크게 어긋난 것을 확인했다. PR #37은 홈 배치를 조정했지만 사용자는 최종 화면이 시안과 일치하지 않는다고 판단했다. 기준 시안과 실제 렌더의 픽셀 단위 비교를 거쳐 95% 이상 일치하는 corrective unit `UIR-PR-02C`를 PR #37 뒤에 추가한다. #37의 병합은 검증된 픽셀 동등성으로 간주하지 않는다. 상세 수용 기준과 증거 목록은 [UIR-PR-02C 계획](../../tasks/UIR-PR-02C/plan.md)을 따른다.
 
-`UIR-PR-02B` (#37)은 merged이고 `UIR-PR-02C` (#38)는 리뷰·QA 및 95% 픽셀 기준을 통과해 `ready_to_merge`다. 사용자가 PR #38을 병합한 뒤 UIR-PR-03을 시작한다.
+`UIR-PR-02B` (#37)와 `UIR-PR-02C` (#38, merge `2d9a32f`)는 병합됐다. Preview에서 확인한 홈의 배경 경계, 공통 중심선, 다중 행 입력, `전체 보기` 화살표 간격을 보정하는 `UIR-PR-02D`를 추가하고, 병합 후 `UIR-PR-03`을 시작한다. 상세 수용 기준과 픽셀·기능 검증은 [UIR-PR-02D 계획](../../tasks/UIR-PR-02D/plan.md)을 따른다.
+
+### UIR-PR-02D: 홈 정렬·입력 보정
+
+**결과/요구사항:** 홈 배경이 LNB 경계에서 이어지고 composer/최근 프로젝트/하단 메뉴가 LNB 오른쪽 콘텐츠 영역 중앙선을 공유한다. hero는 시안의 기존 위치를 유지한다. 아이디어 입력은 최소 4행이며, `전체 보기`와 화살표 간격은 기준 시안과 일치한다. UIR-003.
+
+**Files:** `src/styles/app-shell.css`, `src/styles/home.css`, `src/styles/project-composer.css`, `src/components/projects/ProjectComposer.tsx`, 관련 Playwright 검증 및 `.pr-artifacts/UIR-PR-02D/` 증거. 상세 범위는 unit 계획을 따른다.
+
+- [ ] 실제 preview 기준 네 가지 시각 차이를 재현하고 1440×900, 1672×941, 1897×905에서 경계·중심선을 기록한다.
+- [ ] textarea를 4행 이상으로 구현하고 기존 입력·첨부·생성 동작을 보존한다.
+- [ ] 최종 1672×941 전체 화면 픽셀 비교가 마스크 없이 95% 이상이며, 요구된 기하·텍스트·아이콘 검증도 통과한다.
+- [ ] 1440×900과 390×844 최종 HEAD 캡처, 구현자 자체 검증, 독립 코드 리뷰, 독립 QA를 통과하고 `ready_to_merge`로 대기한다.
 
 ### UIR-PR-03: 프로젝트 단계 frame과 대화
 
