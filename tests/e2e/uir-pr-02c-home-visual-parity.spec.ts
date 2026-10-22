@@ -7,7 +7,7 @@ import path from 'node:path';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
 
-const evidence = path.resolve('.pr-artifacts/UIR-PR-02D');
+const evidence = path.resolve('.pr-artifacts/UIR-PR-02C');
 const identity = { issuer: 'https://accounts.google.com', subject: 'uir-home-user', email: 'verified@example.test' };
 
 test.beforeEach(async ({ page }) => {
