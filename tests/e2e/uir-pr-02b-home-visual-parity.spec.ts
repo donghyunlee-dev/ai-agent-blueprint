@@ -127,6 +127,19 @@ test('captures the validation state at the configured desktop or mobile viewport
   await captureState(page, 'validation');
 });
 
+test('captures the completed first design workspace after creating a synthetic Blueprint', async ({ page }) => {
+  const ideaText = '합성 캡처용으로 새 Blueprint를 시작합니다.';
+  await page.goto('/');
+  await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill(ideaText);
+  await page.getByRole('button', { name: 'Blueprint 시작' }).click();
+
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
+  await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue(ideaText);
+  await expect(page.getByRole('heading', { name: ideaText })).toBeVisible();
+  await expect(page.getByText(/^저장됨 ·/)).toBeVisible();
+  await captureState(page, 'created-design-workspace');
+});
+
 test('captures the RecentProjects loading state with a deterministic held IndexedDB open', async ({ page }) => {
   await page.addInitScript(() => {
     const originalOpen = IDBFactory.prototype.open;
