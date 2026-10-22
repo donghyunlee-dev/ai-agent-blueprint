@@ -61,10 +61,10 @@ Use the narrowest relevant existing Playwright and unit/contract commands first.
 ## Implementation self-validation
 
 - Responsive height rules are scoped to desktop viewports up to 920px high. They reduce vertical spacing and start-card height while preserving text sizes, the four-row textarea, and the original 1672×941 layout.
-- Playwright Chromium: `npx playwright test tests/e2e/uir-pr-02e-home-viewport-fit.spec.ts tests/e2e/uir-pr-02d-home-alignment.spec.ts --workers=1 --reporter=line` — **12/12 passed** across desktop and mobile projects.
+- Playwright Chromium: `npx playwright test tests/e2e/uir-pr-02e-home-viewport-fit.spec.ts tests/e2e/uir-pr-02d-home-alignment.spec.ts --workers=1 --reporter=line` — **14/14 passed** across desktop and mobile projects (02E 10/10; 02D regression 4/4). This includes visible keyboard focus and reachability of the idea textarea and enabled submit at desktop and the 720×450 effective CSS viewport.
 - `npm run build` — passed. `git diff --check` — passed.
 - `npm run test:unit` — 341/342 passed. The single failure is `tests/unit/src-pr-01-source-upload-command.test.js`, in `removeSourceAndReferences` (`.map` on undefined); this PR changes only home CSS, UI coverage, and delivery records.
-- Final geometry/evidence is stored in ignored `.pr-artifacts/UIR-PR-02E/geometry.json` and its linked screenshots. At 1366×768 the start section ends at y=696.7; at 1440×900 it ends at y=887.7 (12.3px bottom clearance); at 1672×941 it remains at y=745.7 and ends at y=913.7, matching the merged baseline geometry. The six-project state keeps the composer in view; 390×844 remains naturally scrollable without horizontal overflow.
+- Final geometry/evidence is stored in ignored `.pr-artifacts/UIR-PR-02E/geometry.json` and its linked screenshots. At 1366×768 the start section ends at y=696.7; at 1440×900 it ends at y=887.7 (12.3px bottom clearance); at 1672×941 it remains at y=745.7 and ends at y=913.7, matching the merged baseline geometry. The six-project state keeps the composer in view; 390×844 remains naturally scrollable without horizontal overflow. The 720×450 browser test represents the effective CSS viewport of 1440×900 at 200%; it does not change Chromium's page-scale zoom setting.
 - Status: `self-validation passed; independent code review and QA pending`.
 
 ## Failure states and guardrails
