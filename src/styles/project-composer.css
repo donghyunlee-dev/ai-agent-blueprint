@@ -60,7 +60,8 @@
   .project-submit-button { width: 42px; font-size: 24px; }
 }
 @media (max-width: 390px) {
-  .project-example-actions button { gap: 0; padding: 0 6px; }
-  .project-example-actions button:nth-child(3),.project-example-actions button:nth-child(4) { display: none; }
+  .project-example-actions { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .project-example-actions::-webkit-scrollbar { display: none; }
+  .project-example-actions button { flex: none; gap: 0; padding: 0 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .project-spinner { animation: none; } }

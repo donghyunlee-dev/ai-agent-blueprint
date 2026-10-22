@@ -111,6 +111,7 @@ test('home matches the redesign composer and section geometry at the reference v
     'src/components/projects/ProjectComposer.tsx', 'src/components/projects/RecentProjects.tsx',
     'src/pages/HomePage.tsx', 'src/styles/app-shell.css', 'src/styles/home.css',
     'src/styles/project-composer.css', 'public/home-reference/photo-background.png',
+    'public/home-reference/mobile-photo-background.png',
     'scripts/assets/uir-pr-02c-photo-source.png', 'scripts/compose-uir-pr-02c-photo-background.mjs',
     'scripts/compare-uir-pr-02c-home.mjs', 'tests/e2e/uir-pr-02c-home-visual-parity.spec.ts',
   ];
@@ -123,6 +124,9 @@ test('home start controls remain visible without overflow at desktop and mobile 
   await page.goto('/');
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
+    if (viewport.width <= 767) {
+      expect(await page.locator('.blueprint-shell-home').evaluate((element) => getComputedStyle(element).backgroundImage)).toContain('mobile-photo-background.png');
+    }
     await expect(page.getByRole('heading', { name: '어떤 서비스를 만들고 싶으세요?' })).toBeVisible();
     await expect(page.getByRole('button', { name: '파일 첨부' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Blueprint 시작' })).toBeVisible();
@@ -149,6 +153,22 @@ test('home start controls remain visible without overflow at desktop and mobile 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
     const suffix = `${viewport.width}x${viewport.height}`;
     await page.screenshot({ path: path.join(evidence, `home-empty-${suffix}.png`), fullPage: false, scale: 'css' });
+    if (viewport.width === 390) {
+      const examples = [
+        ['챗 서비스', '고객 문의를 이해하고 답변하는 챗 서비스를 만들고 싶어요.'],
+        ['업무 자동화', '팀의 반복 업무를 줄이는 업무 자동화 서비스를 만들고 싶어요.'],
+        ['관리 플랫폼', '운영 현황과 업무 데이터를 관리하는 플랫폼을 만들고 싶어요.'],
+        ['교육 서비스', '학습 과정을 관리하고 교육을 제공하는 서비스를 만들고 싶어요.'],
+      ];
+      const exampleActions = page.locator('.project-example-actions');
+      expect(await exampleActions.evaluate((element) => element.scrollWidth > element.clientWidth)).toBeTruthy();
+      for (const [label, idea] of examples) {
+        const example = page.getByRole('button', { name: label });
+        await expect(example).toBeVisible();
+        await example.click();
+        await expect(page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' })).toHaveValue(idea);
+      }
+    }
   }
 });
 
@@ -282,7 +302,11 @@ test('captures fixed-copy cards and reveals every remaining real project from fo
     await page.goto('/');
     const list = page.getByRole('list', { name: '최근 프로젝트 목록' });
     await expect(list.getByRole('listitem')).toHaveCount(4);
-    await expect(list.getByRole('link', { name: '회의실 예약 서비스 열기' }).first()).toBeVisible();
+    const firstFeaturedLink = list.locator('.home-recent-card').first();
+    const newestProjectTitle = `Evidence project ${String(count).padStart(2, '0')}`;
+    await expect(firstFeaturedLink).toBeVisible();
+    await expect(firstFeaturedLink).toHaveAttribute('aria-label', `회의실 예약 서비스 열기, 실제 프로젝트 ${newestProjectTitle}`);
+    await expect(list.getByRole('link', { name: new RegExp(`실제 프로젝트 ${newestProjectTitle}`) }).first()).toBeVisible();
     await expect(list).toContainText('교육 관리 플랫폼');
     await expect(list).toContainText('업무 자동화 도구');
     if (count > 3) {

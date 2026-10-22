@@ -75,6 +75,7 @@ const sourceFiles = [
   'src/components/projects/ProjectComposer.tsx', 'src/components/projects/RecentProjects.tsx',
   'src/pages/HomePage.tsx', 'src/styles/app-shell.css', 'src/styles/home.css',
   'src/styles/project-composer.css', 'public/home-reference/photo-background.png',
+  'public/home-reference/mobile-photo-background.png',
   'scripts/assets/uir-pr-02c-photo-source.png', 'scripts/compose-uir-pr-02c-photo-background.mjs',
   'scripts/compare-uir-pr-02c-home.mjs', 'tests/e2e/uir-pr-02c-home-visual-parity.spec.ts',
 ];
@@ -91,8 +92,12 @@ const report = {
     source: 'standalone generated office photograph plus only photo texture outside interface masks in the approved design image',
     generatedSource: 'scripts/assets/uir-pr-02c-photo-source.png',
     output: 'public/home-reference/photo-background.png',
-    method: 'UI-covered and sidebar areas are filled with the independent generated photograph; photo-only reference texture remains outside those areas; the output has no transparent pixels.',
+    method: 'Reference UI pixels are removed: the sidebar is filled white; the composer, recent/start headings, cards, and their shadows use the independent photograph; topbar and hero-title photo texture is reconstructed from adjacent photo-only pixels; reference photo texture remains only outside these regions; the output has no transparent pixels.',
     nonOpaquePixels: result.photoBackgroundNonOpaquePixels,
+  },
+  mobilePhotoBackground: {
+    source: 'standalone generated office photograph without reference screenshot pixels',
+    output: 'public/home-reference/mobile-photo-background.png',
   },
   sourceState: { head, sourceStateHash, files: fileHashes },
 };

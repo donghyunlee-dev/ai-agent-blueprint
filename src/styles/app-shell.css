@@ -65,7 +65,11 @@
   .blueprint-topbar { height: 52px; padding: 0 16px; }
   .blueprint-topbar-title { margin-right: auto; font-size: 13px; }
   .blueprint-topbar .auth-menu-trigger { max-width: 190px; }
-  .blueprint-shell-home { background-size: 100% auto; }
+  .blueprint-shell-home {
+    background-image: linear-gradient(180deg, rgb(248 250 252 / 0%) 125px, #f8fafc 235px), url('/home-reference/mobile-photo-background.png');
+    background-size: 100% 235px, 100% auto;
+    background-repeat: no-repeat;
+  }
   .blueprint-shell-home .blueprint-sidebar { padding: 8px 12px; }
   .blueprint-shell-home .blueprint-shell-brand { width: 118px; height: 40px; overflow: hidden; margin: 0; }
   .blueprint-shell-home .windsoft-brand { gap: 5px; font-size: 17px; }

@@ -28,8 +28,10 @@ const asset = await page.evaluate(() => {
   const design = context.getImageData(0, 0, width, height).data;
   const masks = [
     [412, 344, 987, 171],
-    [301, 607, 337, 104], [648, 607, 337, 104], [995, 607, 337, 104], [1344, 607, 282, 104],
-    [301, 781, 322, 137], [634, 781, 322, 137], [969, 781, 322, 137], [1304, 781, 322, 137],
+    [280, 540, 200, 76], [1500, 540, 170, 76],
+    [280, 720, 180, 84],
+    [286, 592, 1354, 134],
+    [285, 765, 1354, 176],
   ];
   const insideMask = (x, y) => masks.some(([left, top, maskWidth, maskHeight]) => x >= left && x < left + maskWidth && y >= top && y < top + maskHeight);
   const distanceToMask = (x, y) => Math.min(...masks.map(([left, top, maskWidth, maskHeight]) => {
@@ -46,7 +48,7 @@ const asset = await page.evaluate(() => {
         base.data[offset + 2] = 255;
       } else if (!insideMask(x, y)) {
         const distance = distanceToMask(x, y);
-        const generatedWeight = distance < 12 ? 1 - distance / 12 : 0;
+      const generatedWeight = distance < 20 ? 1 - distance / 20 : 0;
         base.data[offset] = design[offset];
         base.data[offset + 1] = design[offset + 1];
         base.data[offset + 2] = design[offset + 2];
@@ -92,9 +94,6 @@ const asset = await page.evaluate(() => {
   };
   interpolateBand(1272, 18, 395, 48, 'horizontal');
   interpolateBand(678, 210, 465, 54, 'vertical');
-  interpolateBand(299, 559, 155, 38, 'horizontal');
-  interpolateBand(1517, 559, 138, 38, 'horizontal');
-  interpolateBand(299, 741, 145, 42, 'vertical');
   context.putImageData(base, 0, 0);
   return canvas.toDataURL('image/png').split(',')[1];
 });

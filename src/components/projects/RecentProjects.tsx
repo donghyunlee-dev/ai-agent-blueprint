@@ -50,7 +50,7 @@ export function RecentProjects({ ownerKey }: { ownerKey: string | null }) {
         {featuredProjects.map((sample, index) => {
           const project = projects[index];
           return <li key={sample.title}>
-            {project ? <Link className={`home-recent-card home-recent-card-${sample.icon}`} to={`/blueprints/${project.id}`} aria-label={`${sample.title} 열기`}>
+            {project ? <Link className={`home-recent-card home-recent-card-${sample.icon}`} to={`/blueprints/${project.id}`} aria-label={`${sample.title} 열기, 실제 프로젝트 ${project.title}`}>
               <RecentIcon name={sample.icon} />
               <strong>{sample.title}</strong>
               <span className="home-recent-card-chevron" aria-hidden="true">›</span>
