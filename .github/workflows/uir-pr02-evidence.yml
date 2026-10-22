@@ -1,0 +1,20 @@
+name: UIR PR02 final screenshot evidence
+
+on:
+  push:
+    branches:
+      - uir/shell-home-redesign
+    paths:
+      - .github/workflows/uir-pr02-evidence.yml
+      - docs/qa/evidence/uir-pr02/**
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uir-pr02-final-screenshots
+          path: docs/qa/evidence/uir-pr02/*.png
+          if-no-files-found: error
