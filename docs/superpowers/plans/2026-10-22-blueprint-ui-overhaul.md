@@ -174,6 +174,10 @@ function buildReadinessPresentationGroups(readiness: DesignReadiness): Readiness
 - [ ] 독립 reviewer가 exact base/head diff를 검토하고 별도 QA가 같은 reviewed head의 create/reopen/validation/dialog focus를 검증한다.
 - [ ] finding 수정은 새 commit·push 후 영향 검증, 갱신된 exact base/head re-review, 같은 head re-QA 순서로 처리한다. Blocking finding 0건이면 `ready_to_merge`다.
 
+### UIR-PR-02A: 시안 직접 비교 gate 문서 보완
+
+`UIR-PR-01`과 `UIR-PR-02`는 병합됐다. PR #35 병합 후, 화면 캡처 제출만으로 시안과 실제 화면의 큰 배치 차이를 놓칠 수 있음을 확인해 이 문서 전용 보완 PR을 `UIR-PR-03`의 선행 단위로 추가한다. 현재 상태는 `in_progress`다. 범위·수용 기준·검증은 [UIR-PR-02A 계획](../../tasks/UIR-PR-02A/plan.md)을 따른다. 실질 차이의 수치 기준은 `docs/ui/07-visual-acceptance.md` 한 곳에서만 정의한다.
+
 ### UIR-PR-03: 프로젝트 단계 frame과 대화
 
 **결과/요구사항:** 5단계 위치·gate와 기존 대화 흐름. UIR-004, UIR-005.
@@ -263,6 +267,7 @@ function buildReadinessPresentationGroups(readiness: DesignReadiness): Readiness
 | --- | --- |
 | UIR-PR-01 | browser screenshot 없음; 7장 mapping, Mermaid/diff, 독립 문서 review/QA |
 | UIR-PR-02 | shell/home/recent/validation/attachment/error/limit at 1440×900, 390×844 |
+| UIR-PR-02A | 문서 전용; 시안/렌더 비교 절차와 차단 gate의 문서 교차 검토, Mermaid/diff |
 | UIR-PR-03 | question/history/validation/generation/error/gated stage desktop/mobile |
 | UIR-PR-04 | pending/edit/error/bulk/conflict/persistence/empty desktop/mobile |
 | UIR-PR-05 | insufficient/workable/ready/conflict/review/empty/inspector/gate desktop/mobile |
@@ -297,7 +302,7 @@ storage schema/server contract 변경이 없으므로 PR 단위 일반 revert를
 ## 완료 기준
 
 - [ ] UIR-001~010이 automated assertion 또는 독립 문서/동작 QA 증거를 가진다.
-- [ ] UIR-PR-01~06과 QLT-PR-01이 순서대로 review·QA·merge 확인됐다.
+- [ ] UIR-PR-01~02, UIR-PR-02A, UIR-PR-03~06과 QLT-PR-01이 순서대로 review·QA·merge 확인됐다.
 - [ ] 홈→대화→제안→설계→Requirements→PRD가 새 위계를 따르고 제외 기능이 없다.
 - [ ] 10개 readiness 영역이 5 group에 정확히 한 번 포함되고 gate가 기존 계산과 같다.
 - [ ] source/consistency/export/guide/completion/auth/storage/AI가 계속 접근 가능하고 통과한다.
