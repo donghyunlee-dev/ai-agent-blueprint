@@ -9,6 +9,7 @@ on:
       - 'src/components/projects/ProjectComposer.tsx'
       - 'src/components/projects/RecentProjects.tsx'
       - 'tests/e2e/uir-pr-02b-home-visual-parity.spec.ts'
+      - 'scripts/write-uir-pr-02b-visual-comparison.mjs'
   workflow_dispatch:
 
 permissions:
@@ -32,7 +33,14 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Capture desktop and mobile home states
+        env:
+          UIR_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-02b-home-visual-parity.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
+
+      - name: Generate final-HEAD visual comparison record
+        env:
+          UIR_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/write-uir-pr-02b-visual-comparison.mjs
 
       - name: Upload UIR PR 02B visual evidence
         id: upload-evidence

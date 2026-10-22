@@ -33,12 +33,12 @@
 .home-workflow p { grid-column: 2; margin: 3px 0 0; color: var(--color-text-muted); font-size: 12px; }
 .home-workflow-arrow { color: var(--color-text-soft); }
 @media (max-width: 1023px) { .home-recent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1600px) {
-  .home-shell-intro { transform: translateX(-56px); }
-  .home-shell-intro { margin-bottom: 50px; }
-  .home-shell-intro h1 { font-size: 34px; }
-  .home-shell-main > .project-composer { margin-left: calc(50% - 548px); }
-  .home-shell-recent { margin-top: 24px; }
+@media (min-width: 1528px) {
+  .home-shell-intro { transform: translateX(calc(-1 * clamp(0px, (100vw - 1528px) * .778, 56px))); }
+  .home-shell-intro { margin-bottom: calc(40px + clamp(0px, (100vw - 1528px) * .139, 10px)); }
+  .home-shell-intro h1 { font-size: calc(42px - clamp(0px, (100vw - 1600px) * .111, 8px)); }
+  .home-shell-main > .project-composer { margin-left: calc(50% - 492.5px - clamp(0px, (100vw - 1528px) * .771, 55.5px)); }
+  .home-shell-recent { margin-top: calc(42px - clamp(0px, (100vw - 1528px) * .25, 18px)); }
 }
 @media (max-width: 600px) {
   .home-shell { min-height: calc(100dvh - 108px); }

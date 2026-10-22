@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
@@ -43,6 +44,21 @@ test('home geometry honors H05 minimum four-row composer at the redesign referen
       })(),
     };
   });
+  const continuity = [];
+  for (const width of [1598, 1600, 1602]) {
+    await page.setViewportSize({ width, height: 941 });
+    continuity.push({ width, ...(await readAnchors(page)) });
+  }
+  for (let index = 1; index < continuity.length; index += 1) {
+    const previous = continuity[index - 1];
+    const current = continuity[index];
+    for (const anchor of ['hero', 'composer', 'recent'] as const) {
+      for (const dimension of ['x', 'y', 'width', 'height'] as const) {
+        expect(Math.abs(current[anchor][dimension] - previous[anchor][dimension]), `${anchor}.${dimension} continuity at ${current.width}px`).toBeLessThanOrEqual(dimension === 'width' ? 5 : 6);
+      }
+    }
+  }
+  await page.setViewportSize({ width: 1672, height: 941 });
   const heightDeltaPercent = Math.round((geometry.composer.height - 171) / 171 * 1000) / 10;
   console.log('UIR-PR-02B reference viewport geometry', JSON.stringify({
     ...geometry,
@@ -63,6 +79,8 @@ test('home geometry honors H05 minimum four-row composer at the redesign referen
   expect(geometry.recent.y).toBeGreaterThanOrEqual(545);
   expect(geometry.recent.y).toBeLessThanOrEqual(620);
   await page.screenshot({ path: path.join(evidence, 'home-empty-1672x941.png'), fullPage: false, scale: 'css' });
+  const head = process.env.UIR_PR_HEAD_SHA ?? execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  await writeFile(path.join(evidence, 'reference-geometry.json'), JSON.stringify({ head, viewport: '1672x941', geometry, continuity }, null, 2));
 });
 
 test('home start controls remain visible without overflow at desktop and mobile sizes', async ({ page }) => {
@@ -107,6 +125,47 @@ test('captures the validation state at the configured desktop or mobile viewport
   await expect(page.getByRole('alert')).toContainText('아이디어를 입력해 주세요.');
   await expect(page.getByRole('button', { name: 'Blueprint 시작' })).toBeDisabled();
   await captureState(page, 'validation');
+});
+
+test('captures the RecentProjects loading state with a deterministic held IndexedDB open', async ({ page }) => {
+  await page.addInitScript(() => {
+    const originalOpen = IDBFactory.prototype.open;
+    IDBFactory.prototype.open = function (name: string, version?: number) {
+      if (name.startsWith('blueprint-projects:')) {
+        const request = {} as IDBOpenDBRequest;
+        Object.defineProperty(request, 'onupgradeneeded', { set() {} });
+        Object.defineProperty(request, 'onsuccess', { set() {} });
+        Object.defineProperty(request, 'onerror', { set() {} });
+        Object.defineProperty(request, 'onblocked', { set() {} });
+        return request;
+      }
+      return originalOpen.call(this, name, version);
+    };
+  });
+  await page.goto('/');
+  await expect(page.getByRole('status')).toHaveText('최근 프로젝트를 불러오는 중입니다.');
+  await captureState(page, 'recent-loading');
+});
+
+test('captures the RecentProjects read error and verifies retry recovery', async ({ page }) => {
+  await page.addInitScript(() => {
+    const originalGetAll = IDBObjectStore.prototype.getAll;
+    let failNextRead = true;
+    IDBObjectStore.prototype.getAll = function (...args: Parameters<typeof originalGetAll>) {
+      if (failNextRead) {
+        failNextRead = false;
+        IDBObjectStore.prototype.getAll = originalGetAll;
+        throw new Error('SYNTHETIC_RECENT_READ_FAILURE');
+      }
+      return originalGetAll.apply(this, args);
+    };
+  });
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText('최근 프로젝트를 불러오지 못했습니다.');
+  await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible();
+  await captureState(page, 'recent-read-error-retry');
+  await page.getByRole('button', { name: '다시 시도' }).click();
+  await expect(page.getByRole('heading', { name: '아직 프로젝트가 없습니다' })).toBeVisible();
 });
 
 test('captures a selected attachment without starting project creation', async ({ page }) => {
@@ -171,6 +230,16 @@ async function captureState(page: Page, state: string) {
   const { width, height } = page.viewportSize() ?? { width: 0, height: 0 };
   const viewport = `${width}x${height}`;
   await page.screenshot({ path: path.join(evidence, `${state}-${viewport}.png`), fullPage: false, scale: 'css' });
+}
+
+async function readAnchors(page: Page) {
+  return page.evaluate(() => {
+    const bounds = (selector: string) => {
+      const { x, y, width, height } = document.querySelector(selector)!.getBoundingClientRect();
+      return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height) };
+    };
+    return { hero: bounds('.home-shell-intro'), composer: bounds('.project-composer'), recent: bounds('.home-shell-recent') };
+  });
 }
 
 async function seedProjects(page: Page, count: number) {
