@@ -1,11 +1,12 @@
 .home-shell { min-height: calc(100dvh - 72px); background: transparent; }
 .home-shell-main { width: min(1318px, calc(100% - 108px)); margin: 0 auto; padding: 140px 0 24px; }
 .home-shell-intro { margin: 0 0 93px; text-align: center; transform: translateX(-58px); }
-.home-shell-intro h1 { margin: 0; color: #102957; font-size: 32px; font-weight: 800; font-synthesis: weight; line-height: 1.24; letter-spacing: -.035em; }
+.home-shell-intro h1 { margin: 0; color: #102957; font-size: 32px; font-weight: 500; font-synthesis: weight; line-height: 1.24; letter-spacing: -.035em; }
 .home-shell-recent { margin: 52px 0 0; scroll-margin-top: 30px; }
-.home-recent-heading { display: flex; min-height: 27px; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-.home-recent-heading h2,.home-start h2 { margin: 0; color: #102957; font-size: 20px; font-weight: 800; font-synthesis: weight; line-height: 1.3; }
+.home-recent-heading { display: flex; min-height: 27px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.home-recent-heading h2,.home-start h2 { margin: 0; color: #102957; font-size: 20px; font-weight: 700; font-synthesis: weight; line-height: 1.3; }
 .home-recent-heading a,.home-recent-heading button { display: inline-flex; align-items: center; gap: 10px; padding: 0; border: 0; background: transparent; color: #102957; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.home-recent-view-all { display: inline-flex; align-items: center; gap: 10px; color: #102957; font-size: 14px; font-weight: 600; }
 .home-recent-heading a span,.home-recent-heading button span { color: #60789e; font-size: 25px; line-height: 1; }
 .home-recent-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1.2fr)) minmax(220px, 1fr); gap: 16px; margin: 0; padding: 0; list-style: none; }
 .home-recent-grid > li { min-width: 0; }
@@ -45,7 +46,6 @@ button.home-start-card { width: 100%; cursor: pointer; font: inherit; }
   .home-recent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .home-start-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (min-width: 1600px) { .home-shell-main { width: 1319px; margin-left: 54px; margin-right: 49px; } }
 @media (max-width: 767px) {
   .home-shell { min-height: auto; }
   .home-shell-main { width: calc(100% - 32px); padding: 48px 0 32px; }

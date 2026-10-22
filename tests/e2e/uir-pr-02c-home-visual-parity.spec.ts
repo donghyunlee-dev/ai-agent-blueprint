@@ -7,7 +7,7 @@ import path from 'node:path';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
 
-const evidence = path.resolve('.pr-artifacts/UIR-PR-02C');
+const evidence = path.resolve('.pr-artifacts/UIR-PR-02D');
 const identity = { issuer: 'https://accounts.google.com', subject: 'uir-home-user', email: 'verified@example.test' };
 
 test.beforeEach(async ({ page }) => {
@@ -55,12 +55,12 @@ test('home matches the redesign composer and section geometry at the reference v
   expect(geometry.main.width).toBeGreaterThanOrEqual(1300);
   expect(geometry.hero.y).toBeGreaterThanOrEqual(205);
   expect(geometry.hero.y).toBeLessThanOrEqual(230);
-  expect(geometry.composer.x).toBeGreaterThanOrEqual(390);
-  expect(geometry.composer.x).toBeLessThanOrEqual(440);
+  expect(geometry.composer.x).toBeGreaterThanOrEqual(460);
+  expect(geometry.composer.x).toBeLessThanOrEqual(480);
   expect(geometry.composer.y).toBeGreaterThanOrEqual(330);
   expect(geometry.composer.y).toBeLessThanOrEqual(365);
   expect(geometry.composer.width).toBeGreaterThanOrEqual(960);
-  expect(geometry.textarea.rows).toBe(1);
+  expect(geometry.textarea.rows).toBe(4);
   expect(geometry.textarea.height).toBeGreaterThanOrEqual(geometry.textarea.minOneRow);
   expect(geometry.composer.height).toBeGreaterThanOrEqual(168);
   expect(geometry.composer.height).toBeLessThanOrEqual(174);
