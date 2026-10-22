@@ -38,6 +38,7 @@
   .home-shell-intro { margin-bottom: 50px; }
   .home-shell-intro h1 { font-size: 34px; }
   .home-shell-main > .project-composer { margin-left: calc(50% - 548px); }
+  .home-shell-recent { margin-top: 24px; }
 }
 @media (max-width: 600px) {
   .home-shell { min-height: calc(100dvh - 108px); }

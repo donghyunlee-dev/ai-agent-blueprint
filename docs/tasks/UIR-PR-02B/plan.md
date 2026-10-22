@@ -67,7 +67,7 @@ flowchart LR
 
 ### Happy path
 
-- 1672×941에서 홈 title, composer, recent section의 위계·폭·세로 위치가 주 시안의 실제 지원 가능한 배치와 맞으며 모든 적용 anchor가 visual acceptance 수치 문턱을 통과한다. 문턱 초과 예외는 제품/접근성/보안/반응형 계약으로 설명하고 코드 리뷰와 QA가 각각 승인해야 한다.
+- 1672×941에서 홈 title, composer, recent section의 위계·폭·세로 위치가 주 시안의 실제 지원 가능한 배치와 맞는다. Composer 높이는 주 시안 약 171px보다 커도 `docs/ui/screens/01-home-and-start.md` H05의 최소 4행 입력 계약이 우선이므로 예외를 허용한다. 최종 높이와 차이를 비교 기록에 적고 코드 리뷰와 QA가 예외를 각각 승인해야 한다. 그 밖의 적용 anchor는 visual acceptance 수치 문턱을 통과한다.
 - 1440×900과 390×844 최종 캡처를 제공한다. 1672×941은 주 시안과 정확히 같은 CSS viewport의 직접 비교 artifact로 추가한다.
 - 아이디어 입력 후 `Blueprint 시작`으로 기존 프로젝트 생성·이동을 완료한다. 예시를 누르면 입력만 채워지고 자동 제출되지 않는다.
 - 최근 목록은 실제 데이터만 표시하고 이어서 작업으로 이동한다. 빈 상태의 링크/행동은 입력에 포커스한다.
@@ -78,6 +78,7 @@ flowchart LR
 - 첨부 제한 문구(지원 형식, 파일당 10 MiB, 프로젝트당 최대 5개)는 파일 선택 행동 전에 읽을 수 있고 responsive 화면에서도 잘리거나 composer 밖의 혼동되는 위치로 이동하지 않는다.
 - 빈 목록과 실제 최근 목록(최소 1개 및 6개)의 desktop/mobile 레이아웃에서 수평 overflow, 겹침, 첫 화면에서 시작 행동 손실이 없다. 6개 목록에서도 composer는 첫 viewport에서 사라지지 않는다.
 - 모바일 첫 viewport에서 제목, 설명, 입력 영역의 시작, 주요 CTA가 인지 가능하고 composer footer의 첨부·제출 행동은 한 줄로 유지된다.
+- H05의 4행 입력 높이가 desktop·mobile 모두 유지되고, 해당 계약으로 인한 composer 높이 차이는 위치·폭 차이와 분리해 기록한다.
 - 200% 확대, 키보드 순서, focus indicator와 create/validation/error의 focus 이동이 유지된다.
 
 ### 제외 범위 확인
