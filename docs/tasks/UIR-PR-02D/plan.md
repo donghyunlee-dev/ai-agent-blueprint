@@ -81,7 +81,7 @@ Run the narrowest relevant Playwright spec and unit/contract tests first. Use `n
 
 - Plan ownership: `docs/tasks/UIR-PR-02D/plan.md` only.
 - Implementer scope: home component/style and focused home tests/evidence, as determined from the implementation diff; no unrelated product behavior.
-- Current plan status: `fix_required`, PR #39. On HEAD `d60e3b544966a29d88704307c0fb211551718043`, independent review confirmed the full anchor report and measured chevron-gap assertion, but found that the reference hero uses dark-ink pixel bounds while the render uses DOM Range bounds. A bounded correction will compare both hero anchors using the same pixel threshold; review and QA must rerun on the corrected HEAD.
+- Current plan status: `code_review`, PR #39, corrected HEAD `d511be805b2730697cf88698a1cc20e838417cff`. The previous review findings were addressed: anchor metadata/deltas and measured chevron gap are present, and hero source/render now use the same dark-pixel threshold. Fresh independent review and QA are pending on this HEAD.
 
 ## Self-validation results
 
