@@ -45,7 +45,20 @@ export function BlueprintShell({ children }: { children: ReactNode }) {
 }
 
 function WindsoftBrand() {
-  return <span className="windsoft-brand" aria-label="Windsoft"><svg viewBox="0 0 44 44" aria-hidden="true"><path d="M22 3c-7 0-13 3-17 8 6-3 12-3 18 0 5 2 9 2 15-1C34 5 28 3 22 3Z" /><path d="M5 15c6-3 12-3 18 0 5 2 9 2 15-1-2 4-5 7-10 8-5 2-11 0-16-1-3-.5-5-.5-8 1 0-2 0-5 1-7Z" /><path d="M9 26c4-2 8-1 12 0 6 2 11 1 16-2-3 8-10 13-18 13-5 0-9-2-12-5 4 1 8 1 11-1-4 0-7-2-9-5Z" /></svg><strong>windsoft</strong></span>;
+  return <span className="windsoft-brand" aria-label="Windsoft"><svg viewBox="0 0 44 44" aria-hidden="true">
+    <defs>
+      <linearGradient id="windsoft-brand-gradient" x1="4" y1="8" x2="39" y2="37" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#15C7E8" />
+        <stop offset=".52" stopColor="#1688F4" />
+        <stop offset="1" stopColor="#644BEE" />
+      </linearGradient>
+    </defs>
+    <path fill="url(#windsoft-brand-gradient)" d="M3.5 17.1C8.3 7.6 18.4 2.1 28.4 4.1c5.1 1 9.3 4 12 8.2-6.8-3.9-12.8-3.4-19.3.1-6.1 3.3-11.8 6.8-17.6 4.7Z" />
+    <path fill="url(#windsoft-brand-gradient)" d="M1.7 22.3c6.7-.1 11.5-5.3 18.3-8.9 7.1-3.8 15.4-2.5 21 2.3-.7 2.3-1.8 4.3-3.3 6.2-6.2-4.3-12.3-4.5-18.5-.7-6.2 3.8-10.9 8.3-17.1 7.1-.6-1.9-.7-3.9-.4-6Z" />
+    <path fill="url(#windsoft-brand-gradient)" d="M4.1 31.7c6.2 1.1 10.8-3.4 16.3-6.7 6.9-4.1 14.5-3.5 20.3 1.1-1.5 2.4-3.5 4.6-5.8 6.2-5.6-3.8-10.5-3.7-15.8-.1-4.3 2.9-8.1 5.1-12.1 4.4a19.7 19.7 0 0 1-2.9-4.9Z" />
+    <path fill="url(#windsoft-brand-gradient)" d="M10.4 39.1c4.6-.3 7.2-3 10.9-5.4 5-3.3 9.4-3 13.2-.8-4.6 5.5-11.9 8.4-19.2 7.1-1.8-.2-3.4-.6-4.9-.9Z" />
+    <path fill="url(#windsoft-brand-gradient)" d="M23 21.8c5.8-3.2 11-2.7 15.4.8-4.6 4.1-10.6 6.3-16.7 5.7 2.5-2.2 5.1-4 8.3-4.6-2.5-.8-4.7-.5-7 .4Z" />
+  </svg><strong>windsoft</strong></span>;
 }
 
 function ShellIcon({ name }: { name: 'home' | 'folder' | 'template' | 'library' | 'settings' | 'building' | 'chevron' | 'bell' }) {

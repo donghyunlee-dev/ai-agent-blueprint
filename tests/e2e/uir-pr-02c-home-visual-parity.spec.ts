@@ -83,6 +83,11 @@ test('home matches the redesign composer and section geometry at the reference v
     userAvatarText: document.querySelector('.auth-menu-avatar-home')?.textContent?.trim(),
     userSampleNameVisible: document.body.innerText.includes('김지현 님'),
     rasterBrandAssets: document.querySelectorAll('.windsoft-brand img').length,
+    windsoftMark: {
+      viewBox: document.querySelector('.windsoft-brand svg')?.getAttribute('viewBox'),
+      stripeCount: document.querySelectorAll('.windsoft-brand svg path').length,
+      gradientCount: document.querySelectorAll('.windsoft-brand svg linearGradient').length,
+    },
     homeIconFill: getComputedStyle(document.querySelector('.blueprint-sidebar-nav a[aria-current="page"] svg')!).fill,
     topbarBackground: getComputedStyle(document.querySelector('.blueprint-topbar')!).backgroundColor,
     heroBackground: getComputedStyle(document.querySelector('.home-shell-intro')!).backgroundColor,
@@ -99,6 +104,7 @@ test('home matches the redesign composer and section geometry at the reference v
   expect(inventory.userAvatarText).toBe('V');
   expect(inventory.userSampleNameVisible).toBe(false);
   expect(inventory.rasterBrandAssets).toBe(0);
+  expect(inventory.windsoftMark).toEqual({ viewBox: '0 0 44 44', stripeCount: 5, gradientCount: 1 });
   expect(inventory.homeIconFill).not.toBe('none');
   expect(inventory.topbarBackground).toBe('rgba(0, 0, 0, 0)');
   expect(inventory.heroBackground).toBe('rgba(0, 0, 0, 0)');
