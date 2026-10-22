@@ -81,7 +81,7 @@ Run the narrowest relevant Playwright spec and unit/contract tests first. Use `n
 
 - Plan ownership: `docs/tasks/UIR-PR-02D/plan.md` only.
 - Implementer scope: home component/style and focused home tests/evidence, as determined from the implementation diff; no unrelated product behavior.
-- Current plan status: `fix_required`, PR #39. Independent code review passed and preview/browser QA passed on the prior HEAD, but required visual-evidence CI failed because the 02C capture spec wrote under the 02D directory while the workflow reads the 02C directory. The output-path correction is in progress; independent review and QA must rerun on the corrected HEAD. Exact HEAD SHA is recorded in `.pr-artifacts/UIR-PR-02D/geometry.json` and the pixel comparison report.
+- Current plan status: `fix_required`, PR #39. The evidence output-path correction is now in CI and passed on the prior HEAD, but independent QA found that the comparator encoded empty black overlay/heatmap canvases because it did not write its ImageData buffers to the canvases. The comparator correction is in progress; review and QA must rerun on the corrected HEAD. Exact HEAD SHA is recorded in `.pr-artifacts/UIR-PR-02D/geometry.json` and the pixel comparison report.
 
 ## Self-validation results
 
