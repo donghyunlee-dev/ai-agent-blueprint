@@ -1,9 +1,9 @@
 .home-shell { min-height: calc(100dvh - 72px); background: radial-gradient(ellipse at 50% 14%, #fff 0, #f6faff 51%, #eef6ff 100%); }
-.home-shell-main { width: min(1120px, calc(100% - 64px)); margin: 0 auto; padding: clamp(72px, 10vh, 118px) 0 80px; }
-.home-shell-intro { margin: 0 auto 62px; text-align: center; }
+.home-shell-main { width: min(1320px, calc(100% - 64px)); margin: 0 auto; padding: clamp(128px, 15.4vh, 145px) 0 80px; }
+.home-shell-intro { margin: 0 auto 40px; text-align: center; }
 .home-shell-intro h1 { margin: 0; color: var(--color-text-strong); font-size: clamp(30px, 3vw, 42px); font-weight: 650; line-height: 1.2; letter-spacing: -.045em; }
 .home-shell-intro p { margin: 15px 0 0; color: var(--color-text-muted); font-size: 15px; }
-.home-shell-recent { margin-top: clamp(54px, 8vh, 82px); scroll-margin-top: 30px; }
+.home-shell-recent { margin-top: clamp(42px, 5vh, 54px); scroll-margin-top: 30px; }
 .home-recent-heading { margin-bottom: 17px; }
 .home-recent-heading h2 { margin: 0; color: var(--color-text-strong); font-size: 21px; font-weight: 750; }
 .home-recent-heading p { margin: 5px 0 0; color: var(--color-text-muted); font-size: 13px; }
@@ -33,6 +33,12 @@
 .home-workflow p { grid-column: 2; margin: 3px 0 0; color: var(--color-text-muted); font-size: 12px; }
 .home-workflow-arrow { color: var(--color-text-soft); }
 @media (max-width: 1023px) { .home-recent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1600px) {
+  .home-shell-intro { transform: translateX(-56px); }
+  .home-shell-intro { margin-bottom: 50px; }
+  .home-shell-intro h1 { font-size: 34px; }
+  .home-shell-main > .project-composer { margin-left: calc(50% - 548px); }
+}
 @media (max-width: 600px) {
   .home-shell { min-height: calc(100dvh - 108px); }
   .home-shell-main { width: calc(100% - 32px); padding: 42px 0 52px; }
