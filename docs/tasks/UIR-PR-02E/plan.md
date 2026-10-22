@@ -88,5 +88,5 @@ Use the narrowest relevant existing Playwright and unit/contract commands first.
 ## Ownership and status
 
 - Plan owner: `docs/tasks/UIR-PR-02E/plan.md` only.
-- Implementer: home-specific vertical layout/CSS and focused browser coverage/evidence only; exact production/test files are determined after inspecting the merged implementation.
+- Implementer/coordinator: home-specific vertical layout/CSS, focused browser coverage, and the existing visual-evidence workflow's capture/upload step so final-HEAD screenshots and geometry are available on the PR.
 - Status: `in_progress`. Predecessor PR #39 is verified merged, the UIR delivery sequence records UIR-PR-02E, and implementation starts from `origin/main` at `81487250d57484bf86b73531453b55aa4c61c843`.

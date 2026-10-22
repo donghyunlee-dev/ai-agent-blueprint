@@ -18,7 +18,9 @@ on:
       - 'scripts/compare-uir-pr-02c-home.mjs'
       - 'tests/e2e/uir-pr-02c-home-visual-parity.spec.ts'
       - 'tests/e2e/uir-pr-02d-home-alignment.spec.ts'
+      - 'tests/e2e/uir-pr-02e-home-viewport-fit.spec.ts'
       - 'docs/tasks/UIR-PR-02D/plan.md'
+      - 'docs/tasks/UIR-PR-02E/plan.md'
       - 'docs/delivery/development-pr-review-qa-workflow.md'
   workflow_dispatch:
 
@@ -57,6 +59,11 @@ jobs:
           UIR_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-02d-home-alignment.spec.ts --project=desktop-chromium --workers=1
 
+      - name: Capture UIR PR 02E short-height home viewport evidence
+        env:
+          UIR_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-02e-home-viewport-fit.spec.ts --project=desktop-chromium --workers=1
+
       - name: Generate full-viewport pixel comparison
         env:
           UIR_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -85,6 +92,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Upload UIR PR 02E viewport evidence
+        id: upload-viewport-evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: uir-pr-02e-home-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .pr-artifacts/UIR-PR-02E/**
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Publish artifact link in the workflow summary
         env:
           ARTIFACT_URL: ${{ steps.upload-evidence.outputs.artifact-url }}
@@ -98,3 +114,10 @@ jobs:
         run: |
           printf '\n## UIR PR 02D home alignment evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
           printf 'Final-HEAD desktop/mobile alignment screenshots, per-viewport geometry, full-viewport pixel report, overlay and heatmap: [%s](%s)\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish UIR PR 02E artifact link in the workflow summary
+        env:
+          ARTIFACT_URL: ${{ steps.upload-viewport-evidence.outputs.artifact-url }}
+        run: |
+          printf '\n## UIR PR 02E short-height home evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Final-HEAD captures and geometry for 1366x768, 1440x900, the 1672x941 reference, intermediate and mobile viewports: [%s](%s)\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
