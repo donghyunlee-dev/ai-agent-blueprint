@@ -81,7 +81,7 @@ Run the narrowest relevant Playwright spec and unit/contract tests first. Use `n
 
 - Plan ownership: `docs/tasks/UIR-PR-02D/plan.md` only.
 - Implementer scope: home component/style and focused home tests/evidence, as determined from the implementation diff; no unrelated product behavior.
-- Current plan status: `code_review`, PR #39, corrected HEAD `d511be805b2730697cf88698a1cc20e838417cff`. The previous review findings were addressed: anchor metadata/deltas and measured chevron gap are present, and hero source/render now use the same dark-pixel threshold. Fresh independent review and QA are pending on this HEAD.
+- Current plan status: `fix_required`, PR #39. Review confirmed hero source/render use the same dark-pixel threshold, but found the aggregate main-content rendered bounds still use DOM hero bounds. A bounded evidence correction is in progress. The exact reviewed HEAD and matching artifact SHA are recorded together in `.pr-artifacts/UIR-PR-02D/geometry.json` and the pixel comparison report; avoid duplicating a SHA here because each evidence-only correction creates a new PR HEAD.
 
 ## Self-validation results
 

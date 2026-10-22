@@ -129,7 +129,7 @@ test('home background, content, multiline input and view-all gap align across de
       sidebar: geometry.sidebar,
       seam: { x: geometry.backgroundBoundary, y: 0, width: 0, height: viewport.height },
       topbar: geometry.topbar,
-      mainContent: unionBounds([geometry.heroVisual, geometry.anchors[1], geometry.anchors[2], geometry.start]),
+      mainContent: unionBounds([renderedHeroInkBounds?.rendered ?? geometry.heroVisual, geometry.anchors[1], geometry.anchors[2], geometry.start]),
       heroVisual: renderedHeroInkBounds?.rendered ?? geometry.heroVisual,
       composer: geometry.anchors[1],
       recentArea: geometry.anchors[2],
