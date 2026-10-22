@@ -176,11 +176,13 @@ function buildReadinessPresentationGroups(readiness: DesignReadiness): Readiness
 
 ### UIR-PR-02A: 시안 직접 비교 gate 문서 보완
 
-`UIR-PR-01`과 `UIR-PR-02`는 병합됐다. PR #35 병합 후, 화면 캡처 제출만으로 시안과 실제 화면의 큰 배치 차이를 놓칠 수 있음을 확인해 비교 gate 문서 전용 보완 PR을 추가했고, PR #36으로 병합됐다. 홈 실제 화면을 기준 시안과 비교한 결과 설명되지 않는 주요 배치 차이가 확인되어 이를 보정하는 `UIR-PR-02B`를 `UIR-PR-03`의 선행 단위로 추가한다. 현재 상태는 `in_progress`다. 범위·수용 기준·검증은 [UIR-PR-02B 계획](../../tasks/UIR-PR-02B/plan.md)을 따른다. 실질 차이의 수치 기준은 `docs/ui/07-visual-acceptance.md` 한 곳에서만 정의한다.
+`UIR-PR-01`과 `UIR-PR-02`는 병합됐다. PR #35 병합 후, 화면 캡처 제출만으로 시안과 실제 화면의 큰 배치 차이를 놓칠 수 있음을 확인해 비교 gate 문서 전용 보완 PR을 추가했고, PR #36으로 병합됐다.
 
 ### UIR-PR-02B: 홈 화면 시안 배치 보정
 
-PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝트 영역이 주 시안과 크게 어긋난 것을 확인했다. 기존 홈 기능과 접근성·반응형 계약을 유지하며 홈의 국소 배치를 보정한다. 요구사항은 UIR-002, UIR-003, UIR-010이며, 상세 수용 기준과 증거 목록은 [UIR-PR-02B 계획](../../tasks/UIR-PR-02B/plan.md)을 따른다. 완료 후에만 UIR-PR-03을 시작한다.
+PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝트 영역이 주 시안과 크게 어긋난 것을 확인했다. PR #37은 홈 배치를 조정했지만 사용자는 최종 화면이 시안과 일치하지 않는다고 판단했다. 기준 시안과 실제 렌더의 픽셀 단위 비교를 거쳐 95% 이상 일치하는 corrective unit `UIR-PR-02C`를 PR #37 뒤에 추가한다. #37의 병합은 검증된 픽셀 동등성으로 간주하지 않는다. 상세 수용 기준과 증거 목록은 [UIR-PR-02C 계획](../../tasks/UIR-PR-02C/plan.md)을 따른다.
+
+`UIR-PR-02B` (#37)은 merged이고 `UIR-PR-02C` (#38)는 리뷰·QA 및 95% 픽셀 기준을 통과해 `ready_to_merge`다. 사용자가 PR #38을 병합한 뒤 UIR-PR-03을 시작한다.
 
 ### UIR-PR-03: 프로젝트 단계 frame과 대화
 

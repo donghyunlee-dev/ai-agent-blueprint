@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ProjectLimitModal } from '../blueprint/project-limit-modal';
 import type { ProjectSummary } from '../../domain/blueprint/types.js';
 import { projectLimitDecision } from '../../features/projects/projectAggregate.js';
@@ -14,8 +14,10 @@ import '../../styles/project-composer.css';
 type CreateCommand = (input: CreateProjectInput, ownerKey: string | null) => Promise<CreatedProjectBundle>;
 
 const examples = [
-  '고객 문의를 자동 분류하고 담당 팀에 연결하는 서비스를 만들고 싶어요.',
-  '팀의 반복 업무를 줄이는 운영 체크리스트를 만들고 싶어요.',
+  { label: '챗 서비스', icon: 'chat', idea: '고객 문의를 이해하고 답변하는 챗 서비스를 만들고 싶어요.' },
+  { label: '업무 자동화', icon: 'settings', idea: '팀의 반복 업무를 줄이는 업무 자동화 서비스를 만들고 싶어요.' },
+  { label: '관리 플랫폼', icon: 'chart', idea: '운영 현황과 업무 데이터를 관리하는 플랫폼을 만들고 싶어요.' },
+  { label: '교육 서비스', icon: 'education', idea: '학습 과정을 관리하고 교육을 제공하는 서비스를 만들고 싶어요.' },
 ];
 
 export function ProjectComposer({
@@ -178,23 +180,23 @@ export function ProjectComposer({
           ref={textarea}
           id="project-idea"
           name="idea"
-          rows={4}
+          rows={1}
           maxLength={1000}
           value={idea}
-          onChange={(event) => { setIdea(event.target.value); setCreateError(''); setSaveFailed(false); }}
+          onChange={(event) => { resizeIdea(event.currentTarget); setIdea(event.target.value); setCreateError(''); setSaveFailed(false); }}
           onBlur={() => setHasBlurred(true)}
           onKeyDown={handleKeyDown}
           placeholder="아이디어를 입력하세요"
           aria-invalid={Boolean(validationError)}
           aria-describedby="project-idea-help project-idea-count"
         />
-        <div className="project-composer-meta">
-          <p id="project-idea-help" className={validationError ? 'project-composer-validation' : 'project-composer-hint'} role={validationError ? 'alert' : undefined}>
+        <div className={`project-composer-meta${validationError ? ' has-validation' : ''}`}>
+          <p id="project-idea-help" className={`${validationError ? 'project-composer-validation' : 'project-composer-hint'}${validationError ? '' : ' sr-only'}`} role={validationError ? 'alert' : undefined}>
             {validationError || '아이디어와 참고 파일을 함께 첨부해 시작할 수 있습니다.'}
           </p>
-          <span id="project-idea-count" aria-live="polite">{idea.length}/1000</span>
+          <span className="sr-only" id="project-idea-count" aria-live="polite">{idea.length}/1000</span>
         </div>
-        <p className="project-file-guidance">TXT, Markdown, 텍스트 PDF · 파일당 최대 10 MiB · 프로젝트당 최대 5개</p>
+        <p className="project-file-guidance sr-only">TXT, Markdown, 텍스트 PDF · 파일당 최대 10 MiB · 프로젝트당 최대 5개</p>
         <div className="project-composer-footer">
           <input
             ref={fileInput}
@@ -205,18 +207,19 @@ export function ProjectComposer({
             aria-label="참고 파일 선택"
             onChange={handleFileChange}
           />
-          <button className="project-attach-button" type="button" onClick={() => fileInput.current?.click()}>
-            <span aria-hidden="true">＋</span><span>파일 첨부</span>
+          <button className="project-attach-button" type="button" aria-label="파일 첨부" onClick={() => fileInput.current?.click()}>
+            <span aria-hidden="true">＋</span>
           </button>
           <div className="project-example-actions" aria-label="시작 예시">
             {examples.map((example) => (
-              <button key={example} type="button" onClick={() => { setIdea(example); setCreateError(''); }}>
-                {example.startsWith('고객 문의') ? '고객 문의 자동 분류' : '운영 체크리스트'}
+              <button key={example.label} type="button" onClick={() => { setIdea(example.idea); setCreateError(''); }}>
+                <ComposerExampleIcon name={example.icon} />{example.label}
               </button>
             ))}
           </div>
-          <button className="project-submit-button" type="submit" disabled={!isValid || isPending || !ownerKey} aria-busy={isPending}>
-            {isPending ? <><span className="project-spinner" aria-hidden="true" />프로젝트 만드는 중</> : <>Blueprint 시작 <span aria-hidden="true">→</span></>}
+          <button className="project-voice-button" type="button" aria-disabled="true" aria-label="음성 입력은 지원되지 않습니다"><ComposerMicIcon /></button>
+          <button className="project-submit-button" type="submit" aria-label={isPending ? '프로젝트 만드는 중' : 'Blueprint 시작'} disabled={!isValid || isPending || !ownerKey} aria-busy={isPending}>
+            {isPending ? <><span className="project-spinner" aria-hidden="true" />프로젝트 만드는 중</> : <span aria-hidden="true">→</span>}
           </button>
         </div>
       </form>
@@ -234,7 +237,7 @@ export function ProjectComposer({
       {createError ? <p ref={errorMessage} className="project-create-error" role="alert" tabIndex={-1}>{createError}</p> : null}
       {isPending ? <p className="project-pending-status" role="status">{isSaving ? '저장 중 · 프로젝트와 첫 대화를 브라우저에 보관하고 있습니다.' : '아이디어를 바탕으로 프로젝트를 준비하고 있습니다.'}</p> : null}
       {saveFailed ? <p className="project-save-failed" role="status">저장 실패 · 다시 시도</p> : null}
-      <p className="project-composer-shortcut">예시를 선택해 입력을 채울 수 있습니다. 제출은 직접 눌러야 시작됩니다.</p>
+      <p className="project-composer-shortcut sr-only">예시를 선택해 입력을 채울 수 있습니다. 제출은 직접 눌러야 시작됩니다.</p>
       <ProjectLimitModal
         project={limitProject}
         busy={isDeleting || isPending}
@@ -244,4 +247,25 @@ export function ProjectComposer({
       />
     </section>
   );
+}
+
+function resizeIdea(element: HTMLTextAreaElement) {
+  element.style.height = '30px';
+  const height = Math.min(element.scrollHeight, 240);
+  element.style.height = `${height}px`;
+  element.style.overflowY = element.scrollHeight > 240 ? 'auto' : 'hidden';
+}
+
+function ComposerExampleIcon({ name }: { name: string }) {
+  const paths: Record<string, ReactNode> = {
+    chat: <><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M9 21h6m-3-4v4" /></>,
+    settings: <><circle cx="12" cy="12" r="3" /><path d="m19 13.5 1.5 1.1-1.5 2.6-1.8-.7a7 7 0 0 1-1.5.9l-.3 1.9h-3l-.3-1.9a7 7 0 0 1-1.5-.9l-1.8.7-1.5-2.6 1.5-1.1a6 6 0 0 1 0-1.8l-1.5-1.1 1.5-2.6 1.8.7a7 7 0 0 1 1.5-.9l.3-1.9h3l.3 1.9a7 7 0 0 1 1.5.9l1.8-.7 1.5 2.6-1.5 1.1a6 6 0 0 1 0 1.8Z" /></>,
+    chart: <><path d="M5 20v-7m5 7V5m5 15v-9m5 9V8" /></>,
+    education: <><path d="m2 9 10-5 10 5-10 5z" /><path d="M6 11v5c3 3 9 3 12 0v-5m4-2v7" /></>,
+  };
+  return <svg className="project-example-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
+}
+
+function ComposerMicIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0 0 14 0m-7 7v3m-4 0h8" /></svg>;
 }

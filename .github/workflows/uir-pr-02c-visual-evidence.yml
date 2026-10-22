@@ -1,0 +1,69 @@
+name: UIR PR 02C visual evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/uir-pr-02c-visual-evidence.yml'
+      - 'src/components/auth/AuthMenu.tsx'
+      - 'src/components/layout/BlueprintShell.tsx'
+      - 'src/styles/home.css'
+      - 'src/styles/app-shell.css'
+      - 'src/styles/project-composer.css'
+      - 'src/components/projects/ProjectComposer.tsx'
+      - 'src/components/projects/RecentProjects.tsx'
+      - 'src/pages/HomePage.tsx'
+      - 'public/home-reference/**'
+      - 'scripts/assets/uir-pr-02c-photo-source.png'
+      - 'scripts/compose-uir-pr-02c-photo-background.mjs'
+      - 'scripts/compare-uir-pr-02c-home.mjs'
+      - 'tests/e2e/uir-pr-02c-home-visual-parity.spec.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture-home-evidence:
+    name: Capture home UI states
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Compose standalone office photo background
+        run: node scripts/compose-uir-pr-02c-photo-background.mjs
+
+      - name: Capture desktop and mobile home states
+        env:
+          UIR_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-02c-home-visual-parity.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
+
+      - name: Generate full-viewport pixel comparison
+        env:
+          UIR_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/compare-uir-pr-02c-home.mjs .pr-artifacts/UIR-PR-02C/home-match-desktop-chromium-1672x941.png
+
+      - name: Upload UIR PR 02C visual evidence
+        id: upload-evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: uir-pr-02c-home-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .pr-artifacts/UIR-PR-02C/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish artifact link in the workflow summary
+        env:
+          ARTIFACT_URL: ${{ steps.upload-evidence.outputs.artifact-url }}
+        run: |
+          printf '## UIR PR 02C visual evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Final-HEAD desktop/mobile screenshots, 22 state captures, inventory, full-viewport comparison and heatmap: [%s](%s)\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
