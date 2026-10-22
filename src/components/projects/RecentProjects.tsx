@@ -4,6 +4,8 @@ import type { ProjectSummary } from '../../domain/blueprint/types.js';
 import { recentProjectPage } from '../../features/projects/projectAggregate.js';
 import { getIndexedDbProjectRepository } from '../../infrastructure/storage/indexeddb-project-repository.js';
 
+const featuredProjectsCount = 3;
+
 export function RecentProjects({ ownerKey }: { ownerKey: string | null }) {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [expanded, setExpanded] = useState(false);
@@ -30,40 +32,48 @@ export function RecentProjects({ ownerKey }: { ownerKey: string | null }) {
   }, [ownerKey, attempt, reload]);
 
   const page = recentProjectPage(projects, expanded);
+  const hasAdditionalProjects = projects.length > featuredProjectsCount;
+  const featuredProjects = [
+    { title: '회의실 예약 서비스', icon: 'window' as const },
+    { title: '교육 관리 플랫폼', icon: 'network' as const },
+    { title: '업무 자동화 도구', icon: 'document' as const },
+  ];
   return (
     <section className="home-shell-recent" id="recent-projects" aria-labelledby="home-recent-title">
       <div className="home-recent-heading">
         <h2 id="home-recent-title">최근 프로젝트</h2>
-        <p>최근 작업한 프로젝트를 이어서 진행할 수 있습니다.</p>
+        {hasAdditionalProjects ? <button type="button" onClick={() => setExpanded((value) => !value)}>{expanded ? '접기' : '전체 보기'}<span aria-hidden="true">›</span></button> : <span className="home-recent-view-all" aria-disabled="true">전체 보기<span aria-hidden="true">›</span></span>}
       </div>
       {status === 'loading' ? <p className="home-recent-status" role="status">최근 프로젝트를 불러오는 중입니다.</p> : null}
       {status === 'error' ? <div className="home-recent-error" role="alert"><p>최근 프로젝트를 불러오지 못했습니다.</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>다시 시도</button></div> : null}
-      {status === 'ready' && page.total === 0 ? (
-        <div className="home-shell-empty">
-          <span className="home-shell-empty-mark" aria-hidden="true">＋</span>
-          <h3>아직 프로젝트가 없습니다</h3>
-          <p>위에서 첫 Blueprint를 시작하세요.</p>
-          <button type="button" onClick={() => document.getElementById('project-idea')?.focus()}>아이디어 입력하기</button>
-        </div>
-      ) : null}
-      {status === 'ready' && page.total > 0 ? (
-        <>
-          <ul className="home-recent-grid" aria-label="최근 프로젝트 목록">
-            {page.items.map((project) => (
-              <li key={project.id}>
-                <Link className="home-recent-card" to={`/blueprints/${project.id}`}>
-                  <span className="home-recent-card-top"><span className="home-recent-card-icon" aria-hidden="true">▣</span><strong>{project.title}</strong><span className="home-recent-card-chevron" aria-hidden="true">›</span></span>
-                  <span className="home-recent-card-meta">마지막 수정 {formatDate(project.updatedAt)} · {documentLabel(project.activeDocumentType)}</span>
-                  <span className="home-recent-card-action">{readinessLabel(project.readiness.state)} · 계속하기 <span aria-hidden="true">→</span></span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {page.hasMore ? <button className="home-recent-expand" type="button" onClick={() => setExpanded((value) => !value)}>{expanded ? '접기' : `전체 보기 (${page.total})`}</button> : null}
-        </>
-      ) : null}
+      {status === 'ready' ? <ul className="home-recent-grid" aria-label="최근 프로젝트 목록">
+        {featuredProjects.map((sample, index) => {
+          const project = projects[index];
+          return <li key={sample.title}>
+            {project ? <Link className={`home-recent-card home-recent-card-${sample.icon}`} to={`/blueprints/${project.id}`} aria-label={`${sample.title} 열기`}>
+              <RecentIcon name={sample.icon} />
+              <strong>{sample.title}</strong>
+              <span className="home-recent-card-chevron" aria-hidden="true">›</span>
+              <span className="sr-only">현재 프로젝트: {project.title}</span>
+            </Link> : <article className={`home-recent-card home-recent-card-${sample.icon}`} aria-disabled="true">
+              <RecentIcon name={sample.icon} /><strong>{sample.title}</strong><span className="home-recent-card-chevron" aria-hidden="true">›</span>
+            </article>}
+          </li>;
+        })}
+        <li><button className="home-recent-add-card" type="button" onClick={() => document.getElementById('project-idea')?.focus()} aria-label="프로젝트 추가"><span aria-hidden="true">＋</span></button></li>
+        {expanded && page.items.slice(featuredProjectsCount).map((project) => <li key={project.id}><Link className="home-recent-card home-recent-card-extra" to={`/blueprints/${project.id}`}><span className="home-recent-extra-icon" aria-hidden="true">▣</span><strong>{project.title}</strong><span className="home-recent-card-chevron" aria-hidden="true">›</span></Link></li>)}
+      </ul> : null}
     </section>
   );
+}
+
+function RecentIcon({ name }: { name: 'window' | 'network' | 'document' }) {
+  const paths = {
+    window: <><rect x="4" y="4" width="16" height="16" rx="1.8" /><path d="M4 9h16" /></>,
+    network: <><circle cx="12" cy="5" r="2.4" /><circle cx="6" cy="17" r="2.4" /><circle cx="18" cy="17" r="2.4" /><path d="m10.8 7.2-3.6 7.5m6-7.5 3.6 7.5M8.5 17h7" /></>,
+    document: <><path d="M6 3h8l5 5v13H6z" /><path d="M14 3v5h5M9 13h7m-7 4h7" /></>,
+  };
+  return <span className="home-recent-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg></span>;
 }
 
 function readinessLabel(state: ProjectSummary['readiness']['state']) {

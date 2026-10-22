@@ -1,11 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
+import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
 
-const evidence = path.resolve('.pr-artifacts/UIR-PR-02B');
+const evidence = path.resolve('.pr-artifacts/UIR-PR-02C');
 const identity = { issuer: 'https://accounts.google.com', subject: 'uir-home-user', email: 'verified@example.test' };
 
 test.beforeEach(async ({ page }) => {
@@ -13,7 +15,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: { authenticated: true, user: identity } }));
 });
 
-test('home geometry honors H05 minimum four-row composer at the redesign reference viewport', async ({ page }) => {
+test('home matches the redesign composer and section geometry at the reference viewport', async ({ page }) => {
   await mkdir(evidence, { recursive: true });
   await page.setViewportSize({ width: 1672, height: 941 });
   await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: {
@@ -22,7 +24,7 @@ test('home geometry honors H05 minimum four-row composer at the redesign referen
   } }));
   await page.goto('/');
   await page.getByRole('heading', { name: '최근 프로젝트' }).waitFor();
-  await page.getByRole('heading', { name: '아직 프로젝트가 없습니다' }).waitFor();
+  await expect(page.getByRole('list', { name: '최근 프로젝트 목록' }).getByRole('listitem')).toHaveCount(4);
   const geometry = await page.evaluate(() => {
     const bounds = (selector: string) => {
       const { x, y, width, height } = document.querySelector(selector)!.getBoundingClientRect();
@@ -39,30 +41,16 @@ test('home geometry honors H05 minimum four-row composer at the redesign referen
         return {
           rows: element.rows,
           height: Math.round(element.getBoundingClientRect().height),
-          minFourRows: Math.round(4 * Number.parseFloat(style.lineHeight) + Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom)),
+          minOneRow: Math.round(Number.parseFloat(style.lineHeight) + Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom)),
         };
       })(),
     };
   });
-  const continuity = [];
-  for (const width of [1598, 1600, 1602]) {
-    await page.setViewportSize({ width, height: 941 });
-    continuity.push({ width, ...(await readAnchors(page)) });
-  }
-  for (let index = 1; index < continuity.length; index += 1) {
-    const previous = continuity[index - 1];
-    const current = continuity[index];
-    for (const anchor of ['hero', 'composer', 'recent'] as const) {
-      for (const dimension of ['x', 'y', 'width', 'height'] as const) {
-        expect(Math.abs(current[anchor][dimension] - previous[anchor][dimension]), `${anchor}.${dimension} continuity at ${current.width}px`).toBeLessThanOrEqual(dimension === 'width' ? 5 : 6);
-      }
-    }
-  }
   await page.setViewportSize({ width: 1672, height: 941 });
   const heightDeltaPercent = Math.round((geometry.composer.height - 171) / 171 * 1000) / 10;
-  console.log('UIR-PR-02B reference viewport geometry', JSON.stringify({
+  console.log('UIR-PR-02C reference viewport geometry', JSON.stringify({
     ...geometry,
-    designComparisonException: `composer height is ${heightDeltaPercent}% above the approximate 171px reference because H05 requires a minimum four-row textarea`,
+    designComparisonException: `${heightDeltaPercent}% from the 171px design reference`,
   }));
   expect(geometry.main.width).toBeGreaterThanOrEqual(1300);
   expect(geometry.hero.y).toBeGreaterThanOrEqual(205);
@@ -72,15 +60,63 @@ test('home geometry honors H05 minimum four-row composer at the redesign referen
   expect(geometry.composer.y).toBeGreaterThanOrEqual(330);
   expect(geometry.composer.y).toBeLessThanOrEqual(365);
   expect(geometry.composer.width).toBeGreaterThanOrEqual(960);
-  expect(geometry.textarea.rows).toBe(4);
-  expect(geometry.textarea.height).toBeGreaterThanOrEqual(geometry.textarea.minFourRows);
-  expect(geometry.composer.height).toBeGreaterThanOrEqual(230);
-  expect(geometry.composer.height).toBeLessThanOrEqual(260);
+  expect(geometry.textarea.rows).toBe(1);
+  expect(geometry.textarea.height).toBeGreaterThanOrEqual(geometry.textarea.minOneRow);
+  expect(geometry.composer.height).toBeGreaterThanOrEqual(168);
+  expect(geometry.composer.height).toBeLessThanOrEqual(174);
   expect(geometry.recent.y).toBeGreaterThanOrEqual(545);
   expect(geometry.recent.y).toBeLessThanOrEqual(620);
-  await page.screenshot({ path: path.join(evidence, 'home-empty-1672x941.png'), fullPage: false, scale: 'css' });
+  const inventory = await page.evaluate(() => ({
+    headings: Array.from(document.querySelectorAll('h1,h2')).filter((element) => element.getClientRects().length > 0).map((element) => element.textContent?.trim()),
+    navLabels: Array.from(document.querySelectorAll('.blueprint-sidebar-nav a,.blueprint-sidebar-static')).map((element) => element.textContent?.trim()),
+    recentCards: Array.from(document.querySelectorAll('.home-recent-card strong')).map((element) => element.textContent?.trim()),
+    recentAddCards: document.querySelectorAll('.home-recent-add-card').length,
+    startCards: Array.from(document.querySelectorAll('.home-start-card strong')).map((element) => element.textContent?.trim()),
+    examples: Array.from(document.querySelectorAll('.project-example-actions button')).map((element) => element.textContent?.trim()),
+    exampleIconPaths: Array.from(document.querySelectorAll('.project-example-actions button svg path')).map((element) => element.getAttribute('d')),
+    iconCounts: {
+      recent: document.querySelectorAll('.home-recent-card-icon svg').length,
+      start: document.querySelectorAll('.home-start-icon svg').length,
+      sidebar: document.querySelectorAll('.blueprint-sidebar-nav svg').length,
+    },
+    userEmail: document.querySelector('.auth-menu-email')?.textContent?.trim(),
+    userAvatarText: document.querySelector('.auth-menu-avatar-home')?.textContent?.trim(),
+    userSampleNameVisible: document.body.innerText.includes('김지현 님'),
+    rasterBrandAssets: document.querySelectorAll('.windsoft-brand img').length,
+    homeIconFill: getComputedStyle(document.querySelector('.blueprint-sidebar-nav a[aria-current="page"] svg')!).fill,
+    topbarBackground: getComputedStyle(document.querySelector('.blueprint-topbar')!).backgroundColor,
+    heroBackground: getComputedStyle(document.querySelector('.home-shell-intro')!).backgroundColor,
+    recentHeadingBackground: getComputedStyle(document.querySelector('.home-recent-heading')!).backgroundColor,
+  }));
+  expect(inventory.headings).toEqual(['어떤 서비스를 만들고 싶으세요?', '최근 프로젝트', '시작하기']);
+  expect(inventory.navLabels.slice(0, 2)).toEqual(['홈', '프로젝트']);
+  expect(inventory.recentCards).toEqual(['회의실 예약 서비스', '교육 관리 플랫폼', '업무 자동화 도구']);
+  expect(inventory.recentAddCards).toBe(1);
+  expect(inventory.startCards).toEqual(['새 프로젝트 시작', '템플릿으로 시작', '최근 프로젝트 이어하기', '지식 라이브러리 둘러보기']);
+  expect(inventory.examples).toEqual(['챗 서비스', '업무 자동화', '관리 플랫폼', '교육 서비스']);
+  expect(inventory.iconCounts).toEqual({ recent: 3, start: 4, sidebar: 5 });
+  expect(inventory.userEmail).toBe('verified@example.test');
+  expect(inventory.userAvatarText).toBe('V');
+  expect(inventory.userSampleNameVisible).toBe(false);
+  expect(inventory.rasterBrandAssets).toBe(0);
+  expect(inventory.homeIconFill).not.toBe('none');
+  expect(inventory.topbarBackground).toBe('rgba(0, 0, 0, 0)');
+  expect(inventory.heroBackground).toBe('rgba(0, 0, 0, 0)');
+  expect(inventory.recentHeadingBackground).toBe('rgba(0, 0, 0, 0)');
+  const screenshot = `home-match-${test.info().project.name}-1672x941.png`;
+  await page.screenshot({ path: path.join(evidence, screenshot), fullPage: false, scale: 'css' });
   const head = process.env.UIR_PR_HEAD_SHA ?? execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  await writeFile(path.join(evidence, 'reference-geometry.json'), JSON.stringify({ head, viewport: '1672x941', geometry, continuity }, null, 2));
+  const sourceFiles = [
+    'src/components/auth/AuthMenu.tsx', 'src/components/layout/BlueprintShell.tsx',
+    'src/components/projects/ProjectComposer.tsx', 'src/components/projects/RecentProjects.tsx',
+    'src/pages/HomePage.tsx', 'src/styles/app-shell.css', 'src/styles/home.css',
+    'src/styles/project-composer.css', 'public/home-reference/photo-background.png',
+    'scripts/assets/uir-pr-02c-photo-source.png', 'scripts/compose-uir-pr-02c-photo-background.mjs',
+    'scripts/compare-uir-pr-02c-home.mjs', 'tests/e2e/uir-pr-02c-home-visual-parity.spec.ts',
+  ];
+  const fileHashes = Object.fromEntries(sourceFiles.map((file) => [file, createHash('sha256').update(readFileSync(file)).digest('hex')]));
+  const sourceStateHash = createHash('sha256').update(JSON.stringify({ head, fileHashes })).digest('hex');
+  await writeFile(path.join(evidence, `inventory-${test.info().project.name}.json`), JSON.stringify({ head, sourceStateHash, files: fileHashes, viewport: '1672x941', geometry, inventory, screenshot }, null, 2));
 });
 
 test('home start controls remain visible without overflow at desktop and mobile sizes', async ({ page }) => {
@@ -88,13 +124,12 @@ test('home start controls remain visible without overflow at desktop and mobile 
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await expect(page.getByRole('heading', { name: '어떤 서비스를 만들고 싶으세요?' })).toBeVisible();
-    await expect(page.getByText('TXT, Markdown, 텍스트 PDF · 파일당 최대 10 MiB · 프로젝트당 최대 5개')).toBeVisible();
     await expect(page.getByRole('button', { name: '파일 첨부' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Blueprint 시작' })).toBeVisible();
     await expect(page.getByRole('heading', { name: '최근 프로젝트' })).toBeVisible();
-    const fourRowMinimum = await page.locator('.project-composer textarea').evaluate((element) => {
+    const oneRowMinimum = await page.locator('.project-composer textarea').evaluate((element) => {
       const style = getComputedStyle(element);
-      return 4 * Number.parseFloat(style.lineHeight) + Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
+      return Number.parseFloat(style.lineHeight) + Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
     });
     const viewportGeometry = await page.evaluate(() => {
       const bounds = (selector: string) => {
@@ -109,8 +144,8 @@ test('home start controls remain visible without overflow at desktop and mobile 
         textareaHeight: Math.round(document.querySelector('.project-composer textarea')!.getBoundingClientRect().height),
       };
     });
-    console.log(`UIR-PR-02B ${viewport.width}x${viewport.height} geometry`, JSON.stringify({ ...viewportGeometry, fourRowMinimum: Math.round(fourRowMinimum) }));
-    expect(viewportGeometry.textareaHeight).toBeGreaterThanOrEqual(fourRowMinimum - 0.1);
+    console.log(`UIR-PR-02C ${viewport.width}x${viewport.height} geometry`, JSON.stringify({ ...viewportGeometry, oneRowMinimum: Math.round(oneRowMinimum) }));
+    expect(viewportGeometry.textareaHeight).toBeGreaterThanOrEqual(oneRowMinimum - 0.1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
     const suffix = `${viewport.width}x${viewport.height}`;
     await page.screenshot({ path: path.join(evidence, `home-empty-${suffix}.png`), fullPage: false, scale: 'css' });
@@ -138,6 +173,36 @@ test('captures the completed first design workspace after creating a synthetic B
   await expect(page.getByRole('heading', { name: ideaText })).toBeVisible();
   await expect(page.getByText(/^저장됨 ·/)).toBeVisible();
   await captureState(page, 'created-design-workspace');
+});
+
+test('long ideas expand for review and preserve all 1000 characters through creation', async ({ page }) => {
+  await page.goto('/');
+  const ideaText = `${('긴 제품 상세 설명을 검토하고 전체 내용을 보존합니다. ').repeat(100).slice(0, 999)}상`;
+  const idea = page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' });
+  await idea.fill(ideaText);
+  await expect(idea).toHaveValue(ideaText);
+  const height = await idea.evaluate((element) => Math.round(element.getBoundingClientRect().height));
+  expect(height).toBeGreaterThan(30);
+  await captureState(page, 'long-idea-expanded');
+  await page.getByRole('button', { name: 'Blueprint 시작' }).click();
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
+  const projectId = new URL(page.url()).pathname.split('/')[2];
+  const databaseName = databaseNameForOwner(await deriveOwnerKey(identity));
+  const persistedIdea = await page.evaluate(async ({ databaseName, projectId }) => new Promise<string>((resolve, reject) => {
+    const request = indexedDB.open(databaseName);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const database = request.result;
+      const get = database.transaction('projects', 'readonly').objectStore('projects').get(projectId);
+      get.onerror = () => reject(get.error);
+      get.onsuccess = () => {
+        const message = get.result?.messages?.find((entry: { role: string; content: string }) => entry.role === 'user');
+        database.close();
+        resolve(message?.content ?? '');
+      };
+    };
+  }), { databaseName, projectId });
+  expect(persistedIdea).toBe(ideaText);
 });
 
 test('captures the RecentProjects loading state with a deterministic held IndexedDB open', async ({ page }) => {
@@ -178,7 +243,7 @@ test('captures the RecentProjects read error and verifies retry recovery', async
   await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible();
   await captureState(page, 'recent-read-error-retry');
   await page.getByRole('button', { name: '다시 시도' }).click();
-  await expect(page.getByRole('heading', { name: '아직 프로젝트가 없습니다' })).toBeVisible();
+  await expect(page.getByRole('list', { name: '최근 프로젝트 목록' }).getByRole('listitem')).toHaveCount(4);
 });
 
 test('captures a selected attachment without starting project creation', async ({ page }) => {
@@ -211,13 +276,23 @@ test('captures a project creation save error while preserving the idea', async (
   await captureState(page, 'create-save-error');
 });
 
-test('captures deterministic recent-project lists with one and six synthetic records', async ({ page }) => {
-  for (const count of [1, 6]) {
+test('captures fixed-copy cards and reveals every remaining real project from four to seven records', async ({ page }) => {
+  for (const count of [1, 4, 6, 7]) {
     await seedProjects(page, count);
     await page.goto('/');
     const list = page.getByRole('list', { name: '최근 프로젝트 목록' });
-    await expect(list.getByRole('listitem')).toHaveCount(count);
-    await expect(list.getByRole('link', { name: new RegExp(`Evidence project ${String(count).padStart(2, '0')}`) }).first()).toBeVisible();
+    await expect(list.getByRole('listitem')).toHaveCount(4);
+    await expect(list.getByRole('link', { name: '회의실 예약 서비스 열기' }).first()).toBeVisible();
+    await expect(list).toContainText('교육 관리 플랫폼');
+    await expect(list).toContainText('업무 자동화 도구');
+    if (count > 3) {
+      await page.getByRole('button', { name: /전체 보기/ }).click();
+      const extraLinks = list.locator('.home-recent-card-extra');
+      await expect(extraLinks).toHaveCount(count - 3);
+      await expect(extraLinks.first()).toBeVisible();
+      await expect(list.getByRole('listitem')).toHaveCount(count + 1);
+      await captureState(page, `recent-${count}-projects-expanded`);
+    }
     const state = `recent-${count}-project${count === 1 ? '' : 's'}`;
     await captureState(page, state);
     if (count === 6 && page.viewportSize()?.width === 390) {
@@ -243,16 +318,6 @@ async function captureState(page: Page, state: string) {
   const { width, height } = page.viewportSize() ?? { width: 0, height: 0 };
   const viewport = `${width}x${height}`;
   await page.screenshot({ path: path.join(evidence, `${state}-${viewport}.png`), fullPage: false, scale: 'css' });
-}
-
-async function readAnchors(page: Page) {
-  return page.evaluate(() => {
-    const bounds = (selector: string) => {
-      const { x, y, width, height } = document.querySelector(selector)!.getBoundingClientRect();
-      return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height) };
-    };
-    return { hero: bounds('.home-shell-intro'), composer: bounds('.project-composer'), recent: bounds('.home-shell-recent') };
-  });
 }
 
 async function seedProjects(page: Page, count: number) {

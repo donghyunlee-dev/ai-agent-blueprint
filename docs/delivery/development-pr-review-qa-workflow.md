@@ -297,11 +297,12 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | 1 | `UIR-PR-01` 시각 기준·제품/UI 계약 | 완료된 기반 작업 | merged |
 | 2 | `UIR-PR-02` 공통 셸·홈 및 CSS 기반 | UIR-PR-01 merged | merged (#35) |
 | 3 | [`UIR-PR-02A`](../tasks/UIR-PR-02A/plan.md) 시안 직접 비교 gate | UIR-PR-02 merged | merged (#36, `285197b`) |
-| 4 | [`UIR-PR-02B`](../tasks/UIR-PR-02B/plan.md) 홈 화면 시안 배치 보정 | UIR-PR-02A merged | in_progress |
-| 5 | `UIR-PR-03` 단계·대화 | UIR-PR-02B merged | planned |
-| 6 | `UIR-PR-04` 제안 검토 | UIR-PR-03 merged | planned |
-| 7 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | planned |
-| 8 | `UIR-PR-06` 문서·지원 흐름 | UIR-PR-05 merged | planned |
+| 4 | [`UIR-PR-02B`](../tasks/UIR-PR-02B/plan.md) 홈 화면 시안 배치 보정 | UIR-PR-02A merged | merged (#37, `45649ab`) |
+| 5 | [`UIR-PR-02C`](../tasks/UIR-PR-02C/plan.md) 홈 픽셀 일치 보정 | UIR-PR-02B merged | in_progress |
+| 6 | `UIR-PR-03` 단계·대화 | UIR-PR-02C merged | planned |
+| 7 | `UIR-PR-04` 제안 검토 | UIR-PR-03 merged | planned |
+| 8 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | planned |
+| 9 | `UIR-PR-06` 문서·지원 흐름 | UIR-PR-05 merged | planned |
 
 기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
 

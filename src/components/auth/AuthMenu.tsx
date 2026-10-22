@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useAuth } from "../../features/auth/AuthProvider";
 
-export function AuthMenu({ placement = "floating" }: { placement?: "floating" | "inline" }) {
+export function AuthMenu({ placement = "floating", homePresentation = false }: { placement?: "floating" | "inline"; homePresentation?: boolean }) {
   const { user, status, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
@@ -23,8 +23,8 @@ export function AuthMenu({ placement = "floating" }: { placement?: "floating" | 
 
   return (
     <div className={`auth-menu${placement === "inline" ? " auth-menu-inline" : ""}`}>
-      <button type="button" className="auth-menu-trigger" aria-label="사용자 메뉴" aria-expanded={isOpen} onClick={() => setIsOpen((open) => !open)}>
-        <span className="auth-menu-avatar" aria-hidden="true">{(user.email || "계정").slice(0, 1).toUpperCase()}</span>
+      <button type="button" className={`auth-menu-trigger${homePresentation ? " auth-menu-trigger-home" : ""}`} aria-label="사용자 메뉴" aria-expanded={isOpen} onClick={() => setIsOpen((open) => !open)}>
+        <span className={`auth-menu-avatar${homePresentation ? " auth-menu-avatar-home" : ""}`} aria-hidden="true">{(user.email || "계정").slice(0, 1).toUpperCase()}</span>
         <span className="auth-menu-email">{user.email || "Google 계정"}</span>
         <span aria-hidden="true">⌄</span>
       </button>
