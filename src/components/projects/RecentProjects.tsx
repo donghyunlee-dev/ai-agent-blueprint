@@ -31,9 +31,9 @@ export function RecentProjects({ ownerKey }: { ownerKey: string | null }) {
 
   const page = recentProjectPage(projects, expanded);
   return (
-    <section className="home-shell-recent" aria-labelledby="home-recent-title">
+    <section className="home-shell-recent" id="recent-projects" aria-labelledby="home-recent-title">
       <div className="home-recent-heading">
-        <h2 id="home-recent-title">최근 Blueprint</h2>
+        <h2 id="home-recent-title">최근 프로젝트</h2>
         <p>최근 작업한 프로젝트를 이어서 진행할 수 있습니다.</p>
       </div>
       {status === 'loading' ? <p className="home-recent-status" role="status">최근 프로젝트를 불러오는 중입니다.</p> : null}
@@ -52,9 +52,9 @@ export function RecentProjects({ ownerKey }: { ownerKey: string | null }) {
             {page.items.map((project) => (
               <li key={project.id}>
                 <Link className="home-recent-card" to={`/blueprints/${project.id}`}>
-                  <span className="home-recent-card-top"><strong>{project.title}</strong><span>{readinessLabel(project.readiness.state)}</span></span>
+                  <span className="home-recent-card-top"><span className="home-recent-card-icon" aria-hidden="true">▣</span><strong>{project.title}</strong><span className="home-recent-card-chevron" aria-hidden="true">›</span></span>
                   <span className="home-recent-card-meta">마지막 수정 {formatDate(project.updatedAt)} · {documentLabel(project.activeDocumentType)}</span>
-                  <span className="home-recent-card-action">계속하기 <span aria-hidden="true">→</span></span>
+                  <span className="home-recent-card-action">{readinessLabel(project.readiness.state)} · 계속하기 <span aria-hidden="true">→</span></span>
                 </Link>
               </li>
             ))}

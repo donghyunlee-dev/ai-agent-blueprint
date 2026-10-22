@@ -134,7 +134,7 @@ test('project creation saves before navigation and recovers the canonical data a
     if (prototype.__originalPut) Object.defineProperty(prototype, 'put', { configurable: true, value: prototype.__originalPut });
   });
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
   await expect(page.getByText(/^저장됨 ·/)).toBeVisible();
   await page.screenshot({ path: path.join(evidenceDirectory, `saved-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
   await page.reload();
@@ -238,7 +238,7 @@ test('twenty-first request uses a keyboard-accessible confirmation and keeps twe
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
   await expect(dialog).toBeVisible();
   await confirm.click();
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
   await expect(page.getByRole('heading', { name: '스물한 번째 프로젝트 아이디어' })).toBeVisible();
   await page.goto('/');
   await expect(page.getByRole('button', { name: '전체 보기 (20)' })).toBeVisible();
@@ -298,7 +298,7 @@ test('after confirmed deletion a failed new save keeps input, reports no automat
     if (prototype.__originalPut) Object.defineProperty(prototype, 'put', { configurable: true, value: prototype.__originalPut });
   });
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
   const afterRetry = await openDatabase(page, 20);
   expect(afterRetry.ids).toHaveLength(20);
   expect(afterRetry.titles).toContain('삭제 후 저장 실패도 입력을 보존합니다.');
@@ -306,7 +306,7 @@ test('after confirmed deletion a failed new save keeps input, reports no automat
 
 async function seedProjects(page: Page, count: number, sharedId?: string, subject = 'prj-qa-user', titlePrefix = '저장된 프로젝트') {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: '최근 Blueprint' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '최근 프로젝트' })).toBeVisible();
   const ownerKey = await deriveOwnerKey({ ...identity, subject });
   const databaseName = databaseNameForOwner(ownerKey);
   await page.evaluate(async ({ databaseName, ownerKey, count, sharedId, titlePrefix }) => {

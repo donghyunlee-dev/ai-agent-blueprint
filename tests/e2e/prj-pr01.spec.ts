@@ -49,14 +49,14 @@ test('protected project route waits for auth and returns anonymous users to logi
 
 test('authenticated account menu does not imply projects are already persisted', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: /verified@example\.test/ }).click();
+  await page.getByRole('button', { name: '사용자 메뉴' }).click();
   await expect(page.getByText('프로젝트 작업은 이 브라우저에서 진행됩니다.')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('저장됩니다');
 });
 
 test('authenticated home presents a usable empty project composer', async ({ page }, testInfo) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: '아이디어를 제품 설계로 구체화하세요' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '어떤 서비스를 만들고 싶으세요?' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Blueprint 시작' })).toBeDisabled();
   await expect(page.getByText('아직 프로젝트가 없습니다')).toBeVisible();
@@ -67,7 +67,7 @@ test('authenticated home presents a usable empty project composer', async ({ pag
 test('examples fill the idea field without creating a project; blank input is announced and blocked', async ({ page }, testInfo) => {
   await page.goto('/');
   const idea = page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' });
-  await page.getByRole('button', { name: /고객 문의를 자동 분류/ }).click();
+  await page.getByRole('button', { name: /고객 문의 자동 분류/ }).click();
   await expect(idea).toHaveValue(/고객 문의를 자동 분류/);
   await expect(page).toHaveURL('/');
   await page.screenshot({ path: path.join(evidenceDirectory, `home-input-${testInfo.project.name}.png`), fullPage: true, scale: 'css' });
@@ -94,7 +94,7 @@ test('submitting an idea persists one canonical project and supports browser his
   await page.goto('/');
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill('고객 문의를 자동 분류하는 서비스를 시작하고 싶어요.');
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
   await expect(page.getByRole('heading', { name: '고객 문의를 자동 분류하는 서비스를 시작하고 싶어요.' })).toBeVisible();
   await expect(page.getByText(/^저장됨 ·/)).toBeVisible();
   await page.screenshot({ path: path.join(evidenceDirectory, `project-created-${testInfo.project.name}.png`), fullPage: true, scale: 'css' });
@@ -108,9 +108,9 @@ test('rapid duplicate submit navigates to one persisted project and never expose
   await page.goto('/blueprints/new');
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill('연속 제출도 프로젝트 하나만 만듭니다.');
   await page.getByRole('button', { name: 'Blueprint 시작' }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
   await expect(page.getByRole('heading', { name: '연속 제출도 프로젝트 하나만 만듭니다.' })).toBeVisible();
-  expect(await page.evaluate(() => ({ lastProjectId: localStorage.getItem('blueprint:lastProjectId'), session: sessionStorage.length }))).toEqual({ lastProjectId: new URL(page.url()).pathname.split('/').at(-1), session: 0 });
+  expect(await page.evaluate(() => ({ lastProjectId: localStorage.getItem('blueprint:lastProjectId'), session: sessionStorage.length }))).toEqual({ lastProjectId: new URL(page.url()).pathname.split('/').at(-2), session: 0 });
   expect(await page.locator('body').innerText()).not.toContain('prj-qa-user');
 });
 
@@ -118,7 +118,7 @@ test('created project recovers after reload and in a new tab, while another owne
   await page.goto('/');
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill('이 프로젝트는 현재 탭에서만 찾아야 합니다.');
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
-  await expect(page).toHaveURL(/\/blueprints\/([0-9a-f-]{36})$/i);
+  await expect(page).toHaveURL(/\/blueprints\/([0-9a-f-]{36})\/design$/i);
   const projectUrl = page.url();
   await page.reload();
   await expect(page.getByRole('heading', { name: '프로젝트를 찾을 수 없습니다' })).toHaveCount(0);
