@@ -50,6 +50,9 @@ test('new project appears in recent cards and reopens inside one shell', async (
   await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toHaveCount(1);
   await expect(page.getByRole('button', { name: '사용자 메뉴' })).toHaveCount(1);
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '프로젝트' })).not.toHaveAttribute('aria-current', 'page');
+  await page.screenshot({ path: path.join(evidence, `project-shell-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '프로젝트' }).click();
   await expect(page).toHaveURL(/\/#recent-projects$/);
   await expect(page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '프로젝트' })).toHaveAttribute('aria-current', 'page');

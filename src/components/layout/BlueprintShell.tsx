@@ -16,7 +16,7 @@ export function BlueprintShell({ children }: { children: ReactNode }) {
         </Link>
         <nav className="blueprint-sidebar-nav" aria-label="주요 메뉴">
           <Link to="/" aria-current={!inProject && !viewingRecent ? 'page' : undefined} className={!inProject && !viewingRecent ? 'is-active' : undefined}><span aria-hidden="true">⌂</span> 홈</Link>
-          <Link to="/#recent-projects" aria-current={inProject || viewingRecent ? 'page' : undefined} className={inProject || viewingRecent ? 'is-active' : undefined}><span aria-hidden="true">▣</span> 프로젝트</Link>
+          <Link to="/#recent-projects" aria-current={viewingRecent ? 'page' : undefined} className={inProject || viewingRecent ? 'is-active' : undefined}><span aria-hidden="true">▣</span> 프로젝트</Link>
         </nav>
         <div className="blueprint-sidebar-bottom">
           <span>제품 아이디어부터 문서까지</span>
