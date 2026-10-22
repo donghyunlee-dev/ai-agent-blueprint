@@ -289,9 +289,20 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | QLT-601~603 | 지정 viewport와 키보드·성능 gate | planned |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | QLT-604, 605, 608 | 전체 프로세스와 보안·모델 회귀 통과 | planned |
 | 30 | `QLT-PR-03` 사용자 검증·출시 정리 | QLT-606, 607 | P0 결함 0건과 release checklist | planned |
-| 31 | `UIR-PR-02A` 시안 직접 비교 gate | UIR-001~010 검증 절차 | 같은 viewport·상태 비교와 독립 리뷰·QA의 실질 차이 차단 기준 | in_progress (PR #35 병합 후 문서 보완) |
 
-현재 화면 개편은 위 완료 이력을 바꾸지 않고 [UI 개편 계획](../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md)의 독립 PR 순서로 진행한다. `UIR-PR-01`은 문서 계약, `UIR-PR-02`는 공통 셸·홈과 CSS 기반이며 두 PR은 병합됐다. [UIR-PR-02A](../tasks/UIR-PR-02A/plan.md)는 #35 병합 후 발견된 시안 직접 비교 gate의 문서 보완이고, 병합 확인 후 `UIR-PR-03` 단계·대화, `UIR-PR-04` 제안, `UIR-PR-05` 준비도 표현, `UIR-PR-06` 문서·지원 흐름을 순서대로 진행한다. 각 후속 PR은 앞 PR의 GitHub 병합을 확인한 최신 `main`에서 시작한다. 기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
+위 표는 저장소의 일반 delivery PR 순서다. 현재 화면 개편은 이 순서와 독립된 [UI 개편 계획](../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md)의 선행 관계를 따른다. 각 UIR 후속 PR은 바로 앞 UIR PR의 GitHub 병합을 확인한 최신 `main`에서 시작한다.
+
+| 순서 | UIR PR unit | 선행 조건 | 상태 |
+| ---: | --- | --- | --- |
+| 1 | `UIR-PR-01` 시각 기준·제품/UI 계약 | 완료된 기반 작업 | merged |
+| 2 | `UIR-PR-02` 공통 셸·홈 및 CSS 기반 | UIR-PR-01 merged | merged (#35) |
+| 3 | [`UIR-PR-02A`](../tasks/UIR-PR-02A/plan.md) 시안 직접 비교 gate | UIR-PR-02 merged | in_progress (PR #36) |
+| 4 | `UIR-PR-03` 단계·대화 | UIR-PR-02A merged | planned |
+| 5 | `UIR-PR-04` 제안 검토 | UIR-PR-03 merged | planned |
+| 6 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | planned |
+| 7 | `UIR-PR-06` 문서·지원 흐름 | UIR-PR-05 merged | planned |
+
+기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
 
 `blocked` 행은 필요한 제품 결정이 기록되기 전까지 건너뛰고 다음 비의존 PR로 순서를 재계획할 수 있다. 단, 의존하는 후속 PR은 시작할 수 없다. 실제 개발 중 PR이 너무 크면 수용 기준을 보존한 채 `-A`, `-B`로 분할하고 이 표와 추적표를 먼저 갱신한다.
 
