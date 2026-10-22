@@ -60,7 +60,7 @@ Use the narrowest relevant existing Playwright and unit/contract commands first.
 
 ## Implementation self-validation
 
-- Responsive height rules are scoped to desktop viewports up to 920px high. They reduce vertical spacing and start-card height while preserving text sizes, the four-row textarea, and the original 1672×941 layout.
+- Responsive height rules are scoped to desktop viewports up to 940px high. They reduce vertical spacing and start-card height while preserving text sizes, the four-row textarea, and the original 1672×941 layout.
 - Playwright Chromium: `npx playwright test tests/e2e/uir-pr-02e-home-viewport-fit.spec.ts tests/e2e/uir-pr-02d-home-alignment.spec.ts --workers=1 --reporter=line` — **14/14 passed** across desktop and mobile projects (02E 10/10; 02D regression 4/4). This includes visible keyboard focus and reachability of the idea textarea and enabled submit at desktop and the 720×450 effective CSS viewport.
 - `npm run build` — passed. `git diff --check` — passed.
 - `npm run test:unit` — 341/342 passed. The single failure is `tests/unit/src-pr-01-source-upload-command.test.js`, in `removeSourceAndReferences` (`.map` on undefined); this PR changes only home CSS, UI coverage, and delivery records.
