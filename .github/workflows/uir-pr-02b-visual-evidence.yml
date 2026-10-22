@@ -1,0 +1,59 @@
+name: UIR PR 02B visual evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/uir-pr-02b-visual-evidence.yml'
+      - 'src/styles/home.css'
+      - 'src/styles/project-composer.css'
+      - 'src/components/projects/ProjectComposer.tsx'
+      - 'src/components/projects/RecentProjects.tsx'
+      - 'tests/e2e/uir-pr-02b-home-visual-parity.spec.ts'
+      - 'scripts/write-uir-pr-02b-visual-comparison.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture-home-evidence:
+    name: Capture home UI states
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture desktop and mobile home states
+        env:
+          UIR_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-02b-home-visual-parity.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
+
+      - name: Generate final-HEAD visual comparison record
+        env:
+          UIR_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/write-uir-pr-02b-visual-comparison.mjs
+
+      - name: Upload UIR PR 02B visual evidence
+        id: upload-evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: uir-pr-02b-home-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .pr-artifacts/UIR-PR-02B/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish artifact link in the workflow summary
+        env:
+          ARTIFACT_URL: ${{ steps.upload-evidence.outputs.artifact-url }}
+        run: |
+          printf '## UIR PR 02B visual evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Final-HEAD desktop/mobile screenshots and state captures: [%s](%s)\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
