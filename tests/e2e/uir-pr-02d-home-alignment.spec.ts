@@ -122,12 +122,15 @@ test('home background, content, multiline input and view-all gap align across de
         ? `.pr-artifacts/UIR-PR-02D/home-recent-${viewport.width}x${viewport.height}.png`
         : `.pr-artifacts/UIR-PR-02D/home-empty-${viewport.width}x${viewport.height}.png`;
     await page.screenshot({ path: screenshotPath, fullPage: false, scale: 'css' });
+    const renderedHeroInkBounds = viewport.width === 1672 && viewport.height === 941
+      ? await scanHeroInkBounds(page, await readFile(referenceImagePath), await readFile(screenshotPath))
+      : undefined;
     const renderedAnchors = {
       sidebar: geometry.sidebar,
       seam: { x: geometry.backgroundBoundary, y: 0, width: 0, height: viewport.height },
       topbar: geometry.topbar,
       mainContent: unionBounds([geometry.heroVisual, geometry.anchors[1], geometry.anchors[2], geometry.start]),
-      heroVisual: geometry.heroVisual,
+      heroVisual: renderedHeroInkBounds?.rendered ?? geometry.heroVisual,
       composer: geometry.anchors[1],
       recentArea: geometry.anchors[2],
       startSection: geometry.start,
@@ -149,17 +152,26 @@ test('home background, content, multiline input and view-all gap align across de
       horizontalOverflow: geometry.horizontalOverflow,
     };
     if (viewport.width === 1672 && viewport.height === 941) {
-      viewportEntry.sourceVsRendered = Object.fromEntries(Object.keys(primaryReferenceAnchors).map((anchor) => [
+      const pixelComparableAnchors = {
+        ...primaryReferenceAnchors,
+        heroVisual: renderedHeroInkBounds!.source,
+      };
+      viewportEntry.sourceVsRendered = Object.fromEntries(Object.keys(pixelComparableAnchors).map((anchor) => [
         anchor,
-        compareBounds(primaryReferenceAnchors[anchor as keyof typeof primaryReferenceAnchors], renderedAnchors[anchor as keyof typeof renderedAnchors]),
+        compareBounds(
+          pixelComparableAnchors[anchor as keyof typeof pixelComparableAnchors],
+          renderedAnchors[anchor as keyof typeof renderedAnchors],
+          anchor === 'heroVisual' ? 'dark-pixel bounds using RGB r<45, g<70, b<125 on source and rendered screenshots' : undefined,
+        ),
       ]));
+      viewportEntry.heroPixelBounds = renderedHeroInkBounds;
     } else {
       viewportEntry.sourceVsRendered = {
         status: 'not-comparable',
         reason: 'The mapped design source is available only at 1672x941; this viewport has no matching reference screenshot.',
       };
     }
-    await persistGeometryViewport(viewportEntry, screenshotPath);
+    await persistGeometryViewport(viewportEntry, screenshotPath, renderedHeroInkBounds);
     console.log(`UIR-PR-02D ${viewport.width}x${viewport.height}`, JSON.stringify(geometry));
     if (viewport.width === 1672) {
       await page.goto('/');
@@ -280,7 +292,7 @@ test('home remains centered and usable at the mobile viewport', async ({ page })
   }, mobileScreenshotPath);
 });
 
-async function persistGeometryViewport(entry: Record<string, unknown>, screenshotPath: string) {
+async function persistGeometryViewport(entry: Record<string, unknown>, screenshotPath: string, heroInkBounds?: { source: Bounds; rendered: Bounds }) {
   const path = '.pr-artifacts/UIR-PR-02D/geometry.json';
   let viewports: Record<string, unknown>[] = [];
   try {
@@ -311,7 +323,7 @@ async function persistGeometryViewport(entry: Record<string, unknown>, screensho
     measurement: 'Coordinates measured at native image pixels from the mapped design: sidebar/topbar bounds from the divider and bar edges; hero and section titles from dark ink pixels; composer and cards from visible outlines; aggregate main/recent/start bounds are unions of those measured visual anchors.',
     pixelEvidence: {
       darkInkThreshold: 'RGB r<45, g<70, b<125',
-      heroInkBounds: { x: 686, y: 217, width: 436, height: 30 },
+      heroInkBounds: heroInkBounds ?? { method: 'dark-pixel scan not run for this viewport' },
       recentHeadingInkBounds: { x: 306, y: 570, width: 116, height: 20 },
       startHeadingInkBounds: { x: 306, y: 751, width: 72, height: 19 },
       recentCardOuterBounds: { x: 304, y: 609, width: 1319, height: 100 },
@@ -352,11 +364,48 @@ function unionBounds(rectangles: Array<{ x: number; y: number; width: number; he
   return { x, y, width: right - x, height: bottom - y, center: x + (right - x) / 2 };
 }
 
-function compareBounds(source: { x: number; y: number; width: number; height: number }, rendered: { x: number; y: number; width: number; height: number }) {
+type Bounds = { x: number; y: number; width: number; height: number };
+
+async function scanHeroInkBounds(page: Page, sourceBytes: Buffer, renderedBytes: Buffer) {
+  const dataUrl = (bytes: Buffer) => `data:image/png;base64,${bytes.toString('base64')}`;
+  return page.evaluate(async ({ sourceUrl, renderedUrl }) => {
+    const threshold = (r: number, g: number, b: number) => r < 45 && g < 70 && b < 125;
+    const bounds = async (url: string) => {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d', { willReadFrequently: true })!;
+      context.drawImage(image, 0, 0);
+      const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+      const roi = { left: 580, top: 180, right: 1220, bottom: 300 };
+      let left = canvas.width, top = canvas.height, right = -1, bottom = -1;
+      for (let y = roi.top; y < Math.min(roi.bottom, canvas.height); y += 1) {
+        for (let x = roi.left; x < Math.min(roi.right, canvas.width); x += 1) {
+          const index = (y * canvas.width + x) * 4;
+          if (threshold(data[index], data[index + 1], data[index + 2])) {
+            left = Math.min(left, x);
+            top = Math.min(top, y);
+            right = Math.max(right, x);
+            bottom = Math.max(bottom, y);
+          }
+        }
+      }
+      if (right < left || bottom < top) throw new Error(`No hero ink found in ${url.slice(0, 30)}…`);
+      return { x: left, y: top, width: right - left + 1, height: bottom - top + 1 };
+    };
+    const [source, rendered] = await Promise.all([bounds(sourceUrl), bounds(renderedUrl)]);
+    return { method: 'canvas dark-pixel scan, RGB r<45, g<70, b<125; ROI x=580..1219, y=180..299', source, rendered };
+  }, { sourceUrl: dataUrl(sourceBytes), renderedUrl: dataUrl(renderedBytes) });
+}
+
+function compareBounds(source: Bounds, rendered: Bounds, measurement = 'source pixel bounds vs rendered DOM bounds') {
   const delta = Object.fromEntries((['x', 'y', 'width', 'height'] as const).map((dimension) => {
     const px = Number((rendered[dimension] - source[dimension]).toFixed(3));
     const percent = source[dimension] === 0 ? null : Number((px / source[dimension] * 100).toFixed(3));
     return [dimension, { px, percent }];
   }));
-  return { source, rendered, delta, measurement: 'source pixel bounds vs rendered DOM bounds' };
+  return { source, rendered, delta, measurement };
 }

@@ -81,7 +81,7 @@ Run the narrowest relevant Playwright spec and unit/contract tests first. Use `n
 
 - Plan ownership: `docs/tasks/UIR-PR-02D/plan.md` only.
 - Implementer scope: home component/style and focused home tests/evidence, as determined from the implementation diff; no unrelated product behavior.
-- Current plan status: `fix_required`, PR #39. Independent review of HEAD `317507baf2ce670a5ae2fadeac2bfd6aa91a5167` found two evidence/test gaps: the geometry report lacks source-vs-render anchor deltas and exact state metadata, and the test does not assert the measured visible chevron gap. A bounded correction is in progress; review and QA must rerun on the new HEAD.
+- Current plan status: `fix_required`, PR #39. On HEAD `d60e3b544966a29d88704307c0fb211551718043`, independent review confirmed the full anchor report and measured chevron-gap assertion, but found that the reference hero uses dark-ink pixel bounds while the render uses DOM Range bounds. A bounded correction will compare both hero anchors using the same pixel threshold; review and QA must rerun on the corrected HEAD.
 
 ## Self-validation results
 
