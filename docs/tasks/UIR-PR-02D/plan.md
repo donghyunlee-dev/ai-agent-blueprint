@@ -81,7 +81,7 @@ Run the narrowest relevant Playwright spec and unit/contract tests first. Use `n
 
 - Plan ownership: `docs/tasks/UIR-PR-02D/plan.md` only.
 - Implementer scope: home component/style and focused home tests/evidence, as determined from the implementation diff; no unrelated product behavior.
-- Current plan status: `code_review`, PR #39. The aggregate main-content bounds now use the rendered hero dark-pixel bounds, consistent with the source measurement. Independent review of the current exact HEAD and regenerated geometry/pixel evidence is pending. Exact HEAD SHA is recorded in `.pr-artifacts/UIR-PR-02D/geometry.json` and the pixel comparison report.
+- Current plan status: `qa`, PR #39. Independent code review passed on the current implementation and geometry evidence. The aggregate main-content bounds use the rendered hero dark-pixel bounds, consistent with the source measurement. Independent QA is the remaining gate. Exact HEAD SHA is recorded in `.pr-artifacts/UIR-PR-02D/geometry.json` and the pixel comparison report.
 
 ## Self-validation results
 
