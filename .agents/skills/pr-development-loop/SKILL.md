@@ -21,7 +21,7 @@ Use `docs/delivery/development-pr-review-qa-workflow.md` as the product delivery
 
 1. Read `AGENTS.md` and `docs/delivery/development-pr-review-qa-workflow.md`.
 2. Identify the PR unit, delivery task IDs, requirement IDs, dependencies, and linked product contracts. Read every linked contract that affects the work.
-3. For UI work, read `docs/template/README.md` and inspect the relevant `docs/template/image*.png` references. The screenshots are the visual source of truth; preserve accessibility and responsive requirements from the UI specifications.
+3. For UI work, preserve product behavior and accessibility, security, and responsive contracts first. Read `docs/blueprint-design/README.md` and inspect its mapped primary image; use `docs/template/README.md` only for states absent from the new design. Follow `docs/ui/07-visual-acceptance.md` for visual comparison.
 4. Check `git status`, current branch, base branch, and remote PR state before making changes.
 5. Confirm Definition of Ready. If a required decision, dependency, or contract is missing, report `blocked` with the exact missing item and do not implement.
 
@@ -46,17 +46,19 @@ Dispatch `blueprint-task-planner` with the task unit, dependencies, requirements
 
 Dispatch one implementer with exclusive file ownership. Follow test-first development for changed business behavior. Run focused tests, relevant integration or browser checks, `npm run build`, documentation checks when relevant, and `git diff --check`. For UI work, capture final-HEAD screens at 1440×900 and 390×844 plus every affected required state. Verify the flow with Playwright Chromium and Agent Browser when both are available. If Agent Browser is unavailable in this execution environment, inspect the available tool catalog and check for its executable once, record that evidence, then use Playwright Chromium for the complete independent QA flow. Missing Agent Browser alone does not block QA when Playwright Chromium can exercise the app; missing runtime, fixtures, or all usable browser automation remains blocked. Do not claim Agent Browser was used when it was not.
 
+For UI work, compare the mapped source image and the rendered screen side by side at the same CSS viewport and comparable state. Record source path, route/state, viewport, HEAD SHA, artifact link, and the position/size deltas of applicable major anchors (rail, header, main content, hero, composer, recent area). Apply the material-gap thresholds and higher-priority-contract exceptions from `docs/ui/07-visual-acceptance.md`; explain non-comparable anchors and exceptions. Font rasterization or antialiasing alone is not a failure. An unexplained material gap blocks self-validation and `ready_to_merge`. For a Vercel UI Preview, verify it serves the reviewed HEAD before using it as visual evidence; if unavailable, disclose that comparison uses local runtime only. Test-auth browser mocks establish presentation, not real-account or authentication proof.
+
 Do not create the PR until self-validation passes. Record exact commands and results. Do not report an unrun check as passing.
 
 ### 3. Publish and independently review
 
 Create or update the PR using `.github/pull_request_template.md`, link the task plan and requirements, and include validation and UI evidence. Then dispatch `blueprint-code-reviewer` on the exact base/head diff and acceptance criteria.
 
-Review result must be `pass` or `pass_with_non_blocking`; all non-blocking items need a follow-up task ID. For Critical or Important findings, move to `fix_required`, dispatch the implementer for a bounded correction, rerun affected validation, and dispatch a fresh reviewer on the new diff. After two unsuccessful correction cycles, set `blocked` and ask for a scope or design decision.
+For UI work, the independent reviewer inspects the matched reference/rendered pairs and recorded anchor deltas, listing material differences. Unexplained material gaps are blocking findings, not `pass_with_non_blocking` items. Review result must be `pass` or `pass_with_non_blocking`; all non-blocking items need a follow-up task ID. For Critical or Important findings, move to `fix_required`, dispatch the implementer for a bounded correction, rerun affected validation, and dispatch a fresh reviewer on the new diff. After two unsuccessful correction cycles, set `blocked` and ask for a scope or design decision.
 
 ### 4. Independent QA
 
-Only after code review passes, dispatch a separate `blueprint-qa-reviewer` with the acceptance criteria, PR diff, runtime instructions, and review verdict. QA validates user behavior and process state, including applicable error, empty, retry, refresh, duplicate-request, keyboard, responsive, and screenshot states.
+Only after code review passes, dispatch a separate `blueprint-qa-reviewer` with the acceptance criteria, PR diff, runtime instructions, matched visual pairs, and review verdict. QA inspects the pairs and lists material visual differences as well as validating user behavior and process state, including applicable error, empty, retry, refresh, duplicate-request, keyboard, responsive, and screenshot states. An unexplained material gap fails QA and blocks `ready_to_merge`.
 
 If QA fails, combine findings into one correction pass, rerun implementation validation, and repeat independent review and QA on the new HEAD. If the same blocking QA finding remains after that pass, set `blocked` and replan. Missing runtime, required fixture, or all usable browser automation is `blocked`, never `pass`. When Agent Browser is unavailable but Playwright Chromium is usable, the independent QA reviewer must exercise the same required user flows and responsive states in Playwright Chromium, record the Agent Browser unavailability evidence, and report Playwright as the tool used.
 

@@ -13,7 +13,7 @@ Spawn subagents only when the user explicitly requests delegation or a multi-age
 
 - User goal and product behavior.
 - Current Survey, recommendation, requirements, and PRD code.
-- Relevant `docs/template/` screenshots, screen specifications, and existing React/CSS conventions.
+- Product behavior and accessibility, security, and responsive contracts; the mapped primary image in `docs/blueprint-design/README.md`; `docs/template/README.md` only for missing states; screen specifications and existing React/CSS conventions.
 - Allowed file scope and existing uncommitted changes.
 
 ## Team and ownership
@@ -27,15 +27,15 @@ Spawn subagents only when the user explicitly requests delegation or a multi-age
 
 1. Audit repository reality, dirty files, current behavior, and design-system compatibility.
 2. Produce dialogue states, field mapping, sidebar groups, completion conditions, and acceptance criteria.
-3. Implement with non-overlapping file ownership, using `docs/template/` references and preserving deterministic validation and services.
-4. Run build and browser checks, then independently review behavior and responsiveness.
+3. Implement with non-overlapping file ownership, using the mapped Blueprint design image as the primary visual reference and preserving deterministic validation and services.
+4. Run build and browser checks. Compare reference and rendered screens at matching CSS viewport/state using `docs/ui/07-visual-acceptance.md`; independently review behavior, responsiveness, and material visual gaps. A material unexplained gap blocks completion.
 5. Route actionable findings through one correction pass and perform final validation.
 
 Read-only discovery may run in parallel. Writes may not overlap.
 
 ## Handoff format
 
-Return evidence, decisions, changed files if any, validation, unresolved risks, and completion state. UI implementation also lists the reference images used and responsive/accessibility checks.
+Return evidence, decisions, changed files if any, validation, unresolved risks, and completion state. UI implementation also lists the reference images, matched viewport/state pairs, anchor deltas, and responsive/accessibility checks.
 
 ## Retry and failure policy
 
