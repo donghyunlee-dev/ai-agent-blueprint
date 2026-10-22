@@ -8,7 +8,7 @@
 
 상태 fixture와 전이 기준은 [화면 상태 매트릭스](screen-state-matrix.md), annotation별 기대 결과는 [상태별 화면 청사진](screens/README.md)을 따른다.
 
-아래 표는 전체 화면 개편의 상태·viewport 목록이다. 개별 UIR UI PR은 변경 화면의 1440×900·390×844와 영향을 받은 상태를 최종 HEAD에서 캡처한다. 중간 viewport는 해당 PR이 직접 영향을 주는 배치와 전환을 검증한다. QLT-PR-01에서 전체 5개 기준 viewport와 화면 상태를 통합 감사한다. 문서 전용 UIR-PR-01에는 화면 캡처를 요구하지 않는다.
+아래 표는 전체 화면 개편의 상태·viewport 목록이다. 개별 UIR UI PR은 변경 화면의 1440×900·390×844와 영향을 받은 상태를 최종 HEAD에서 캡처한다. 중간 viewport는 해당 PR이 직접 영향을 주는 배치와 전환을 검증한다. QLT-PR-01에서 전체 5개 기준 viewport와 화면 상태를 통합 감사한다. 문서 전용 UIR-PR-01과 UIR-PR-02A에는 화면 캡처를 요구하지 않는다.
 
 | 세트 | viewport | 필수 상태 |
 | --- | --- | --- |
