@@ -184,7 +184,7 @@ export function ProjectComposer({
           onChange={(event) => { setIdea(event.target.value); setCreateError(''); setSaveFailed(false); }}
           onBlur={() => setHasBlurred(true)}
           onKeyDown={handleKeyDown}
-          placeholder="어떤 제품을 만들고 싶은지, 어떤 문제를 해결하고 싶은지 적어주세요."
+          placeholder="아이디어를 입력하세요"
           aria-invalid={Boolean(validationError)}
           aria-describedby="project-idea-help project-idea-count"
         />
@@ -208,6 +208,13 @@ export function ProjectComposer({
           <button className="project-attach-button" type="button" onClick={() => fileInput.current?.click()}>
             <span aria-hidden="true">＋</span><span>파일 첨부</span>
           </button>
+          <div className="project-example-actions" aria-label="시작 예시">
+            {examples.map((example) => (
+              <button key={example} type="button" onClick={() => { setIdea(example); setCreateError(''); }}>
+                {example.startsWith('고객 문의') ? '고객 문의 자동 분류' : '운영 체크리스트'}
+              </button>
+            ))}
+          </div>
           <button className="project-submit-button" type="submit" disabled={!isValid || isPending || !ownerKey} aria-busy={isPending}>
             {isPending ? <><span className="project-spinner" aria-hidden="true" />프로젝트 만드는 중</> : <>Blueprint 시작 <span aria-hidden="true">→</span></>}
           </button>
@@ -228,13 +235,6 @@ export function ProjectComposer({
       {isPending ? <p className="project-pending-status" role="status">{isSaving ? '저장 중 · 프로젝트와 첫 대화를 브라우저에 보관하고 있습니다.' : '아이디어를 바탕으로 프로젝트를 준비하고 있습니다.'}</p> : null}
       {saveFailed ? <p className="project-save-failed" role="status">저장 실패 · 다시 시도</p> : null}
       <p className="project-composer-shortcut">예시를 선택해 입력을 채울 수 있습니다. 제출은 직접 눌러야 시작됩니다.</p>
-      <div className="project-example-actions" aria-label="시작 예시">
-        {examples.map((example) => (
-          <button key={example} type="button" onClick={() => { setIdea(example); setCreateError(''); }}>
-            {example.startsWith('고객 문의') ? '고객 문의를 자동 분류' : '운영 체크리스트'}
-          </button>
-        ))}
-      </div>
       <ProjectLimitModal
         project={limitProject}
         busy={isDeleting || isPending}

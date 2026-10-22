@@ -1,0 +1,30 @@
+.blueprint-shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100dvh; background: var(--color-page); }
+.blueprint-sidebar { display: flex; flex-direction: column; min-width: 0; padding: 24px 18px; border-right: 1px solid var(--color-border); background: var(--color-surface); }
+.blueprint-shell-brand { display: flex; align-items: center; margin: 0 6px 30px; color: var(--color-text-strong); font-size: 22px; font-weight: 800; letter-spacing: -.045em; text-decoration: none; }
+.blueprint-sidebar-nav { display: grid; gap: 7px; }
+.blueprint-sidebar-nav a { display: flex; min-height: 48px; align-items: center; gap: 15px; padding: 0 16px; border-radius: 11px; color: var(--color-text-strong); font-size: 15px; font-weight: 650; text-decoration: none; }
+.blueprint-sidebar-nav a > span { width: 22px; text-align: center; font-size: 21px; font-weight: 400; }
+.blueprint-sidebar-nav a:hover,.blueprint-sidebar-nav a.is-active { background: var(--color-primary-soft); }
+.blueprint-sidebar-nav a.is-active { color: var(--color-primary); }
+.blueprint-sidebar-bottom { display: grid; gap: 8px; margin-top: auto; padding: 18px 12px 0; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 12px; }
+.blueprint-sidebar-bottom a { color: var(--color-primary); font-size: 13px; font-weight: 700; text-decoration: none; }
+.blueprint-shell-body { min-width: 0; }
+.blueprint-topbar { display: flex; height: 72px; align-items: center; justify-content: flex-end; gap: 24px; padding: 0 36px; border-bottom: 1px solid var(--color-border); background: rgb(255 255 255 / 80%); }
+.blueprint-topbar-title { color: var(--color-text-strong); font-size: 15px; font-weight: 700; }
+.blueprint-topbar .auth-menu { position: relative; top: auto; right: auto; flex: none; }
+.blueprint-topbar .auth-menu-trigger { max-width: min(320px, calc(100vw - 100px)); box-shadow: none; }
+.blueprint-topbar .auth-menu-panel { z-index: 25; }
+.blueprint-shell-content { min-width: 0; }
+.blueprint-shell :focus-visible { outline: 3px solid var(--color-primary); outline-offset: 3px; }
+@media (max-width: 767px) {
+  .blueprint-shell { display: flex; flex-direction: column; }
+  .blueprint-sidebar { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; min-height: 56px; padding: 8px 16px; border-right: 0; border-bottom: 1px solid var(--color-border); }
+  .blueprint-shell-brand { flex: none; margin: 0; font-size: 17px; }
+  .blueprint-sidebar-nav { display: flex; gap: 2px; }
+  .blueprint-sidebar-nav a { min-height: 36px; gap: 4px; padding: 0 8px; font-size: 12px; }
+  .blueprint-sidebar-nav a > span { width: auto; font-size: 15px; }
+  .blueprint-sidebar-bottom { display: none; }
+  .blueprint-topbar { height: 52px; padding: 0 16px; }
+  .blueprint-topbar-title { margin-right: auto; font-size: 13px; }
+  .blueprint-topbar .auth-menu-trigger { max-width: 190px; }
+}

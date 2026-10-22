@@ -9,7 +9,6 @@ import { getIndexedDbProjectRepository } from "../infrastructure/storage/indexed
 import type { ProjectRepository } from "../infrastructure/storage/indexeddb-project-repository.js";
 import { setLastProjectId } from "../features/projects/persistProjectCreation.js";
 import { clampConversationWidth, clampScrollOffset, getConversationScrollTop, getConversationWidth, setConversationScrollTop, setConversationWidth } from "../features/projects/workspacePreferences.js";
-import { AuthMenu } from "../components/auth/AuthMenu";
 import { QuestionCard } from "../components/conversation/QuestionCard";
 import { ConversationSummary } from "../components/conversation/ConversationSummary";
 import { GenerationJobStatus } from "../components/conversation/GenerationJobStatus";
@@ -801,7 +800,6 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           {saveState.status === "failed" ? <div id="project-save-state" className="workspace-save-state is-failed" role="alert"><span>저장 실패</span><button type="button" onClick={() => { void saverRef.current?.retry(); }}>다시 시도</button></div> : <span id="project-save-state" className={`workspace-save-state is-${saveState.status}`} role="status">{saveState.status === "saving" ? "저장 중" : `저장됨${formatSavedTime(saveState.savedAt ?? aggregate.project.updatedAt) ? ` · ${formatSavedTime(saveState.savedAt ?? aggregate.project.updatedAt)}` : ""}`}</span>}
         </div>
         <button className="workspace-export" type="button" disabled title="내보내기는 다음 단계에서 제공됩니다">내보내기</button>
-        <AuthMenu placement="inline" />
       </header>
       <h1 className="workspace-sr-only">{aggregate.project.title}</h1>
       <nav className="workspace-mobile-tabs" role="tablist" aria-label="작업 패널" onKeyDown={(event) => {
