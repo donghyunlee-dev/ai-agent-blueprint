@@ -81,7 +81,7 @@ Run the narrowest relevant Playwright spec and unit/contract tests first. Use `n
 
 - Plan ownership: `docs/tasks/UIR-PR-02D/plan.md` only.
 - Implementer scope: home component/style and focused home tests/evidence, as determined from the implementation diff; no unrelated product behavior.
-- Current plan status: `code_review`, PR #39; self-validation is complete and independent code review/QA are pending on the published PR HEAD.
+- Current plan status: `fix_required`, PR #39. Independent review of HEAD `317507baf2ce670a5ae2fadeac2bfd6aa91a5167` found two evidence/test gaps: the geometry report lacks source-vs-render anchor deltas and exact state metadata, and the test does not assert the measured visible chevron gap. A bounded correction is in progress; review and QA must rerun on the new HEAD.
 
 ## Self-validation results
 
@@ -89,4 +89,5 @@ Run the narrowest relevant Playwright spec and unit/contract tests first. Use `n
 - Build: `npm run build` — passed.
 - Pixel parity: full 1672×941, threshold 24/channel, no masks — 95.0973% (1,496,215/1,573,352); mean maximum channel delta 8.6024. Pair, report, overlay, heatmap and anchor measurements are in `.pr-artifacts/UIR-PR-02D/`.
 - `npm run test:unit` — 341/342 passed. The unrelated existing source-removal test at `tests/unit/src-pr-01-source-upload-command.test.js:61` fails in `removeSourceAndReferences` because the fixture omits `designItems`; neither that test nor source-removal implementation is changed in this unit.
+- Exact 1672×941 source-vs-render geometry: LNB, seam, and topbar match exactly. Shared content anchors render at x=304–1618 (center 961), while the reference composer is x=413–1398 (center 905.5), a +55.5px / +13.438% x-offset. This is a measured, intentional exception to the composer source x-position: the accepted user correction requires the composer, recent-project area, and lower start section to share the available-content centerline; the reference composer is visibly offset left. The centered composer retains the same 985×171 size and y-position (−0.328px), and the full unmasked pixel score remains 95.0973%. The discrepancy is recorded rather than treated as a pixel-identical anchor.
 - Agent Browser tool/executable availability and 200% zoom remain for independent QA to verify and record. The presentation-only authentication mock is not live account proof.
