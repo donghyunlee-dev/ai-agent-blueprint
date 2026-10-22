@@ -81,7 +81,7 @@ Run the narrowest relevant Playwright spec and unit/contract tests first. Use `n
 
 - Plan ownership: `docs/tasks/UIR-PR-02D/plan.md` only.
 - Implementer scope: home component/style and focused home tests/evidence, as determined from the implementation diff; no unrelated product behavior.
-- Current plan status: self-validation complete; independent code review and QA pending on the published PR HEAD.
+- Current plan status: `code_review`, PR #39; self-validation is complete and independent code review/QA are pending on the published PR HEAD.
 
 ## Self-validation results
 

@@ -18,6 +18,8 @@ on:
       - 'scripts/compare-uir-pr-02c-home.mjs'
       - 'tests/e2e/uir-pr-02c-home-visual-parity.spec.ts'
       - 'tests/e2e/uir-pr-02d-home-alignment.spec.ts'
+      - 'docs/tasks/UIR-PR-02D/plan.md'
+      - 'docs/delivery/development-pr-review-qa-workflow.md'
   workflow_dispatch:
 
 permissions:
