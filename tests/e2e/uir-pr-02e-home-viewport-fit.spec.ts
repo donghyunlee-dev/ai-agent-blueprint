@@ -69,6 +69,53 @@ test('intermediate desktop and 200-percent effective viewports preserve the comp
   }
 });
 
+test('keyboard can reach the idea textarea and submit with visible focus on desktop and at 200% effective size', async ({ page }) => {
+  await seedProjects(page, 3);
+  const captures: Array<Record<string, unknown>> = [];
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 720, height: 450 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: '최근 프로젝트' })).toBeVisible();
+    const idea = page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' });
+    await idea.fill('키보드 접근성 확인을 위한 아이디어입니다.');
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      window.scrollTo(0, 0);
+    });
+
+    await tabTo(page, '#project-idea');
+    const textareaFocus = await inspectFocusedControl(page);
+    expect(textareaFocus.visibleInViewport, `${viewport.width}x${viewport.height} textarea stays visible`).toBe(true);
+    expect(textareaFocus.focusVisible, 'textarea shows a visible keyboard focus indicator').toBe(true);
+
+    await tabTo(page, '.project-submit-button');
+    const submitFocus = await inspectFocusedControl(page);
+    expect(submitFocus.enabled, 'submit stays enabled for a valid idea').toBe(true);
+    expect(submitFocus.visibleInViewport, `${viewport.width}x${viewport.height} submit stays visible`).toBe(true);
+    expect(submitFocus.focusVisible, 'submit shows a visible keyboard focus indicator').toBe(true);
+
+    const screenshotPath = `${artifactDirectory}/keyboard-focus-${viewport.width}x${viewport.height}.png`;
+    await page.screenshot({ path: screenshotPath, fullPage: false, scale: 'css' });
+    captures.push({
+      route: '/',
+      state: 'valid synthetic idea; keyboard-focused Blueprint submit',
+      viewport,
+      headSHA: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+      screenshotPath,
+      textareaFocus,
+      submitFocus,
+    });
+  }
+  await writeFile(`${artifactDirectory}/keyboard-focus.json`, `${JSON.stringify({
+    presentationOnlyAuth: 'mocked /api/auth/session; synthetic IndexedDB project data; no live-account/data claims',
+    effectiveZoomNote: '720x450 represents the effective CSS viewport for 1440x900 at 200%; browser page-scale zoom itself is not simulated.',
+    captures,
+  }, null, 2)}\n`);
+});
+
 test('six projects keep the composer in view and retain reachable project actions', async ({ page }) => {
   await seedProjects(page, 6);
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -173,6 +220,39 @@ async function seedProjects(page: Page, count: number) {
   }, { databaseName, ownerKey, count });
 }
 
+async function tabTo(page: Page, selector: string) {
+  const target = page.locator(selector);
+  for (let index = 0; index < 24; index += 1) {
+    if (await target.evaluate((element) => element === document.activeElement)) return;
+    await page.keyboard.press('Tab');
+  }
+  throw new Error(`Keyboard Tab did not reach ${selector}`);
+}
+
+async function inspectFocusedControl(page: Page) {
+  return page.evaluate(() => {
+    const active = document.activeElement as HTMLElement | null;
+    if (!active) throw new Error('No focused element');
+    const rect = active.getBoundingClientRect();
+    const viewportWidth = visualViewport?.width ?? innerWidth;
+    const viewportHeight = visualViewport?.height ?? innerHeight;
+    const style = getComputedStyle(active);
+    return {
+      selector: active.id ? `#${active.id}` : `.${active.className}`,
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      visibleInViewport: rect.left >= 0 && rect.top >= 0 && rect.right <= viewportWidth && rect.bottom <= viewportHeight,
+      focusVisible: style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) >= 2,
+      outlineStyle: style.outlineStyle,
+      outlineWidth: style.outlineWidth,
+      enabled: !(active instanceof HTMLButtonElement) || !active.disabled,
+      viewport: { width: viewportWidth, height: viewportHeight },
+    };
+  });
+}
+
 async function measureHome(page: Page) {
   return page.evaluate(() => {
     const bounds = (selector: string) => {
@@ -195,8 +275,8 @@ async function measureHome(page: Page) {
       const source = reference[key];
       return Object.fromEntries((['x', 'y', 'width', 'height'] as const).map((dimension) => {
         const px = Number((rendered[dimension] - source[dimension]).toFixed(3));
-        const base = source[dimension];
-        return [dimension, { px, percent: base === 0 ? null : Number((px / base * 100).toFixed(3)) }];
+        const denominator = dimension === 'x' ? innerWidth : dimension === 'y' ? innerHeight : source[dimension];
+        return [dimension, { px, percent: denominator === 0 ? null : Number((px / denominator * 100).toFixed(3)) }];
       }));
     };
     return {
