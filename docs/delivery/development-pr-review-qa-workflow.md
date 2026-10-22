@@ -247,7 +247,7 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 ### UI 검증 및 캡처
 
 - QA는 변경된 화면의 사용자 행동과 직접 영향받는 반응형·접근성 조건을 검증한다. 전체 앱 회귀나 관련 없는 상태를 반복하지 않는다.
-- UIR 화면 개편 PR은 변경 화면의 1440×900·390×844와 영향을 받은 loading/empty/error/validation/overlay/completed 상태를 최종 HEAD에서 캡처한다. 문서 전용 UIR-PR-01에는 적용하지 않는다. 중간 viewport 검증은 직접 영향 범위와 QLT 계획을 따른다.
+- UIR 화면 개편 PR은 변경 화면의 1440×900·390×844와 영향을 받은 loading/empty/error/validation/overlay/completed 상태를 최종 HEAD에서 캡처한다. 문서 전용 UIR-PR-01과 UIR-PR-02A에는 적용하지 않는다. 중간 viewport 검증은 직접 영향 범위와 QLT 계획을 따른다.
 - 캡처는 테스트한 데이터·상태·viewport와 일치해야 한다. UI 변경 PR에서 필수 캡처가 없으면 `ready_to_merge`로 보내지 않는다. 캡처만으로 동작·접근성 QA를 대신하지 않는다.
 - UIR 화면 개편은 같은 CSS viewport·상태의 시안과 실제 렌더를 나란히 비교한다. 기준 이미지 비율이 다르면 왜곡 없이 좌표계를 맞추고 방법을 기록한다. rail/header/주 콘텐츠/hero/composer/최근 영역 등 해당 anchor의 px·% 차이를 [`시각 QA 기준`](../ui/07-visual-acceptance.md#시안과-구현-화면의-직접-비교)에 따라 판정한다. 설명되지 않은 실질 차이는 review·QA 차단 finding이다. 폰트 래스터링·안티앨리어싱만 다른 경우는 차단하지 않는다.
 - Vercel UI Preview를 증거로 쓰면 배포 HEAD가 검토 HEAD와 일치하는지 확인한다. 보호된 Preview는 기존 Vercel 인증 절차를 따른다. Preview를 사용할 수 없으면 로컬 비교만 수행했음을 명시한다. 브라우저 인증 mock은 화면 표현만 증명하며 실제 계정·인증 성공을 증명하지 않는다.
