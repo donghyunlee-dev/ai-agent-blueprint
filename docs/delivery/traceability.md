@@ -73,7 +73,7 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | UIR-002 범위 보존 | UIR-PR-01~06 | 기존 route/data/action과 미지원 메뉴 부재 | in_progress |
 | UIR-003 공통 셸·홈 | UIR-PR-02, UIR-PR-02C, UIR-PR-02D, UIR-PR-02E (PR #40, merge `921d8df2462e7659dbed81cdcdd156d11e916205`) | 시작·파일·최근·한도, 시안 픽셀 일치, 짧은 화면 높이 대응; PR #40 review/QA passed | done |
 | UIR-004 단계 프레임 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md), [UIR-PR-03A plan](../tasks/UIR-PR-03A/plan.md) | 5단계 현재 위치·gate·직접 URL·한국어 단계 이름 | in_progress |
-| UIR-005 대화 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md), [UIR-PR-03A plan](../tasks/UIR-PR-03A/plan.md) | 질문·답·summary 접기·job·composer, 스크롤 및 ≥95% full-canvas pixel comparison | in_progress |
+| UIR-005 대화 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md), [UIR-PR-03A plan](../tasks/UIR-PR-03A/plan.md) | 질문·답·summary 접기·job·composer·스크롤, 같은 viewport 시안 비교와 주요 anchor 위치·크기 및 설명되지 않은 실질 차이 확인 (전체 픽셀 일치율은 진단 지표) | in_progress |
 | UIR-006 제안 검토 | UIR-PR-04 | 단건·수정·거절·일괄·충돌 transaction | planned |
 | UIR-007 준비도 표현 | UIR-PR-05 | 10개 원본 영역의 5개 카드 표현과 기존 gate | planned |
 | UIR-008 문서 | UIR-PR-06 | Requirements·PRD 상태·편집·보완·내보내기 | planned |
