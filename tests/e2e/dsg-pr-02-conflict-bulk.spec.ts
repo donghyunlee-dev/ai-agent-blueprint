@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
 const identity={issuer:'https://accounts.google.com',subject:'dsg-pr-02-review',email:'dsg-pr-02@example.test'};
@@ -15,13 +16,15 @@ test.beforeEach(async({page})=>{
     const tx=db.transaction(['projects','activities'],'readwrite');tx.objectStore('projects').put({id:projectId,schemaVersion:1,...aggregate});await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
   },{databaseName:databaseNameForOwner(ownerKey),ownerKey,projectId});
 });
-test('requires an explicit conflict choice, excludes stale proposals, and atomically bulk approves and rejects',async({page})=>{
-  await page.goto(`/blueprints/${projectId}/design`);
+test('requires an explicit conflict choice, excludes stale proposals, and atomically bulk approves and rejects',async({page},testInfo)=>{
+  await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
   const conflict=page.locator('[data-proposal-card="conflict"]');
   await expect(conflict.getByRole('heading',{name:/충돌 검토/})).toBeVisible();
   await expect(conflict.getByRole('button',{name:'승인',exact:true})).toHaveCount(0);
   await expect(page.locator('.proposal-bulk-controls')).toContainText('안전하게 승인 가능 1개');
   await expect(page.locator('.proposal-bulk-controls')).toContainText('같은 대상');
+  await mkdir('.pr-artifacts/UIR-PR-04', { recursive: true });
+  await page.screenshot({ path: `.pr-artifacts/UIR-PR-04/${testInfo.project.name}-conflict.png` });
   const ownerKey=await deriveOwnerKey(identity);
   const initial=await page.evaluate(async({databaseName,projectId})=>{const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});const request=db.transaction('projects','readonly').objectStore('projects').get(projectId);const value=await new Promise<any>((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});db.close();return value.project;},{databaseName:databaseNameForOwner(ownerKey),projectId});
   expect(initial.processState).toBe('conflict_review');
@@ -31,6 +34,7 @@ test('requires an explicit conflict choice, excludes stale proposals, and atomic
   await expect(conflict).toHaveCount(0);
   await page.getByRole('button',{name:'가능한 제안 일괄 승인'}).click();
   await expect(page.getByRole('dialog')).toContainText('1개 승인');
+  await page.screenshot({ path: `.pr-artifacts/UIR-PR-04/${testInfo.project.name}-bulk.png` });
   await page.getByRole('button',{name:'승인 확인'}).click();
   await expect(page.locator('[data-proposal-card="approve"]')).toHaveCount(0);
   const sameTarget=page.locator('[data-proposal-card="same-target"]');
@@ -49,14 +53,16 @@ test('requires an explicit conflict choice, excludes stale proposals, and atomic
   expect(persisted.proposals.map((item:any)=>[item.id,item.status])).toEqual([['conflict','superseded'],['approve','accepted'],['same-target','rejected'],['reject-me','rejected']]);
   expect(persisted.designItems[0].title).toBe('일괄 승인값');
   expect(persisted.designItems[1].status).toBe('review_required');
+  await page.goto(`/blueprints/${projectId}/design`);
   await expect(page.getByRole('heading',{name:'선행 변경으로 재검토가 필요한 항목'})).toBeVisible();
   await expect(page.getByText(/선행 항목 item 변경/)).toBeVisible();
 });
 
-test('keeps every bulk approval target unchanged when the repository transaction fails',async({page})=>{
-  await page.goto(`/blueprints/${projectId}/design`);
+test('keeps every bulk approval target unchanged when the repository transaction fails',async({page},testInfo)=>{
+  await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
   await expect(page.locator('#project-save-state')).toContainText('저장됨');
   await page.getByRole('button',{name:'가능한 제안 일괄 승인'}).click();
+  await mkdir('.pr-artifacts/UIR-PR-04', { recursive: true });
   await page.evaluate(()=>{
     const original=IDBDatabase.prototype.transaction;
     Object.defineProperty(IDBDatabase.prototype,'transaction',{configurable:true,value:function(storeNames:string|string[],mode?:IDBTransactionMode,options?:IDBTransactionOptions){
@@ -66,6 +72,7 @@ test('keeps every bulk approval target unchanged when the repository transaction
   });
   await page.getByRole('button',{name:'승인 확인'}).click();
   await expect(page.getByRole('dialog')).toContainText('일괄 저장에 실패했습니다');
+  await page.screenshot({ path: `.pr-artifacts/UIR-PR-04/${testInfo.project.name}-bulk-failure.png` });
   await expect(page.getByRole('heading',{name:'제안 4개'})).toBeVisible();
   const ownerKey=await deriveOwnerKey(identity);
   const persisted=await page.evaluate(async({databaseName,projectId})=>{const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});const request=db.transaction('projects','readonly').objectStore('projects').get(projectId);const value=await new Promise<any>((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});db.close();return value;},{databaseName:databaseNameForOwner(ownerKey),projectId});
@@ -92,7 +99,7 @@ test('shows current, before, and proposed values for criterion and document sect
     const tx=db.transaction('projects','readwrite');tx.objectStore('projects').put(aggregate);
     await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
   },{databaseName:databaseNameForOwner(ownerKey),projectId});
-  await page.goto(`/blueprints/${projectId}/design`);
+  await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
   const criterion=page.locator('[data-proposal-card="criterion-conflict"]');
   await expect(criterion.locator('.proposal-conflict-diff > div').nth(0)).toContainText('이전 수용 기준');
   await expect(criterion.locator('.proposal-conflict-diff > div').nth(1)).toContainText('현재 수용 기준');

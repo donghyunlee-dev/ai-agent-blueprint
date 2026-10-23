@@ -1,0 +1,64 @@
+name: UIR PR 04 visual evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/uir-pr-04-visual-evidence.yml'
+      - 'src/components/proposals/**'
+      - 'src/pages/ProjectPage.tsx'
+      - 'src/styles/proposal-review.css'
+      - 'src/styles/workspace-shell.css'
+      - 'tests/e2e/uir-pr-04-proposal-review.spec.ts'
+      - 'tests/e2e/dsg-pr-01-proposal-review.spec.ts'
+      - 'tests/e2e/dsg-pr-02-conflict-bulk.spec.ts'
+      - 'docs/blueprint-design/**'
+      - 'docs/tasks/UIR-PR-04/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture-proposal-review-evidence:
+    name: Capture proposal review UI evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture desktop, mobile, and tablet evidence
+        id: visual-test
+        continue-on-error: true
+        run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-04-proposal-review.spec.ts tests/e2e/dsg-pr-01-proposal-review.spec.ts tests/e2e/dsg-pr-02-conflict-bulk.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
+
+      - name: Upload UIR PR 04 visual evidence
+        id: upload-evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uir-pr-04-proposal-review-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .pr-artifacts/UIR-PR-04/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish evidence link and gate result
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.upload-evidence.outputs.artifact-url }}
+          VISUAL_OUTCOME: ${{ steps.visual-test.outcome }}
+        run: |
+          printf '## UIR PR 04 visual evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Final-HEAD 1440x900, 768x1024, and 390x844 proposal review screenshots: [%s](%s)\n\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Playwright visual evidence gate: `%s`.\n' "$VISUAL_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$VISUAL_OUTCOME" != "success" ]; then exit 1; fi
