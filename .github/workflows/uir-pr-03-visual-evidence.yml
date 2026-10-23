@@ -1,0 +1,65 @@
+name: UIR PR 03 visual evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/uir-pr-03-visual-evidence.yml'
+      - 'src/components/blueprint/**'
+      - 'src/components/conversation/**'
+      - 'src/components/layout/BlueprintShell.tsx'
+      - 'src/pages/ProjectPage.tsx'
+      - 'src/styles/app-shell.css'
+      - 'src/styles/workspace-shell.css'
+      - 'src/styles/question-card.css'
+      - 'tests/e2e/uir-pr-03-stage-conversation.spec.ts'
+      - 'docs/blueprint-design/**'
+      - 'docs/tasks/UIR-PR-03/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture-conversation-evidence:
+    name: Capture conversation UI evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture desktop, mobile, and source-size comparison
+        id: visual-test
+        continue-on-error: true
+        run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-03-stage-conversation.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
+
+      - name: Upload UIR PR 03 visual evidence
+        id: upload-evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uir-pr-03-conversation-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .pr-artifacts/UIR-PR-03/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish evidence link and gate result
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.upload-evidence.outputs.artifact-url }}
+          VISUAL_OUTCOME: ${{ steps.visual-test.outcome }}
+        run: |
+          printf '## UIR PR 03 visual evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Source-size comparison and 1440x900 / 390x844 screenshots: [%s](%s)\n\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Unmasked 1672x941 pixel gate: `%s` (the required threshold is 95.00%%).\n' "$VISUAL_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$VISUAL_OUTCOME" != "success" ]; then exit 1; fi

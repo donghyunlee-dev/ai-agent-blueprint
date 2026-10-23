@@ -45,6 +45,18 @@ test.beforeEach(async ({ page }) => {
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId });
 });
 
+test('captures the primary conversation frame at the required desktop and mobile viewport', async ({ page }, testInfo) => {
+  const viewport = testInfo.project.name === 'mobile-chromium' ? { width: 390, height: 844 } : { width: 1440, height: 900 };
+  await page.setViewportSize(viewport);
+  await page.goto(`/blueprints/${projectId}`);
+  await expect(page.getByRole('navigation', { name: '프로젝트 단계' })).toBeVisible();
+  await expect(page.locator('.ai-turn-composer')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+  const directory = new URL(artifactDirectory);
+  await mkdir(directory, { recursive: true });
+  await page.screenshot({ path: new URL(`conversation-${viewport.width}x${viewport.height}.png`, directory).pathname, fullPage: false });
+});
+
 test('conversation frame matches the full 1672x941 reference canvas and preserves reading order', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'The source-size comparison runs once on desktop Chromium.');
   await page.setViewportSize({ width: 1672, height: 941 });
