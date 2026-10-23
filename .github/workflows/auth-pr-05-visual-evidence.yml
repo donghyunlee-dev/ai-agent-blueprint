@@ -1,0 +1,56 @@
+name: AUTH PR 05 visual evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/auth-pr-05-visual-evidence.yml'
+      - 'src/pages/LoginPage.tsx'
+      - 'src/styles/auth.css'
+      - 'tests/e2e/auth.spec.ts'
+      - 'docs/tasks/AUTH-PR-05/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture-login-evidence:
+    name: Capture login redirect and error states
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture desktop and mobile login evidence
+        run: ./node_modules/.bin/playwright test tests/e2e/auth.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
+
+      - name: Upload AUTH PR 05 visual evidence
+        id: upload-evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-pr-05-login-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .pr-artifacts/AUTH-PR-05/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish evidence link
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.upload-evidence.outputs.artifact-url }}
+          TEST_OUTCOME: ${{ job.status }}
+        run: |
+          printf '## AUTH PR 05 visual evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Final-HEAD desktop/mobile redirect toast and callback error screenshots: [%s](%s)\n\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Auth browser suite status: `%s`.\n' "$TEST_OUTCOME" >> "$GITHUB_STEP_SUMMARY"

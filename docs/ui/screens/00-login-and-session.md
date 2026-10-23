@@ -30,7 +30,7 @@ At narrow widths, the Windsoft mark remains in the login panel and does not over
 | --- | --- | --- |
 | `F-AUTH-CHECK` | “로그인 상태를 확인하고 있습니다.” | Announce once through a polite live region; do not expose protected content. |
 | `F-LOGIN` | ideon mark and `Google로 시작하기` | The button starts the existing Google OAuth flow with a safe internal `returnTo`. |
-| `F-AUTH-REDIRECT` | “Google 로그인 화면으로 이동하고 있습니다.” | Announce busy state and prevent duplicate starts. |
+| `F-AUTH-REDIRECT` | Bottom-right toast: “Google 로그인 화면으로 이동하고 있습니다.” for 3 seconds | Keep the login screen and Google button label in place; disable the button while redirecting, announce the toast once through a polite status region without moving focus to it, and prevent duplicate starts. The existing OAuth navigation starts after 100 ms without waiting for the toast timer. |
 | `F-AUTH-ERROR` | “로그인을 완료하지 못했습니다. 다시 시도해 주세요.” | Use a generic alert, move focus to it, and allow retry. Never expose provider error details. |
 | `F-SESSION-EXPIRED` | “로그인 세션이 만료되었습니다. 다시 로그인해 주세요.” | Use an alert, retain a safe in-app destination, and prompt reauthentication. |
 
@@ -48,4 +48,5 @@ At narrow widths, the Windsoft mark remains in the login panel and does not over
 - Give the Google action the accessible name `Google로 시작하기`; treat its Google icon and chevron as decorative.
 - Give the Windsoft mark its brand alternative text. The office photo is decorative and hidden from assistive technology, including when the mobile layout hides it.
 - Loading states include readable text; color alone does not identify errors. Preserve keyboard operation, visible focus, live-region announcements, and reduced-motion support.
+- The redirect status toast is fixed at the bottom right, does not cover the Google action at desktop or mobile widths, and uses no motion when reduced motion is requested.
 - All user-facing state copy is Korean; product names and Google retain their names.

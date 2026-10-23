@@ -97,6 +97,24 @@
   text-align: center;
 }
 
+.auth-redirect-toast {
+  position: fixed;
+  z-index: 30;
+  right: 24px;
+  bottom: 24px;
+  max-width: min(420px, calc(100vw - 48px));
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid #d6e0ef;
+  border-radius: 12px;
+  background: #fff;
+  color: #183160;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: 0 8px 28px rgb(18 39 76 / 18%);
+}
+
 .auth-menu { position: fixed; z-index: 20; top: 12px; right: 20px; }
 .auth-menu-trigger { display: flex; align-items: center; gap: 9px; max-width: min(350px, calc(100vw - 40px)); padding: 7px 11px 7px 7px; border: 1px solid var(--color-border); border-radius: 999px; background: #fff; color: var(--color-text-body); font-size: 13px; cursor: pointer; box-shadow: var(--shadow-sm); }
 .auth-menu-trigger:focus-visible, .auth-menu-logout:focus-visible { outline: 3px solid #78aaff; outline-offset: 3px; }
@@ -123,6 +141,7 @@
   .auth-google-label { grid-column: 2; transform: none; }
   .auth-google-chevron { position: static; grid-column: 3; justify-self: end; width: 24px; height: 24px; transform: none; }
   .auth-alert { margin: -24px 0 -28px; }
+  .auth-redirect-toast { right: 16px; bottom: 16px; max-width: none; }
   .auth-menu { top: 8px; right: 10px; }
   .auth-menu-trigger { max-width: 210px; padding-right: 8px; font-size: 12px; }
   .auth-menu-email { max-width: 128px; }
