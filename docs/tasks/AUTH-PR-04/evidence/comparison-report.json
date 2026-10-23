@@ -1,0 +1,39 @@
+{
+  "algorithm": "Unmasked RGB pixel comparison; pixel matches if max absolute per-channel difference <= 24; no scaling, cropping, or excluded regions.",
+  "route": "/login",
+  "state": "default unauthenticated login",
+  "fixture": "F-LOGIN",
+  "focusState": "The Google action receives initial programmatic focus and its focus-visible outline is included in the rendered capture.",
+  "viewportCssPx": {
+    "width": 1586,
+    "height": 992
+  },
+  "totalPixels": 1573312,
+  "matchingPixels": 1554232,
+  "nonMatchingPixels": 19080,
+  "maximumPerChannelDeltaForMatch": 24,
+  "maximumObservedPerChannelDelta": 255,
+  "meanMaximumPerChannelDelta": 2.2227,
+  "similarityPercent": 98.7873,
+  "thresholdPercent": 95,
+  "passed": true,
+  "sourcePath": "docs/blueprint-design/윈도우 오피스와 미니멀 로그인 화면.png",
+  "implementationHeadSha": "aa888780729ff5018c1616b8ee45f0a929d4b72c",
+  "implementationWorkingTreeDirty": false,
+  "artifacts": [
+    "login-1586x992-reference.png",
+    "login-1586x992-render.png",
+    "login-1586x992-overlay.png",
+    "login-1586x992-heatmap.png",
+    "login-1440x900.png",
+    "login-390x844.png"
+  ],
+  "sha256": {
+    "login-1586x992-reference.png": "962fc1c9acc899a0e01cf5ac599da85f302c35219eaa73c065a779300ae08009",
+    "login-1586x992-render.png": "73fde48e66b080af0ee88cdf43e339b3b3875afd2bf2a4a0252d7dae0fcec307",
+    "login-1586x992-overlay.png": "8a76be1d3c74150a54adc10248d1e9bcc1be25a30b6dcf4eaa28c98900c081be",
+    "login-1586x992-heatmap.png": "3fe191a45befab4a9b75138c8e85149a4a517b879bc7895ba56606d65ff632ae",
+    "login-1440x900.png": "78c7b0cf69b0a1967d9a934aa71f00965c762768bb43af0c58970a6dd525bf5a",
+    "login-390x844.png": "ab70d306784eeb20d62f682804e17dad8684cb938c2cbd9da1a3056185d1ce9a"
+  }
+}
