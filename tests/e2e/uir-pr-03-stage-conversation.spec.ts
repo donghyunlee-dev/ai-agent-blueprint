@@ -57,6 +57,14 @@ test('captures the primary conversation frame at the required desktop and mobile
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(page.locator('.workspace-first-message')).toBeInViewport();
     await expect(page.locator('.conversation-message-row-user .conversation-avatar svg')).toHaveCSS('width', '24px');
+  } else {
+    const composerInsets = await page.evaluate(() => {
+      const panel = document.querySelector('.workspace-conversation')!.getBoundingClientRect();
+      const composer = document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
+      return { left: composer.left - panel.left, right: panel.right - composer.right };
+    });
+    expect(composerInsets.left).toBeCloseTo(30, 0);
+    expect(composerInsets.right).toBeCloseTo(30, 0);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
   const directory = new URL(artifactDirectory);
