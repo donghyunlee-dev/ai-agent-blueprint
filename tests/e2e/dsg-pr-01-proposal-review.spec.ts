@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
 
@@ -20,18 +21,23 @@ test.beforeEach(async ({ page }) => {
   }, {databaseName:databaseNameForOwner(ownerKey),ownerKey,projectId});
 });
 
-test('keeps pending values unconfirmed and supports keyboard editing, approval and rejection', async ({ page }) => {
-  await page.goto(`/blueprints/${projectId}/design`);
+test('keeps pending values unconfirmed and supports keyboard editing, approval and rejection', async ({ page }, testInfo) => {
+  await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
+  await expect(page.getByRole('heading',{name:'이해한 내용을 확인해 주세요'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'확정 내용'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'제안 2개'})).toBeVisible();
+  await mkdir('.pr-artifacts/UIR-PR-04', { recursive: true });
+  await page.screenshot({ path: `.pr-artifacts/UIR-PR-04/${testInfo.project.name}-pending.png` });
   await expect(page.getByRole('heading',{name:'예약 담당자'})).toBeVisible();
   const first=page.locator('[data-proposal-card="proposal-edit"]');
   await first.getByRole('button',{name:'수정 후 승인'}).click();
+  await page.screenshot({ path: `.pr-artifacts/UIR-PR-04/${testInfo.project.name}-edit.png` });
   await first.getByRole('textbox',{name:'제목'}).fill('수정된 예약 담당자');
   await first.getByRole('textbox',{name:'설명'}).fill('수정된 설명입니다.');
   await first.getByRole('button',{name:'수정값 승인'}).press('Enter');
   await expect(page.getByRole('heading',{name:'제안 1개'})).toBeVisible();
   await page.locator('[data-proposal-card="proposal-reject"]').getByRole('button',{name:'거절'}).click();
-  await expect(page.getByRole('heading',{name:/설계 작업을 시작/})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'검토할 제안이 없습니다'})).toBeVisible();
   const ownerKey=await deriveOwnerKey(identity);
   const persisted=await page.evaluate(async ({databaseName,projectId})=>{
     const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
@@ -47,8 +53,8 @@ test('keeps pending values unconfirmed and supports keyboard editing, approval a
   expect(persisted.activities).toHaveLength(2);
 });
 
-test('reports repository transaction failure while keeping the proposal pending', async ({ page }) => {
-  await page.goto(`/blueprints/${projectId}/design`);
+test('reports repository transaction failure while keeping the proposal pending', async ({ page }, testInfo) => {
+  await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
   await expect(page.getByRole('heading',{name:'제안 2개'})).toBeVisible();
   await page.evaluate(() => {
     const original = IDBDatabase.prototype.transaction;
@@ -59,7 +65,31 @@ test('reports repository transaction failure while keeping the proposal pending'
   });
   await page.locator('[data-proposal-card="proposal-edit"]').getByRole('button',{name:'승인',exact:true}).click();
   await expect(page.locator('.proposal-review-error')).toContainText('저장하지 못했습니다');
+  await mkdir('.pr-artifacts/UIR-PR-04', { recursive: true });
+  await page.screenshot({ path: `.pr-artifacts/UIR-PR-04/${testInfo.project.name}-persistence-failure.png` });
   await expect(page.getByRole('heading',{name:'제안 2개'})).toBeVisible();
+});
+
+test('shows the proposal review empty state instead of the design board when no proposals remain', async ({ page }, testInfo) => {
+  const ownerKey = await deriveOwnerKey(identity);
+  await page.evaluate(async ({ databaseName, projectId }) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(databaseName, 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const tx = db.transaction('projects', 'readwrite');
+    const store = tx.objectStore('projects');
+    const request = store.get(projectId);
+    request.onsuccess = () => { const record = request.result; record.proposals = record.proposals.map((proposal: any) => ({ ...proposal, status: 'rejected' })); record.project.readiness.pendingProposalCount = 0; store.put(record); };
+    await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); });
+    db.close();
+  }, { databaseName: databaseNameForOwner(ownerKey), projectId });
+  await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
+  await expect(page.getByRole('heading', { name: '이해한 내용을 확인해 주세요' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '검토할 제안이 없습니다' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /설계 개요/ })).toHaveCount(0);
+  await expect(page.getByText(/참고 자료|자료 추가/)).toHaveCount(0);
+  await expect(page.locator('.proposal-stage-count')).toHaveCount(2);
+  await expect(page.locator('.proposal-stage-count').first()).toHaveText('0개');
+  await mkdir('.pr-artifacts/UIR-PR-04', { recursive: true });
+  await page.screenshot({ path: `.pr-artifacts/UIR-PR-04/${testInfo.project.name}-empty.png` });
 });
 
 test('does not offer edit for delete proposals and archives only after plain approval', async ({ page }) => {
@@ -70,7 +100,7 @@ test('does not offer edit for delete proposals and archives only after plain app
     request.onsuccess=()=>{const record=request.result;const now='2026-10-14T00:00:00.000Z';record.designItems=[{id:'delete-target',projectId,type:'user_role',title:'이전 예약 담당자',description:'기존 설명',status:'confirmed',attributes:{},evidence:[],acceptanceCriteria:[],relatedItemIds:[],createdAt:now,updatedAt:now}];const proposal=record.proposals.find((item:any)=>item.id==='proposal-edit');proposal.operation='delete';proposal.targetId='delete-target';proposal.before={title:'이전 예약 담당자'};delete proposal.after;store.put(record);};
     await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
   },{databaseName:databaseNameForOwner(ownerKey),projectId});
-  await page.goto(`/blueprints/${projectId}/design`);
+  await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
   const card=page.locator('[data-proposal-card="proposal-edit"]');
   await expect(card.getByText(/제안 1 · 삭제/)).toBeVisible();
   await expect(card.getByRole('button',{name:'수정 후 승인'})).toHaveCount(0);
