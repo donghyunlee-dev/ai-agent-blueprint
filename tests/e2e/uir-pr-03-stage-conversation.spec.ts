@@ -57,6 +57,14 @@ test('captures the primary conversation frame at the required desktop and mobile
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(page.locator('.workspace-first-message')).toBeInViewport();
     await expect(page.locator('.conversation-message-row-user .conversation-avatar svg')).toHaveCSS('width', '24px');
+    const composerInsets = await page.evaluate(() => {
+      const panel = document.querySelector('.workspace-conversation')!.getBoundingClientRect();
+      const composer = document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
+      return { left: composer.left - panel.left, right: panel.right - composer.right, contained: composer.left >= panel.left && composer.right <= panel.right };
+    });
+    expect(composerInsets.contained, `mobile composer geometry ${JSON.stringify(composerInsets)}`).toBe(true);
+    expect(composerInsets.left).toBeCloseTo(10, 0);
+    expect(composerInsets.right).toBeCloseTo(10, 0);
   } else {
     const composerInsets = await page.evaluate(() => {
       const panel = document.querySelector('.workspace-conversation')!.getBoundingClientRect();
@@ -70,6 +78,31 @@ test('captures the primary conversation frame at the required desktop and mobile
   const directory = new URL(artifactDirectory);
   await mkdir(directory, { recursive: true });
   await page.screenshot({ path: new URL(`conversation-${viewport.width}x${viewport.height}.png`, directory).pathname, fullPage: false, scale: testInfo.project.name === 'mobile-chromium' ? 'css' : 'device' });
+});
+
+test('composer stays inside tablet and mobile conversation panels', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Tablet and mobile viewport evidence is captured once on desktop Chromium.');
+  const viewports = [
+    { name: 'tablet', width: 768, height: 1024, inset: 30 },
+    { name: 'mobile-contained', width: 390, height: 844, inset: 10 },
+  ];
+  const directory = new URL(artifactDirectory);
+  await mkdir(directory, { recursive: true });
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto(`/blueprints/${projectId}`);
+    await expect(page.locator('.workspace-conversation')).toBeVisible();
+    await expect(page.locator('.ai-turn-composer')).toBeVisible();
+    const composerInsets = await page.evaluate(() => {
+      const panel = document.querySelector('.workspace-conversation')!.getBoundingClientRect();
+      const composer = document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
+      return { left: composer.left - panel.left, right: panel.right - composer.right, contained: composer.left >= panel.left && composer.right <= panel.right };
+    });
+    expect(composerInsets.contained, `${viewport.name} composer remains contained: ${JSON.stringify(composerInsets)}`).toBe(true);
+    expect(composerInsets.left, `${viewport.name} composer left inset`).toBeCloseTo(viewport.inset, 0);
+    expect(composerInsets.right, `${viewport.name} composer right inset`).toBeCloseTo(viewport.inset, 0);
+    await page.screenshot({ path: new URL(`conversation-${viewport.name}-${viewport.width}x${viewport.height}.png`, directory).pathname, fullPage: false, scale: 'css' });
+  }
 });
 
 test('prior answer edit is styled and reopens the question', async ({ page }) => {
