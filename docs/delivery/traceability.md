@@ -71,9 +71,9 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | --- | --- | --- | --- |
 | UIR-001 시각 기준 | UIR-PR-01 | 이미지 7장, 화면별 fallback, 비범위와 링크 | in_progress |
 | UIR-002 범위 보존 | UIR-PR-01~06 | 기존 route/data/action과 미지원 메뉴 부재 | in_progress |
-| UIR-003 공통 셸·홈 | UIR-PR-02, UIR-PR-02C, UIR-PR-02D, UIR-PR-02E | 시작·파일·최근·한도, 시안 픽셀 일치, 짧은 화면 높이 대응 | in_progress |
-| UIR-004 단계 프레임 | UIR-PR-03 (after UIR-PR-02E merge) | 5단계 현재 위치·gate·직접 URL | planned |
-| UIR-005 대화 | UIR-PR-03 | 질문·답·summary·job·composer | planned |
+| UIR-003 공통 셸·홈 | UIR-PR-02, UIR-PR-02C, UIR-PR-02D, UIR-PR-02E (PR #40, merge `921d8df2462e7659dbed81cdcdd156d11e916205`) | 시작·파일·최근·한도, 시안 픽셀 일치, 짧은 화면 높이 대응; PR #40 review/QA passed | done |
+| UIR-004 단계 프레임 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md) | 5단계 현재 위치·gate·직접 URL | in_progress |
+| UIR-005 대화 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md) | 질문·답·summary·job·composer 및 ≥95% full-canvas pixel comparison | in_progress |
 | UIR-006 제안 검토 | UIR-PR-04 | 단건·수정·거절·일괄·충돌 transaction | planned |
 | UIR-007 준비도 표현 | UIR-PR-05 | 10개 원본 영역의 5개 카드 표현과 기존 gate | planned |
 | UIR-008 문서 | UIR-PR-06 | Requirements·PRD 상태·편집·보완·내보내기 | planned |

@@ -182,7 +182,7 @@ function buildReadinessPresentationGroups(readiness: DesignReadiness): Readiness
 
 PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝트 영역이 주 시안과 크게 어긋난 것을 확인했다. PR #37은 홈 배치를 조정했지만 사용자는 최종 화면이 시안과 일치하지 않는다고 판단했다. 기준 시안과 실제 렌더의 픽셀 단위 비교를 거쳐 95% 이상 일치하는 corrective unit `UIR-PR-02C`를 PR #37 뒤에 추가한다. #37의 병합은 검증된 픽셀 동등성으로 간주하지 않는다. 상세 수용 기준과 증거 목록은 [UIR-PR-02C 계획](../../tasks/UIR-PR-02C/plan.md)을 따른다.
 
-`UIR-PR-02B` (#37)와 `UIR-PR-02C` (#38, merge `2d9a32f`)는 병합됐다. Preview에서 확인한 홈의 배경 경계, 공통 중심선, 다중 행 입력, `전체 보기` 화살표 간격을 보정하는 `UIR-PR-02D`를 추가하고, 병합 후 `UIR-PR-03`을 시작한다. 상세 수용 기준과 픽셀·기능 검증은 [UIR-PR-02D 계획](../../tasks/UIR-PR-02D/plan.md)을 따른다.
+`UIR-PR-02B` (#37), `UIR-PR-02C` (#38, merge `2d9a32f`), `UIR-PR-02D` (#39, merge `8148725`)와 `UIR-PR-02E` (#40, merge `921d8df2462e7659dbed81cdcdd156d11e916205`)가 모두 병합됐다. 다음은 [UIR-PR-03 단계·대화 계획](../../tasks/UIR-PR-03/plan.md)이며, 해당 단위의 full-canvas pixel comparison과 기능·접근성 검증 기준을 따른다.
 
 ### UIR-PR-02D: 홈 정렬·입력 보정
 
@@ -196,6 +196,8 @@ PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝
 - [ ] 1440×900과 390×844 최종 HEAD 캡처, 구현자 자체 검증, 독립 코드 리뷰, 독립 QA를 통과하고 `ready_to_merge`로 대기한다.
 
 ### UIR-PR-03: 프로젝트 단계 frame과 대화
+
+실행 가능한 범위, 수용 기준, ≥95% 무마스크 픽셀 비교 및 상태별 검증은 [UIR-PR-03 작업 계획](../../tasks/UIR-PR-03/plan.md)을 따른다.
 
 **결과/요구사항:** 5단계 위치·gate와 기존 대화 흐름. UIR-004, UIR-005.
 

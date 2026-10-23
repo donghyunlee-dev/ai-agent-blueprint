@@ -300,8 +300,8 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | 4 | [`UIR-PR-02B`](../tasks/UIR-PR-02B/plan.md) 홈 화면 시안 배치 보정 | UIR-PR-02A merged | merged (#37, `45649ab`) |
 | 5 | [`UIR-PR-02C`](../tasks/UIR-PR-02C/plan.md) 홈 픽셀 일치 보정 | UIR-PR-02B merged | merged (PR #38; merge `2d9a32f`) |
 | 6 | [`UIR-PR-02D`](../tasks/UIR-PR-02D/plan.md) 홈 정렬·입력 보정 | UIR-PR-02C merged | merged (PR #39; merge `8148725`) |
-| 7 | [`UIR-PR-02E`](../tasks/UIR-PR-02E/plan.md) 짧은 데스크톱 홈 첫 화면 맞춤 | UIR-PR-02D merged | in_progress |
-| 8 | `UIR-PR-03` 단계·대화 | UIR-PR-02E merged | planned |
+| 7 | [`UIR-PR-02E`](../tasks/UIR-PR-02E/plan.md) 짧은 데스크톱 홈 첫 화면 맞춤 | UIR-PR-02D merged | merged (PR #40; merge `921d8df2462e7659dbed81cdcdd156d11e916205`) |
+| 8 | [`UIR-PR-03`](../tasks/UIR-PR-03/plan.md) 단계·대화 | UIR-PR-02E merged (#40) | in_progress |
 | 9 | `UIR-PR-04` 제안 검토 | UIR-PR-03 merged | planned |
 | 10 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | planned |
 | 11 | `UIR-PR-06` 문서·지원 흐름 | UIR-PR-05 merged | planned |

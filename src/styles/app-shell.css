@@ -16,6 +16,10 @@
 .blueprint-topbar .auth-menu-panel { z-index: 25; }
 .blueprint-shell-content { min-width: 0; }
 .blueprint-shell :focus-visible { outline: 3px solid var(--color-primary); outline-offset: 3px; }
+.blueprint-shell:has(.workspace-shell) { grid-template-columns: 249px minmax(0, 1fr); }
+.blueprint-shell:has(.workspace-shell) .blueprint-sidebar-nav a > svg { width: 20px; height: 20px; flex: none; }
+.blueprint-shell:has(.workspace-shell) .blueprint-topbar { height: 65px; }
+.blueprint-shell:has(.workspace-shell) .blueprint-shell-content { height: calc(100dvh - 65px); }
 .blueprint-shell-home {
   grid-template-columns: 250px minmax(0, 1fr);
   background-color: #f8fafc;
@@ -54,6 +58,25 @@
 .blueprint-shell-home .auth-menu-avatar-home { display: grid; width: 40px; height: 40px; flex: none; place-items: center; border-radius: 50%; background: #e7f0ff; color: #1677e8; font-size: 15px; font-weight: 700; }
 .blueprint-shell-home .auth-menu-trigger-home > span:last-child { font-size: 16px; }
 .blueprint-shell-home .auth-menu-trigger-home:focus-visible { outline: 3px solid #1677ff; outline-offset: 4px; }
+.blueprint-shell-project .blueprint-sidebar { padding: 18px 11px 18px 18px; border-color: #e3e9f1; background: rgb(255 255 255 / 95%); }
+.blueprint-shell-project .blueprint-shell-brand { height: 54px; margin: 0 6px 27px; }
+.blueprint-shell-project .windsoft-brand { font-size: 29px; }
+.blueprint-shell-project .blueprint-sidebar-nav { gap: 6px; }
+.blueprint-shell-project .blueprint-sidebar-nav a { min-height: 49px; gap: 23px; padding: 0 18px; border-radius: 10px; color: #102957; font-size: 15px; font-weight: 650; }
+.blueprint-shell-project .blueprint-sidebar-nav a > svg { width: 21px; height: 21px; flex: none; }
+.blueprint-shell-project .blueprint-sidebar-nav a:hover,
+.blueprint-shell-project .blueprint-sidebar-nav a.is-active { background: rgb(237 242 249 / 93%); }
+.blueprint-shell-project .blueprint-sidebar-nav a.is-active { color: #102957; }
+.blueprint-shell-project .blueprint-sidebar-nav a.is-active > svg { fill: #102957; stroke: #102957; stroke-width: 1.5; }
+.blueprint-shell-project .blueprint-sidebar-home-bottom { gap: 20px; padding-bottom: 23px; }
+.blueprint-shell-project .blueprint-topbar { height: 65px; gap: 23px; padding: 0 27px; border: 0; background: transparent; }
+.blueprint-shell-project .blueprint-topbar-title { font-size: 16px; font-weight: 600; }
+.blueprint-shell-project .blueprint-home-notifications { display: grid; width: 42px; height: 42px; place-items: center; border: 0; border-left: 1px solid #c9d4e4; background: transparent; color: #102957; }
+.blueprint-shell-project .blueprint-home-notifications svg { width: 22px; height: 22px; }
+.blueprint-shell-project .auth-menu-trigger-home { max-width: 240px; gap: 11px; padding: 0; border: 0; border-radius: 0; background: transparent; color: #102957; font-size: 14px; box-shadow: none; }
+.blueprint-shell-project .auth-menu-avatar-home { display: grid; width: 40px; height: 40px; flex: none; place-items: center; border-radius: 50%; background: #e7f0ff; color: #1677e8; font-size: 15px; font-weight: 700; }
+.blueprint-shell-project .auth-menu-trigger-home > span:last-child { font-size: 16px; }
+.blueprint-shell-project .auth-menu-trigger-home:focus-visible { outline: 3px solid #1677ff; outline-offset: 4px; }
 @media (max-width: 767px) {
   .blueprint-shell { display: flex; flex-direction: column; }
   .blueprint-sidebar { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; min-height: 56px; padding: 8px 16px; border-right: 0; border-bottom: 1px solid var(--color-border); }
@@ -82,4 +105,15 @@
   .blueprint-shell-home .blueprint-topbar-title { font-size: 13px; }
   .blueprint-shell-home .auth-menu-trigger-home { max-width: 176px; font-size: 11px; }
   .blueprint-shell-home .auth-menu-avatar-home { width: 30px; height: 30px; }
+  .blueprint-shell-project .blueprint-shell-brand { width: 118px; height: 40px; overflow: hidden; margin: 0; }
+  .blueprint-shell-project .windsoft-brand { gap: 5px; font-size: 17px; }
+  .blueprint-shell-project .windsoft-brand svg { width: 36px; height: 36px; }
+  .blueprint-shell-project .blueprint-sidebar { padding: 8px 12px; }
+  .blueprint-shell-project .blueprint-sidebar-nav { gap: 2px; }
+  .blueprint-shell-project .blueprint-sidebar-nav a { min-height: 36px; gap: 4px; padding: 0 7px; font-size: 11px; }
+  .blueprint-shell-project .blueprint-home-notifications { display: none; }
+  .blueprint-shell-project .blueprint-topbar { padding: 0 12px; }
+  .blueprint-shell-project .blueprint-topbar-title { font-size: 13px; }
+  .blueprint-shell-project .auth-menu-trigger-home { max-width: 176px; font-size: 11px; }
+  .blueprint-shell-project .auth-menu-avatar-home { width: 30px; height: 30px; }
 }

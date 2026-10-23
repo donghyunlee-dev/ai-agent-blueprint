@@ -96,7 +96,7 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
     const userMessage: ConversationMessage = { id:crypto.randomUUID(), threadId:current.thread.id, logicalRequestId, role:'user', kind:'text', content:text, createdAt:now };
     const withUserMessage = { ...current, messages:[...current.messages,userMessage], project:{ ...current.project, updatedAt:now } };
     aggregateRef.current = withUserMessage; onAggregateChange(withUserMessage);
-    const context = compactConversationContext({messages:withUserMessage.messages,summary:withUserMessage.thread.summary,threshold:20});
+    const context = compactConversationContext({messages:current.messages,summary:current.thread.summary,threshold:20});
     const contextMessages = context.compacted ? [{id:`summary-${projectId}`,role:'assistant' as const,kind:'text' as const,content:JSON.stringify(context.summary)},...context.originalMessages] : context.originalMessages.filter((message)=>message.role!=='system');
     const sourceExcerpts = selectSourceExcerpts({ projectId, query:[question?.prompt, question?.help, text].filter(Boolean).join('\n'), sources:current.sources });
     const payload = { projectSummary:{projectId,title:current.project.title,designRevision:current.project.designRevision ?? 0}, ...(question ? {question:requestQuestion(question)} : {}), answer:{questionId:question?.id ?? `free_${projectId}`,answerMode:'text',action:'answer',customText:text}, recentMessages:contextMessages.map(({id,role,kind,content})=>({id,role,kind:kind==='question'?'question':'text',content})), relevantDesignItems:current.designItems.filter((item)=>item.status==='confirmed').map(({id,type,key,title,description,attributes})=>({id,type,...(key?{key}:{}),title,description,attributes})), sources:sourceExcerpts };
@@ -112,10 +112,12 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
 
   return <section className="ai-turn-composer" aria-label="AI에게 자유 답변 분석 요청">
     <label htmlFor="ai-turn-draft">AI에 보낼 자유 답변</label>
-    <textarea id="ai-turn-draft" value={draft} onChange={(event)=>setDraft(event.target.value)} rows={3} disabled={busy} />
+    <span className="ai-composer-decoration ai-composer-add" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 5v14M5 12h14" /></svg></span>
+    <textarea id="ai-turn-draft" value={draft} onChange={(event)=>setDraft(event.target.value)} rows={1} placeholder="아이디어를 입력하세요" disabled={busy} />
+    <span className="ai-composer-decoration ai-composer-microphone" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0 0 14 0m-7 7v3m-4 0h8" /></svg></span>
     {unknownJob ? <div className="ai-unknown-recovery" role="alert"><p>요청 결과를 확인할 수 없습니다. 서버에는 결과 조회 API가 없으며, unknown 요청 ID는 24시간 tombstone으로 보호됩니다.</p>{recovery.expired ? <label><input type="checkbox" checked={confirmedUnknownJobId===unknownJob.id} onChange={(event)=>setConfirmedUnknownJobId(event.target.checked?unknownJob.id:null)} />현재 프로젝트 상태를 직접 확인했고, 결과가 반영되지 않은 것을 확인했습니다.</label> : <p>새 요청은 {new Date(recovery.expiresAt ?? 0).toLocaleString()} 이후에만 만들 수 있습니다. 초안은 유지됩니다.</p>}</div> : null}
     {error ? <p role="alert">{error}</p> : null}
     {job?.status==='running' ? <button type="button" onClick={()=>controllerRef.current?.abort()}>AI 요청 취소</button> : null}
-    <AiConsentGate consent={aggregate.project.aiConsent} persistConsent={saveConsent} send={sendDraft}>{({run,busy:gateBusy}) => <button type="button" disabled={busy||gateBusy||!draft.trim()||recovery.blocked} onClick={()=>void run()}>{busy?'분석 중…':'AI로 답변 분석'}</button>}</AiConsentGate>
+    <AiConsentGate consent={aggregate.project.aiConsent} persistConsent={saveConsent} send={sendDraft}>{({run,busy:gateBusy}) => <button type="button" aria-label={busy?'분석 중…':'AI로 답변 분석'} disabled={busy||gateBusy||!draft.trim()||recovery.blocked} onClick={()=>void run()}>{busy?'…':'→'}</button>}</AiConsentGate>
   </section>;
 }

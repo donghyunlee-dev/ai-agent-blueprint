@@ -10,7 +10,9 @@ import type { ProjectRepository } from "../infrastructure/storage/indexeddb-proj
 import { setLastProjectId } from "../features/projects/persistProjectCreation.js";
 import { clampConversationWidth, clampScrollOffset, getConversationScrollTop, getConversationWidth, setConversationScrollTop, setConversationWidth } from "../features/projects/workspacePreferences.js";
 import { QuestionCard } from "../components/conversation/QuestionCard";
-import { ConversationSummary } from "../components/conversation/ConversationSummary";
+import { ConversationWorkspace } from "../components/conversation/ConversationWorkspace";
+import { BlueprintStageNav } from "../components/blueprint/BlueprintStageNav";
+import type { BlueprintStage } from "../components/blueprint/BlueprintStageNav";
 import { GenerationJobStatus } from "../components/conversation/GenerationJobStatus";
 import { DisplayBlocks } from "../components/blueprint/display-blocks/DisplayBlocks";
 import { compactConversationContext } from "../features/conversation/context-compaction-view.js";
@@ -54,6 +56,15 @@ function formatConflictValue(value: unknown, targetType: BlueprintAggregate["pro
   const fields = targetType === "design_item" ? [["항목", "title"], ["설명", "description"]] : targetType === "acceptance_criterion" ? [["수용 기준", "text"]] : [["섹션 제목", "title"], ["문서 내용", "markdown"]];
   const lines = fields.flatMap(([label, key]) => record[key] === undefined || record[key] === null || record[key] === "" ? [] : [`${label}: ${String(record[key])}`]);
   return lines.length ? lines.join(" · ") : "저장된 값 없음";
+}
+
+function ConversationAvatar({ role }: { role: "user" | "assistant" }) {
+  return <span className={`conversation-avatar conversation-avatar-${role}`} aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d={role === "user" ? "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" : "m12 2 1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"} /></svg></span>;
+}
+
+function formatConversationTime(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat("ko-KR", { hour: "numeric", minute: "2-digit" }).format(date);
 }
 
 function EvidencePreview({ evidence, sources }: { evidence:EvidenceRef; sources:SourceDocument[] }) {
@@ -259,15 +270,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
   useEffect(() => {
     if (!aggregate || loadStatus !== "ready") return;
-    if (!documentType) {
-      navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/${aggregate.project.activeDocumentType}`, { replace: true });
-      return;
-    }
     if (documentType === "requirements" && !computeDesignReadiness(aggregate).canGenerateRequirements) {
       navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/design`, { replace: true });
       return;
     }
-    if (documentType !== aggregate.project.activeDocumentType) {
+    if (documentType && documentType !== aggregate.project.activeDocumentType) {
       const updated: BlueprintAggregate = {
         ...aggregate,
         project: { ...aggregate.project, activeDocumentType: documentType as BlueprintAggregate["project"]["activeDocumentType"], updatedAt: new Date().toISOString() },
@@ -618,6 +625,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
   const compactedConversation = compactConversationContext({ messages: aggregate.messages, summary: aggregate.thread.summary, threshold: 20 });
   const visibleConversationMessages = compactedConversation.compacted ? compactedConversation.originalMessages : aggregate.messages;
+  const firstVisibleUserMessage = visibleConversationMessages.find((message) => message.role === "user");
   const visibleSummary = compactedConversation.summary ?? aggregate.thread.summary;
   const reopenedAnswer = aggregate.answers.find((answer) => answer.id === reopenedQuestionAnswerId);
   const activeQuestion = reopenedAnswer ? QUESTION_CATALOG.find((question) => question.id === reopenedAnswer.questionId) ?? null : selectNextQuestion(aggregate);
@@ -625,6 +633,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const currentProjectId = aggregate.project.id;
   const selectedDesignItem = aggregate.designItems.find((item) => item.id === selectedDesignItemId && !item.archivedAt) ?? null;
   const designBoardVisible = documentType === "design" || (documentType === "requirements" && !designReadiness.canGenerateRequirements);
+  const currentStage: BlueprintStage = documentType === "requirements" ? "requirements" : documentType === "prd" || documentType === "setup_guide" ? "prd" : documentType === "design" ? location.hash === "#proposal-review-title" ? "proposal" : "design" : "conversation";
+  const prdReady = validatePrdAllowed(aggregate).allowed;
 
   function openDesignItem(item: BlueprintAggregate["designItems"][number]) {
     setSelectedDesignItemId(item.id);
@@ -782,10 +792,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   }
 
   return (
-    <main className="workspace-shell" style={{ "--workspace-conversation-width": `${conversationWidth}px` } as CSSProperties} data-mobile-mode={mobileMode}>
+    <main className="workspace-shell" style={{ "--workspace-conversation-width": `${conversationWidth}px` } as CSSProperties} data-mobile-mode={mobileMode} data-stage={currentStage}>
       <header className="workspace-appbar">
         <Link to="/" className="workspace-home-link" aria-label="홈으로">⌂</Link>
         <label className="workspace-title-wrap" title={titleDraft}>
+          <span className="workspace-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1Z" /></svg></span>
           <span className="workspace-sr-only">프로젝트 제목</span>
           <input className="workspace-title-input" value={titleDraft} maxLength={100} aria-invalid={titleInvalid} aria-label="프로젝트 제목" aria-describedby={titleInvalid ? 'project-title-error project-save-state' : 'project-save-state'} onChange={(event) => editTitle(event.target.value)} />
         </label>
@@ -797,10 +808,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         </nav>
         <div className="workspace-save-area">
           {titleInvalid ? <span id="project-title-error" className="workspace-title-error" role="alert">프로젝트 제목을 입력해 주세요.</span> : null}
-          {saveState.status === "failed" ? <div id="project-save-state" className="workspace-save-state is-failed" role="alert"><span>저장 실패</span><button type="button" onClick={() => { void saverRef.current?.retry(); }}>다시 시도</button></div> : <span id="project-save-state" className={`workspace-save-state is-${saveState.status}`} role="status">{saveState.status === "saving" ? "저장 중" : `저장됨${formatSavedTime(saveState.savedAt ?? aggregate.project.updatedAt) ? ` · ${formatSavedTime(saveState.savedAt ?? aggregate.project.updatedAt)}` : ""}`}</span>}
+          {saveState.status === "failed" ? <div id="project-save-state" className="workspace-save-state is-failed" role="alert"><span>저장 실패</span><button type="button" onClick={() => { void saverRef.current?.retry(); }}>다시 시도</button></div> : <span id="project-save-state" className={`workspace-save-state is-${saveState.status}${saveState.status === "saved" ? " workspace-sr-only" : ""}`} role="status">{saveState.status === "saving" ? "저장 중" : `저장됨${formatSavedTime(saveState.savedAt ?? aggregate.project.updatedAt) ? ` · ${formatSavedTime(saveState.savedAt ?? aggregate.project.updatedAt)}` : ""}`}</span>}
         </div>
         <button className="workspace-export" type="button" disabled title="내보내기는 다음 단계에서 제공됩니다">내보내기</button>
       </header>
+      <BlueprintStageNav projectId={aggregate.project.id} current={currentStage} requirementsReady={designReadiness.canGenerateRequirements} prdReady={prdReady} />
       <h1 className="workspace-sr-only">{aggregate.project.title}</h1>
       <nav className="workspace-mobile-tabs" role="tablist" aria-label="작업 패널" onKeyDown={(event) => {
         const modes = ["conversation", "work", "review"] as const;
@@ -817,14 +829,18 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       }}>
         {([["conversation", "대화"], ["work", documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)], ["review", "검토"]] as const).map(([mode, label]) => <button key={mode} id={`workspace-mode-tab-${mode}`} type="button" role="tab" data-mode-tab={mode} aria-controls={`workspace-${mode}-panel`} aria-selected={mobileMode === mode} tabIndex={mobileMode === mode ? 0 : -1} onClick={() => selectMode(mode)}>{label}</button>)}
       </nav>
-      <div className="workspace-panels">
+      <div className="workspace-panels" data-stage={currentStage}>
+        <ConversationWorkspace summary={visibleSummary}>
         <section ref={conversationRef} id="workspace-conversation-panel" className="workspace-panel workspace-conversation" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-conversation" : undefined} aria-label={modeTabsVisible ? undefined : "대화"} tabIndex={0}>
           <header className="workspace-panel-heading"><h1>대화</h1><span>초기 아이디어</span></header>
           <div className="workspace-conversation-content">
-            {visibleSummary ? <ConversationSummary summary={visibleSummary} /> : null}
-            {visibleConversationMessages.filter((message) => message.role !== "user" || message.id !== aggregate.messages.find((item) => item.role === "user")?.id).map((message) => <article key={message.id} className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{message.blocks ? <DisplayBlocks blocks={message.blocks} questionCatalog={QUESTION_CATALOG} proposalIds={aggregate.proposals.map((proposal) => proposal.id)} onQuestionSubmit={(question,answer,mode)=>saveQuestionAnswer(question,answer,mode)} /> : <p>{message.content}</p>}</article>)}
+            <div className="conversation-message-row conversation-message-row-user"><ConversationAvatar role="user" /><article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{firstVisibleUserMessage?.content ?? (compactedConversation.compacted ? "요약 아래에 최근 대화가 표시됩니다." : "아직 대화가 없습니다.")}</p></article>{firstVisibleUserMessage?.createdAt ? <time className="conversation-message-time" dateTime={firstVisibleUserMessage.createdAt}>{formatConversationTime(firstVisibleUserMessage.createdAt)}</time> : null}</div>
+            {visibleConversationMessages.filter((message) => message.id !== firstVisibleUserMessage?.id).map((message) => <div key={message.id} className={`conversation-message-row conversation-message-row-${message.role}`}>
+              {message.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}
+              <article className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{message.blocks ? <DisplayBlocks blocks={message.blocks} questionCatalog={QUESTION_CATALOG} proposalIds={aggregate.proposals.map((proposal) => proposal.id)} onQuestionSubmit={(question,answer,mode)=>saveQuestionAnswer(question,answer,mode)} /> : <p>{message.content}</p>}</article>
+              {message.createdAt ? <time className="conversation-message-time" dateTime={message.createdAt}>{formatConversationTime(message.createdAt)}</time> : null}
+            </div>)}
             {aggregate.generationJobs.filter((job) => job.status === "queued" || job.status === "running").map((job) => <GenerationJobStatus key={job.id} job={job} onCancel={cancelGenerationJob} />)}
-            <article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{visibleConversationMessages.find((message) => message.role === "user")?.content ?? (compactedConversation.compacted ? "요약 아래에 최근 대화가 표시됩니다." : "아직 대화가 없습니다.")}</p></article>
             <p className="workspace-next-hint">이 대화에서 요구사항을 구체화할 수 있습니다.</p>
             {aggregate.answers.length ? <section className="question-answer-history" aria-label="질문 답변 이력"><h2>이전 답변</h2>{aggregate.answers.map((answer) => {
               const question = QUESTION_CATALOG.find((item) => item.id === answer.questionId);
@@ -832,10 +848,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
               const value = answer.action === "defer" ? "나중에 결정" : answer.action === "skip" ? "건너뜀" : answer.action === "unknown" ? "잘 모르겠어요 · 설명 요청" : answer.action === "recommend" ? "추천 요청 · 검토 전" : [answer.customText, ...(answer.selectedValues ?? []).map((selected) => question?.options?.find((option) => option.value === selected)?.label ?? selected), answer.numberValue === undefined ? "" : String(answer.numberValue), answer.rangeValue ? `${answer.rangeValue.start}–${answer.rangeValue.end}` : "", ...(answer.rankedValues ?? []).map((ranked) => question?.options?.find((option) => option.value === ranked)?.label ?? ranked)].filter(Boolean).join(", ");
               return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{reviewRequired ? <p role="status">선행 답변 변경으로 다시 검토가 필요합니다.</p> : null}{answer.action === "defer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : answer.action === "answer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>수정</button> : null}</article>;
             })}</section> : null}
-            {activeQuestion ? <QuestionCard key={`${activeQuestion.id}-${reopenedQuestionAnswerId ?? "next"}`} question={activeQuestion} onSubmit={(answer, effectiveAnswerMode) => saveQuestionAnswer(activeQuestion, answer, effectiveAnswerMode)} /> : <p className="question-complete-state" role="status">{aggregate.project.readiness.pendingProposalCount ? "제안 검토를 마치면 다음 질문이 이어집니다." : "현재 필요한 질문에 답했습니다."}</p>}
+            {activeQuestion ? <div className="conversation-message-row conversation-message-row-question"><ConversationAvatar role="assistant" /><QuestionCard key={`${activeQuestion.id}-${reopenedQuestionAnswerId ?? "next"}`} question={activeQuestion} onSubmit={(answer, effectiveAnswerMode) => saveQuestionAnswer(activeQuestion, answer, effectiveAnswerMode)} /></div> : <p className="question-complete-state" role="status">{aggregate.project.readiness.pendingProposalCount ? "제안 검토를 마치면 다음 질문이 이어집니다." : "현재 필요한 질문에 답했습니다."}</p>}
             <AiTurnComposer aggregate={aggregate} projectId={aggregate.project.id} question={activeQuestion} onAggregateChange={applyAggregate} persistAggregate={persistAggregateNow} activeTurnCancellationRef={activeTurnCancellationRef} onQuestionSubmit={saveQuestionAnswer} />
           </div>
         </section>
+        </ConversationWorkspace>
         <button className="workspace-resizer" type="button" role="separator" aria-orientation="vertical" aria-label="대화 패널 너비" aria-valuemin={320} aria-valuemax={420} aria-valuenow={conversationWidth} onKeyDown={(event) => {
           if (event.key === "ArrowLeft") { event.preventDefault(); resizeConversation(conversationWidth - 16); }
           if (event.key === "ArrowRight") { event.preventDefault(); resizeConversation(conversationWidth + 16); }
