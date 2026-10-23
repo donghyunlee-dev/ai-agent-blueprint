@@ -30,43 +30,81 @@ test("OAuth 오류는 일반 안내와 재시도를 제공하며 중복 시작�
   await expect(alert).toBeFocused();
   await expect(alert).not.toContainText("access_denied");
   await page.screenshot({ path: `.pr-artifacts/AUTH-PR-04/${testInfo.project.name}-login-error.png`, fullPage: true, scale: "css" });
-  let releaseStart!: () => void;
   await page.route("**/api/auth/google/start?*", async (route) => {
     startCalls += 1;
     expect(new URL(route.request().url()).searchParams.get("returnTo")).toBe("/");
-    await new Promise<void>((resolve) => { releaseStart = resolve; });
-    await route.abort();
+    await route.fulfill({ status: 204, body: "" });
   });
   let startCalls = 0;
-  await page.evaluate(() => {
-    const nativeSetTimeout = window.setTimeout.bind(window);
-    const testWindow = window as Window & { runLoginRedirect?: () => void };
-    window.setTimeout = ((handler: TimerHandler, delay?: number, ...args: unknown[]) => {
-      if (delay === 100 && typeof handler === "function") {
-        testWindow.runLoginRedirect = () => handler(...args);
-        return 1;
-      }
-      return nativeSetTimeout(handler, delay, ...args);
-    }) as typeof window.setTimeout;
-  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.locator(".auth-google-button").evaluate((button) => {
     button.click();
     button.click();
   });
-  try {
-    const redirectButton = await page.locator(".auth-google-button").evaluate((button) => ({
-      busy: button.getAttribute("aria-busy"),
-      disabled: (button as HTMLButtonElement).disabled,
-      text: button.textContent,
-    }));
-    expect(redirectButton).toEqual({ busy: "true", disabled: true, text: "Google 로그인 화면으로 이동하고 있습니다." });
-    await page.screenshot({ path: `.pr-artifacts/AUTH-PR-04/${testInfo.project.name}-login-redirect.png`, fullPage: true, scale: "css" });
-    await page.evaluate(() => (window as Window & { runLoginRedirect?: () => void }).runLoginRedirect?.());
-    await expect.poll(() => typeof releaseStart).toBe("function");
-    expect(startCalls).toBe(1);
-  } finally {
-    releaseStart?.();
-  }
+  const redirectButton = await page.locator(".auth-google-button").evaluate((button) => ({
+    busy: button.getAttribute("aria-busy"),
+    disabled: (button as HTMLButtonElement).disabled,
+    text: button.textContent,
+  }));
+  expect(redirectButton).toEqual({ busy: "true", disabled: true, text: "Google로 시작하기" });
+  const toast = page.getByRole("status");
+  await expect(toast).toHaveText("Google 로그인 화면으로 이동하고 있습니다.");
+  await expect(toast).toHaveAttribute("aria-live", "polite");
+  await expect(page.getByRole("alert")).toBeFocused();
+  const toastBox = await page.locator(".auth-redirect-toast").boundingBox();
+  const buttonBox = await page.locator(".auth-google-button").boundingBox();
+  const motion = await page.locator(".auth-redirect-toast").evaluate((element) => ({
+    animationName: getComputedStyle(element).animationName,
+    transitionDuration: getComputedStyle(element).transitionDuration,
+  }));
+  expect(toastBox).not.toBeNull();
+  expect(buttonBox).not.toBeNull();
+  expect(toastBox!.x + toastBox!.width).toBeLessThanOrEqual(testInfo.project.name.startsWith("mobile") ? 390 : 1440);
+  expect(toastBox!.y + toastBox!.height).toBeLessThanOrEqual(testInfo.project.name.startsWith("mobile") ? 844 : 900);
+  expect(toastBox!.y >= buttonBox!.y + buttonBox!.height || toastBox!.y + toastBox!.height <= buttonBox!.y).toBe(true);
+  expect(motion).toEqual({ animationName: "none", transitionDuration: "0s" });
+  await page.screenshot({ path: `.pr-artifacts/AUTH-PR-05/${testInfo.project.name}-login-error-with-toast.png`, fullPage: true, scale: "css" });
+  await expect.poll(() => startCalls).toBe(1);
+  await expect(page.getByRole("heading", { name: "ideon" })).toBeVisible();
+  await expect(toast).toHaveCount(1);
+  await page.waitForTimeout(2500);
+  await expect(toast).toHaveCount(1);
+  await page.waitForTimeout(600);
+  await expect(toast).toHaveCount(0);
+});
+
+test("로그인 딥링크 새로고침은 returnTo를 유지한다", async ({ page }) => {
+  await page.route("**/api/auth/session", (route) => route.fulfill({ status: 401, json: { error: "AUTH_REQUIRED" } }));
+  await page.goto("/login?returnTo=%2F");
+  await expect(page).toHaveURL("/login?returnTo=%2F");
+  await expect(page.getByRole("heading", { name: "ideon" })).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL("/login?returnTo=%2F");
+  await expect(page.getByRole("heading", { name: "ideon" })).toBeVisible();
+});
+
+test("기본 로그인 화면은 Google 이동 Toast를 버튼 아래에 표시하고 포커스를 유지한다", async ({ page }, testInfo) => {
+  await page.route("**/api/auth/session", (route) => route.fulfill({ status: 401, json: { error: "AUTH_REQUIRED" } }));
+  await page.route("**/api/auth/google/start?*", (route) => route.fulfill({ status: 204, body: "" }));
+  await page.goto("/login?returnTo=%2F");
+
+  const button = page.getByRole("button", { name: "Google로 시작하기" });
+  await expect(button).toBeFocused();
+  await button.click();
+
+  const toast = page.getByRole("status");
+  await expect(toast).toHaveText("Google 로그인 화면으로 이동하고 있습니다.");
+  await expect(toast).not.toBeFocused();
+  await expect(button).toBeDisabled();
+
+  const toastBox = await page.locator(".auth-redirect-toast").boundingBox();
+  const buttonBox = await page.locator(".auth-google-button").boundingBox();
+  expect(toastBox).not.toBeNull();
+  expect(buttonBox).not.toBeNull();
+  expect(toastBox!.x + toastBox!.width).toBeLessThanOrEqual(testInfo.project.name.startsWith("mobile") ? 390 : 1440);
+  expect(toastBox!.y + toastBox!.height).toBeLessThanOrEqual(testInfo.project.name.startsWith("mobile") ? 844 : 900);
+  expect(toastBox!.y >= buttonBox!.y + buttonBox!.height || toastBox!.y + toastBox!.height <= buttonBox!.y).toBe(true);
+  await page.screenshot({ path: `.pr-artifacts/AUTH-PR-05/${testInfo.project.name}-login-redirect-toast.png`, fullPage: true, scale: "css" });
 });
 
 test("외부 returnTo는 앱 루트로 제한된다", async ({ page }) => {
