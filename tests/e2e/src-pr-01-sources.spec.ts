@@ -93,7 +93,13 @@ test('keeps a successful sibling when another file extraction fails and releases
   expect(sources.find((source: any) => source.fileName === 'broken.pdf').extractionStatus).toBe('failed');
   await page.locator('.source-row').filter({ hasText: 'good.txt' }).getByRole('button', { name: '미리보기' }).click();
   await expect(page.locator('.source-preview')).toContainText('retained text');
-  await page.getByRole('button', { name: '제거' }).first().click();
+  await page.locator('.source-row').filter({ hasText: 'good.txt' }).getByRole('button', { name: '제거' }).click();
+  const removalDialog = page.getByRole('dialog', { name: '참고 자료를 제거할까요?' });
+  await expect(removalDialog).toBeVisible();
+  await removalDialog.getByRole('button', { name: '제거 확인' }).click();
+  await expect(removalDialog).toBeHidden();
+  await expect(page.locator('.source-row').filter({ hasText: 'good.txt' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '파일 추가', exact: true })).toBeEnabled();
   await page.getByLabel('참고 파일 추가').setInputFiles({ name: 'replacement.txt', mimeType: 'text/plain', buffer: Buffer.from('replacement') });
   await expect(page.getByText('replacement', { exact: false })).toBeVisible();
   const after = await storedSources(page, databaseName);
@@ -113,7 +119,8 @@ test('project start saves the idea and selected source through the same extracti
   await page.getByLabel('만들고 싶은 제품이나 해결할 문제').fill('업로드한 참고 자료에서 시작하는 프로젝트');
   await picker.setInputFiles({ name: 'start.md', mimeType: 'text/markdown', buffer: Buffer.from('# Start\nCreated with a source.') });
   await page.getByRole('button', { name: /Blueprint 시작/ }).click();
-  await expect(page).toHaveURL(/\/blueprints\//);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]+\/?$/);
+  await page.goto(`${page.url().replace(/\/$/, '')}/design`);
   await expect(page.getByRole('heading', { name: '참고 자료', exact: true })).toBeVisible();
   await expect(page.getByText('start.md')).toBeVisible();
   await expect(page.locator('.source-status-ready')).toBeVisible();

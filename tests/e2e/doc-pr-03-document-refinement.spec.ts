@@ -12,7 +12,7 @@ test('selected Requirements section stays pending until explicit approval, then 
   await page.goto('/');
   await page.evaluate(async({databaseName,ownerKey,projectId,now})=>{
     const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onupgradeneeded=()=>{const value=request.result;value.createObjectStore('projects',{keyPath:'id'});const activity=value.createObjectStore('activities',{keyPath:['projectId','id']});activity.createIndex('projectId','projectId',{unique:false});};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
-    const project={id:projectId,ownerKey,schemaVersion:1,title:'부분 보완 테스트',status:'active',activeDocumentType:'requirements',activeThreadId:'thread',processState:'requirements_draft',designRevision:3,readiness:{state:'ready',areas:[],pendingProposalCount:0,conflictCount:0},createdAt:now,updatedAt:now,lastOpenedAt:now};
+    const project={id:projectId,ownerKey,schemaVersion:1,title:'부분 보완 테스트',status:'active',activeDocumentType:'requirements',activeThreadId:'thread',processState:'document_ready',designRevision:3,readiness:{state:'ready',areas:[],pendingProposalCount:0,conflictCount:0},createdAt:now,updatedAt:now,lastOpenedAt:now};
     const documentId='requirements-doc';
     const makeItem=(id:string,type:string,extra:Record<string,unknown>={})=>({id,projectId,type,title:id,description:`${id} 설명`,status:'confirmed',priority:'must',attributes:{},evidence:[],acceptanceCriteria:[],relatedItemIds:[],createdAt:now,updatedAt:now,...extra});
     const designItems=[makeItem('product','product_definition'),makeItem('problem','problem'),makeItem('goal','goal'),makeItem('user','user_role'),makeItem('scenario','scenario'),makeItem('item-1','requirement',{acceptanceCriteria:[{id:'criterion',text:'완료 상태를 확인할 수 있다',status:'confirmed',evidence:[]}]}),makeItem('scope','scope'),makeItem('exclusion','out_of_scope'),makeItem('metric','success_metric'),makeItem('risk','risk')];
@@ -27,12 +27,14 @@ test('selected Requirements section stays pending until explicit approval, then 
   let refreshRequest:any;
   await page.route('**/api/blueprint/documents/requirements/ready',async(route)=>{refreshRequest=route.request().postDataJSON();await route.fulfill({status:200,json:{generationArtifact:'refreshed-attestation'}});});
   await page.goto(`/blueprints/${projectId}/requirements`);
+  await page.getByRole('button',{name:'제품 개요 내용 보기'}).click();
   await page.getByLabel('이 섹션을 보완 대상으로 선택').check();
   const impactPreview=page.getByLabel('변경 대상과 예상 영향');
   await expect(impactPreview).toContainText('section-1');
   await expect(impactPreview).toContainText('product');
   await expect(impactPreview).toContainText('requirements-doc');
   await page.getByRole('button',{name:'선택 항목 보완 제안 받기'}).click();
+  await page.getByRole('link',{name:/2 제안 검토/}).click();
   await expect(page.getByRole('heading',{name:'제안 1개'})).toBeVisible();
   expect(patchRequest.targetSectionIds).toEqual(['section-1']);
   let stored=await readStored(page,databaseNameForOwner(ownerKey),projectId);

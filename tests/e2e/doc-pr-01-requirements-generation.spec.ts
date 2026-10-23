@@ -37,6 +37,8 @@ test('generates a review_required Requirements document and supports section nav
   });
 
   await page.goto(`/blueprints/${projectId}/requirements`);
+  await expect(page.getByRole('heading',{name:'Requirements',level:1})).toBeVisible();
+  await expect(page.getByRole('heading',{level:1})).toHaveCount(1);
   await expect(page.getByRole('button',{name:'Requirements 생성'})).toBeVisible();
   await page.getByRole('button',{name:'Requirements 생성'}).click();
   await expect(page.getByText('사용자 검토 전')).toBeVisible();
@@ -46,6 +48,15 @@ test('generates a review_required Requirements document and supports section nav
   expect(requestBody.designItems.some((item:any)=>item.id==='feature'&&item.type==='requirement')).toBe(true);
   expect(requestBody.designRevision).toBe(4);
   expect(requestBody.currentDesignRevision).toBe(4);
+  await expect(page.getByRole('heading', { name:'문서 섹션' })).toBeVisible();
+  await expect(page.getByRole('button', { name:'기능 요구사항 내용 보기' })).toBeVisible();
+  await page.getByRole('button', { name:'기능 요구사항 내용 보기' }).click();
+  await expect(page.getByRole('heading', { name:'화면 결과 표시' })).toBeVisible();
+  if (page.viewportSize()!.width >= 1280) {
+    await page.setViewportSize({width:1024,height:768});
+    await expect(page.getByRole('button',{name:'목차 열기'})).toBeVisible();
+    await page.setViewportSize({width:1440,height:900});
+  }
   if (page.viewportSize()!.width <= 767) {
     await page.getByRole('button',{name:'목차 열기'}).click();
     await expect(page.getByRole('button',{name:'닫기',exact:true})).toBeFocused();

@@ -38,6 +38,7 @@ test('desktop edit previews individual impacts and commits selected design chang
   await page.getByLabel('문서 내용').fill('새 Requirements 본문');
   await page.getByRole('button',{name:'영향 확인 후 저장'}).click();
   const dialog=page.getByRole('dialog',{name:'문서 변경 영향 확인'});await expect(dialog).toBeVisible();
+  await page.screenshot({path:test.info().outputPath('document-impact-dialog-1440x900.png')});
   await expect(dialog).toContainText('기능 A · 설명');await expect(dialog).toContainText('범위 B · 설명');await expect(dialog).toContainText('PRD · 핵심 기능');
   await dialog.getByLabel('범위 B · 설명').uncheck();
   await dialog.getByRole('button',{name:'편집으로 돌아가기'}).click();await expect(page.getByLabel('문서 내용')).toHaveValue('새 Requirements 본문');
@@ -62,8 +63,11 @@ test('desktop edit previews individual impacts and commits selected design chang
 
 test('narrow PRD edit preserves the draft and persisted values when save fails',async({page})=>{
   const {databaseName}=await seed(page);await page.setViewportSize({width:390,height:844});await page.goto(`/blueprints/${projectId}/prd`);
+  await page.getByRole('button',{name:'핵심 기능 내용 보기'}).click();
   await expect(page.locator('#project-save-state')).toContainText('저장됨');
-  await page.getByRole('button',{name:'섹션 편집'}).click();await page.getByLabel('문서 내용').fill('보존해야 할 새 PRD 본문');await page.getByRole('button',{name:'영향 확인 후 저장'}).click();
+  await page.getByRole('button',{name:'섹션 편집'}).click();await page.getByLabel('문서 내용').fill('보존해야 할 새 PRD 본문');
+  await page.screenshot({path:test.info().outputPath('prd-section-editor-390x844.png'),scale:'css'});
+  await page.getByRole('button',{name:'영향 확인 후 저장'}).click();
   const dialog=page.getByRole('dialog',{name:'문서 변경 영향 확인'});await expect(dialog).toBeVisible();
   await page.evaluate(()=>{const original=IDBObjectStore.prototype.put;(window as any).__originalPut=original;IDBObjectStore.prototype.put=function(...args:any[]){if(this.name==='projects'&&this.transaction.mode==='readwrite')throw new DOMException('forced quota failure','QuotaExceededError');return original.apply(this,args);};});
   await dialog.getByRole('button',{name:'확인하고 저장'}).click();await expect(dialog.getByRole('alert')).toContainText('입력한 편집 내용은 보존');await expect(page.getByLabel('문서 내용')).toHaveValue('보존해야 할 새 PRD 본문');
@@ -73,6 +77,7 @@ test('narrow PRD edit preserves the draft and persisted values when save fails',
 
 test('narrow PRD edit detects a stale version, compares latest content, then saves after explicit re-review',async({page})=>{
   const {databaseName}=await seed(page);await page.setViewportSize({width:390,height:844});await page.goto(`/blueprints/${projectId}/prd`);
+  await page.getByRole('button',{name:'핵심 기능 내용 보기'}).click();
   await expect(page.locator('#project-save-state')).toContainText('저장됨');
   await page.getByRole('button',{name:'섹션 편집'}).click();await page.getByLabel('문서 내용').fill('보존해야 할 새 PRD 본문');await page.getByRole('button',{name:'영향 확인 후 저장'}).click();
   const dialog=page.getByRole('dialog',{name:'문서 변경 영향 확인'});await expect(dialog).toBeVisible();

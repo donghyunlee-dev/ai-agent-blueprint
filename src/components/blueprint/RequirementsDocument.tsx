@@ -3,6 +3,7 @@ import type { GeneratedDocument, DocumentSection } from '../../domain/blueprint/
 import type { BlueprintAggregate } from '../../domain/blueprint/types.js';
 import { DocumentSectionEditor } from './DocumentSectionEditor.js';
 import { DocumentExportActions } from './DocumentExportActions.js';
+import { DocumentSectionOverview } from './DocumentSectionOverview.js';
 import '../../styles/blueprint-workspace.css';
 
 type Requirement = NonNullable<GeneratedDocument['requirements']>[number];
@@ -27,19 +28,22 @@ function blockerMessage(code:string) {
 }
 
 export function RequirementsDocument({ aggregate, document, sections, generating, error, readySummary, readyError, patching=false, patchError, impactPreview, onRequestPatch, onDirectEdit, onGenerate, onMarkReady, onOpenPrd }:Props) {
-  const [selectedKey, setSelectedKey] = useState(sections[0]?.key ?? 'overview');
+  const [selectedKey, setSelectedKey] = useState('');
   const [selectedRequirementIds, setSelectedRequirementIds] = useState<string[]>([]);
   const [sectionTargetSelected, setSectionTargetSelected] = useState(false);
   const [contentsOpen, setContentsOpen] = useState(false);
+  const [focusOverview, setFocusOverview] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const selectedHeadingRef = useRef<HTMLHeadingElement>(null);
   const readyTriggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLDialogElement>(null);
   const currentSections = [...sections].sort((a,b)=>a.order-b.order);
-  const selected = currentSections.find((section)=>section.key===selectedKey) ?? currentSections[0];
+  const selected = currentSections.find((section)=>section.key===selectedKey);
   const requirements = (document?.requirements ?? []).filter((item)=>selected?.sourceItemIds.some((id)=>item.sourceItemIds.includes(id)));
   const issueCount = document?.reviewIssues?.length ?? 0;
   const wasOpen = useRef(false);
+  useEffect(()=>{ if (selected) selectedHeadingRef.current?.focus(); },[selected?.id]);
   useEffect(()=>{
     if (!contentsOpen) {
       if (wasOpen.current) triggerRef.current?.focus();
@@ -63,7 +67,7 @@ export function RequirementsDocument({ aggregate, document, sections, generating
   function select(key:string) { setSelectedKey(key); setSelectedRequirementIds([]); setSectionTargetSelected(false); setContentsOpen(false); }
   return <section className="requirements-document" aria-labelledby="requirements-document-title">
     <header className="requirements-document-header">
-      <div><p className="workspace-eyebrow">문서 · {document ? `rev. ${document.designRevision} · ${document.status === 'review_required' ? '검토 필요' : document.status}` : '초안'}</p><h2 id="requirements-document-title">Requirements</h2></div>
+      <div><p className="workspace-eyebrow">문서 · {document ? `rev. ${document.designRevision} · ${document.status === 'review_required' ? '검토 필요' : document.status}` : '초안'}</p><h1 id="requirements-document-title">Requirements</h1></div>
       {document ? <><span role="status">사용자 검토 전</span><DocumentExportActions document={document} sections={currentSections} projectTitle={aggregate.project.title} /></> : null}
     </header>
     {generating ? <div className="requirements-generation-status" role="status" aria-live="polite"><strong>Requirements를 만들고 있습니다</strong><ol><li>설계 계획 검증</li><li>요구사항 작성</li><li>품질 검토</li></ol><p>현재 설계와 기존 문서는 생성이 끝날 때까지 유지됩니다.</p></div> : null}
@@ -78,10 +82,10 @@ export function RequirementsDocument({ aggregate, document, sections, generating
         {contentsOpen ? <button className="requirements-contents-backdrop" aria-label="목차 닫기" onClick={()=>setContentsOpen(false)} /> : null}
         <div className="requirements-content-main">
           <button ref={triggerRef} type="button" className="requirements-contents-trigger" aria-expanded={contentsOpen} onClick={()=>setContentsOpen(true)}>목차 열기</button>
-          {selected ? <article aria-labelledby="requirements-section-title"><p className="workspace-eyebrow">섹션 {selected.order+1} / {currentSections.length}</p><h3 id="requirements-section-title">{selected.title}</h3>{selected.markdown ? <p className="requirements-section-copy">{selected.markdown}</p> : null}{document?<DocumentSectionEditor aggregate={aggregate} document={document} section={selected} onSave={onDirectEdit}/>:null}
+          {selected ? <article aria-labelledby="requirements-section-title"><button className="document-detail-back" type="button" onClick={()=>{setFocusOverview(true);setSelectedKey('');}}>문서 섹션으로 돌아가기</button><p className="workspace-eyebrow">섹션 {selected.order+1} / {currentSections.length}</p><h3 id="requirements-section-title" ref={selectedHeadingRef} tabIndex={-1}>{selected.title}</h3>{selected.markdown ? <p className="requirements-section-copy">{selected.markdown}</p> : null}{document?<DocumentSectionEditor aggregate={aggregate} document={document} section={selected} onSave={onDirectEdit}/>:null}
             <label><input type="checkbox" checked={sectionTargetSelected} onChange={(event)=>setSectionTargetSelected(event.target.checked)} /> 이 섹션을 보완 대상으로 선택</label>
             {requirements.map((requirement:Requirement)=><section className="requirements-item" key={requirement.id}><header><strong>{requirement.id}</strong><span>{requirement.priority}</span></header><h4>{requirement.title}</h4><p>{requirement.description}</p><p className="requirements-item-meta">근거: {requirement.sourceItemIds.join(', ') || '연결된 설계 없음'}</p><label><input type="checkbox" checked={selectedRequirementIds.includes(requirement.id)} onChange={(event)=>setSelectedRequirementIds((ids)=>event.target.checked?[...ids,requirement.id]:ids.filter((id)=>id!==requirement.id))} /> 이 요구사항을 보완 대상으로 선택</label>{requirement.acceptanceCriteria.length ? <div><strong>수용 기준</strong><ul>{requirement.acceptanceCriteria.map((criterion,index)=><li key={`${requirement.id}-${index}`}>{criterion.text} <span>(근거: {criterion.sourceItemIds.join(', ')})</span></li>)}</ul></div> : null}</section>)}
-          </article> : null}
+          </article> : document ? <DocumentSectionOverview sections={currentSections} focusHeading={focusOverview} onSelect={(section)=>{setFocusOverview(false);select(section.key);}} /> : null}
           {onRequestPatch ? <section className="requirements-ready-review" aria-labelledby="requirements-patch-title"><h3 id="requirements-patch-title">선택 항목 부분 보완</h3><p>선택한 문서 내용과 연결 근거만 요청에 포함합니다. 승인 전에는 저장 문서가 바뀌지 않습니다.</p>{selected ? <p>대상: {[...(sectionTargetSelected?[selected.title]:[]),...requirements.filter((item)=>selectedRequirementIds.includes(item.id)).map((item)=>item.id)].join(', ')||'선택 없음'}</p> : null}{impactPreview?<ImpactSummary preview={impactPreview({sectionIds:sectionTargetSelected&&selected?[selected.id]:[],requirementIds:selectedRequirementIds})}/>:null}{patchError?<p role="alert">{patchError}</p>:null}<button type="button" disabled={patching||(!sectionTargetSelected&&!selectedRequirementIds.length)} onClick={()=>onRequestPatch?.({sectionIds:sectionTargetSelected&&selected?[selected.id]:[],requirementIds:selectedRequirementIds})}>{patching?'보완 제안 작성 중…':'선택 항목 보완 제안 받기'}</button></section>:null}
           {selected?.key==='open_issues' && document.openIssues?.length ? <section aria-labelledby="requirements-open-issues"><h3 id="requirements-open-issues">미뤄 둔 결정</h3><ul>{document.openIssues.map((issue)=><li key={issue.id}><strong>{issue.title}</strong><p>{issue.description}</p><span>설계 항목: {issue.sourceItemIds.join(', ')}</span></li>)}</ul></section> : null}
           {issueCount ? <section className="requirements-review-issues" aria-labelledby="requirements-review-issues-title"><h3 id="requirements-review-issues-title">검토할 문제 {issueCount}개</h3><ul>{document.reviewIssues?.map((issue,index)=><li key={`${issue.code}-${index}`}><strong>{issue.severity==='error'?'필수 확인':'확인 권장'} · {currentSections.find((section)=>section.key===issue.sectionKey)?.title ?? issue.sectionKey}</strong><p>{issue.description}</p>{issue.relatedItemIds.length ? <span>관련 설계: {issue.relatedItemIds.join(', ')}</span> : null}</li>)}</ul><p>설계 근거만으로 해결하기 어렵다면 관련 결정을 대화에서 다시 확인해 주세요.</p></section> : null}
