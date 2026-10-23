@@ -34,9 +34,34 @@ test.beforeEach(async ({ page }) => {
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId, now });
 });
 
+test('group detail exposes a blocker in a non-first child area and focuses its item', async ({ page }) => {
+  const ownerKey = await deriveOwnerKey(identity);
+  await page.evaluate(async ({ databaseName, projectId, now }) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(databaseName, 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const request = db.transaction('projects', 'readonly').objectStore('projects').get(projectId);
+    const aggregate = await new Promise<any>((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const make = (id: string, type: string, title: string, status: string) => ({ id, projectId, type, title, description: `${title} 설명`, status, attributes: {}, evidence: [], acceptanceCriteria: [], relatedItemIds: [], createdAt: now, updatedAt: now });
+    aggregate.designItems = [make('product-item', 'product_definition', '회의실 예약', 'confirmed'), make('problem-item', 'problem', '예약 충돌 처리', 'proposed')];
+    const tx = db.transaction('projects', 'readwrite'); tx.objectStore('projects').put(aggregate);
+    await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); db.close();
+  }, { databaseName: databaseNameForOwner(ownerKey), projectId, now });
+  await page.goto(`/blueprints/${projectId}/design`);
+
+  await page.locator('[data-readiness-group="product_and_problem"]').click();
+  const groupDetail = page.locator('.design-readiness-group-detail');
+  await expect(groupDetail).toContainText('문제와 목표');
+  await expect(groupDetail).toContainText('예약 충돌 처리 항목을 확정하거나 명시적으로 미뤄야 합니다.');
+  const sectionReason = page.locator('.design-section[data-design-section="problem"] [data-readiness-blocker="problem"]');
+  await expect(page.locator('[data-design-item-id="problem-item"]')).toBeFocused();
+  await expect(sectionReason).toBeVisible();
+  await expect(sectionReason).toBeInViewport();
+});
+
 test('shows five ordered summary groups, preserves ten areas, and filters to source detail', async ({ page }, testInfo) => {
   await page.goto(`/blueprints/${projectId}/design`);
   await expect(page.getByTestId('design-board')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '설계 준비 상태', level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '설계 준비 한눈에 보기', level: 2 })).toBeVisible();
   await expect(page.getByRole('heading', { name: '참고 자료', exact: true })).toBeVisible();
   const sourcePanelFollowsBoard = await page.locator('.design-board').evaluate((board) => {
     const sourcePanel = document.querySelector('.source-documents');

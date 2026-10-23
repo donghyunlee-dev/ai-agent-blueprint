@@ -304,7 +304,7 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .design-board button:focus-visible { outline: 3px solid #78aaff; outline-offset: 2px; }
 .design-board button:disabled { cursor: not-allowed; opacity: .68; }
 .design-readiness { padding: 14px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); }
-.design-readiness-topline h3 { margin: 0; color: var(--color-text-strong); font-size: 14px; }
+.design-readiness-topline h2 { margin: 0; color: var(--color-text-strong); font-size: 14px; }
 .design-readiness-badge { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: 99px; color: var(--color-text-strong); font-size: 12px; font-weight: 700; }
 .design-readiness-ready .design-readiness-badge { border-color: #a8d5bd; color: #176440; }
 .design-readiness-workable .design-readiness-badge { border-color: #e6d19a; color: #705400; }
@@ -317,9 +317,16 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .design-readiness-action .is-primary { border-color: var(--color-primary); background: var(--color-primary); color: white; font-weight: 700; }
 .design-readiness-overview { display: grid; gap: 12px; }
 .design-readiness-overview-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
-.design-readiness-overview-heading h3 { margin: 0; color: var(--color-text-strong); font-size: 18px; }
+.design-readiness-overview-heading h2 { margin: 0; color: var(--color-text-strong); font-size: 18px; }
 .design-readiness-overview-actions { display: flex; align-items: center; gap: 12px; }
 .design-readiness-overview-actions > p { margin: 0 0 2px; color: var(--color-text-muted); font-size: 12px; }
+.design-readiness-group-detail { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border: 1px solid var(--color-border); border-radius: 9px; background: var(--color-page); }
+.design-readiness-group-detail h3 { margin: 0; color: var(--color-text-strong); font-size: 14px; }
+.design-readiness-group-detail > p { margin: 0; color: var(--color-text-muted); font-size: 12px; }
+.design-readiness-group-detail ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.design-readiness-group-detail .design-readiness-group-blocker { display: grid; width: 100%; gap: 3px; text-align: left; }
+.design-readiness-group-blocker strong { color: var(--color-text-strong); font-size: 12px; }
+.design-readiness-group-blocker span { color: var(--color-text-muted); font-size: 12px; line-height: 1.5; }
 .design-readiness-groups { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
 .design-readiness-group { display: grid; min-width: 0; min-height: 150px !important; grid-column: span 2; align-content: start; justify-items: stretch; gap: 12px; padding: 16px !important; border-radius: 10px !important; background: var(--color-surface) !important; text-align: left; white-space: normal; }
 .design-readiness-group:nth-child(4),.design-readiness-group:nth-child(5) { grid-column: span 3; }
@@ -336,6 +343,10 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .design-section-heading { min-height: 52px; padding: 10px 14px; border-bottom: 1px solid var(--color-border); }
 .design-section-heading h3 { flex: 1; margin: 0; color: var(--color-text-strong); font-size: 14px; }
 .design-section-heading > span { color: var(--color-text-muted); font-size: 11px; font-weight: 650; }
+.design-section-blockers { display: grid; gap: 4px; margin: 8px 14px 0; padding: 8px 10px; border-left: 3px solid #d4a53a; border-radius: 4px; background: #fff9e9; }
+.design-section-blockers p { display: grid; gap: 2px; margin: 0; font-size: 12px; line-height: 1.45; }
+.design-section-blockers strong { color: var(--color-text-strong); }
+.design-section-blockers span { color: var(--color-text-muted); }
 .design-items-list { padding: 0 14px; }
 .design-item-row { display: flex; width: 100%; align-items: center; gap: 12px; padding: 12px 4px !important; border: 0 !important; border-bottom: 1px solid var(--color-border) !important; border-radius: 0 !important; background: transparent !important; text-align: left; }
 .design-item-row:last-child { border-bottom: 0 !important; }

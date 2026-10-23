@@ -33,7 +33,7 @@
 ### 포함
 
 1. 기존 준비 상태를 다섯 고정 그룹으로 순수 투영한다.
-2. 다섯 overview 카드와 열 개 원본 영역 상세를 함께 제공한다. 그룹 선택은 관련 원본 영역과 원인·항목으로 이동한다.
+2. 다섯 overview 카드와 열 개 원본 영역 상세를 함께 제공한다. 그룹 선택은 그룹 고유 blocker의 제목·이유를 세부 영역에 드러내고 관련 원본 영역·항목으로 이동한다. 첫 자식이 아닌 영역에 원인이 있으면 그 영역 또는 연결 항목으로 직접 focus한다.
 3. 기존 blocker focus, collapse, item selection, Inspector, Requirements CTA를 유지한다.
 4. empty, insufficient, workable, ready, conflict, review-required를 aggregate fixture로 검증한다.
 5. 설계 단계에서는 참고 자료 첨부 패널을 준비 요약·상세 뒤에 배치한다. 파일 첨부, 저장과 결과 알림은 그대로 동작하고 다른 단계의 순서는 바꾸지 않는다.
@@ -146,9 +146,11 @@ flowchart TD
 - ready: 핵심 영역과 관찰 가능한 acceptance criteria가 준비되고 blocker/proposal/conflict가 없으면 준비 완료를 표시하고 Requirements entry를 활성화한다.
 - workable: 허용되는 명시적 deferred가 있으면 열린 이슈를 표시하면서 Requirements entry를 활성화한다.
 - 다섯 그룹은 위 순서와 정확한 원본 영역을 쓴다. overview 아래 열 개 상세 영역도 계속 탐색할 수 있다.
+- 그룹 선택 시 그 그룹의 실제 blocker 제목과 이유를 함께 보여주고, 첫 자식이 아닌 영역 blocker도 해당 영역/항목에 focus한다. 전체 blocker 목록과 기존 blocker focus 동작은 유지한다.
 - 1586×992 기준 viewport에서 다섯 overview 카드가 첫 화면에 모두 보이고, 설계 단계의 참고 자료 패널은 그 아래에 온다. 파일 추가 동작과 저장 알림을 유지하며 다른 문서 단계는 기존 순서를 사용한다.
 - 1586×992에서 다섯 카드 grid top이 시안 y≈462와 49px 이내(화면 높이의 5%)이고 폭이 기준 grid와 근접한다. 기본 설계 화면에서 Inspector 열이 본문 폭을 예약하지 않으며 선택 항목 상세는 기존처럼 Inspector로 연다.
 - 그룹 선택은 해당 원본 영역과 원인/항목까지 이동시킨다. 기존 Inspector/Drawer focus return을 유지한다.
+- readiness 및 overview 제목은 workspace h1 아래 h2이며 원본 영역 제목은 h3로 유지한다.
 
 ### 실패와 빈 상태
 
@@ -185,6 +187,8 @@ flowchart TD
 ## 리뷰·QA 체크리스트
 
 - [ ] 5 group/10 area mapping, priority, dedupe, immutability가 정확하다.
+- [ ] 그룹 고유 blocker의 title/reason이 표시되고 non-first child 영역/항목으로 focus한다.
+- [ ] h1 → readiness/overview h2 → child-area h3 heading 계층이 유지된다.
 - [ ] readiness calculator, aggregate, storage/API, Requirements gate 의미가 바뀌지 않았다.
 - [ ] overview→area→item에서 blocker focus, selection, Inspector, mobile focus return이 남는다.
 - [ ] empty/insufficient/workable/ready/conflict/review-required에 텍스트 상태가 있다.
@@ -196,6 +200,6 @@ flowchart TD
 
 - [x] projection unit tests 및 기존 readiness 회귀 통과
 - [x] UI 상태·반응형·keyboard Playwright 통과
-- [x] build와 git diff --check 통과 (build에 chunk-size advisory 경고 있음)
+- [x] build와 git diff --check 통과 (chunk-size advisory 경고 있음)
 - [x] 시안 비교와 최종 화면 evidence 준비 (docs/delivery/evidence/UIR-PR-05/README.md, exact viewport anchor thresholds)
 - [ ] 독립 review·QA pass 후 ready_to_merge
