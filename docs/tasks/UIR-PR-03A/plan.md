@@ -53,7 +53,7 @@ UIR-PR-03에서 병합한 프로젝트 대화 화면을 사용자가 제공한 �
 - [x] **Assistant mark:** assistant sparkle 표시를 시안과 비례하는 크기로 확대하되 텍스트·avatar 대체 정보와 겹치지 않는다. (34px SVG assertion 통과)
 - [x] **Composer and copy:** composer placeholder는 입력 높이 안에서 세로 중앙에 정렬된다. 단계 이름 `Requirements`는 제품 동작/route의 기존 ID `requirements`를 보존하고 화면 label만 `요구사항 명세`로 표시한다. (E2E 통과)
 - [x] **Behavior preservation:** 프로젝트 제목 저장, 질문/이전 답변 편집, summary data, proposal gate, composer 전송 및 route 동작에 회귀가 없다. (conversation E2E 16/16 통과; question-form 관련 별도 기존 실패는 아래 검증 결과 참고)
-- [x] **Visual evidence:** 최종 구현 HEAD에서 `1440×900`, `390×844`, 요약 접힘 상태 캡처와 원본 `1672×941` 전체 캔버스 비교를 남겼다. route `/blueprints/uir-pr-03-meeting-room`, fixture `UIR-PR-03`, crop/mask/resize 없음. 진단 일치율 93.8866%. anchor 차이 (x/y/너비/높이): sidebar `0/0/0/0px`, global header `0/0/0/0px`, project header `0/0/0/0px`, stage nav `0/0/0/0px`, conversation `0/0/0/0px`, summary `0/0/0/0px`, question `+1/+1/-1/+0.27px`, composer `0/0/0/0px`. 주요 구조 차이는 공식 기준 한도 안이며, 남은 픽셀 차이는 text-heavy regions와 요청한 한국어 label/current authenticated shell 상태의 차이에 집중된다. artifacts의 report에 HEAD SHA가 기록되어 있다.
+- [x] **Visual evidence:** 최종 구현 HEAD에서 `1440×900`, `390×844`, 요약 접힘 상태 캡처와 원본 `1672×941` 전체 캔버스 비교를 남겼다. route `/blueprints/uir-pr-03-meeting-room`, fixture `UIR-PR-03`, crop/mask/resize 없음. 최신 진단 일치율 93.8854%. anchor 차이 (x/y/너비/높이): sidebar `0/0/0/0px`, global header `0/0/0/0px`, project header `0/0/0/0px`, stage nav `0/0/0/0px`, conversation `0/0/0/0px`, summary `0/0/0/0px`, question `+1/+1/-1/+0.27px`, composer `0/0/0/0px`. 주요 구조 차이는 공식 기준 한도 안이며, 남은 픽셀 차이는 text-heavy regions와 요청한 한국어 label/current authenticated shell 상태의 차이에 집중된다. artifacts의 report에 HEAD SHA가 기록되어 있다.
 
 ## 수용 기준
 
@@ -103,4 +103,4 @@ UI 증거는 `.pr-artifacts/UIR-PR-03A/` 아래에 두고 저장소에 화면 �
 ## 상태
 
 - Plan: `ready` (DoR 충족).
-- Implementation / validation / independent review / QA: `complete` / `complete_with_preexisting_unit_failure` / `not_started` / `not_started`.
+- Implementation / validation / independent review / QA: `complete` / `complete_with_preexisting_unit_failure` / `correction_in_progress` / `not_started`.
