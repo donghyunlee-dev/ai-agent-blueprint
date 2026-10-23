@@ -8,12 +8,13 @@ export function BlueprintShell({ children }: { children: ReactNode }) {
   const isHome = pathname === '/';
   const inProject = /^\/blueprints\/[^/]+(?:\/[^/]+)?$/.test(pathname) && pathname !== '/blueprints/new';
   const viewingRecent = hash === '#recent-projects';
+  const useHomePresentation = isHome || inProject;
 
   return (
-    <div className={`blueprint-shell${isHome ? ' blueprint-shell-home' : ''}`}>
+    <div className={`blueprint-shell${isHome ? ' blueprint-shell-home' : ''}${inProject ? ' blueprint-shell-project' : ''}`}>
       <aside className="blueprint-sidebar" aria-label="Blueprint 탐색">
         <Link className="blueprint-shell-brand" to="/" aria-label="Agent Blueprint 홈">
-          {isHome ? <WindsoftBrand /> : <span>Blueprint</span>}
+          {useHomePresentation ? <WindsoftBrand /> : <span>Blueprint</span>}
         </Link>
         <nav className="blueprint-sidebar-nav" aria-label="주요 메뉴">
           <Link to="/" aria-current={!inProject && !viewingRecent ? 'page' : undefined} className={!inProject && !viewingRecent ? 'is-active' : undefined}><ShellIcon name="home" /> 홈</Link>
@@ -24,7 +25,7 @@ export function BlueprintShell({ children }: { children: ReactNode }) {
             <span className="blueprint-sidebar-static" aria-disabled="true"><ShellIcon name="settings" /> 설정</span>
           </> : null}
         </nav>
-        {isHome ? <div className="blueprint-sidebar-home-bottom">
+        {useHomePresentation ? <div className="blueprint-sidebar-home-bottom">
           <button className="blueprint-workspace-switcher" type="button" aria-disabled="true"><ShellIcon name="building" /> <span>ENTERPRISE</span><ShellIcon name="chevron" /></button>
           <div className="blueprint-workspace-user"><span className="blueprint-workspace-initial">M</span><span>Manyfast</span><ShellIcon name="chevron" /></div>
         </div> : <div className="blueprint-sidebar-bottom">
@@ -35,8 +36,8 @@ export function BlueprintShell({ children }: { children: ReactNode }) {
       <div className="blueprint-shell-body">
         <header className="blueprint-topbar">
           <span className="blueprint-topbar-title">Agent Blueprint</span>
-          {isHome ? <button className="blueprint-home-notifications" type="button" aria-disabled="true" aria-label="알림"><ShellIcon name="bell" /></button> : null}
-          <AuthMenu placement="inline" homePresentation={isHome} />
+          {useHomePresentation ? <button className="blueprint-home-notifications" type="button" aria-disabled="true" aria-label="알림"><ShellIcon name="bell" /></button> : null}
+          <AuthMenu placement="inline" homePresentation={useHomePresentation} />
         </header>
         <div className="blueprint-shell-content">{children}</div>
       </div>

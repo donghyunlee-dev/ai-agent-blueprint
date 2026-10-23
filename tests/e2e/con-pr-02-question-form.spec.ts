@@ -38,8 +38,7 @@ test.beforeEach(async ({ page }) => {
 test('question form validates and keyboard-submits a local answer without calling the turn API', async ({ page }) => {
   let turnRequests = 0;
   page.on('request', (request) => { if (request.url().includes('/api/blueprint/turn')) turnRequests += 1; });
-  await page.goto(`/blueprints/${projectId}/design`);
-  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
+  await page.goto(`/blueprints/${projectId}`);
   await expect(page.getByRole('heading', { name: '사용자가 해결해야 하는 가장 중요한 문제는 무엇인가요?' })).toBeVisible();
   const answer = page.getByRole('textbox', { name: '직접 입력' });
   await page.getByRole('button', { name: '답변 제출' }).click();
@@ -160,8 +159,7 @@ test('rank validation links its error to the ranking fieldset', async ({ page })
     });
     database.close();
   }, { databaseName: databaseNameForOwner(ownerKey), projectId });
-  await page.goto(`/blueprints/${projectId}/design`);
-  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
+  await page.goto(`/blueprints/${projectId}`);
   await expect(page.locator('.question-card h2')).toContainText('우선순위를');
   const ranking = page.locator('.question-card-rank');
   await page.getByRole('button', { name: '답변 제출' }).click();

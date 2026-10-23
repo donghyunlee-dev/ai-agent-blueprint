@@ -34,10 +34,19 @@ test.beforeEach(async ({ page }) => {
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId });
 });
 
+test('project frame exposes the current conversation stage and the five supported destinations', async ({page}) => {
+  await page.goto(`/blueprints/${projectId}`);
+  const stages = page.getByRole('navigation', {name:'프로젝트 단계'});
+  await expect(stages.getByRole('link', {name:'대화'})).toHaveAttribute('aria-current', 'step');
+  await expect(stages.getByRole('link', {name:'제안 검토'})).toBeVisible();
+  await expect(stages.getByRole('link', {name:/^3 설계$/})).toBeVisible();
+  await expect(stages.getByRole('button', {name:/Requirements/})).toBeDisabled();
+  await expect(stages.getByRole('link', {name:/^5 PRD$/})).toBeVisible();
+});
+
 test('conversation renders prior summary, assistant message, and factual generation stage without percentages', async ({ page }) => {
-  await page.goto(`/blueprints/${projectId}/design`);
-  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
-  await expect(page.getByRole('complementary', { name: '이전 대화 요약' })).toContainText('회의실 예약 충돌을 줄인다.');
+  await page.goto(`/blueprints/${projectId}`);
+  await expect(page.getByRole('complementary', { name: '요약' })).toContainText('회의실 예약 충돌을 줄인다.');
   await expect(page.getByText('요약 아래에 최근 대화가 표시됩니다.')).toBeVisible();
   await expect(page.getByText('회의실 예약이 겹쳐요.')).toHaveCount(0);
   await expect(page.getByText('최근 대화 메시지 22')).toBeVisible();
@@ -61,14 +70,20 @@ test('AI consent is saved before the first turn request and response is rendered
     }, {databaseName:databaseNameForOwner(ownerKey),projectId});
     await route.fulfill({status:200,json:{assistantMessage:'답변의 핵심을 정리했습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
   });
-  await page.goto(`/blueprints/${projectId}/design`);
-  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
+  await page.goto(`/blueprints/${projectId}`);
   await page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' }).fill('회의실 예약 중복을 줄이고 싶습니다.');
   await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
   await expect(page.getByRole('dialog', { name: 'AI 사용 및 데이터 안내' })).toContainText('최대 24시간');
   await page.getByRole('button', { name: '동의하고 계속' }).click();
   await expect(page.locator('.workspace-message-assistant').filter({hasText:'답변의 핵심을 정리했습니다.'})).toContainText('답변의 핵심을 정리했습니다.');
   expect(requestSawConsent).toBe(true);
+  expect(turnPayload.answer).toMatchObject({
+    questionId: 'problem',
+    answerMode: 'text',
+    action: 'answer',
+    customText: '회의실 예약 중복을 줄이고 싶습니다.',
+  });
+  expect(turnPayload.recentMessages.some((message: {content:string}) => message.content === '회의실 예약 중복을 줄이고 싶습니다.')).toBe(false);
   const compactedSummary = JSON.parse(turnPayload.recentMessages[0].content);
   expect(compactedSummary.kind).toBe('structured_summary');
   expect(compactedSummary.sourceMessageIds).toContain('m1');
@@ -78,8 +93,7 @@ test('AI consent is saved before the first turn request and response is rendered
 test('canceling first AI consent preserves draft and sends no request', async ({ page }) => {
   let requests = 0;
   page.on('request', (request) => { if(request.url().includes('/api/blueprint/turn')) requests += 1; });
-  await page.goto(`/blueprints/${projectId}/design`);
-  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
+  await page.goto(`/blueprints/${projectId}`);
   const draft=page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' });
   await draft.fill('취소해도 남아야 하는 초안입니다.');
   await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
@@ -97,8 +111,7 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
     if(calls<=2) await route.fulfill({status:503,json:{error:'AI_REQUEST_UNKNOWN'}});
     else await route.fulfill({status:200,json:{assistantMessage:'새 intent로 받은 응답',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
   });
-  await page.goto(`/blueprints/${projectId}/design`);
-  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
+  await page.goto(`/blueprints/${projectId}`);
   const draft=page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' });
   const sendButton=page.getByRole('button', { name: 'AI로 답변 분석' });
   await draft.fill('네트워크 결과가 불명확해도 유지할 입력입니다.');
@@ -131,8 +144,7 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
 test('canceling an in-flight turn aborts it, keeps its draft, and renders no partial response', async ({ page }) => {
   let requests=0;
   await page.route('**/api/blueprint/turn', async (route) => { requests++; await new Promise((resolve)=>setTimeout(resolve,4000)); await route.fulfill({status:200,json:{assistantMessage:'부분 응답은 보이면 안 됩니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}}).catch(()=>{}); });
-  await page.goto(`/blueprints/${projectId}/design`);
-  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
+  await page.goto(`/blueprints/${projectId}`);
   const draft=page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' });
   await draft.fill('취소할 요청의 원문 초안입니다.');
   await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
@@ -157,8 +169,7 @@ test('validated catalog question block uses the interactive QuestionCard', async
     const transaction=db.transaction('projects','readwrite');transaction.objectStore('projects').put(aggregate);
     await new Promise<void>((resolve,reject)=>{transaction.oncomplete=()=>resolve();transaction.onerror=()=>reject(transaction.error);});db.close();
   },{databaseName:databaseNameForOwner(ownerKey),projectId});
-  await page.goto(`/blueprints/${projectId}/design`);
-  if (page.viewportSize()!.width < 1024) await page.getByRole('tab', { name: '대화' }).click();
+  await page.goto(`/blueprints/${projectId}`);
   const assistant=page.locator('.workspace-message-assistant').last();
   await expect(assistant.getByRole('heading',{name:'사용자가 해결해야 하는 가장 중요한 문제는 무엇인가요?'})).toBeVisible();
   await expect(assistant.getByRole('heading',{name:'model text must not replace catalog form'})).toHaveCount(0);
@@ -182,8 +193,7 @@ test('without a valid saved summary, the turn request carries the full context w
     delete record.thread.summary;
     const transaction=db.transaction('projects','readwrite');transaction.objectStore('projects').put(record);await new Promise<void>((resolve,reject)=>{transaction.oncomplete=()=>resolve();transaction.onerror=()=>reject(transaction.error);});db.close();
   },{databaseName:databaseNameForOwner(ownerKey),projectId});
-  await page.goto(`/blueprints/${projectId}/design`);
-  if(page.viewportSize()!.width<1024) await page.getByRole('tab',{name:'대화'}).click();
+  await page.goto(`/blueprints/${projectId}`);
   await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('모든 이전 맥락을 그대로 포함합니다.');
   await page.getByRole('button',{name:'AI로 답변 분석'}).click();
   await page.getByRole('button',{name:'동의하고 계속'}).click();

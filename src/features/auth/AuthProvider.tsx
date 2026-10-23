@@ -2,7 +2,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { createOwnerContextLifecycle } from "./ownerContext.js";
 import type { OwnerContextLifecycle } from "./ownerContext.js";
 
-export type AuthUser = { issuer: string; subject: string; email?: string };
+export type AuthUser = { issuer: string; subject: string; email?: string; displayName?: string };
 export type AuthStatus = "checking" | "anonymous" | "authenticated" | "expired" | "error" | "redirecting";
 
 type AuthContextValue = {

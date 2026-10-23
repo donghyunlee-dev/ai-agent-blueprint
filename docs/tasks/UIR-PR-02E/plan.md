@@ -85,8 +85,14 @@ Use the narrowest relevant existing Playwright and unit/contract commands first.
 - [ ] `docs/ui/07-visual-acceptance.md`: matched route/state/viewport comparisons, anchor measurements, final desktop/mobile captures, keyboard/zoom checks, independent review and QA.
 - [ ] Delivery workflow: latest `main` and predecessor merge verified; self-validation, independent code review, and independent QA passed; no merge without explicit request.
 
+## Delivery closeout
+
+- PR #40 (`Fit home layout to shorter desktop screens`) merged into `main` at `921d8df2462e7659dbed81cdcdd156d11e916205` on 2026-10-22.
+- The PR records self-validation, independent code review, independent QA, and successful configured checks for the same final HEAD `b1f42e80ccdddcc47ffe3cfa93a34899e655b12a`.
+- The historical unit-test result remains 341/342; the unrelated source-upload unit failure is recorded above and was not changed by this home-only unit.
+
 ## Ownership and status
 
 - Plan owner: `docs/tasks/UIR-PR-02E/plan.md` only.
 - Implementer/coordinator: home-specific vertical layout/CSS, focused browser coverage, and the existing visual-evidence workflow's capture/upload step so final-HEAD screenshots and geometry are available on the PR.
-- Status: `in_progress`. Predecessor PR #39 is verified merged, the UIR delivery sequence records UIR-PR-02E, and implementation starts from `origin/main` at `81487250d57484bf86b73531453b55aa4c61c843`.
+- Status: `merged` (PR #40; merge `921d8df2462e7659dbed81cdcdd156d11e916205`). Implementation started from `origin/main` at `81487250d57484bf86b73531453b55aa4c61c843`.

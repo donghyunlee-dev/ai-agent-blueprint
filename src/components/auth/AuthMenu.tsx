@@ -24,8 +24,8 @@ export function AuthMenu({ placement = "floating", homePresentation = false }: {
   return (
     <div className={`auth-menu${placement === "inline" ? " auth-menu-inline" : ""}`}>
       <button type="button" className={`auth-menu-trigger${homePresentation ? " auth-menu-trigger-home" : ""}`} aria-label="사용자 메뉴" aria-expanded={isOpen} onClick={() => setIsOpen((open) => !open)}>
-        <span className={`auth-menu-avatar${homePresentation ? " auth-menu-avatar-home" : ""}`} aria-hidden="true">{(user.email || "계정").slice(0, 1).toUpperCase()}</span>
-        <span className="auth-menu-email">{user.email || "Google 계정"}</span>
+        <span className={`auth-menu-avatar${homePresentation ? " auth-menu-avatar-home" : ""}`} aria-hidden="true">{(user.displayName || user.email || "계정").slice(0, 1).toUpperCase()}</span>
+        <span className="auth-menu-email">{user.displayName || user.email || "Google 계정"}</span>
         <span aria-hidden="true">⌄</span>
       </button>
       {isOpen ? (
