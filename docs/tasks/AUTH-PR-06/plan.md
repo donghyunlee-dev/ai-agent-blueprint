@@ -11,7 +11,7 @@ On direct navigation or reload of the default login screen, leave focus at the d
 - Predecessor: `AUTH-PR-05` merged as PR #46 (merge commit `d2334c1c036b7b0e2e438795a25df9ae01a6c8c9`).
 - Requirement: `UI-AUTH-001`; related product behavior `AUTH-001` remains unchanged.
 - Delivery task: `AUTH-FOCUS-001` (remove default login autofocus while preserving keyboard and error focus behavior).
-- Status: implementation complete; independent review and QA pending.
+- Status: implementation and independent code review complete; independent QA pending.
 - Merge authorization: none. Keep the PR open after validation, independent review, and QA.
 
 ## Scope
