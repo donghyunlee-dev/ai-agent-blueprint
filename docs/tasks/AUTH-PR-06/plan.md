@@ -11,7 +11,7 @@ On direct navigation or reload of the default login screen, leave focus at the d
 - Predecessor: `AUTH-PR-05` merged as PR #46 (merge commit `d2334c1c036b7b0e2e438795a25df9ae01a6c8c9`).
 - Requirement: `UI-AUTH-001`; related product behavior `AUTH-001` remains unchanged.
 - Delivery task: `AUTH-FOCUS-001` (remove default login autofocus while preserving keyboard and error focus behavior).
-- Status: implementation and independent code review complete; independent QA pending.
+- Status: implementation, independent code review, and independent QA complete; PR gate remains in progress because an unrelated UIR home evidence check fails.
 - Merge authorization: none. Keep the PR open after validation, independent review, and QA.
 
 ## Scope
@@ -65,5 +65,5 @@ On direct navigation or reload of the default login screen, leave focus at the d
 - [x] Active login screen and state matrix contracts match behavior.
 - [ ] Final-HEAD 1440×900 and 390×844 captures are attached as CI evidence.
 - [x] Independent code review passed (`pass_with_non_blocking`); findings are resolved.
-- [ ] Independent QA passes against the final HEAD.
+- [x] Independent QA passes against the final HEAD.
 - [ ] PR remains open; no merge unless user explicitly requests the full PR lifecycle.
