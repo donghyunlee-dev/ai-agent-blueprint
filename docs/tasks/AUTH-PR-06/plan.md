@@ -63,7 +63,7 @@ On direct navigation or reload of the default login screen, leave focus at the d
 - [x] Keyboard focus indicator and error/session-expired alert focus remain intact.
 - [x] Focused desktop/mobile auth tests and production build pass.
 - [x] Active login screen and state matrix contracts match behavior.
-- [ ] Final-HEAD 1440×900 and 390×844 captures are attached as CI evidence.
+- [x] Final-HEAD 1440×900 and 390×844 captures are attached as CI evidence.
 - [x] Independent code review passed (`pass_with_non_blocking`); findings are resolved.
 - [x] Independent QA passes against the final HEAD.
-- [ ] PR remains open; no merge unless user explicitly requests the full PR lifecycle.
+- [x] PR remains open; no merge unless user explicitly requests the full PR lifecycle.
