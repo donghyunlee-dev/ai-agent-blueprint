@@ -95,9 +95,9 @@ Attach final-HEAD screenshots for 1440×900 and 390×844 redirect state plus aff
 ## Done checklist
 
 - [ ] Toast copy, position, duration, status announcement, no-focus-steal, duplicate prevention, retry and reduced-motion behavior meet criteria.
-- [ ] Vercel direct route reload succeeds and API/static route classes preserve their existing behavior in a Preview deployment.
+- [x] Vercel direct route reload succeeds and API/static route classes preserve their existing behavior in a Preview deployment.
 - [ ] Focused auth/config tests, `npm run build`, config validation, and `git diff --check` pass.
 - [ ] Active requirement/screen docs match implementation.
 - [ ] Final-HEAD desktop/mobile and failure-state evidence is attached through the AUTH-PR-05 workflow artifact.
-- [ ] Independent code review and QA pass against the same final HEAD.
+- [x] Independent code review and QA pass against the same final HEAD.
 - [ ] PR remains open at `ready_to_merge`; no merge unless the user explicitly requests full lifecycle completion.
