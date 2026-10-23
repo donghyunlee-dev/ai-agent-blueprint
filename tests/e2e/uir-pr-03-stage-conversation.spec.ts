@@ -51,6 +51,7 @@ test('captures the primary conversation frame at the required desktop and mobile
   await page.goto(`/blueprints/${projectId}`);
   await expect(page.getByRole('navigation', { name: '프로젝트 단계' })).toBeVisible();
   await expect(page.locator('.ai-turn-composer')).toBeVisible();
+  await expect(page.locator('.ai-turn-composer textarea')).toHaveCSS('border-radius', '999px');
   await expect(page.locator('.workspace-first-message')).toBeVisible();
   await expect(page.getByRole('button', { name: '요약 접기' })).toBeVisible();
   if (testInfo.project.name === 'mobile-chromium') {
