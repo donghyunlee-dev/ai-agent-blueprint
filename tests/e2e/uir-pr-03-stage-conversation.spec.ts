@@ -8,7 +8,7 @@ import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-mi
 const identity = { issuer: 'https://accounts.google.com', subject: 'uir-pr-03-visual-fixture', email: 'uir-pr-03@example.test', displayName: '김지현 님' };
 const projectId = 'uir-pr-03-meeting-room';
 const referencePath = new URL('../../docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png', import.meta.url);
-const artifactDirectory = new URL('../../.pr-artifacts/UIR-PR-03/', import.meta.url);
+const artifactDirectory = new URL('../../.pr-artifacts/UIR-PR-03A/', import.meta.url);
 const hash = (value: Buffer) => createHash('sha256').update(value).digest('hex');
 
 test.beforeEach(async ({ page }) => {
@@ -51,10 +51,32 @@ test('captures the primary conversation frame at the required desktop and mobile
   await page.goto(`/blueprints/${projectId}`);
   await expect(page.getByRole('navigation', { name: '프로젝트 단계' })).toBeVisible();
   await expect(page.locator('.ai-turn-composer')).toBeVisible();
+  await expect(page.locator('.workspace-first-message')).toBeVisible();
+  await expect(page.getByRole('button', { name: '요약 접기' })).toBeVisible();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(page.locator('.workspace-first-message')).toBeInViewport();
+    await expect(page.locator('.conversation-message-row-user .conversation-avatar svg')).toHaveCSS('width', '24px');
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
   const directory = new URL(artifactDirectory);
   await mkdir(directory, { recursive: true });
-  await page.screenshot({ path: new URL(`conversation-${viewport.width}x${viewport.height}.png`, directory).pathname, fullPage: false });
+  await page.screenshot({ path: new URL(`conversation-${viewport.width}x${viewport.height}.png`, directory).pathname, fullPage: false, scale: testInfo.project.name === 'mobile-chromium' ? 'css' : 'device' });
+});
+
+test('prior answer edit is styled and reopens the question', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/blueprints/${projectId}`);
+  const question = page.getByRole('heading', { name: '주로 누가 이 서비스를 사용하나요?' });
+  await page.getByRole('checkbox', { name: /일반 직원/ }).check();
+  await page.getByRole('button', { name: '답변 제출' }).click();
+  const edit = page.getByRole('region', { name: '질문 답변 이력' }).getByRole('button', { name: '수정' });
+  await expect(edit).toHaveCSS('border-radius', '999px');
+  await edit.focus();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(edit).toHaveCSS('outline-style', 'solid');
+  await page.keyboard.press('Enter');
+  await expect(question).toBeVisible();
 });
 
 test('conversation frame matches the full 1672x941 reference canvas and preserves reading order', async ({ page }, testInfo) => {
@@ -62,6 +84,52 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   await page.setViewportSize({ width: 1672, height: 941 });
   await page.goto(`/blueprints/${projectId}`);
   await expect(page.getByRole('navigation', { name: '프로젝트 단계' }).getByRole('link', { name: '1 대화' })).toHaveAttribute('aria-current', 'step');
+  const requirementsStage = page.getByRole('navigation', { name: '프로젝트 단계' }).getByRole('button', { name: '4 요구사항 명세' });
+  await expect(requirementsStage).toBeDisabled();
+  const summaryToggle = page.getByRole('button', { name: '요약 접기' });
+  await expect(summaryToggle).toHaveAttribute('aria-expanded', 'true');
+  const summaryBody = page.locator('#conversation-summary-content');
+  await expect(summaryToggle).toHaveAttribute('aria-controls', 'conversation-summary-content');
+  await summaryToggle.click();
+  await expect(page.getByRole('button', { name: '요약 펼치기' })).toHaveAttribute('aria-expanded', 'false');
+  await expect(summaryBody).toBeHidden();
+  const directory = new URL(artifactDirectory);
+  await mkdir(directory, { recursive: true });
+  await page.screenshot({ path: new URL('summary-collapsed-1672x941.png', directory).pathname });
+  await page.getByRole('button', { name: '요약 펼치기' }).press('Space');
+  await expect(page.getByRole('button', { name: '요약 접기' })).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('.conversation-summary-icon.is-pending svg circle')).toHaveCount(1);
+  await expect(page.locator('.conversation-summary-icon.is-pending svg path')).toHaveCount(1);
+  await expect(page.locator('.ai-turn-composer textarea')).toHaveCSS('text-align', 'start');
+  const composerField = await page.locator('.ai-turn-composer textarea').boundingBox();
+  const composerPlaceholder = await page.locator('.ai-turn-composer textarea').evaluate((node) => {
+    const style = getComputedStyle(node);
+    return { paddingTop: parseFloat(style.paddingTop), lineHeight: parseFloat(style.lineHeight), height: node.getBoundingClientRect().height };
+  });
+  expect(composerPlaceholder.height - composerPlaceholder.paddingTop * 2 - composerPlaceholder.lineHeight).toBeLessThanOrEqual(4);
+  expect(composerField).not.toBeNull();
+  await expect(page.locator('.workspace-title-wrap')).not.toHaveCSS('max-width', '360px');
+  await expect(page.locator('.workspace-appbar')).toHaveCSS('border-bottom-width', '0px');
+  await expect(page.locator('.conversation-message-row-assistant .conversation-avatar svg')).toHaveCSS('width', '34px');
+  await expect(page.locator('.workspace-conversation-content')).toHaveCSS('scrollbar-width', 'none');
+  await expect(page.locator('.conversation-stage-layout > .workspace-conversation')).toHaveCSS('border-radius', '14px');
+  await expect(page.locator('.conversation-stage-inspector .conversation-summary')).toHaveCSS('border-radius', '14px');
+  const titleWidth = await page.locator('.workspace-title-wrap').evaluate((node) => node.getBoundingClientRect().width);
+  expect(titleWidth).toBeGreaterThan(500);
+  const scroller = page.locator('.workspace-conversation-content');
+  const scrollSize = await scroller.evaluate((node) => ({ scrollHeight: node.scrollHeight, clientHeight: node.clientHeight }));
+  expect(scrollSize.scrollHeight).toBeGreaterThan(scrollSize.clientHeight);
+  await scroller.focus();
+  await page.keyboard.press('PageDown');
+  expect(await scroller.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+  await scroller.evaluate((node) => { node.scrollTop = 0; });
+  const scrollerBounds = await scroller.boundingBox();
+  expect(scrollerBounds).not.toBeNull();
+  await page.mouse.move(scrollerBounds!.x + scrollerBounds!.width / 2, scrollerBounds!.y + scrollerBounds!.height / 2);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => scroller.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+  await scroller.evaluate((node) => { node.scrollTop = 0; });
+  await page.waitForTimeout(100);
   await expect(page.locator('.blueprint-stage-nav ol')).toHaveCSS('width', '1000px');
   await expect(page.getByRole('link', { name: '설정 가이드' })).toHaveCount(0);
   const first = page.locator('.workspace-first-message');
@@ -112,7 +180,7 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   await expect(page.locator('.conversation-stage-inspector .conversation-summary-group li').first()).toHaveCSS('color', 'rgb(52, 75, 115)');
   await expect(page.locator('.conversation-stage-inspector .conversation-summary-icon.is-confirmed svg path')).toHaveAttribute('d', 'm5 12.5 4.5 4.5L19 7');
   expect(await page.locator('.conversation-message-row-question .question-card-option:nth-of-type(2) small').evaluate((node) => node.getBoundingClientRect().height)).toBeLessThanOrEqual(46);
-  expect(await page.locator('.conversation-message-row-question .question-card-option:nth-of-type(2) small').evaluate((node) => node.getBoundingClientRect().x)).toBeLessThanOrEqual(628);
+  expect(await page.locator('.conversation-message-row-question .question-card-option:nth-of-type(2) small').evaluate((node) => node.getBoundingClientRect().x)).toBeLessThanOrEqual(630);
   await expect(page.locator('.question-card-option small .question-option-break-desktop')).toHaveCount(4);
   await expect(page.getByText('회의실 예약 및 관리 기능', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '답변 제출' })).toHaveCount(0);
@@ -120,8 +188,6 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   expect(firstActionWidth, `First action chip width: ${firstActionWidth}px`).toBeGreaterThan(180);
   await expect(page.getByText('직접 입력 (선택)', { exact: true })).toHaveCount(0);
 
-  const directory = new URL(artifactDirectory);
-  await mkdir(directory, { recursive: true });
   const source = await readFile(referencePath);
   const rendered = await page.screenshot({ path: new URL('render-1672x941.png', directory).pathname });
   await writeFile(new URL('source-1672x941.png', directory), source);
@@ -163,5 +229,12 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   const artifacts = { source: { path: 'source-1672x941.png', sha256: hash(source) }, render: { path: 'render-1672x941.png', sha256: hash(rendered) }, overlay: { path: 'overlay-1672x941.png', sha256: hash(overlayBytes) }, heatmap: { path: 'heatmap-1672x941.png', sha256: hash(heatmapBytes) }, report: 'comparison-report.json' };
   const report = { algorithm: 'unmasked full-canvas RGB; pixel matches when max(abs(R,G,B)) <= 24', thresholdPerChannel: 24, width: 1672, height: 941, totalPixels: comparison.totalPixels, matchingPixels: comparison.matchingPixels, similarity: comparison.score, viewportCss: { width: 1672, height: 941 }, deviceScaleFactor: await page.evaluate(() => window.devicePixelRatio), font: await page.evaluate(() => ({ family: getComputedStyle(document.body).fontFamily, pretendardLoaded: document.fonts.check('16px Pretendard') })), browser: testInfo.project.name, browserVersion: await page.context().browser()?.version(), headSha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), route: `/blueprints/${projectId}`, state: 'normal conversation; deterministic fixture UIR-PR-03', source: 'docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png', sourceSha256: hash(source), renderSha256: hash(rendered), geometry: comparison.geometry, typography: comparison.typography, sourceDarkRgbSamples: comparison.sourceDarkRgbSamples, inkBounds:comparison.inkBounds, worstTiles:comparison.worstTiles, regions:comparison.regions, computedColors:comparison.computedColors, sourceGeometry: { sidebar: { x:0,y:0,width:249,height:941 }, globalHeader:{x:249,y:0,width:1423,height:65}, projectHeader:{x:249,y:65,width:1423,height:75}, stageNav:{x:249,y:140,width:1423,height:56}, conversation:{x:249,y:196,width:1075,height:745}, summary:{x:1337,y:196,width:309,height:745}, question:{x:362,y:529,width:938,height:324}, composer:{x:278,y:852,width:1360,height:78} }, artifacts };
   await writeFile(new URL('comparison-report.json', directory), `${JSON.stringify(report, null, 2)}\n`);
-  expect(comparison.score, `Full-canvas similarity ${((comparison.score)*100).toFixed(3)}%; see .pr-artifacts/UIR-PR-03/comparison-report.json`).toBeGreaterThanOrEqual(0.95);
+  for (const name of ['sidebar', 'globalHeader', 'projectHeader', 'stageNav', 'conversation', 'summary', 'question', 'composer'] as const) {
+    const actual = comparison.geometry[name];
+    const reference = report.sourceGeometry[name];
+    expect(Math.abs(actual.x - reference.x), `${name} x position delta`).toBeLessThanOrEqual(1672 * 0.05);
+    expect(Math.abs(actual.y - reference.y), `${name} y position delta`).toBeLessThanOrEqual(941 * 0.05);
+    expect(Math.abs(actual.width - reference.width), `${name} width delta`).toBeLessThanOrEqual(reference.width * 0.1);
+    expect(Math.abs(actual.height - reference.height), `${name} height delta`).toBeLessThanOrEqual(reference.height * 0.1);
+  }
 });

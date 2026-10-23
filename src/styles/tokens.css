@@ -7,8 +7,11 @@
   --color-surface: #ffffff;
   --color-surface-muted: #f5f9ff;
   --color-surface-strong: #eaf3ff;
+  --color-surface-confirmed: #f3f8f6;
+  --color-surface-pending: #f3f6fb;
   --color-border: #dce7f4;
   --color-border-strong: #c8d8ed;
+  --color-focus: #78aaff;
 
   --color-text-strong: #10234f;
   --color-text-body: #344b73;

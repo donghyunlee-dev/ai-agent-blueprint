@@ -303,9 +303,10 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | 6 | [`UIR-PR-02D`](../tasks/UIR-PR-02D/plan.md) 홈 정렬·입력 보정 | UIR-PR-02C merged | merged (PR #39; merge `8148725`) |
 | 7 | [`UIR-PR-02E`](../tasks/UIR-PR-02E/plan.md) 짧은 데스크톱 홈 첫 화면 맞춤 | UIR-PR-02D merged | merged (PR #40; merge `921d8df2462e7659dbed81cdcdd156d11e916205`) |
 | 8 | [`UIR-PR-03`](../tasks/UIR-PR-03/plan.md) 단계·대화 | UIR-PR-02E merged (#40) | in_progress |
-| 9 | `UIR-PR-04` 제안 검토 | UIR-PR-03 merged | planned |
-| 10 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | planned |
-| 11 | `UIR-PR-06` 문서·지원 흐름 | UIR-PR-05 merged | planned |
+| 9 | [`UIR-PR-03A`](../tasks/UIR-PR-03A/plan.md) 대화 화면 시안 정합성 보정 | UIR-PR-03 merged (#41) | in_progress |
+| 10 | `UIR-PR-04` 제안 검토 | UIR-PR-03A merged | planned |
+| 11 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | planned |
+| 12 | `UIR-PR-06` 문서·지원 흐름 | UIR-PR-05 merged | planned |
 
 기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
 

@@ -40,7 +40,7 @@ test('project frame exposes the current conversation stage and the five supporte
   await expect(stages.getByRole('link', {name:'대화'})).toHaveAttribute('aria-current', 'step');
   await expect(stages.getByRole('link', {name:'제안 검토'})).toBeVisible();
   await expect(stages.getByRole('link', {name:/^3 설계$/})).toBeVisible();
-  await expect(stages.getByRole('button', {name:/Requirements/})).toBeDisabled();
+  await expect(stages.getByRole('button', {name:/요구사항 명세/})).toBeDisabled();
   await expect(stages.getByRole('link', {name:/^5 PRD$/})).toBeVisible();
 });
 

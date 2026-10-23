@@ -831,9 +831,16 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       </nav>
       <div className="workspace-panels" data-stage={currentStage}>
         <ConversationWorkspace summary={visibleSummary}>
-        <section ref={conversationRef} id="workspace-conversation-panel" className="workspace-panel workspace-conversation" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-conversation" : undefined} aria-label={modeTabsVisible ? undefined : "대화"} tabIndex={0}>
+        <section ref={conversationRef} id="workspace-conversation-panel" className="workspace-panel workspace-conversation" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-conversation" : undefined} aria-label={modeTabsVisible ? undefined : "대화"}>
           <header className="workspace-panel-heading"><h1>대화</h1><span>초기 아이디어</span></header>
-          <div className="workspace-conversation-content">
+          <div className="workspace-conversation-content" role="region" aria-label="대화 기록" tabIndex={0} onKeyDown={(event) => {
+            if (event.target !== event.currentTarget) return;
+            const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
+            const movement = event.key === "PageDown" ? clientHeight * 0.8 : event.key === "PageUp" ? -clientHeight * 0.8 : event.key === "ArrowDown" ? 48 : event.key === "ArrowUp" ? -48 : 0;
+            if (movement) { event.preventDefault(); event.currentTarget.scrollBy({ top: movement }); }
+            else if (event.key === "Home") { event.preventDefault(); event.currentTarget.scrollTo({ top: 0 }); }
+            else if (event.key === "End") { event.preventDefault(); event.currentTarget.scrollTo({ top: scrollHeight }); }
+          }}>
             <div className="conversation-message-row conversation-message-row-user"><ConversationAvatar role="user" /><article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{firstVisibleUserMessage?.content ?? (compactedConversation.compacted ? "요약 아래에 최근 대화가 표시됩니다." : "아직 대화가 없습니다.")}</p></article>{firstVisibleUserMessage?.createdAt ? <time className="conversation-message-time" dateTime={firstVisibleUserMessage.createdAt}>{formatConversationTime(firstVisibleUserMessage.createdAt)}</time> : null}</div>
             {visibleConversationMessages.filter((message) => message.id !== firstVisibleUserMessage?.id).map((message) => <div key={message.id} className={`conversation-message-row conversation-message-row-${message.role}`}>
               {message.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}
@@ -846,7 +853,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
               const question = QUESTION_CATALOG.find((item) => item.id === answer.questionId);
               const reviewRequired = getAnswerReviewState(aggregate, answer).reviewRequired;
               const value = answer.action === "defer" ? "나중에 결정" : answer.action === "skip" ? "건너뜀" : answer.action === "unknown" ? "잘 모르겠어요 · 설명 요청" : answer.action === "recommend" ? "추천 요청 · 검토 전" : [answer.customText, ...(answer.selectedValues ?? []).map((selected) => question?.options?.find((option) => option.value === selected)?.label ?? selected), answer.numberValue === undefined ? "" : String(answer.numberValue), answer.rangeValue ? `${answer.rangeValue.start}–${answer.rangeValue.end}` : "", ...(answer.rankedValues ?? []).map((ranked) => question?.options?.find((option) => option.value === ranked)?.label ?? ranked)].filter(Boolean).join(", ");
-              return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{reviewRequired ? <p role="status">선행 답변 변경으로 다시 검토가 필요합니다.</p> : null}{answer.action === "defer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : answer.action === "answer" ? <button type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>수정</button> : null}</article>;
+              return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{reviewRequired ? <p role="status">선행 답변 변경으로 다시 검토가 필요합니다.</p> : null}{answer.action === "defer" ? <button className="question-answer-edit" type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : answer.action === "answer" ? <button className="question-answer-edit" type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>수정</button> : null}</article>;
             })}</section> : null}
             {activeQuestion ? <div className="conversation-message-row conversation-message-row-question"><ConversationAvatar role="assistant" /><QuestionCard key={`${activeQuestion.id}-${reopenedQuestionAnswerId ?? "next"}`} question={activeQuestion} onSubmit={(answer, effectiveAnswerMode) => saveQuestionAnswer(activeQuestion, answer, effectiveAnswerMode)} /></div> : <p className="question-complete-state" role="status">{aggregate.project.readiness.pendingProposalCount ? "제안 검토를 마치면 다음 질문이 이어집니다." : "현재 필요한 질문에 답했습니다."}</p>}
             <AiTurnComposer aggregate={aggregate} projectId={aggregate.project.id} question={activeQuestion} onAggregateChange={applyAggregate} persistAggregate={persistAggregateNow} activeTurnCancellationRef={activeTurnCancellationRef} onQuestionSubmit={saveQuestionAnswer} />
@@ -911,7 +918,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
 function documentTypeLabel(type: string) {
   if (type === "design") return "설계";
-  if (type === "requirements") return "Requirements";
+  if (type === "requirements") return "요구사항 명세";
   if (type === "prd") return "PRD";
   if (type === "setup_guide") return "설정 가이드";
   return "문서";
