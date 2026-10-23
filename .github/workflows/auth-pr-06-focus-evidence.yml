@@ -1,0 +1,57 @@
+name: AUTH PR 06 focus evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/auth-pr-06-focus-evidence.yml'
+      - 'src/pages/LoginPage.tsx'
+      - 'tests/e2e/auth.spec.ts'
+      - 'docs/ui/screens/00-login-and-session.md'
+      - 'docs/ui/screen-state-matrix.md'
+      - 'docs/tasks/AUTH-PR-06/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture-login-focus-evidence:
+    name: Capture login focus states
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture desktop and mobile login focus states
+        run: ./node_modules/.bin/playwright test tests/e2e/auth.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
+
+      - name: Upload AUTH PR 06 focus evidence
+        id: upload-evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-pr-06-focus-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .pr-artifacts/AUTH-PR-06/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish evidence link
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.upload-evidence.outputs.artifact-url }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          printf '## AUTH PR 06 focus evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Final-HEAD desktop/mobile default login and keyboard-focus screenshots: [%s](%s)\n\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Browser job status: `%s`.\n' "$JOB_STATUS" >> "$GITHUB_STEP_SUMMARY"

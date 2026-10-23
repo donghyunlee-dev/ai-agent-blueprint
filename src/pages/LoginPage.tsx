@@ -10,7 +10,6 @@ export function LoginPage({ mode = "login", returnTo: routeReturnTo }: { mode?: 
   const location = useLocation();
   const navigate = useNavigate();
   const alertRef = useRef<HTMLParagraphElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const [redirectToastVisible, setRedirectToastVisible] = useState(false);
   const params = new URLSearchParams(location.search);
   const returnTo = safeReturnTo(routeReturnTo || params.get("returnTo"));
@@ -23,7 +22,6 @@ export function LoginPage({ mode = "login", returnTo: routeReturnTo }: { mode?: 
 
   useEffect(() => {
     if (queryMode === "error" || queryMode === "expired") alertRef.current?.focus();
-    else if (queryMode === "login") buttonRef.current?.focus();
   }, [queryMode]);
 
   useEffect(() => {
@@ -51,7 +49,7 @@ export function LoginPage({ mode = "login", returnTo: routeReturnTo }: { mode?: 
               <img src="/login-reference/ideon.png" alt="ideon" />
             </h1>
             {message ? <p className="auth-alert" role="alert" tabIndex={-1} ref={alertRef}>{message}</p> : null}
-            <button className="auth-google-button" type="button" ref={buttonRef} disabled={busy} aria-busy={busy} onClick={() => { setRedirectToastVisible(true); startLogin(returnTo); }}>
+            <button className="auth-google-button" type="button" disabled={busy} aria-busy={busy} onClick={() => { setRedirectToastVisible(true); startLogin(returnTo); }}>
               <img className="auth-google-mark" src="/login-reference/google.png" alt="" />
               <span className="auth-google-label">Google로 시작하기</span>
               <img className="auth-google-chevron" src="/login-reference/chevron.png" alt="" />

@@ -78,18 +78,39 @@ test("로그인 딥링크 새로고침은 returnTo를 유지한다", async ({ pa
   await page.goto("/login?returnTo=%2F");
   await expect(page).toHaveURL("/login?returnTo=%2F");
   await expect(page.getByRole("heading", { name: "ideon" })).toBeVisible();
+  const button = page.getByRole("button", { name: "Google로 시작하기" });
+  await expect(button).not.toBeFocused();
+  await expect(button).toHaveCSS("outline-style", "none");
   await page.reload();
   await expect(page).toHaveURL("/login?returnTo=%2F");
   await expect(page.getByRole("heading", { name: "ideon" })).toBeVisible();
+  await expect(button).not.toBeFocused();
+  await expect(button).toHaveCSS("outline-style", "none");
 });
 
-test("기본 로그인 화면은 Google 이동 Toast를 버튼 아래에 표시하고 포커스를 유지한다", async ({ page }, testInfo) => {
+test("로그인 버튼은 자동 포커스되지 않지만 Tab으로 도달하면 포커스 표시를 보인다", async ({ page }, testInfo) => {
+  await page.route("**/api/auth/session", (route) => route.fulfill({ status: 401, json: { error: "AUTH_REQUIRED" } }));
+  await page.goto("/login?returnTo=%2F");
+  const button = page.getByRole("button", { name: "Google로 시작하기" });
+  await expect(page.getByRole("heading", { name: "ideon" })).toBeVisible();
+  await expect(button).not.toBeFocused();
+  await expect(button).toHaveCSS("outline-style", "none");
+  await page.screenshot({ path: `.pr-artifacts/AUTH-PR-06/${testInfo.project.name}-login-no-autofocus.png`, fullPage: true, scale: "css" });
+
+  await page.keyboard.press("Tab");
+  await expect(button).toBeFocused();
+  await expect(button).toHaveCSS("outline-style", "solid");
+  await expect(button).toHaveCSS("outline-width", "3px");
+  await page.screenshot({ path: `.pr-artifacts/AUTH-PR-06/${testInfo.project.name}-login-keyboard-focus.png`, fullPage: true, scale: "css" });
+});
+
+test("기본 로그인 화면은 Google 이동 Toast를 버튼 아래에 표시하고 토스트로 포커스를 옮기지 않는다", async ({ page }, testInfo) => {
   await page.route("**/api/auth/session", (route) => route.fulfill({ status: 401, json: { error: "AUTH_REQUIRED" } }));
   await page.route("**/api/auth/google/start?*", (route) => route.fulfill({ status: 204, body: "" }));
   await page.goto("/login?returnTo=%2F");
 
   const button = page.getByRole("button", { name: "Google로 시작하기" });
-  await expect(button).toBeFocused();
+  await expect(button).not.toBeFocused();
   await button.click();
 
   const toast = page.getByRole("status");
