@@ -5,7 +5,12 @@
 .proposal-stage-header > p:last-child { margin: 0; color: var(--color-text-muted); }
 .proposal-stage-summary { align-self: start; margin: 0 20px; padding: 0; border: 0; background: transparent; }
 .proposal-stage-summary section { margin: 0 0 14px; padding: 18px; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); box-shadow: var(--shadow-sm); }
-.proposal-stage-summary h3 { margin: 0 0 12px; font-size: 16px; color: var(--color-text-strong); }
+.proposal-stage-summary h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 16px; color: var(--color-text-strong); }
+.proposal-stage-summary .conversation-summary-icon { display: grid; width: 26px; height: 26px; flex: none; place-items: center; border: 2px solid currentColor; border-radius: 50%; color: #2563c5; font-size: 15px; font-weight: 700; line-height: 1; }
+.proposal-stage-summary .conversation-summary-icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.2px; }
+.proposal-stage-summary .conversation-summary-icon.is-confirmed { border-color: #16bd88; background: #16bd88; color: white; }
+.proposal-stage-summary .conversation-summary-icon.is-pending { border-color: var(--color-primary); color: var(--color-primary); }
+.proposal-stage-summary .conversation-summary-icon.is-pending svg { width: 16px; height: 16px; }
 .proposal-stage-summary p { color: var(--color-text-muted); font-size: 13px; line-height: 1.55; }
 .proposal-stage-summary .proposal-stage-count { margin: 0; color: var(--color-primary); font-size: 24px; font-weight: 700; }
 .proposal-stage-summary ul { display: grid; gap: 12px; margin: 14px 0 0; padding: 0; list-style: none; }
@@ -16,6 +21,7 @@
 .proposal-stage-empty p { margin-bottom: 0; color: var(--color-text-muted); }
 .proposal-stage-actions { position: sticky; z-index: 2; bottom: 0; display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 12px; align-self: start; min-height: 76px; margin: 0; padding: 14px clamp(20px, 4vw, 58px); border-top: 1px solid var(--color-border); background: var(--color-surface); }
 .proposal-stage-actions a,.proposal-stage-actions button { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 12px; height: 48px; min-height: 48px; padding: 10px 22px; border: 1px solid var(--color-border); border-radius: 10px; color: var(--color-text-strong); font: inherit; font-weight: 650; text-decoration: none; }
+.proposal-stage-back-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .proposal-stage-actions .proposal-stage-back { background: var(--color-surface); }
 .proposal-stage-actions .proposal-stage-complete { border-color: var(--color-text-strong); background: var(--color-text-strong); color: var(--color-on-primary, white); }
 .proposal-stage-actions .proposal-stage-complete:disabled { border-color: var(--color-border); background: var(--color-page); color: var(--color-text-muted); opacity: 1; cursor: not-allowed; }

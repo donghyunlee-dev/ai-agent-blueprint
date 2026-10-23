@@ -31,13 +31,23 @@ test.beforeEach(async ({ page }) => {
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId });
 });
 
-test('renders actual proposal data and summary in the proposal stage with completion gated', async ({ page }) => {
+test('renders actual proposal data and summary in the proposal stage with completion gated', async ({ page }, testInfo) => {
   await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
   await expect(page.getByRole('heading', { name: '이해한 내용을 확인해 주세요' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '검토할 실제 제안' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '확정 내용' })).toBeVisible();
+  await expect(page.locator('.proposal-stage-summary .conversation-summary-icon.is-confirmed')).toBeVisible();
   await expect(page.getByText('확정된 실제 내용')).toBeVisible();
   await expect(page.getByRole('heading', { name: '남은 검토' })).toBeVisible();
+  await expect(page.locator('.proposal-stage-summary .conversation-summary-icon.is-pending')).toBeVisible();
+  await expect(page.locator('.proposal-stage-back-icon')).toBeVisible();
+  await expect(page.getByRole('link', { name: /이전으로/ })).toBeVisible();
+  await mkdir('.pr-artifacts/UIR-PR-04', { recursive: true });
+  if (page.viewportSize()?.width === 390) {
+    await page.screenshot({ path: `.pr-artifacts/UIR-PR-04/${testInfo.project.name}-back-arrow-pending.png` });
+    await page.locator('.proposal-stage-summary').scrollIntoViewIfNeeded();
+  }
+  await page.screenshot({ path: `.pr-artifacts/UIR-PR-04/${testInfo.project.name}-summary-icons-pending.png` });
   await expect(page.locator('.proposal-stage-count').nth(1)).toHaveText('1개');
   await expect(page.getByRole('button', { name: /검토 완료/ })).toBeDisabled();
   await expect(page.getByRole('heading', { name: '설계 개요' })).toHaveCount(0);
