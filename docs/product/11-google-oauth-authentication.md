@@ -120,7 +120,7 @@ api/_lib/require-session.ts
 ## UI 계약
 
 - 비인증 사용자는 제품 데이터를 렌더링하기 전에 로그인 화면으로 이동한다.
-- 기본 화면은 `Agent Blueprint` 설명과 `Google로 계속` 단일 primary action을 제공한다.
+- 기본 화면은 시안의 `ideon` 표기와 `Google로 시작하기` 단일 primary action을 제공한다.
 - password, 이메일 입력, 수동 코드 입력 UI는 두지 않는다.
 - 취소, callback 오류, 진행 중, 로그인 완료, session 만료 상태를 구분해 키보드/스크린리더 사용을 지원한다.
 - 로그인 화면과 오류 문구는 전 직장 또는 조직 구성원 자격을 전제하지 않는다.

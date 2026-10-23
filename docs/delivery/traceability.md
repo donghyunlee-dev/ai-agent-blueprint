@@ -79,6 +79,8 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | UIR-008 문서 | UIR-PR-06 | Requirements·PRD 상태·편집·보완·내보내기 | planned |
 | UIR-009 지원 흐름 | UIR-PR-06 | 자료·정합성·가이드·완료 접근성 | planned |
 | UIR-010 반응형·접근성 | UIR-PR-02~06, UIR-PR-03A, QLT-PR-01 | 최종 HEAD 화면과 5개 viewport·키보드; 요약 접힘·대화 스크롤 | in_progress |
+| UI-AUTH-001 로그인·세션 화면 | AUTH-PR-04 | ideon 시안 픽셀 비교, Google 단일 로그인, 인증 상태와 모바일 동작 | ready_to_merge |
+
 
 ## 현재 차단 항목
 
