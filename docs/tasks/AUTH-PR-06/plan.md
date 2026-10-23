@@ -64,5 +64,6 @@ On direct navigation or reload of the default login screen, leave focus at the d
 - [x] Focused desktop/mobile auth tests and production build pass.
 - [x] Active login screen and state matrix contracts match behavior.
 - [ ] Final-HEAD 1440×900 and 390×844 captures are attached as CI evidence.
-- [ ] Independent code review and QA pass against the same final HEAD.
+- [x] Independent code review passed (`pass_with_non_blocking`); findings are resolved.
+- [ ] Independent QA passes against the final HEAD.
 - [ ] PR remains open; no merge unless user explicitly requests the full PR lifecycle.
