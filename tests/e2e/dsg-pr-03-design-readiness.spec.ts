@@ -35,14 +35,22 @@ test.beforeEach(async ({ page }) => {
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId });
 });
 
-test('shows the ten-area readiness gate and keeps the selected design item available through the responsive inspector', async ({ page }) => {
+test('shows the ten-area readiness gate and keeps the selected design item available through the responsive inspector', async ({ page }, testInfo) => {
   const ownerKey = await deriveOwnerKey(identity);
   await page.goto(`/blueprints/${projectId}/design`);
   await expect(page.getByTestId('design-board')).toBeVisible();
+  await expect(page.locator('.workspace-panels')).toHaveAttribute('data-inspector-active', 'false');
   await expect(page.locator('[data-design-section]')).toHaveCount(10);
+  await expect(page.locator('[data-readiness-group]')).toHaveCount(5);
   await expect(page.getByRole('button', { name: /필수 제품 정의/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /Requirements 열기/ })).toBeDisabled();
-  if (page.viewportSize()!.width > 767) await expect(page.getByRole('button', { name: 'Requirements', exact: true })).toBeDisabled();
+  if (page.viewportSize()!.width > 767) await expect(page.getByRole('button', { name: /요구사항 명세/ })).toBeDisabled();
+
+  await page.locator('[data-readiness-group="product_and_problem"]').click();
+  await expect(page.locator('[data-design-section]')).toHaveCount(3);
+  await expect(page.locator('[data-design-section="product"] h3')).toBeFocused();
+  await page.getByRole('button', { name: '전체 영역 보기' }).click();
+  await expect(page.locator('[data-design-section]')).toHaveCount(10);
 
   await page.goto(`/blueprints/${projectId}/requirements`);
   await expect(page.getByTestId('design-board')).toBeVisible();
@@ -81,6 +89,20 @@ test('shows the ten-area readiness gate and keeps the selected design item avail
     const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(databaseName, 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
     const read = db.transaction('projects', 'readonly').objectStore('projects').get(projectId);
     const aggregate = await new Promise<any>((resolve, reject) => { read.onsuccess = () => resolve(read.result); read.onerror = () => reject(read.error); });
+    aggregate.designItems.find((item: any) => item.id === 'scenario').status = 'deferred';
+    const tx = db.transaction('projects', 'readwrite'); tx.objectStore('projects').put(aggregate);
+    await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); db.close();
+  }, { databaseName: databaseNameForOwner(ownerKey), projectId });
+  await page.goto(`/blueprints/${projectId}/design`);
+  await expect(page.getByText('작업 가능', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Requirements 열기' })).toBeEnabled();
+  await expect(page.locator('[data-readiness-group="users"]')).toContainText('보류');
+  if (page.viewportSize()!.width === 1440) await page.screenshot({ path: testInfo.outputPath('uir-pr-05-workable-desktop.png') });
+
+  await page.evaluate(async ({ databaseName, projectId }) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(databaseName, 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const read = db.transaction('projects', 'readonly').objectStore('projects').get(projectId);
+    const aggregate = await new Promise<any>((resolve, reject) => { read.onsuccess = () => resolve(read.result); read.onerror = () => reject(read.error); });
     aggregate.designItems.find((item: any) => item.id === 'scenario').status = 'confirmed';
     const tx = db.transaction('projects', 'readwrite'); tx.objectStore('projects').put(aggregate);
     await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); db.close();
@@ -88,8 +110,11 @@ test('shows the ten-area readiness gate and keeps the selected design item avail
   await page.goto(`/blueprints/${projectId}/design`);
   await expect(page.getByText('준비 완료', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Requirements 열기' })).toBeEnabled();
+  if (page.viewportSize()!.width === 1440) await page.screenshot({ path: testInfo.outputPath('uir-pr-05-ready-desktop.png') });
   await page.getByRole('button', { name: '설계 결정 관리' }).click();
   const inspector = page.locator('#workspace-review-panel');
+  await expect(page.locator('.workspace-panels')).toHaveAttribute('data-inspector-active', 'true');
+  await expect(inspector).toHaveCSS('display', 'block');
   await expect(inspector).toContainText('사용자 확인: 제품 팀이 설계 결정을 한곳에서 관리한다.');
   await expect(inspector).toContainText('결정이 여러 곳에 흩어짐');
   if (await page.getByRole('button', { name: '상세 닫기' }).isVisible()) {
@@ -102,4 +127,19 @@ test('shows the ten-area readiness gate and keeps the selected design item avail
     await page.getByRole('button', { name: '상세 닫기' }).click();
     await expect(page.getByRole('button', { name: /설계 보드/ })).toBeFocused();
   }
+
+  await page.evaluate(async ({ databaseName, projectId, now }) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(databaseName, 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const read = db.transaction('projects', 'readonly').objectStore('projects').get(projectId);
+    const aggregate = await new Promise<any>((resolve, reject) => { read.onsuccess = () => resolve(read.result); read.onerror = () => reject(read.error); });
+    aggregate.proposals = [{ id: 'conflicting-proposal', projectId, operation: 'update', targetType: 'design_item', targetId: 'problem', before: { title: '이전 값' }, after: { title: '새 문제 정의', description: '새 설명' }, rationale: '변경 이유', status: 'pending', createdAt: now, updatedAt: now }];
+    const tx = db.transaction('projects', 'readwrite'); tx.objectStore('projects').put(aggregate);
+    await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); db.close();
+  }, { databaseName: databaseNameForOwner(ownerKey), projectId, now });
+  await page.goto(`/blueprints/${projectId}/design`);
+  await expect(page.getByRole('button', { name: /Requirements 열기/ })).toBeDisabled();
+  await expect(page.locator('[data-readiness-group="product_and_problem"]')).toContainText('충돌');
+  if (page.viewportSize()!.width === 1440) await page.screenshot({ path: testInfo.outputPath('uir-pr-05-conflict-desktop.png') });
+  await page.locator('.design-blocker-list button').filter({ hasText: '충돌 검토' }).click();
+  await expect(page.locator('[data-design-item-id="problem"]')).toBeFocused();
 });

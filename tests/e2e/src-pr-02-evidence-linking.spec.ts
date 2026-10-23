@@ -66,10 +66,12 @@ test('sends bounded project excerpts, previews accepted file evidence, and remov
     } });
   });
   await page.goto(`/blueprints/${projectId}/design`);
-  await expect(page.getByRole('heading',{name:'설계 개요'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'설계 준비 상태'})).toBeVisible();
+  await page.getByRole('link',{name:'대화'}).click();
   await page.getByLabel('AI에 보낼 자유 답변').fill('예약 취소 조건을 자료에서 찾아줘.');
   await page.getByRole('button',{name:'AI로 답변 분석'}).click();
   await page.getByRole('button',{name:'동의하고 계속'}).click();
+  await page.getByRole('link',{name:'제안 검토'}).click();
   await expect(page.getByRole('heading',{name:'제안 1개'})).toBeVisible();
   expect(submitted.sources).toHaveLength(2);
   expect(submitted.sources.every((excerpt: any) => excerpt.sourceId === sourceId)).toBeTruthy();
@@ -78,6 +80,7 @@ test('sends bounded project excerpts, previews accepted file evidence, and remov
 
   const proposal = page.locator('[data-proposal-card]').filter({hasText:'취소 가능 시간'});
   await proposal.getByRole('button',{name:'승인',exact:true}).click();
+  await page.getByRole('link',{name:/검토 완료/}).click();
   await expect(page.getByRole('button',{name:/취소 가능 시간/})).toBeVisible();
   await page.locator('.design-item-row').filter({hasText:'취소 가능 시간'}).click();
   const inspector = page.locator('[aria-label="상세 정보"]');
@@ -104,7 +107,7 @@ test('sends bounded project excerpts, previews accepted file evidence, and remov
   await page.getByRole('dialog',{name:'참고 자료를 제거할까요?'}).getByRole('button',{name:'제거 확인'}).click();
   await expect(page.locator('.source-row').filter({hasText:'policy.md'})).toHaveCount(0);
   await page.reload();
-  await expect(page.getByRole('heading',{name:'설계 개요'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'설계 준비 상태'})).toBeVisible();
   persisted = await storedAggregate(page,databaseName);
   expect(persisted.sources).toHaveLength(0);
   expect(persisted.designItems).toHaveLength(2);
