@@ -1,0 +1,51 @@
+{
+  "source": "docs/blueprint-design/윈도우 오피스와 미니멀 로그인 화면.png",
+  "sourceSize": {
+    "width": 1586,
+    "height": 992
+  },
+  "crops": {
+    "office": {
+      "path": "public/login-reference/office.png",
+      "x": 0,
+      "y": 0,
+      "width": 838,
+      "height": 992,
+      "transparentWhite": false
+    },
+    "ideon": {
+      "path": "public/login-reference/ideon.png",
+      "x": 1000,
+      "y": 318,
+      "width": 430,
+      "height": 150,
+      "transparentWhite": true
+    },
+    "windsoft": {
+      "path": "public/login-reference/windsoft.png",
+      "x": 1414,
+      "y": 18,
+      "width": 150,
+      "height": 42,
+      "transparentWhite": true
+    },
+    "google": {
+      "path": "public/login-reference/google.png",
+      "x": 1104,
+      "y": 540,
+      "width": 40,
+      "height": 40,
+      "transparentWhite": false,
+      "transparentNavy": true
+    },
+    "chevron": {
+      "path": "public/login-reference/chevron.png",
+      "x": 1370,
+      "y": 545,
+      "width": 30,
+      "height": 30,
+      "transparentWhite": false,
+      "transparentNavy": true
+    }
+  }
+}
