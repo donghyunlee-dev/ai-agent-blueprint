@@ -62,7 +62,7 @@ On direct navigation or reload of the default login screen, leave focus at the d
 - [x] Direct load and reload no longer programmatically focus the Google button.
 - [x] Keyboard focus indicator and error/session-expired alert focus remain intact.
 - [x] Focused desktop/mobile auth tests and production build pass.
-- [ ] Active login screen and state matrix contracts match behavior.
+- [x] Active login screen and state matrix contracts match behavior.
 - [ ] Final-HEAD 1440×900 and 390×844 captures are attached as CI evidence.
 - [ ] Independent code review and QA pass against the same final HEAD.
 - [ ] PR remains open; no merge unless user explicitly requests the full PR lifecycle.
