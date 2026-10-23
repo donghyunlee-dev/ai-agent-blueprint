@@ -5,7 +5,12 @@ const featureOptions = [
 ];
 const authTypeOptions = ["email", "google", "github", "sso"].map((value) => ({ value, title: value }));
 const dbTypeOptions = ["mysql", "postgres", "mongodb", "sqlite", "supabase", "etc"].map((value) => ({ value, title: value }));
-const securityOptions = ["personal", "financial", "internal", "none"].map((value) => ({ value, title: value }));
+const securityOptions = [
+  { value: "personal", title: "개인/민감 정보" },
+  { value: "financial", title: "금융/결제" },
+  { value: "internal", title: "사내 내부" },
+  { value: "none", title: "해당 없음" },
+];
 const toolOptions = ["github", "jira", "confluence", "notion", "slack", "teams", "none"].map((value) => ({ value, title: value }));
 
 const target = {

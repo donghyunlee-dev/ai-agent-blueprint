@@ -726,3 +726,52 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 @media (prefers-reduced-motion: reduce) {
   .conversation-summary-toggle svg { transition: none; }
 }
+
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > legend { flex: 0 0 100%; }
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option {
+    flex: 0 1 calc((100% - 36px) / 4);
+    min-width: 0;
+    height: auto;
+    min-height: 133px;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option:not(:has(.question-option-icon)) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option:not(:has(.question-option-icon)) .question-option-copy {
+    display: grid;
+    grid-column: auto;
+    grid-row: auto;
+    place-items: center;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-content: start;
+    gap: 8px;
+    text-align: left;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy {
+    display: contents;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy strong,
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy small {
+    margin-left: 0;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy strong { grid-column: 2; grid-row: 1; align-self: center; }
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy small { grid-column: 1 / -1; grid-row: 2; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon { width: 36px; height: 36px; border-radius: 10px; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: calc((100% - 12px) / 2); }
+}
+@media (max-width: 767px) {
+  .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: 100%; min-height: 78px; }
+}

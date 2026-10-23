@@ -310,6 +310,12 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | 11 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | planned |
 | 12 | `UIR-PR-06` 문서·지원 흐름 | UIR-PR-05 merged | planned |
 
+### Current-main UI follow-up
+
+| PR unit | 선행 조건 | 결과 | 상태 |
+| --- | --- | --- | --- |
+| [`UIR-PR-03D`](../tasks/UIR-PR-03D/plan.md) 선택 카드·아이디어 입력 포커스 보정 | UIR-PR-03C merged (#51); branch from latest `origin/main` | 선택지 개수에 맞는 균형 배치, 필요한 아이콘 표시, 보안 문구 한국어화, 키보드 접근성을 유지한 입력 포커스 표시 | in_progress |
+
 기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
 
 `blocked` 행은 필요한 제품 결정이 기록되기 전까지 건너뛰고 다음 비의존 PR로 순서를 재계획할 수 있다. 단, 의존하는 후속 PR은 시작할 수 없다. 실제 개발 중 PR이 너무 크면 수용 기준을 보존한 채 `-A`, `-B`로 분할하고 이 표와 추적표를 먼저 갱신한다.
