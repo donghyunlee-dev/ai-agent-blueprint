@@ -463,9 +463,9 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-panels[data-stage="conversation"] .question-card-custom > summary { padding: 8px; color: var(--color-text-muted); font-size: 11px; white-space: nowrap; cursor: pointer; }
   .workspace-panels[data-stage="conversation"] .question-card-custom[open] { position: absolute; right: 18px; bottom: 56px; z-index: 2; width: min(320px, 80%); padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); }
   .workspace-panels[data-stage="conversation"] .question-card-custom[open] > label { margin-top: 8px; }
-  .workspace-panels[data-stage="conversation"] .question-card-options > .question-card-option { display: grid; grid-template-columns: 48px 1fr; align-content: start; gap: 10px 16px; }
-  .workspace-panels[data-stage="conversation"] .question-card-option input[type="checkbox"],
-  .workspace-panels[data-stage="conversation"] .question-card-option input[type="radio"] { position: absolute; z-index: 1; width: 48px; height: 48px; margin: 0; opacity: 0; cursor: pointer; }
+  .workspace-panels[data-stage="conversation"] .question-card > form > .question-card-options > .question-card-option { position: relative; display: grid; grid-template-columns: 48px 1fr; align-content: start; gap: 10px 16px; }
+  .workspace-panels[data-stage="conversation"] .question-card > form > .question-card-options > .question-card-option input[type="checkbox"],
+  .workspace-panels[data-stage="conversation"] .question-card > form > .question-card-options > .question-card-option input[type="radio"] { position: absolute; z-index: 1; width: 48px; height: 48px; margin: 0; opacity: 0; cursor: pointer; }
   .workspace-panels[data-stage="conversation"] .question-card-option:has(input:focus-visible) { outline: 3px solid #6554c080; outline-offset: 2px; }
   .question-option-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; background: #edf4ff; color: #1877ef; }
   .question-option-icon.is-admin { background: #e8faf3; color: #00b983; }
