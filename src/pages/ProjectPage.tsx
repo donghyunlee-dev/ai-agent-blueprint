@@ -126,7 +126,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [selectedDesignItemId, setSelectedDesignItemId] = useState<string | null>(null);
   const [inspectorOverlay, setInspectorOverlay] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches);
-  const [modeTabsVisible, setModeTabsVisible] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches);
+  const modeTabsVisible = false;
   const [mobileLayout, setMobileLayout] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
   const [proposalBusyId, setProposalBusyId] = useState<string | null>(null);
   const [proposalError, setProposalError] = useState<string | null>(null);
@@ -256,18 +256,14 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 1279px)");
-    const tabsQuery = window.matchMedia("(max-width: 1023px)");
     const mobileQuery = window.matchMedia("(max-width: 767px)");
     const update = () => setInspectorOverlay(query.matches);
-    const updateTabs = () => setModeTabsVisible(tabsQuery.matches);
     const updateMobile = () => setMobileLayout(mobileQuery.matches);
     update();
-    updateTabs();
     updateMobile();
     query.addEventListener("change", update);
-    tabsQuery.addEventListener("change", updateTabs);
     mobileQuery.addEventListener("change", updateMobile);
-    return () => { query.removeEventListener("change", update); tabsQuery.removeEventListener("change", updateTabs); mobileQuery.removeEventListener("change", updateMobile); };
+    return () => { query.removeEventListener("change", update); mobileQuery.removeEventListener("change", updateMobile); };
   }, []);
 
   useEffect(() => {

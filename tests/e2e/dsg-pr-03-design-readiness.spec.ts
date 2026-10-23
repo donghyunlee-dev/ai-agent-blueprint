@@ -35,6 +35,33 @@ test.beforeEach(async ({ page }) => {
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId });
 });
 
+test('opens and closes the design inspector from its visible trigger across mobile and tablet widths', async ({ page }) => {
+  const inspector = page.locator('#workspace-review-panel');
+  for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto(`/blueprints/${projectId}/design`);
+    await expect(page.locator('.workspace-mobile-tabs')).toBeHidden();
+    await expect(page.getByRole('tab', { name: '검토' })).toHaveCount(0);
+    const workPanel = page.locator('#workspace-work-panel');
+    await expect(workPanel).toHaveAttribute('role', 'region');
+    await expect(workPanel).not.toHaveAttribute('aria-labelledby');
+    await expect(page.getByTestId('design-board')).toBeVisible();
+
+    const detailsTrigger = page.getByRole('button', { name: '상세 보기' });
+    await detailsTrigger.click();
+    await expect(inspector).toBeVisible();
+    await expect(inspector).toHaveAttribute('role', 'dialog');
+    await expect(inspector).toHaveAttribute('aria-modal', 'true');
+    await expect(inspector.getByRole('button', { name: '상세 닫기' })).toBeFocused();
+    await expect(workPanel).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(detailsTrigger).toBeFocused();
+    await expect(inspector).not.toBeVisible();
+    await expect(workPanel).toBeVisible();
+    await expect(page.getByTestId('design-board')).toBeVisible();
+  }
+});
+
 test('shows the ten-area readiness gate and keeps the selected design item available through the responsive inspector', async ({ page }, testInfo) => {
   const ownerKey = await deriveOwnerKey(identity);
   await page.goto(`/blueprints/${projectId}/design`);

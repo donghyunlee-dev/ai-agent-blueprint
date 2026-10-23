@@ -1,6 +1,6 @@
 # UIR-PR-05 visual evidence
 
-These screenshots were captured from the final uncommitted worktree based on `0e27da5f5ccd4289309ac348e5340959e7f2a5b5`, using Playwright Chromium at the listed CSS viewport sizes. The design route is `/blueprints/uir-pr-05-project/design`; fixtures are seeded in the browser's IndexedDB.
+These screenshots were captured from implementation commit `02c61278ade6fd0b725dee6a4175e689cfd162be`, based on `0e27da5f5ccd4289309ac348e5340959e7f2a5b5`, using Playwright Chromium at the listed CSS viewport sizes. The design route is `/blueprints/uir-pr-05-project/design`; fixtures are seeded in the browser's IndexedDB. The later mobile semantics correction changes no pixels in the captured default design states.
 
 ## Captures
 
