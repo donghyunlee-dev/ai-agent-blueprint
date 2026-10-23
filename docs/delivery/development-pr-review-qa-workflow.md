@@ -289,6 +289,7 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | QLT-601~603 | 지정 viewport와 키보드·성능 gate | planned |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | QLT-604, 605, 608 | 전체 프로세스와 보안·모델 회귀 통과 | planned |
 | 30 | `QLT-PR-03` 사용자 검증·출시 정리 | QLT-606, 607 | P0 결함 0건과 release checklist | planned |
+| 31 | `AUTH-PR-04` ideon 로그인 화면 시안 개편 | AUTH-001, UI-AUTH-001, UIR-010 | ideon 로그인 시각 개편, Google 단일 로그인과 인증 상태 보존 | in_progress |
 
 위 표는 저장소의 일반 delivery PR 순서다. 현재 화면 개편은 이 순서와 독립된 [UI 개편 계획](../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md)의 선행 관계를 따른다. 각 UIR 후속 PR은 바로 앞 UIR PR의 GitHub 병합을 확인한 최신 `main`에서 시작한다.
 

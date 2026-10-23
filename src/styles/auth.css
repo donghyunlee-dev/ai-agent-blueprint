@@ -1,29 +1,101 @@
 .auth-page {
-  min-height: 100vh;
+  position: relative;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  padding: 28px clamp(20px, 5vw, 72px) 24px;
-  background: radial-gradient(ellipse at 50% 44%, #fff 0%, #f5f8fd 54%, #eaf1fa 100%);
+  grid-template-columns: 52.837% minmax(0, 1fr);
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #fff;
 }
 
-.auth-topbar { display: flex; align-items: center; gap: 10px; color: var(--color-text-body); font-size: 14px; font-weight: 650; }
-.auth-brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: #173e77; color: #fff; font-weight: 800; }
-.auth-card { align-self: center; justify-self: center; width: min(100%, 440px); padding: clamp(26px, 5vw, 44px); border: 1px solid var(--color-border); border-radius: 24px; background: var(--color-surface); box-shadow: var(--shadow-md); }
-.auth-eyebrow { display: block; margin-bottom: 12px; color: var(--color-primary); font-size: 11px; font-weight: 750; letter-spacing: .09em; }
-.auth-card h1 { margin: 0; color: var(--color-text-strong); font-size: clamp(28px, 5vw, 34px); line-height: 1.2; letter-spacing: -.035em; }
-.auth-lede { margin: 12px 0 28px; color: var(--color-text-body); font-size: 16px; line-height: 1.55; }
-.auth-description { margin: 0 0 18px; color: var(--color-text-muted); font-size: 14px; }
-.auth-alert { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #f1c7c4; border-radius: 12px; background: #fff7f6; color: #9c3028; font-size: 14px; }
-.auth-alert:focus { outline: 3px solid #78aaff; outline-offset: 3px; }
-.auth-google-button { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; min-height: 50px; padding: 12px 18px; border: 1px solid var(--color-border-strong); border-radius: 12px; background: white; color: var(--color-text-strong); font-size: 15px; font-weight: 650; cursor: pointer; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
-.auth-google-button:hover:not(:disabled) { border-color: #91aaca; background: #f8fbff; }
+.auth-photo {
+  min-height: 100vh;
+  background: url("/login-reference/office.png") center / cover no-repeat;
+}
+
+.auth-login-panel {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 100vh;
+  place-items: center;
+  background: #fff;
+}
+
+.auth-windsoft-mark {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 160px;
+  height: 45px;
+  object-fit: contain;
+}
+
+.auth-login-content {
+  display: flex;
+  width: min(100% - 48px, 430px);
+  flex-direction: column;
+  align-items: center;
+  gap: 57px;
+  transform: translateY(-40px);
+}
+
+.auth-ideon-heading {
+  width: 100%;
+  margin: 0;
+  line-height: 0;
+}
+
+.auth-ideon-heading img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.auth-google-button {
+  position: relative;
+  display: block;
+  align-items: center;
+  width: min(100%, 416px);
+  left: 8px;
+  min-height: 70px;
+  padding: 10px 30px 10px 92px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(105deg, #061f58 0%, #00296f 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter .16s ease, transform .16s ease;
+}
+
+.auth-google-button:hover:not(:disabled) { filter: brightness(1.12); }
 .auth-google-button:active:not(:disabled) { transform: translateY(1px); }
-.auth-google-button:focus-visible, .auth-footer a:focus-visible { outline: 3px solid #78aaff; outline-offset: 3px; }
-.auth-google-button:disabled { cursor: progress; opacity: .72; }
-.auth-google-mark { width: 20px; height: 20px; flex: none; }
-.auth-caption { margin: 14px 0 0; color: var(--color-text-muted); font-size: 12px; text-align: center; }
-.auth-footer { display: flex; justify-content: center; align-items: center; gap: 12px; color: var(--color-text-muted); font-size: 12px; }
-.auth-checking { margin: 0; padding: 18px 0; color: var(--color-text-body); font-size: 15px; text-align: center; }
+.auth-google-button:focus-visible { outline: 3px solid #78aaff; outline-offset: 4px; }
+.auth-google-button:disabled { cursor: progress; opacity: .76; }
+.auth-google-mark { position: absolute; top: 50%; left: 88px; width: 40px; height: 40px; transform: translateY(-50%); }
+.auth-google-label { display: block; white-space: nowrap; text-align: center; transform: translateX(5px); }
+.auth-google-chevron { position: absolute; top: 50%; right: 31px; width: 30px; height: 30px; transform: translateY(-50%); }
+
+.auth-alert {
+  width: 100%;
+  margin: -32px 0 -38px;
+  color: #9c3028;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.auth-alert:focus { outline: 3px solid #78aaff; outline-offset: 5px; }
+
+.auth-state-message {
+  max-width: calc(100% - 48px);
+  color: #183160;
+  font-size: 16px;
+  text-align: center;
+}
 
 .auth-menu { position: fixed; z-index: 20; top: 12px; right: 20px; }
 .auth-menu-trigger { display: flex; align-items: center; gap: 9px; max-width: min(350px, calc(100vw - 40px)); padding: 7px 11px 7px 7px; border: 1px solid var(--color-border); border-radius: 999px; background: #fff; color: var(--color-text-body); font-size: 13px; cursor: pointer; box-shadow: var(--shadow-sm); }
@@ -39,9 +111,18 @@
 .auth-menu-note { line-height: 1.5; }
 .auth-menu-error { margin: 0 0 10px; color: #9c3028; font-size: 12px; }
 
-@media (max-width: 600px) {
-  .auth-page { padding: 18px 18px 22px; }
-  .auth-card { padding: 28px 23px; }
+@media (max-width: 767px) {
+  .auth-page { grid-template-columns: minmax(0, 1fr); }
+  .auth-photo { display: none; }
+  .auth-login-panel { padding: 70px 18px 24px; }
+  .auth-windsoft-mark { top: 12px; right: 10px; width: 140px; height: 39px; }
+  .auth-login-content { width: min(100%, 430px); gap: clamp(42px, 10vh, 72px); transform: translateY(-14px); }
+  .auth-ideon-heading { max-width: 100%; }
+  .auth-google-button { display: grid; grid-template-columns: 1fr auto 1fr; width: 100%; min-height: 62px; left: 0; padding: 8px 18px; font-size: 15px; }
+  .auth-google-mark { position: static; grid-column: 1; justify-self: end; width: 32px; height: 32px; transform: none; }
+  .auth-google-label { grid-column: 2; transform: none; }
+  .auth-google-chevron { position: static; grid-column: 3; justify-self: end; width: 24px; height: 24px; transform: none; }
+  .auth-alert { margin: -24px 0 -28px; }
   .auth-menu { top: 8px; right: 10px; }
   .auth-menu-trigger { max-width: 210px; padding-right: 8px; font-size: 12px; }
   .auth-menu-email { max-width: 128px; }

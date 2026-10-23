@@ -1,6 +1,6 @@
 # 개발 작업(Task) 계획 폴더
 
-이 디렉터리는 `docs/delivery/development-pr-review-qa-workflow.md`의 30개 PR 단위표를 SDD(Spec/Structured-Development-Doc) 방식으로 개별 폴더화한 것이다. 각 폴더는 다음 규칙을 따른다.
+이 디렉터리는 `docs/delivery/development-pr-review-qa-workflow.md`의 PR 단위표를 SDD(Spec/Structured-Development-Doc) 방식으로 개별 폴더화한 것이다. 각 폴더는 다음 규칙을 따른다.
 
 - `plan.md`는 실제 구현을 시작하기 전에 미리 작성한다. Overview, Background, Scope, 연결 근거(요구사항·결정·화면 ID), 선행 조건, 작업 단위별 구현 개요, 프로세스/상태 전이 mermaid, 데이터·API 영향, Acceptance Criteria(Happy/Failure/Boundary), 예상 변경 파일, 테스트 계획, UI 증거 계획, 코드 리뷰·QA 체크리스트, Done Checklist를 포함한다.
 - `test-results.md`, `review-notes.md`, `qa-report.md` 등은 실제 구현 시점에 같은 폴더에 추가로 생성한다(폴더/파일 구조를 미리 알 수 없으므로 지금은 만들지 않는다).
@@ -40,6 +40,7 @@
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | planned | [plan](QLT-PR-01/plan.md) |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | planned | [plan](QLT-PR-02/plan.md) |
 | 30 | `QLT-PR-03` 사용자 검증·출시 정리 | 6단계 | planned | [plan](QLT-PR-03/plan.md) |
+| 31 | `AUTH-PR-04` ideon 로그인 화면 시안 개편 | UI 개선 | in_progress | [plan](AUTH-PR-04/plan.md) |
 
 상태 최신값은 `docs/delivery/development-pr-review-qa-workflow.md`와 `docs/delivery/traceability.md`가 원본이다. 이 표는 탐색 편의를 위한 것이며 실제 진행 상태는 두 원본 문서에서 갱신한다.
 

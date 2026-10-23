@@ -36,7 +36,7 @@
 
 1. 사용자가 보호된 제품 경로에 접근한다.
 2. 시스템이 Blueprint 세션을 확인하고 비인증 상태면 로그인 화면을 표시한다.
-3. 사용자가 `Google로 계속`을 선택한다.
+3. 사용자가 `Google로 시작하기`를 선택한다.
 4. Google 인증을 완료하고 서버 callback에서 state, nonce, ID token과 검증된 email claim을 확인한다.
 5. 서버가 검증된 OIDC identity로 Blueprint HttpOnly session을 발급한다.
 6. 사용자는 홈 또는 원래 접근한 보호 경로로 이동한다.

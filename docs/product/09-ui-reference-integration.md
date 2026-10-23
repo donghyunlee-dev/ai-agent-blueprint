@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Use [the Blueprint redesign map](../blueprint-design/README.md) to choose the visual reference for each supported screen. The seven `docs/blueprint-design/` images guide hierarchy, layout, density, stage emphasis, and color direction. They do not authorize new product capabilities, routes, data, or assets.
+Use [the Blueprint redesign map](../blueprint-design/README.md) to choose the visual reference for each supported screen. The eight `docs/blueprint-design/` images guide hierarchy, layout, density, stage emphasis, and color direction. They do not authorize new product capabilities, routes, or data. The approved ideon login redesign may use individual photo, logo, and icon crops from its dedicated reference image.
 
 ## Sources of truth
 
 1. Product, security, domain, document, accessibility, and responsive contracts define behavior and gates.
-2. `docs/blueprint-design/README.md` maps the primary redesign images to home, conversation, proposal review, readiness, Requirements, and PRD.
+2. `docs/blueprint-design/README.md` maps the primary redesign images to login, home, conversation, proposal review, readiness, Requirements, and PRD.
 3. For a state absent from those images, use the corresponding [template reference](../template/README.md) and the [screen state matrix](../ui/screen-state-matrix.md).
 4. Existing React, TypeScript, semantic HTML, and local CSS are the implementation base. Extract a shared component only for a real shared contract.
 
@@ -28,7 +28,7 @@ The design board includes global Templates, Knowledge Library, Settings, notific
 
 ## Implementation constraints
 
-Do not embed a reference screenshot, copy its raster contents into a product asset, add an external design system, or introduce an unsupported menu placeholder. Use local semantic HTML/CSS and application-scoped CSS custom properties for repeated values. Keep status text visible without relying on color. Dialogs, drawers, links, tabs, and forms retain their keyboard, focus, validation, and failure-recovery contracts.
+Do not embed a full reference screenshot as a screen or background. The approved ideon login is the only exception for individual image crops from its dedicated reference. Do not add an external design system or unsupported menu placeholder. Use local semantic HTML/CSS and application-scoped CSS custom properties for repeated values. Keep status text visible without relying on color. Dialogs, drawers, links, tabs, and forms retain their keyboard, focus, validation, and failure-recovery contracts.
 
 ## Verification checklist
 
