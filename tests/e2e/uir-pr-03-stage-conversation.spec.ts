@@ -8,7 +8,7 @@ import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-mi
 const identity = { issuer: 'https://accounts.google.com', subject: 'uir-pr-03-visual-fixture', email: 'uir-pr-03@example.test', displayName: '김지현 님' };
 const projectId = 'uir-pr-03-meeting-room';
 const referencePath = new URL('../../docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png', import.meta.url);
-const artifactDirectory = new URL('../../.pr-artifacts/UIR-PR-03B/', import.meta.url);
+const artifactDirectory = new URL('../../.pr-artifacts/UIR-PR-03A/', import.meta.url);
 const hash = (value: Buffer) => createHash('sha256').update(value).digest('hex');
 
 test.beforeEach(async ({ page }) => {
