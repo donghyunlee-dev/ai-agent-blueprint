@@ -34,7 +34,7 @@ test.beforeEach(async ({ page }) => {
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId, now });
 });
 
-test('group detail exposes a blocker in a non-first child area and focuses its item', async ({ page }) => {
+test('group detail exposes a blocker in a non-first child area and focuses its item', async ({ page }, testInfo) => {
   const ownerKey = await deriveOwnerKey(identity);
   await page.evaluate(async ({ databaseName, projectId, now }) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open(databaseName, 1); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
@@ -55,6 +55,9 @@ test('group detail exposes a blocker in a non-first child area and focuses its i
   await expect(page.locator('[data-design-item-id="problem-item"]')).toBeFocused();
   await expect(sectionReason).toBeVisible();
   await expect(sectionReason).toBeInViewport();
+  const viewportWidth = page.viewportSize()?.width;
+  const screenshotName = viewportWidth === 390 ? 'uir-pr-05-selected-group-blocker-mobile.png' : 'uir-pr-05-selected-group-blocker-desktop.png';
+  await page.screenshot({ path: testInfo.outputPath(screenshotName) });
 });
 
 test('shows five ordered summary groups, preserves ten areas, and filters to source detail', async ({ page }, testInfo) => {

@@ -2,6 +2,8 @@
 
 These screenshots were captured from implementation commit `02c61278ade6fd0b725dee6a4175e689cfd162be`, based on `0e27da5f5ccd4289309ac348e5340959e7f2a5b5`, using Playwright Chromium at the listed CSS viewport sizes. The design route is `/blueprints/uir-pr-05-project/design`; fixtures are seeded in the browser's IndexedDB. The later mobile semantics correction changes no pixels in the captured default design states.
 
+Selected-group blocker captures below use UI HEAD `707b85ca517d36e3ac4e74a643594db29b451dab`; the screenshot-only E2E capture change was uncommitted. The fixture is synthetic: `회의실 예약` is confirmed and the non-first child `예약 충돌 처리` is proposed. Each image shows its blocker reason beside the owning section after the related item receives focus.
+
 ## Captures
 
 | State | CSS viewport | Capture |
@@ -12,8 +14,10 @@ These screenshots were captured from implementation commit `02c61278ade6fd0b725d
 | Workable | 1440×900 | [workable-desktop-1440x900.png](./workable-desktop-1440x900.png) |
 | Ready | 1440×900 | [ready-desktop-1440x900.png](./ready-desktop-1440x900.png) |
 | Conflict | 1440×900 | [conflict-desktop-1440x900.png](./conflict-desktop-1440x900.png) |
+| Selected group blocker, desktop | 1440×900 | [selected-group-blocker-desktop-1440x900.png](./selected-group-blocker-desktop-1440x900.png) |
+| Selected group blocker, mobile | 390×844 | [selected-group-blocker-mobile-390x844.png](./selected-group-blocker-mobile-390x844.png) |
 
-The mobile PNG is 1024×2216 physical pixels because the Playwright mobile project uses device scale factor; its CSS viewport is 390×844.
+The mobile PNGs are 1024×2216 physical pixels because the Playwright mobile project uses device scale factor; their CSS viewport is 390×844.
 
 ## Reference comparison
 
