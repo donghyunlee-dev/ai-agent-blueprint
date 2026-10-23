@@ -57,11 +57,52 @@ test('captures the primary conversation frame at the required desktop and mobile
   if (testInfo.project.name === 'mobile-chromium') {
     await expect(page.locator('.workspace-first-message')).toBeInViewport();
     await expect(page.locator('.conversation-message-row-user .conversation-avatar svg')).toHaveCSS('width', '24px');
+    const composerInsets = await page.evaluate(() => {
+      const panel = document.querySelector('.workspace-conversation')!.getBoundingClientRect();
+      const composer = document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
+      return { left: composer.left - panel.left, right: panel.right - composer.right, contained: composer.left >= panel.left && composer.right <= panel.right };
+    });
+    expect(composerInsets.contained, `mobile composer geometry ${JSON.stringify(composerInsets)}`).toBe(true);
+    expect(composerInsets.left).toBeCloseTo(10, 0);
+    expect(composerInsets.right).toBeCloseTo(10, 0);
+  } else {
+    const composerInsets = await page.evaluate(() => {
+      const panel = document.querySelector('.workspace-conversation')!.getBoundingClientRect();
+      const composer = document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
+      return { left: composer.left - panel.left, right: panel.right - composer.right };
+    });
+    expect(composerInsets.left).toBeCloseTo(30, 0);
+    expect(composerInsets.right).toBeCloseTo(30, 0);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
   const directory = new URL(artifactDirectory);
   await mkdir(directory, { recursive: true });
   await page.screenshot({ path: new URL(`conversation-${viewport.width}x${viewport.height}.png`, directory).pathname, fullPage: false, scale: testInfo.project.name === 'mobile-chromium' ? 'css' : 'device' });
+});
+
+test('composer stays inside tablet and mobile conversation panels', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Tablet and mobile viewport evidence is captured once on desktop Chromium.');
+  const viewports = [
+    { name: 'tablet', width: 768, height: 1024, inset: 30 },
+    { name: 'mobile-contained', width: 390, height: 844, inset: 10 },
+  ];
+  const directory = new URL(artifactDirectory);
+  await mkdir(directory, { recursive: true });
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto(`/blueprints/${projectId}`);
+    await expect(page.locator('.workspace-conversation')).toBeVisible();
+    await expect(page.locator('.ai-turn-composer')).toBeVisible();
+    const composerInsets = await page.evaluate(() => {
+      const panel = document.querySelector('.workspace-conversation')!.getBoundingClientRect();
+      const composer = document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
+      return { left: composer.left - panel.left, right: panel.right - composer.right, contained: composer.left >= panel.left && composer.right <= panel.right };
+    });
+    expect(composerInsets.contained, `${viewport.name} composer remains contained: ${JSON.stringify(composerInsets)}`).toBe(true);
+    expect(composerInsets.left, `${viewport.name} composer left inset`).toBeCloseTo(viewport.inset, 0);
+    expect(composerInsets.right, `${viewport.name} composer right inset`).toBeCloseTo(viewport.inset, 0);
+    await page.screenshot({ path: new URL(`conversation-${viewport.name}-${viewport.width}x${viewport.height}.png`, directory).pathname, fullPage: false, scale: 'css' });
+  }
 });
 
 test('prior answer edit is styled and reopens the question', async ({ page }) => {
@@ -228,14 +269,23 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   const heatmapBytes = Buffer.from(comparison.heatmap.split(',')[1], 'base64');
   await Promise.all([saveDataUrl('overlay-1672x941.png', comparison.overlay), saveDataUrl('heatmap-1672x941.png', comparison.heatmap)]);
   const artifacts = { source: { path: 'source-1672x941.png', sha256: hash(source) }, render: { path: 'render-1672x941.png', sha256: hash(rendered) }, overlay: { path: 'overlay-1672x941.png', sha256: hash(overlayBytes) }, heatmap: { path: 'heatmap-1672x941.png', sha256: hash(heatmapBytes) }, report: 'comparison-report.json' };
-  const report = { algorithm: 'unmasked full-canvas RGB; pixel matches when max(abs(R,G,B)) <= 24', thresholdPerChannel: 24, width: 1672, height: 941, totalPixels: comparison.totalPixels, matchingPixels: comparison.matchingPixels, similarity: comparison.score, viewportCss: { width: 1672, height: 941 }, deviceScaleFactor: await page.evaluate(() => window.devicePixelRatio), font: await page.evaluate(() => ({ family: getComputedStyle(document.body).fontFamily, pretendardLoaded: document.fonts.check('16px Pretendard') })), browser: testInfo.project.name, browserVersion: await page.context().browser()?.version(), headSha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), route: `/blueprints/${projectId}`, state: 'normal conversation; deterministic fixture UIR-PR-03', source: 'docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png', sourceSha256: hash(source), renderSha256: hash(rendered), geometry: comparison.geometry, typography: comparison.typography, sourceDarkRgbSamples: comparison.sourceDarkRgbSamples, inkBounds:comparison.inkBounds, worstTiles:comparison.worstTiles, regions:comparison.regions, computedColors:comparison.computedColors, sourceGeometry: { sidebar: { x:0,y:0,width:249,height:941 }, globalHeader:{x:249,y:0,width:1423,height:65}, projectHeader:{x:249,y:65,width:1423,height:75}, stageNav:{x:249,y:140,width:1423,height:56}, conversation:{x:249,y:196,width:1075,height:745}, summary:{x:1337,y:196,width:309,height:745}, question:{x:362,y:529,width:938,height:324}, composer:{x:278,y:852,width:1360,height:78} }, artifacts };
+  const report = { algorithm: 'unmasked full-canvas RGB; pixel matches when max(abs(R,G,B)) <= 24', thresholdPerChannel: 24, width: 1672, height: 941, totalPixels: comparison.totalPixels, matchingPixels: comparison.matchingPixels, similarity: comparison.score, viewportCss: { width: 1672, height: 941 }, deviceScaleFactor: await page.evaluate(() => window.devicePixelRatio), font: await page.evaluate(() => ({ family: getComputedStyle(document.body).fontFamily, pretendardLoaded: document.fonts.check('16px Pretendard') })), browser: testInfo.project.name, browserVersion: await page.context().browser()?.version(), headSha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), route: `/blueprints/${projectId}`, state: 'normal conversation; deterministic fixture UIR-PR-03', source: 'docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png', sourceSha256: hash(source), renderSha256: hash(rendered), geometry: comparison.geometry, typography: comparison.typography, sourceDarkRgbSamples: comparison.sourceDarkRgbSamples, inkBounds:comparison.inkBounds, worstTiles:comparison.worstTiles, regions:comparison.regions, computedColors:comparison.computedColors, sourceGeometry: { sidebar: { x:0,y:0,width:249,height:941 }, globalHeader:{x:249,y:0,width:1423,height:65}, projectHeader:{x:249,y:65,width:1423,height:75}, stageNav:{x:249,y:140,width:1423,height:56}, conversation:{x:249,y:196,width:1075,height:745}, summary:{x:1337,y:196,width:309,height:745}, question:{x:362,y:529,width:938,height:324}, composer:{x:278,y:852,width:1360,height:78} }, acceptedGeometryExceptions: { composer: { reason: 'User-approved containment within the conversation panel', expectedInsetsPx: 30 } }, artifacts };
   await writeFile(new URL('comparison-report.json', directory), `${JSON.stringify(report, null, 2)}\n`);
   for (const name of ['sidebar', 'globalHeader', 'projectHeader', 'stageNav', 'conversation', 'summary', 'question', 'composer'] as const) {
     const actual = comparison.geometry[name];
+    if (name === 'composer') continue;
     const reference = report.sourceGeometry[name];
     expect(Math.abs(actual.x - reference.x), `${name} x position delta`).toBeLessThanOrEqual(1672 * 0.05);
     expect(Math.abs(actual.y - reference.y), `${name} y position delta`).toBeLessThanOrEqual(941 * 0.05);
     expect(Math.abs(actual.width - reference.width), `${name} width delta`).toBeLessThanOrEqual(reference.width * 0.1);
     expect(Math.abs(actual.height - reference.height), `${name} height delta`).toBeLessThanOrEqual(reference.height * 0.1);
   }
+  const composerInsets = await page.evaluate(() => {
+    const panel = document.querySelector('.workspace-conversation')!.getBoundingClientRect();
+    const composer = document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
+    return { left: composer.left - panel.left, right: panel.right - composer.right, contained: composer.left >= panel.left && composer.right <= panel.right };
+  });
+  expect(composerInsets.contained, 'composer remains within the conversation panel').toBe(true);
+  expect(composerInsets.left, 'composer left inset from conversation panel').toBeCloseTo(30, 0);
+  expect(composerInsets.right, 'composer right inset from conversation panel').toBeCloseTo(30, 0);
 });
