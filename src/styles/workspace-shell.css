@@ -775,3 +775,10 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 @media (max-width: 767px) {
   .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: 100%; min-height: 78px; }
 }
+.workspace-panels[data-stage="conversation"] .question-card { container-type: inline-size; }
+@container (max-width: 680px) {
+  .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: calc((100% - 12px) / 2); }
+}
+@container (max-width: 380px) {
+  .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: 100%; }
+}

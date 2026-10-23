@@ -125,6 +125,31 @@ test('four user-role options retain the four design icons and do not overflow', 
   await placeChoicesInConversationViewport(page, testInfo.project.name === 'mobile-chromium');
   await mkdir(evidenceDirectory, { recursive: true });
   await page.screenshot({ path: `${evidenceDirectory}/user-roles-${testInfo.project.name}.png`, fullPage: false, scale: 'css' });
+
+  if (testInfo.project.name === 'desktop-chromium') {
+    const viewportCases = [
+      { width: 1672, height: 941, name: 'reference-1672x941', firstRowCount: undefined, targetLastOption: false },
+      { width: 1024, height: 768, name: '1024x768', firstRowCount: 1, targetLastOption: true },
+      { width: 768, height: 1024, name: '768x1024', firstRowCount: 1, targetLastOption: false },
+    ];
+    for (const viewport of viewportCases) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await placeChoicesInConversationViewport(page, viewport.targetLastOption ?? false);
+      const geometry = await options.evaluate((fieldset) => {
+        const cards = Array.from(fieldset.querySelectorAll(':scope > .question-card-option'));
+        const rows = new Map<number, number>();
+        for (const card of cards) {
+          const top = Math.round(card.getBoundingClientRect().top);
+          rows.set(top, (rows.get(top) ?? 0) + 1);
+        }
+        return { rowCounts: Array.from(rows.values()), minCardWidth: Math.min(...cards.map((card) => card.getBoundingClientRect().width)) };
+      });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      expect(geometry.minCardWidth).toBeGreaterThanOrEqual(145);
+      if (viewport.firstRowCount) expect(geometry.rowCounts[0]).toBe(viewport.firstRowCount);
+      await page.screenshot({ path: `${evidenceDirectory}/user-roles-${viewport.name}-${testInfo.project.name}.png`, fullPage: false, scale: 'css' });
+    }
+  }
 });
 
 test('six core-feature options center the final row and remain within the card', async ({ page }, testInfo) => {
@@ -188,6 +213,20 @@ test('idea textarea removes the focus outline and keeps keyboard focus and valid
   await expect(idea).toHaveAttribute('aria-invalid', 'true');
   const errorBackground = await idea.evaluate((element) => getComputedStyle(element).backgroundColor);
   expect(errorBackground).not.toBe(keyboardBackground);
+  await idea.focus();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(idea).toBeFocused();
+  await expect.poll(() => idea.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+  await expect.poll(() => idea.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('none');
+  const invalidKeyboardStyle = await idea.evaluate((element) => ({
+    background: getComputedStyle(element).backgroundColor,
+    focusCue: getComputedStyle(element).boxShadow,
+    borderStyle: getComputedStyle(element).borderTopStyle,
+  }));
+  expect(invalidKeyboardStyle.background).toBe(errorBackground);
+  expect(invalidKeyboardStyle.focusCue).not.toBe('none');
+  expect(invalidKeyboardStyle.borderStyle).toBe('none');
   await mkdir(evidenceDirectory, { recursive: true });
   await page.screenshot({ path: `${evidenceDirectory}/idea-validation-${testInfo.project.name}.png`, fullPage: true, scale: 'css' });
 });
