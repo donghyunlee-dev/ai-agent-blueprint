@@ -574,7 +574,8 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .workspace-appbar { border-bottom: 0; }
 .workspace-title-wrap { min-width: 0; max-width: none; flex: 1 1 auto; }
 .workspace-title-input { text-overflow: clip; }
-.workspace-shell > .blueprint-stage-nav { background: var(--color-surface); }
+.blueprint-shell-project .blueprint-topbar,.workspace-appbar,.workspace-shell > .blueprint-stage-nav { background: var(--color-page-alt); }
+.workspace-shell > .blueprint-stage-nav { border-bottom: 0; }
 .conversation-stage-inspector { padding: 0; background: transparent; }
 .conversation-stage-inspector .conversation-summary {
   box-sizing: border-box;
@@ -652,10 +653,10 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .question-answer-history .question-answer-edit:hover { border-color: var(--color-primary); background: var(--color-primary-soft); }
 .question-answer-history .question-answer-edit:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
 .workspace-panels[data-stage="conversation"] .ai-turn-composer textarea { padding-block: 15px; line-height: 24px; }
+.workspace-panels[data-stage="conversation"] .ai-turn-composer textarea { border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); color: var(--color-text-strong); }
 @media (min-width: 1024px) {
   .workspace-title-wrap { margin-left: 87px; }
   .workspace-title-icon { left: -68px; }
-  .workspace-appbar,.workspace-shell > .blueprint-stage-nav { background: linear-gradient(110deg, var(--color-page-alt) 0%, var(--color-page) 78%, var(--color-surface-muted) 100%); }
 }
 @media (max-width: 1023px) {
   .workspace-panels[data-stage="conversation"] .conversation-stage-layout { padding: 12px; }
