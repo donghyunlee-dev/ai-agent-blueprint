@@ -95,6 +95,21 @@ async function placeChoicesInConversationViewport(page: Page, targetLastOption =
   await expect.poll(() => target.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThan(page.viewportSize()!.height - 100);
 }
 
+async function expectRoleIconSurfaces(page: Page) {
+  const styles = await page.locator('.question-card-option.has-icon .question-option-icon').evaluateAll((icons) => icons.map((icon) => {
+    const iconStyle = getComputedStyle(icon);
+    const svgStyle = getComputedStyle(icon.querySelector('svg')!);
+    return { background: iconStyle.backgroundColor, color: iconStyle.color, stroke: svgStyle.stroke, fill: svgStyle.fill };
+  }));
+  expect(styles).toHaveLength(4);
+  for (const style of styles) {
+    expect(style.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(style.color).not.toBe('rgb(0, 0, 0)');
+    expect(style.stroke).toBe(style.color);
+    expect(style.fill).toBe('none');
+  }
+}
+
 test('two-option confirm cards are centered and have no empty icon slot', async ({ page }, testInfo) => {
   const ownerKey = await deriveOwnerKey(identity);
   await showQuestion(page, throughScope, ownerKey);
@@ -120,6 +135,7 @@ test('four user-role options retain the four design icons and do not overflow', 
   const options = page.locator('.question-card > form > .question-card-options');
   await expect(options.locator(':scope > .question-card-option')).toHaveCount(4);
   await expect(options.locator('.question-option-icon')).toHaveCount(4);
+  await expectRoleIconSurfaces(page);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(overflow).toBe(false);
   await placeChoicesInConversationViewport(page, testInfo.project.name === 'mobile-chromium');
@@ -135,6 +151,7 @@ test('four user-role options retain the four design icons and do not overflow', 
     for (const viewport of viewportCases) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await placeChoicesInConversationViewport(page, viewport.targetLastOption ?? false);
+      await expectRoleIconSurfaces(page);
       const geometry = await options.evaluate((fieldset) => {
         const cards = Array.from(fieldset.querySelectorAll(':scope > .question-card-option'));
         const rows = new Map<number, number>();

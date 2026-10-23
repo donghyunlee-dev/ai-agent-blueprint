@@ -782,3 +782,28 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 @container (max-width: 380px) {
   .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: 100%; }
 }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 10px;
+  background: #edf4ff;
+  color: #1877ef;
+}
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-admin { background: #e8faf3; color: #00b983; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-team { background: #f5edff; color: #8b32f6; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-visitor { background: #fff2e6; color: #ef7200; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-team svg { width: 24px; height: 24px; stroke-width: 2.2; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-admin svg,
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-visitor svg { stroke-width: 2.2; }
