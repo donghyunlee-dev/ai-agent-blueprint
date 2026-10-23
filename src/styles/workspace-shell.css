@@ -807,3 +807,8 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-team svg { width: 24px; height: 24px; stroke-width: 2.2; }
 .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-admin svg,
 .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-visitor svg { stroke-width: 2.2; }
+@media (min-width: 1024px) {
+  .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-team svg { width: 30px; height: 30px; stroke-width: 2.2px; }
+  .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-admin svg,
+  .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-visitor svg { width: 28px; height: 28px; stroke-width: 2.2px; }
+}

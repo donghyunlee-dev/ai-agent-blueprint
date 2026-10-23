@@ -110,6 +110,12 @@ async function expectRoleIconSurfaces(page: Page) {
   }
 }
 
+async function expectCanonicalRoleIconSizes(page: Page) {
+  await expect(page.locator('.question-option-icon.is-team svg')).toHaveCSS('width', '30px');
+  await expect(page.locator('.question-option-icon.is-admin svg')).toHaveCSS('width', '28px');
+  await expect(page.locator('.question-option-icon.is-visitor svg')).toHaveCSS('width', '28px');
+}
+
 test('two-option confirm cards are centered and have no empty icon slot', async ({ page }, testInfo) => {
   const ownerKey = await deriveOwnerKey(identity);
   await showQuestion(page, throughScope, ownerKey);
@@ -136,6 +142,7 @@ test('four user-role options retain the four design icons and do not overflow', 
   await expect(options.locator(':scope > .question-card-option')).toHaveCount(4);
   await expect(options.locator('.question-option-icon')).toHaveCount(4);
   await expectRoleIconSurfaces(page);
+  if (testInfo.project.name === 'desktop-chromium') await expectCanonicalRoleIconSizes(page);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(overflow).toBe(false);
   await placeChoicesInConversationViewport(page, testInfo.project.name === 'mobile-chromium');
@@ -152,6 +159,7 @@ test('four user-role options retain the four design icons and do not overflow', 
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await placeChoicesInConversationViewport(page, viewport.targetLastOption ?? false);
       await expectRoleIconSurfaces(page);
+      if (viewport.width >= 1024) await expectCanonicalRoleIconSizes(page);
       const geometry = await options.evaluate((fieldset) => {
         const cards = Array.from(fieldset.querySelectorAll(':scope > .question-card-option'));
         const rows = new Map<number, number>();
