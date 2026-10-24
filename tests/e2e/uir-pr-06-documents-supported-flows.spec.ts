@@ -31,6 +31,15 @@ async function setSectionSyncStatus(page:any,databaseName:string,projectId:strin
   },{databaseName,projectId,sectionId,syncStatus});
 }
 
+async function setDocumentStatus(page:any,databaseName:string,projectId:string,documentId:string,status:string) {
+  await page.evaluate(async({databaseName,projectId,documentId,status}:any)=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    const tx=db.transaction('projects','readwrite');const store=tx.objectStore('projects');const request=store.get(projectId);
+    request.onsuccess=()=>{const record=request.result;const document=record.documents.find((entry:any)=>entry.id===documentId);document.status=status;if(status!=='ready'){delete document.readyAt;delete document.readyDesignRevision;delete document.readyConfirmationArtifact;}store.put(record);};
+    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+  },{databaseName,projectId,documentId,status});
+}
+
 test('Requirements and PRD overview keeps section details and support actions reachable', async ({page}) => {
   await page.route('**/api/auth/session', (route) => route.fulfill({status:200,json:{authenticated:true,user:identity}}));
   const ownerKey = await deriveOwnerKey(identity);
@@ -63,6 +72,15 @@ test('Requirements and PRD overview keeps section details and support actions re
 
   const viewport = page.viewportSize()!;
   await page.goto(`/blueprints/${projectId}/requirements`);
+  const exportButtons = page.locator('.requirements-page-meta .document-export-actions button');
+  await expect(exportButtons).toHaveCount(2);
+  for (const button of await exportButtons.all()) {
+    await expect(button).toBeVisible();
+    const bounds = await button.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+  }
   if (viewport.width <= 767) {
     await expect.poll(async () => {
       const nav = await page.getByRole('navigation', { name:'프로젝트 단계' }).boundingBox();
@@ -197,4 +215,13 @@ test('Requirements and PRD overview keeps section details and support actions re
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(overflow).toBe(false);
   await page.screenshot({path:test.info().outputPath(`prd-detail-${viewport.width}x${viewport.height}.png`),scale:'css'});
+  await setDocumentStatus(page,databaseName,projectId,'requirements-doc','review_required');
+  await page.goto(`/blueprints/${projectId}/requirements`);
+  await expect(page.getByRole('status').filter({hasText:'사용자 검토 전'})).toBeVisible();
+  const reviewAction=page.getByRole('button',{name:'검토 완료 확인'});
+  await expect(reviewAction).toBeEnabled();
+  await page.screenshot({path:test.info().outputPath(`requirements-review-pending-overview-${viewport.width}x${viewport.height}.png`),scale:'css'});
+  await reviewAction.scrollIntoViewIfNeeded();
+  await expect(reviewAction).toBeInViewport();
+  await page.screenshot({path:test.info().outputPath(`requirements-review-action-${viewport.width}x${viewport.height}.png`),scale:'css'});
 });

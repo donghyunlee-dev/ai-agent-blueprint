@@ -213,3 +213,7 @@
   .document-impact-dialog { padding:1rem; }
   .document-impact-dialog footer { bottom:-1rem; flex-wrap:wrap; }
 }
+@media (max-width:1600px) {
+  .requirements-page-meta { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .requirements-page-meta .document-export-actions { grid-column:1 / -1; }
+}
