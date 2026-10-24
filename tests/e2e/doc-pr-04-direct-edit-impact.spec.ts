@@ -33,7 +33,7 @@ async function readStored(page:any,databaseName:string){return page.evaluate(asy
 
 test('desktop edit previews individual impacts and commits selected design changes plus dependent stale state',async({page})=>{
   const {databaseName}=await seed(page);await page.setViewportSize({width:1440,height:900});await page.goto(`/blueprints/${projectId}/requirements`);
-  await page.locator('.requirements-contents').getByRole('button',{name:'기능 요구사항'}).click();
+  await page.locator('.requirements-contents').getByRole('button',{name:'기능 요구사항',exact:true}).click();
   await page.getByRole('button',{name:'섹션 편집'}).click();
   await page.getByLabel('문서 내용').fill('새 Requirements 본문');
   await page.getByRole('button',{name:'영향 확인 후 저장'}).click();

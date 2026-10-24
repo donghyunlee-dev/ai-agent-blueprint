@@ -5,11 +5,11 @@ import { previewDirectDocumentEdit } from '../../features/documents/document-edi
 type Edit = { documentId:string; sectionId:string; baseVersion:number; baseDesignRevision:number; title:string; markdown:string; excludedImpactIds:string[] };
 type LatestDocument = {title:string;markdown:string;version:number;designRevision:number};
 type SaveResult = { status:'updated' } | { status:'conflict'; latest:LatestDocument; draft:{title:string;markdown:string} };
-type Props = { aggregate:BlueprintAggregate; document:GeneratedDocument; section:DocumentSection; onSave:(edit:Edit)=>Promise<SaveResult> };
+type Props = { aggregate:BlueprintAggregate; document:GeneratedDocument; section:DocumentSection; displayTitle?:string; onSave:(edit:Edit)=>Promise<SaveResult> };
 
-export function DocumentSectionEditor({aggregate,document,section,onSave}:Props) {
+export function DocumentSectionEditor({aggregate,document,section,displayTitle=section.title,onSave}:Props) {
   const [editing,setEditing]=useState(false);
-  const [title,setTitle]=useState(section.title);
+  const [title,setTitle]=useState(displayTitle);
   const [markdown,setMarkdown]=useState(section.markdown);
   const [editBase,setEditBase]=useState<{version:number;revision:number}|null>(null);
   const [previewOpen,setPreviewOpen]=useState(false);
@@ -24,15 +24,15 @@ export function DocumentSectionEditor({aggregate,document,section,onSave}:Props)
   const preview=previewDirectDocumentEdit(aggregate,{documentId:document.id,sectionId:section.id,title,markdown});
   useEffect(()=>{if(previewOpen&&!dialog.current?.open)dialog.current?.showModal();},[previewOpen]);
   useEffect(()=>{if(discardOpen&&!discardDialog.current?.open)discardDialog.current?.showModal();},[discardOpen]);
-  function startEditing(){if(section.syncStatus==='conflict')return;setTitle(section.title);setMarkdown(section.markdown);setEditBase({version:document.version,revision:aggregate.project.designRevision??0});setError(null);setConflict(null);setEditing(true);}
+  function startEditing(){if(section.syncStatus==='conflict')return;setTitle(displayTitle);setMarkdown(section.markdown);setEditBase({version:document.version,revision:aggregate.project.designRevision??0});setError(null);setConflict(null);setEditing(true);}
   function closePreview(){if(saving)return;dialog.current?.close();setPreviewOpen(false);setConflict(null);editTrigger.current?.focus();}
-  function cancelEditing(){if(title!==section.title||markdown!==section.markdown){setDiscardOpen(true);return;}setEditing(false);editTrigger.current?.focus();}
-  function discardChanges(){discardDialog.current?.close();setDiscardOpen(false);setEditing(false);setTitle(section.title);setMarkdown(section.markdown);setError(null);editTrigger.current?.focus();}
+  function cancelEditing(){if(title!==displayTitle||markdown!==section.markdown){setDiscardOpen(true);return;}setEditing(false);editTrigger.current?.focus();}
+  function discardChanges(){discardDialog.current?.close();setDiscardOpen(false);setEditing(false);setTitle(displayTitle);setMarkdown(section.markdown);setError(null);editTrigger.current?.focus();}
   async function confirmSave(){
     if(section.syncStatus==='conflict'||!editBase||!title.trim()||saving)return;
     setSaving(true);setError(null);setConflict(null);
     try{
-      const result=await onSave({documentId:document.id,sectionId:section.id,baseVersion:editBase.version,baseDesignRevision:editBase.revision,title,markdown,excludedImpactIds:excluded});
+      const result=await onSave({documentId:document.id,sectionId:section.id,baseVersion:editBase.version,baseDesignRevision:editBase.revision,title:title===displayTitle?section.title:title,markdown,excludedImpactIds:excluded});
       if(result.status==='conflict'){setConflict(result.latest);setError('다른 탭이나 세션에서 먼저 저장했습니다. 최신 내용과 비교한 뒤 편집 내용을 다시 확인해 주세요.');return;}
       dialog.current?.close();setPreviewOpen(false);setEditing(false);editTrigger.current?.focus();
     }catch{setError('저장하지 못했습니다. 입력한 편집 내용은 보존됐습니다. 다시 시도해 주세요.');}
@@ -41,10 +41,10 @@ export function DocumentSectionEditor({aggregate,document,section,onSave}:Props)
   if(section.syncStatus==='conflict') return <aside className="document-edit-conflict" role="note" aria-label="섹션 충돌 안내"><strong>충돌 해결 필요</strong><p>이 섹션은 공통 설계와 내용이 충돌해 직접 편집할 수 없습니다. 설계에서 충돌을 먼저 해결한 뒤 최신 문서에서 다시 확인해 주세요.</p></aside>;
   return <>
     <div className="document-direct-edit-actions"><button ref={editTrigger} type="button" onClick={startEditing}>섹션 편집</button></div>
-    {editing?<section className="document-direct-editor" aria-label={`${section.title} 직접 편집`}>
+    {editing?<section className="document-direct-editor" aria-label={`${displayTitle} 직접 편집`}>
       <label>섹션 제목<input value={title} maxLength={160} onChange={(event)=>setTitle(event.target.value)} /></label>
       <label>문서 내용<textarea rows={8} value={markdown} onChange={(event)=>setMarkdown(event.target.value)} /></label>
-      <div className="document-direct-editor-actions"><button type="button" onClick={cancelEditing}>취소</button><button type="button" className="design-requirements-action is-primary" disabled={!title.trim()||!editBase||title===section.title&&markdown===section.markdown} onClick={()=>{setExcluded([]);setConflict(null);setError(null);setPreviewOpen(true);}}>영향 확인 후 저장</button></div>
+      <div className="document-direct-editor-actions"><button type="button" onClick={cancelEditing}>취소</button><button type="button" className="design-requirements-action is-primary" disabled={!title.trim()||!editBase||title===displayTitle&&markdown===section.markdown} onClick={()=>{setExcluded([]);setConflict(null);setError(null);setPreviewOpen(true);}}>영향 확인 후 저장</button></div>
       {error&&!previewOpen?<p role="alert">{error}</p>:null}
     </section>:null}
     <dialog ref={discardDialog} className="document-impact-dialog" aria-labelledby={`discard-edit-${section.id}`} onCancel={(event)=>{event.preventDefault();discardDialog.current?.close();setDiscardOpen(false);}}><h3 id={`discard-edit-${section.id}`}>편집 내용을 취소할까요?</h3><p>저장하지 않은 제목과 문서 내용이 사라집니다.</p><footer><button type="button" onClick={()=>{discardDialog.current?.close();setDiscardOpen(false);}}>계속 편집</button><button type="button" onClick={discardChanges}>입력 삭제</button></footer></dialog>

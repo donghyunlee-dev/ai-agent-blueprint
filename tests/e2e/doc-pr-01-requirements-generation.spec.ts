@@ -37,10 +37,10 @@ test('generates a review_required Requirements document and supports section nav
   });
 
   await page.goto(`/blueprints/${projectId}/requirements`);
-  await expect(page.getByRole('heading',{name:'Requirements',level:1})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'요구사항 명세',level:1})).toBeVisible();
   await expect(page.getByRole('heading',{level:1})).toHaveCount(1);
-  await expect(page.getByRole('button',{name:'Requirements 생성'})).toBeVisible();
-  await page.getByRole('button',{name:'Requirements 생성'}).click();
+  await expect(page.getByRole('button',{name:'요구사항 명세 생성'})).toBeVisible();
+  await page.getByRole('button',{name:'요구사항 명세 생성'}).click();
   await expect(page.getByRole('status').filter({hasText:'사용자 검토 전'})).toBeVisible();
   expect(requestBody.documentType).toBe('requirements');
   expect(validateSchema(schemas.http.requirementsGenerateRequest,requestBody).valid).toBe(true);
@@ -49,8 +49,8 @@ test('generates a review_required Requirements document and supports section nav
   expect(requestBody.designRevision).toBe(4);
   expect(requestBody.currentDesignRevision).toBe(4);
   await expect(page.getByRole('heading', { name:'문서 섹션' })).toBeVisible();
-  await expect(page.getByRole('button', { name:'기능 요구사항 내용 보기' })).toBeVisible();
-  await page.getByRole('button', { name:'기능 요구사항 내용 보기' }).click();
+  await expect(page.getByRole('button', { name:'기능 요구사항 내용 보기', exact:true })).toBeVisible();
+  await page.getByRole('button', { name:'기능 요구사항 내용 보기', exact:true }).click();
   await expect(page.getByRole('heading', { name:'화면 결과 표시' })).toBeVisible();
   if (page.viewportSize()!.width >= 1280) {
     await page.setViewportSize({width:1024,height:768});
@@ -61,7 +61,7 @@ test('generates a review_required Requirements document and supports section nav
     await page.getByRole('button',{name:'목차 열기'}).click();
     await expect(page.getByRole('button',{name:'닫기',exact:true})).toBeFocused();
   }
-  await page.locator('.requirements-contents').getByRole('button',{name:'기능 요구사항'}).click();
+  await page.locator('.requirements-contents').getByRole('button',{name:'기능 요구사항',exact:true}).click();
   await expect(page.getByRole('heading',{name:'화면 결과 표시'})).toBeVisible();
   await expect(page.getByText('오류 상황의 문구를 확인해 주세요.')).toBeVisible();
   if (page.viewportSize()!.width <= 767) await expect(page.getByRole('button',{name:'목차 열기'})).toBeFocused();

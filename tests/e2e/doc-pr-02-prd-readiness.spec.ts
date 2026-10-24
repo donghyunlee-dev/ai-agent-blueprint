@@ -33,11 +33,11 @@ test('explicit Requirements confirmation unlocks same-revision PRD generation on
     await route.fulfill({status:200,json:{document:{id:'prd-document',projectId,type:'prd',title:'테스트 PRD',status:'review_required',designRevision:4,version:1,sectionIds:sections.map((section)=>section.id),createdAt:now,updatedAt:now},sections,job:{id:'prd-job',projectId,logicalRequestId:prdRequest.logicalRequestId,attemptId:prdRequest.attemptId,type:'PRD_DRAFT',promptVersion:'v1',schemaVersion:'v1',modelProfile:'FINAL',resolvedModel:'gpt-5.6-terra',reasoningEffort:'low',designRevision:4,status:'succeeded',targetIds:['prd-document'],startedAt:now,finishedAt:now}}});
   });
   await page.goto(`/blueprints/${projectId}/requirements`);
-  await expect(page.getByRole('heading',{name:'Requirements 검토 완료'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'요구사항 명세 검토 완료'})).toBeVisible();
   await page.goto(`/blueprints/${projectId}/prd`);
   await expect(page.getByRole('heading',{name:'제품 요구사항 문서',level:1})).toBeVisible();
   await expect(page.getByRole('heading',{level:1})).toHaveCount(1);
-  await expect(page.getByRole('heading',{name:'PRD 생성 전 Requirements 검토가 필요합니다'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'PRD 생성 전 요구사항 명세 검토가 필요합니다'})).toBeVisible();
   await expect(page.getByRole('button',{name:'PRD 생성'})).toHaveCount(0);
   await page.screenshot({path:test.info().outputPath(`prd-locked-${viewport.width}x${viewport.height}.png`),scale:'css'});
   await page.goto(`/blueprints/${projectId}/requirements`);
@@ -49,8 +49,8 @@ test('explicit Requirements confirmation unlocks same-revision PRD generation on
   let stored=await readStored(page,databaseNameForOwner(ownerKey),projectId);
   expect(stored.documents[0].status).toBe('review_required');
   await page.getByRole('button',{name:'검토 완료 확인'}).click();
-  await page.getByRole('dialog').getByRole('button',{name:'Requirements 검토 완료'}).click();
-  await expect(page.getByText(/Requirements ready/)).toBeVisible();
+  await page.getByRole('dialog').getByRole('button',{name:'요구사항 명세 검토 완료'}).click();
+  await expect(page.locator('.requirements-ready-review [role="status"]')).toContainText('요구사항 명세 검토 완료');
   await page.screenshot({path:test.info().outputPath(`requirements-ready-${viewport.width}x${viewport.height}.png`),scale:'css'});
   stored=await readStored(page,databaseNameForOwner(ownerKey),projectId);
   expect(stored.documents[0].status).toBe('ready');expect(stored.documents[0].readyDesignRevision).toBe(4);expect(stored.documents[0].readyAt).toBeTruthy();
@@ -62,9 +62,9 @@ test('explicit Requirements confirmation unlocks same-revision PRD generation on
   releaseGeneration();
   await expect(page.getByText('사용자 검토 전')).toBeVisible();
   await page.screenshot({path:test.info().outputPath(`prd-draft-${viewport.width}x${viewport.height}.png`),scale:'css'});
-  await expect(page.getByRole('button',{name:'overview 내용 보기'})).toBeVisible();
-  await page.getByRole('button',{name:'overview 내용 보기'}).click();
-  await expect(page.getByRole('heading',{name:'overview'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'개요 내용 보기',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'개요 내용 보기',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'개요',exact:true})).toBeVisible();
   await expect(page.locator('.requirements-content-main article').filter({hasText:'overview PRD'})).toBeVisible();
   await page.getByText('자료와 정합성 지원',{exact:true}).click();
   await expect(page.getByRole('heading',{name:'참고 자료'})).toBeVisible();
