@@ -93,6 +93,10 @@
 }
 
 .requirements-document { display:grid; gap:.45rem; color:var(--workspace-ink,#20242b); }
+.requirements-document .design-requirements-action.is-primary { min-height:2.75rem; padding:.65rem 1rem; border:1px solid var(--color-primary); border-radius:var(--radius-sm); background:var(--color-primary); color:var(--color-on-primary,#fff); font:inherit; font-weight:700; cursor:pointer; }
+.requirements-document .design-requirements-action.is-primary:hover:not(:disabled) { background:color-mix(in srgb,var(--color-primary) 90%,var(--color-text-strong)); }
+.requirements-document .design-requirements-action.is-primary:focus-visible { outline:3px solid var(--color-focus); outline-offset:3px; }
+.requirements-document .design-requirements-action.is-primary:disabled { border-color:var(--color-border-strong); background:var(--color-border-strong); color:var(--color-text-muted); cursor:not-allowed; }
 .requirements-page-header { display:grid; grid-template-columns:minmax(0,1fr) minmax(480px,1.1fr); align-items:center; gap:1rem; padding:.35rem 32px; border-bottom:1px solid var(--color-border); background:var(--color-surface); }
 .requirements-page-heading { min-width:0; }
 .requirements-page-heading .workspace-eyebrow { margin:0 0 .45rem; }

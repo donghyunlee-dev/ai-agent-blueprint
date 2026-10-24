@@ -7,18 +7,40 @@ const identity={issuer:'https://accounts.google.com',subject:'doc-pr-02-ready',e
 const projectId='doc-pr-02-project';
 const now='2026-10-15T00:00:00.000Z';
 const requirementKeys=['overview','functional','non_functional','data','integration','permissions','exceptions','deployment','operations','exclusions','open_issues'];
+const requirementMarkdown:Record<string,string>={
+  overview:'목적과 배경을 간결하게 요약합니다.\n- 해결하려는 문제\n- 기대하는 결과',
+  functional:'제공할 기능과 사용자 흐름을 정리합니다.\n- 사용 흐름과 완료 조건\n- 입력과 결과',
+  non_functional:'품질 기준과 운영 제약을 정리합니다.\n- 성능과 안정성\n- 접근성과 보안',
+  data:'관리할 정보와 데이터 생명주기를 정리합니다.\n- 데이터 항목과 관계\n- 보관과 삭제 기준',
+  integration:'연결 대상과 교환 방식을 정리합니다.\n- 연동 대상과 방식\n- 실패 시 처리',
+  permissions:'사용자 역할과 권한 범위를 정리합니다.\n- 역할별 접근 범위\n- 권한 변경과 확인',
+  exceptions:'예외 상황과 복구 기준을 정리합니다.\n- 오류 상황과 안내\n- 재시도와 복구',
+  deployment:'배포 환경과 적용 절차를 정리합니다.\n- 환경별 설정\n- 배포와 되돌리기',
+  operations:'운영 확인과 유지 관리 기준을 정리합니다.\n- 모니터링과 알림\n- 백업과 지원',
+  exclusions:'현재 범위에서 다루지 않을 내용을 정리합니다.\n- 제외 항목과 사유\n- 재검토 조건',
+  open_issues:'결정이 필요한 질문과 근거를 정리합니다.\n- 미결정 질문\n- 담당자와 결정 기준',
+};
+
+async function setDocumentSectionReviewStatus(page:any,databaseName:string,projectId:string,status:'confirmed'|'review_required') {
+  await page.evaluate(async({databaseName,projectId,status}:any)=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    const tx=db.transaction('projects','readwrite');const store=tx.objectStore('projects');const request=store.get(projectId);
+    request.onsuccess=()=>{const record=request.result;const item=record.designItems.find((candidate:any)=>candidate.id==='doc-section-edit');item.status=status;item.attributes.consistencyReviewRequired=status==='review_required';store.put(record);};
+    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+  },{databaseName,projectId,status});
+}
 
 test('explicit Requirements confirmation unlocks same-revision PRD generation on desktop and mobile',async({page})=>{
   await page.route('**/api/auth/session',(route)=>route.fulfill({status:200,json:{authenticated:true,user:identity}}));
   const ownerKey=await deriveOwnerKey(identity);
   await page.goto('/');
-  await page.evaluate(async({databaseName,ownerKey,projectId,now,requirementKeys})=>{
+  await page.evaluate(async({databaseName,ownerKey,projectId,now,requirementKeys,requirementMarkdown})=>{
     const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onupgradeneeded=()=>{const value=request.result;value.createObjectStore('projects',{keyPath:'id'});const activity=value.createObjectStore('activities',{keyPath:['projectId','id']});activity.createIndex('projectId','projectId',{unique:false});};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
     const make=(id:string,type:string,extra:Record<string,unknown>={})=>({id,projectId,type,title:id,description:`${id} 설명`,status:'confirmed',priority:'must',attributes:{},evidence:[],acceptanceCriteria:[],relatedItemIds:[],createdAt:now,updatedAt:now,...extra});
     const documentId='requirements-doc';
-    const aggregate={project:{id:projectId,ownerKey,schemaVersion:1,title:'PRD 검토 테스트',status:'active',activeDocumentType:'requirements',activeThreadId:'thread',processState:'requirements_draft',designRevision:4,readiness:{state:'ready',areas:[],pendingProposalCount:0,conflictCount:0},createdAt:now,updatedAt:now,lastOpenedAt:now},thread:{id:'thread',projectId,title:'초기 대화',status:'active',createdAt:now,updatedAt:now},messages:[],answers:[],sources:[],designItems:[make('product','product_definition'),make('problem','problem'),make('goal','goal'),make('user','user_role'),make('scenario','scenario'),make('feature','requirement',{acceptanceCriteria:[{id:'criterion',text:'완료 상태가 보인다',status:'confirmed',evidence:[]}]}),make('scope','scope'),make('exclusion','out_of_scope'),make('metric','success_metric'),make('risk','risk'),make('doc-section-edit','document_section',{status:'review_required',relatedItemIds:['feature'],attributes:{sourceSectionId:'req-functional',consistencyReviewRequired:true}})],proposals:[],documents:[{id:documentId,projectId,type:'requirements',title:'테스트 Requirements',status:'review_required',designRevision:4,version:1,generationArtifact:'mock-generation-artifact',sectionIds:requirementKeys.map((key)=>`req-${key}`),requirements:[{id:'REQ-001',category:'functional',title:'기능',description:'기능 설명',priority:'P0',sourceItemIds:['feature'],acceptanceCriteria:[{text:'완료 상태가 보인다',sourceItemIds:['feature']}],openIssueIds:[]}],openIssues:[{id:'OPEN-1',title:'미정 결정',description:'나중에 확정',sourceItemIds:['problem']}],reviewIssues:[],createdAt:now,updatedAt:now}],sections:requirementKeys.map((key,order)=>({id:`req-${key}`,projectId,documentId,key,title:key,markdown:'요구사항',order,sourceItemIds:key==='functional'?['feature']:[],origin:'generated',syncStatus:'current',updatedAt:now})),generationJobs:[],requestLedgerEntries:[],contextManifests:[],activityEntries:[]};
+    const aggregate={project:{id:projectId,ownerKey,schemaVersion:1,title:'검토 대상 프로젝트',status:'active',activeDocumentType:'requirements',activeThreadId:'thread',processState:'requirements_draft',designRevision:4,readiness:{state:'ready',areas:[],pendingProposalCount:0,conflictCount:0},createdAt:now,updatedAt:now,lastOpenedAt:now},thread:{id:'thread',projectId,title:'초기 대화',status:'active',createdAt:now,updatedAt:now},messages:[],answers:[],sources:[],designItems:[make('product','product_definition'),make('problem','problem'),make('goal','goal'),make('user','user_role'),make('scenario','scenario'),make('feature','requirement',{acceptanceCriteria:[{id:'criterion',text:'완료 상태가 보인다',status:'confirmed',evidence:[]}]}),make('scope','scope'),make('exclusion','out_of_scope'),make('metric','success_metric'),make('risk','risk'),make('doc-section-edit','document_section',{title:'문서 섹션 변경',status:'confirmed',relatedItemIds:['feature'],attributes:{sourceSectionId:'req-functional',consistencyReviewRequired:false}})],proposals:[],documents:[{id:documentId,projectId,type:'requirements',title:'요구사항 명세',status:'review_required',designRevision:4,version:1,generationArtifact:'mock-generation-artifact',sectionIds:requirementKeys.map((key)=>`req-${key}`),requirements:[{id:'REQ-001',category:'functional',title:'기능',description:'기능 설명',priority:'P0',sourceItemIds:['feature'],acceptanceCriteria:[{text:'완료 상태가 보인다',sourceItemIds:['feature']}],openIssueIds:[]}],openIssues:[{id:'OPEN-1',title:'미정 결정',description:'나중에 확정',sourceItemIds:['problem']}],reviewIssues:[],createdAt:now,updatedAt:now}],sections:requirementKeys.map((key,order)=>({id:`req-${key}`,projectId,documentId,key,title:key,markdown:requirementMarkdown[key],order,sourceItemIds:key==='functional'?['feature']:[],origin:'generated',syncStatus:'current',updatedAt:now})),generationJobs:[],requestLedgerEntries:[],contextManifests:[],activityEntries:[]};
     const tx=db.transaction(['projects','activities'],'readwrite');tx.objectStore('projects').put({id:projectId,schemaVersion:1,...aggregate});await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
-  },{databaseName:databaseNameForOwner(ownerKey),ownerKey,projectId,now,requirementKeys});
+  },{databaseName:databaseNameForOwner(ownerKey),ownerKey,projectId,now,requirementKeys,requirementMarkdown});
   const viewport=page.viewportSize()!;
   let prdRequest:any;
   let releaseGeneration!:()=>void;
@@ -34,6 +56,18 @@ test('explicit Requirements confirmation unlocks same-revision PRD generation on
   });
   await page.goto(`/blueprints/${projectId}/requirements`);
   await expect(page.getByRole('heading',{name:'요구사항 명세 검토 완료'})).toBeVisible();
+  const reviewAction=page.getByRole('button',{name:'검토 완료 확인'});
+  await expect(reviewAction).toBeEnabled();
+  const reviewActionStyle=await reviewAction.evaluate((element)=>{const style=getComputedStyle(element);return {backgroundColor:style.backgroundColor,color:style.color,borderColor:style.borderColor};});
+  expect(reviewActionStyle).toEqual({backgroundColor:'rgb(0, 94, 219)',color:'rgb(255, 255, 255)',borderColor:'rgb(0, 94, 219)'});
+  await expect(reviewAction).not.toBeInViewport();
+  await expect(page.locator('.document-section-overview-card')).toHaveCount(11);
+  await expect(page.getByRole('heading',{name:'요구사항 명세',level:1})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'선행 변경으로 재검토가 필요한 항목'})).toHaveCount(0);
+  await page.screenshot({path:test.info().outputPath(`requirements-review-pending-overview-${viewport.width}x${viewport.height}.png`),scale:'css'});
+  await reviewAction.scrollIntoViewIfNeeded();
+  await expect(reviewAction).toBeInViewport();
+  await page.screenshot({path:test.info().outputPath(`requirements-review-action-${viewport.width}x${viewport.height}.png`),scale:'css'});
   await page.goto(`/blueprints/${projectId}/prd`);
   await expect(page.getByRole('heading',{name:'제품 요구사항 문서',level:1})).toBeVisible();
   await expect(page.getByRole('heading',{level:1})).toHaveCount(1);
@@ -54,6 +88,7 @@ test('explicit Requirements confirmation unlocks same-revision PRD generation on
   await page.screenshot({path:test.info().outputPath(`requirements-ready-${viewport.width}x${viewport.height}.png`),scale:'css'});
   stored=await readStored(page,databaseNameForOwner(ownerKey),projectId);
   expect(stored.documents[0].status).toBe('ready');expect(stored.documents[0].readyDesignRevision).toBe(4);expect(stored.documents[0].readyAt).toBeTruthy();
+  await setDocumentSectionReviewStatus(page,databaseNameForOwner(ownerKey),projectId,'review_required');
   await page.getByRole('button',{name:'PRD 열기'}).click();
   await expect(page.getByRole('button',{name:'PRD 생성'})).toBeVisible();
   await page.getByRole('button',{name:'PRD 생성'}).click();
