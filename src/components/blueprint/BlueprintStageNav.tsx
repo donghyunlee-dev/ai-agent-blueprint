@@ -53,7 +53,7 @@ export function BlueprintStageNav({
       </li>;
     })}</ol>
     {!requirementsReady ? <div id="blueprint-stage-requirements-reason" className="blueprint-stage-gate"><span>요구사항 명세는 설계 준비 조건을 충족한 뒤 열 수 있습니다.</span><Link to={href.design}>설계에서 준비 상태 확인</Link></div> : null}
-    {!prdReady ? <span id="blueprint-stage-prd-reason" className="workspace-sr-only">같은 revision의 Requirements 검토 완료가 필요합니다. 선택하면 잠금 이유와 유효한 이동 방법을 확인합니다.</span> : null}
-    {prdReady ? <Link className="workspace-post-prd-link" to={`${base}/setup_guide`}>설정 가이드</Link> : null}
+    {!prdReady ? <span id="blueprint-stage-prd-reason" className="workspace-sr-only">같은 revision의 요구사항 명세 검토 완료가 필요합니다. 선택하면 잠금 이유와 이동 방법을 확인합니다.</span> : null}
+    {prdReady && current === 'prd' ? <Link className="workspace-post-prd-link" to={`${base}/setup_guide`}>설정 가이드</Link> : null}
   </nav>;
 }

@@ -1,5 +1,33 @@
 # UIR-PR-06 validation results
 
+## Final review correction — 2026-10-25
+
+The fresh independent review found that the impact summary altered a persisted identifier (`requirements-doc`) for display. The UI now hides document IDs in that summary and shows a Korean affected-document count; IDs remain unchanged in storage and callback payloads. The direct-edit fixture now uses Korean example content and captures the impact dialog at desktop 1440×900 and mobile 390×844.
+
+At application source commit `94bfdceca9ee77fba6511506993fdb2e04ba3d63`, the full affected Playwright matrix passed **30/30** across desktop and mobile. It covers document generation, all 11 section navigation, explicit ready confirmation and PRD gate/generation, partial patch and approval, direct edit and impact confirmation, conflict restrictions, export, sources/evidence/download, and setup-guide review. `npm run build` ran in the Playwright webServer setup and passed with the existing large-chunk advisory. The earlier 347/348 unit-suite result and its unchanged source-upload fixture failure are recorded below. Independent fresh review and QA are pending on the evidence-updated HEAD.
+
+## Review follow-up — 2026-10-24
+
+The independent review P1s were addressed before re-review: all Requirements/PRD states affected by the shared card/header are recaptured, and the primary comparison now uses a valid `review_required` document with the enabled review action. The review action follows the user's 11-section choice, so it is below the initial viewport; the test confirms it is enabled and appears after scrolling, and separate desktop/mobile captures show it. A scoped workspace-token style makes the action the design's blue primary CTA, with focus and disabled states.
+
+Source commit: `9c67b72f5d8c8b2ca0ee25305d7b37ef4619f10f`, based on PR #55 previous head `ebefae5f215b72b9db9c9d80717b15dcc4d64019`. The final affected Playwright matrix passed **30/30** at 1440×900 and 390×844; this includes a computed-style assertion for the review CTA. `npm run build` and `git diff --check` passed. The source-upload unit failure and Mermaid runtime result are unchanged from the post-merge run recorded below. The screenshots in `docs/delivery/evidence/UIR-PR-06/` were generated from the same source tree as this commit.
+
+## Post-merge visual correction — 2026-10-24
+
+PR #54 was merged as `42f5bc763f76a571329f0d9bfd600be11ed01f39`. The visual correction is on follow-up commit `53a358241a42341373388f734134f68dba0fa3e5`, based on that latest `origin/main`. Its screenshots and rendered UI use 11 Korean-labeled sections, active step 4 `요구사항 명세`, PRD as separate step 5, actual linked section data, and accessible names with no English `Requirement(s)` text.
+
+The focused Playwright matrix listed below was rerun on that follow-up commit: **30 passed, 0 skipped, 0 failed** across desktop 1440×900 and mobile 390×844. It covers requirements document generation, explicit ready confirmation and PRD gating/generation, section navigation and focus, direct edit and impact review, conflict restrictions and patch-target payloads, Markdown export, source upload/removal/evidence/download, and setup-guide review. A rendered-body and `aria-label`/`title` scan asserts that the requirements route exposes no English `Requirement(s)` text. Overview screenshots were regenerated from this run and copied into the evidence directory.
+
+Additional validation on the same source state:
+
+- `npm run build`: passed; Vite reported the existing large-chunk advisory.
+- `npm run test:unit`: **347 passed, 1 failed (348 total)**. The failure is the existing source-upload removal fixture in `tests/unit/src-pr-01-source-upload-command.test.js:61`, with `undefined.map` in unchanged `src/features/sources/source-upload-command.js:95`.
+- `PUPPETEER_EXECUTABLE_PATH=/home/donghyunlee/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell npm run docs:check:mermaid`: passed, **43 diagrams**. The initially configured `1248` browser path was absent; the installed Playwright `1243` headless shell was used.
+- `git diff --check`: passed.
+- Agent Browser is unavailable in the tool catalog and PATH; independent browser QA uses Playwright Chromium. The separate QA report records the accessibility checks and any unverified limits.
+
+The older validation entries below document prior PR #54 states and are retained as history; they do not replace the post-merge results above.
+
 Validation was performed in `/home/donghyunlee/.codex/worktrees/uir-pr-06-documents-supported-flows`, branch `uir/pr-06-documents-supported-flows`, on a working tree based on `c6fbaf1d26aecf5e4ceef176918c0d614e35c957` with subsequent review fixes. No commit or push was made for these fixes at validation time. The final browser screenshots are in `.pr-artifacts/UIR-PR-06/evidence/` and the review attachments are in [`docs/delivery/evidence/UIR-PR-06/`](../../delivery/evidence/UIR-PR-06/README.md).
 
 ## Browser suite

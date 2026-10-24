@@ -7,6 +7,7 @@ export function DocumentExportActions({ document, sections, projectTitle }: { do
   const [downloadError, setDownloadError] = useState(false);
   const fallbackRef = useRef<HTMLTextAreaElement>(null);
   const markdown = serializeDocumentMarkdown(document, sections);
+  const documentLabel = document.type === 'requirements' ? '요구사항 명세' : document.type === 'prd' ? 'PRD' : document.type === 'setup_guide' ? '설정 가이드' : document.title;
 
   async function copyDocument() {
     setCopyState('idle');
@@ -29,7 +30,7 @@ export function DocumentExportActions({ document, sections, projectTitle }: { do
     }
   }
 
-  return <div className="document-export-actions" role="group" aria-label={`${document.title} 내보내기`}>
+  return <div className="document-export-actions" role="group" aria-label={`${documentLabel} 내보내기`}>
     <button type="button" className="document-export-copy" onClick={() => void copyDocument()}>Markdown 복사</button>
     <button type="button" className="document-export-download" onClick={downloadDocument}>Markdown 다운로드</button>
     {copyState === 'copied' ? <p role="status">문서 전체를 Markdown으로 복사했습니다.</p> : null}
