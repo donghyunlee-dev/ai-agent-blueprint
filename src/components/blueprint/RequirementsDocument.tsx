@@ -11,8 +11,8 @@ type ReadySummary = { eligible:boolean; blockers:string[]; p0RequirementCount:nu
 type Props = { aggregate:BlueprintAggregate; document?:GeneratedDocument; sections:DocumentSection[]; generating:boolean; error?:string|null; readySummary?:ReadySummary; readyError?:string|null; patching?:boolean; patchError?:string|null; impactPreview?:(targets:{sectionIds:string[];requirementIds:string[]})=>{targetIds:string[];itemIds:string[];documentIds:string[]}; onRequestPatch?:(targets:{sectionIds:string[];requirementIds:string[]})=>void; onDirectEdit:(edit:{documentId:string;sectionId:string;baseVersion:number;baseDesignRevision:number;title:string;markdown:string;excludedImpactIds:string[]})=>Promise<{status:'updated'}|{status:'conflict';latest:{title:string;markdown:string;version:number;designRevision:number};draft:{title:string;markdown:string}}> ; onGenerate:()=>void; onMarkReady?:()=>void; onOpenPrd?:()=>void };
 
 function ImpactSummary({preview}:{preview:{targetIds:string[];itemIds:string[];documentIds:string[]}}) {
-  const localizeIds=(ids:string[])=>ids.map((id)=>id.replace(/requirements?/gi,'요구사항 명세')).join(', ')||'없음';
-  return <div className="document-impact-preview" aria-label="변경 대상과 예상 영향"><strong>변경 대상과 예상 영향</strong><dl><dt>선택 대상 ID</dt><dd>{localizeIds(preview.targetIds)}</dd><dt>연결 설계 항목 ID</dt><dd>{localizeIds(preview.itemIds)}</dd><dt>영향 문서 ID</dt><dd>{localizeIds(preview.documentIds)}</dd></dl></div>;
+  const formatIds=(ids:string[])=>ids.join(', ')||'없음';
+  return <div className="document-impact-preview" aria-label="변경 대상과 예상 영향"><strong>변경 대상과 예상 영향</strong><dl><dt>선택 대상 ID</dt><dd>{formatIds(preview.targetIds)}</dd><dt>연결 설계 항목 ID</dt><dd>{formatIds(preview.itemIds)}</dd><dt>영향 문서</dt><dd>{preview.documentIds.length ? `${preview.documentIds.length}개 문서` : '없음'}</dd></dl></div>;
 }
 
 function blockerMessage(code:string) {

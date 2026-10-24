@@ -32,7 +32,9 @@ test('selected Requirements section stays pending until explicit approval, then 
   const impactPreview=page.getByLabel('변경 대상과 예상 영향');
   await expect(impactPreview).toContainText('section-1');
   await expect(impactPreview).toContainText('product');
-  await expect(impactPreview).toContainText('요구사항 명세-doc');
+  await expect(impactPreview).toContainText('1개 문서');
+  await expect(impactPreview).not.toContainText('requirements-doc');
+  await expect(impactPreview).not.toContainText('요구사항 명세-doc');
   await page.getByRole('button',{name:'선택 항목 보완 제안 받기'}).click();
   await expect.poll(async()=>((await readStored(page,databaseNameForOwner(ownerKey),projectId)).proposals.length)).toBe(1);
   await page.getByRole('link',{name:/2 제안 검토/}).click();
