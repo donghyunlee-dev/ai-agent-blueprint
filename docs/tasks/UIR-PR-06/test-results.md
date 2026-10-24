@@ -1,5 +1,21 @@
 # UIR-PR-06 validation results
 
+## Post-merge visual correction — 2026-10-24
+
+PR #54 was merged as `42f5bc763f76a571329f0d9bfd600be11ed01f39`. The visual correction is on follow-up commit `53a358241a42341373388f734134f68dba0fa3e5`, based on that latest `origin/main`. Its screenshots and rendered UI use 11 Korean-labeled sections, active step 4 `요구사항 명세`, PRD as separate step 5, actual linked section data, and accessible names with no English `Requirement(s)` text.
+
+The focused Playwright matrix listed below was rerun on that follow-up commit: **30 passed, 0 skipped, 0 failed** across desktop 1440×900 and mobile 390×844. It covers requirements document generation, explicit ready confirmation and PRD gating/generation, section navigation and focus, direct edit and impact review, conflict restrictions and patch-target payloads, Markdown export, source upload/removal/evidence/download, and setup-guide review. A rendered-body and `aria-label`/`title` scan asserts that the requirements route exposes no English `Requirement(s)` text. Overview screenshots were regenerated from this run and copied into the evidence directory.
+
+Additional validation on the same source state:
+
+- `npm run build`: passed; Vite reported the existing large-chunk advisory.
+- `npm run test:unit`: **347 passed, 1 failed (348 total)**. The failure is the existing source-upload removal fixture in `tests/unit/src-pr-01-source-upload-command.test.js:61`, with `undefined.map` in unchanged `src/features/sources/source-upload-command.js:95`.
+- `PUPPETEER_EXECUTABLE_PATH=/home/donghyunlee/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell npm run docs:check:mermaid`: **blocked**, 43 diagrams could not render because the configured `chrome-headless-shell` executable is absent from this environment.
+- `git diff --check`: passed.
+- Agent Browser is unavailable in the tool catalog and PATH; independent browser QA uses Playwright Chromium. The separate QA report records the accessibility checks and any unverified limits.
+
+The older validation entries below document prior PR #54 states and are retained as history; they do not replace the post-merge results above.
+
 Validation was performed in `/home/donghyunlee/.codex/worktrees/uir-pr-06-documents-supported-flows`, branch `uir/pr-06-documents-supported-flows`, on a working tree based on `c6fbaf1d26aecf5e4ceef176918c0d614e35c957` with subsequent review fixes. No commit or push was made for these fixes at validation time. The final browser screenshots are in `.pr-artifacts/UIR-PR-06/evidence/` and the review attachments are in [`docs/delivery/evidence/UIR-PR-06/`](../../delivery/evidence/UIR-PR-06/README.md).
 
 ## Browser suite
