@@ -24,6 +24,7 @@ export function PrdDocument({aggregate,document,sections,generating,error,patchi
   const allowed = validatePrdAllowed(aggregate).allowed;
   const ordered = [...sections].sort((a,b)=>a.order-b.order);
   const selected = ordered.find((section)=>section.id===selectedId);
+  const eligiblePatchSectionIds = selectedIds.filter((id)=>ordered.some((section)=>section.id===id&&section.syncStatus!=='conflict'));
   const stale = document && (document.designRevision!==aggregate.project.designRevision || ordered.some((section)=>section.syncStatus==='stale'));
   const conflict = ordered.some((section)=>section.syncStatus==='conflict');
   const status = !document ? '초안' : conflict ? '충돌' : stale ? '최신 설계와 다름' : document.status==='review_required' ? '검토 필요' : document.status;
@@ -35,18 +36,18 @@ export function PrdDocument({aggregate,document,sections,generating,error,patchi
       <div><p className="workspace-eyebrow">PRD · {document?`rev. ${document.designRevision} · ${status}`:'준비'}</p><h1 id="prd-title">제품 요구사항 문서</h1></div>
       {document&&allowed?<><span role="status">{headerStatus}</span><DocumentExportActions document={document} sections={ordered} projectTitle={aggregate.project.title}/></>:null}
     </header>
-    {!allowed?<div className="requirements-empty-state prd-locked-state"><p className="workspace-eyebrow">PRD 잠김</p><h3>PRD 생성 전 Requirements 검토가 필요합니다</h3><p>같은 설계 revision의 Requirements를 검토 완료한 뒤 PRD를 생성할 수 있습니다.</p><Link className="design-requirements-action is-primary" to={`/blueprints/${encodeURIComponent(aggregate.project.id)}/requirements`}>Requirements 검토로 이동</Link></div>:null}
+    {!allowed?<div className="requirements-empty-state prd-locked-state"><p className="workspace-eyebrow">PRD 잠김</p><h2>PRD 생성 전 Requirements 검토가 필요합니다</h2><p>같은 설계 revision의 Requirements를 검토 완료한 뒤 PRD를 생성할 수 있습니다.</p><Link className="design-requirements-action is-primary" to={`/blueprints/${encodeURIComponent(aggregate.project.id)}/requirements`}>Requirements 검토로 이동</Link></div>:null}
     {allowed&&generating?<p role="status" aria-live="polite">PRD를 작성하고 검토하고 있습니다. 기존 문서는 생성이 끝날 때까지 유지됩니다.</p>:null}
     {allowed&&error?<div role="alert"><p>{error}</p><button type="button" onClick={onGenerate}>다시 시도</button></div>:null}
     {allowed&&document ? selected ? <div className="requirements-content-main">
       <button className="document-detail-back" type="button" onClick={()=>{setFocusOverview(true);setSelectedId('');}}>문서 섹션으로 돌아가기</button>
-      <article aria-labelledby="prd-section-title"><p className="workspace-eyebrow">섹션 {selected.order+1} / {ordered.length} · {selected.syncStatus==='stale'?'최신 설계와 다름':selected.syncStatus==='conflict'?'충돌 검토':status}</p><h3 id="prd-section-title" ref={selectedHeadingRef} tabIndex={-1}>{selected.title}</h3><p className="requirements-section-copy">{selected.markdown}</p>
+      <article aria-labelledby="prd-section-title"><p className="workspace-eyebrow">섹션 {selected.order+1} / {ordered.length} · {selected.syncStatus==='stale'?'최신 설계와 다름':selected.syncStatus==='conflict'?'충돌 검토':status}</p><h2 id="prd-section-title" ref={selectedHeadingRef} tabIndex={-1}>{selected.title}</h2><p className="requirements-section-copy">{selected.markdown}</p>
         <DocumentSectionEditor aggregate={aggregate} document={document} section={selected} onSave={onDirectEdit}/>
-        <label className="document-patch-target"><input type="checkbox" checked={selectedIds.includes(selected.id)} onChange={(event)=>setSelectedIds((ids)=>event.target.checked?[...ids,selected.id]:ids.filter((id)=>id!==selected.id))}/> 이 섹션을 보완 대상으로 선택</label>
+        {selected.syncStatus==='conflict' ? <p role="note">충돌을 해결한 뒤 최신 문서에서 이 섹션을 AI 보완 대상으로 선택할 수 있습니다.</p> : <label className="document-patch-target"><input type="checkbox" checked={eligiblePatchSectionIds.includes(selected.id)} onChange={(event)=>setSelectedIds((ids)=>event.target.checked?[...ids,selected.id]:ids.filter((id)=>id!==selected.id))}/> 이 섹션을 보완 대상으로 선택</label>}
         <small>근거: {selected.sourceItemIds.join(', ')||'연결 없음'}</small>
       </article>
     </div> : <DocumentSectionOverview sections={ordered} focusHeading={focusOverview} onSelect={(section)=>{setFocusOverview(false);setSelectedId(section.id);}}/> : null}
-    {allowed&&document?<section className="requirements-ready-review" aria-labelledby="prd-patch-title"><h3 id="prd-patch-title">선택 섹션 부분 보완</h3><p>선택한 섹션만 보완 제안으로 검토합니다. 승인 전에는 문서를 바꾸지 않습니다.</p><div className="document-impact-preview" aria-label="변경 대상과 예상 영향"><strong>변경 대상과 예상 영향</strong><p>선택 섹션: {impactPreview({sectionIds:selectedIds,requirementIds:[]}).targetIds.join(', ')||'없음'}</p></div>{patchError?<p role="alert">{patchError}</p>:null}<button type="button" disabled={patching||!selectedIds.length} onClick={()=>onRequestPatch({sectionIds:selectedIds,requirementIds:[]})}>{patching?'보완 제안 작성 중…':'선택 섹션 보완 제안 받기'}</button></section>:null}
+    {allowed&&document?<section className="requirements-ready-review" aria-labelledby="prd-patch-title"><h2 id="prd-patch-title">선택 섹션 부분 보완</h2><p>선택한 섹션만 보완 제안으로 검토합니다. 승인 전에는 문서를 바꾸지 않습니다.</p><div className="document-impact-preview" aria-label="변경 대상과 예상 영향"><strong>변경 대상과 예상 영향</strong><p>선택 섹션: {impactPreview({sectionIds:eligiblePatchSectionIds,requirementIds:[]}).targetIds.join(', ')||'없음'}</p></div>{patchError?<p role="alert">{patchError}</p>:null}{selected?.syncStatus==='conflict'?<p role="note">충돌 해결 전에는 해당 섹션을 AI 보완 대상으로 보낼 수 없습니다.</p>:null}<button type="button" disabled={patching||!eligiblePatchSectionIds.length} onClick={()=>onRequestPatch({sectionIds:eligiblePatchSectionIds,requirementIds:[]})}>{patching?'보완 제안 작성 중…':'선택 섹션 보완 제안 받기'}</button></section>:null}
     {allowed?<div className="requirements-empty-state"><button type="button" className="design-requirements-action is-primary" disabled={generating} onClick={onGenerate}>{document?'PRD 다시 생성':'PRD 생성'}</button></div>:null}
   </section>;
 }

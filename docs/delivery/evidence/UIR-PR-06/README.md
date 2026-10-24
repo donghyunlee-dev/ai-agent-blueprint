@@ -45,4 +45,6 @@ Approximate measurements use the source and render screenshots without distortin
 
 The rendered card tops are about 43px below the proportional source coordinate at a 900px viewport height. The shared project title/save row and numbered stage navigation remain visible; the duplicate document work-panel title was removed. The active Requirements and PRD stage labels are automatically revealed in the horizontally scrollable navigation on mobile. There is no unexplained material anchor delta.
 
+Requirements and PRD use one document H1, H2 for overview and selected document sections, and H3 for nested section cards and requirement items. The semantic heading correction retains the prior rendered font scale. Sections marked conflict provide resolution guidance and do not expose direct edit or AI patch-target controls.
+
 The local Vite render used a mocked session and synthetic IndexedDB data. It is presentation evidence only, not proof of live authentication or deployed behavior.
