@@ -41,7 +41,7 @@ test('generates a review_required Requirements document and supports section nav
   await expect(page.getByRole('heading',{level:1})).toHaveCount(1);
   await expect(page.getByRole('button',{name:'Requirements 생성'})).toBeVisible();
   await page.getByRole('button',{name:'Requirements 생성'}).click();
-  await expect(page.getByText('사용자 검토 전')).toBeVisible();
+  await expect(page.getByRole('status').filter({hasText:'사용자 검토 전'})).toBeVisible();
   expect(requestBody.documentType).toBe('requirements');
   expect(validateSchema(schemas.http.requirementsGenerateRequest,requestBody).valid).toBe(true);
   expect(requestBody.designItems.some((item:any)=>item.type==='document_section')).toBe(false);

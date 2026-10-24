@@ -39,6 +39,9 @@ export function RequirementsDocument({ aggregate, document, sections, generating
   const closeRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLDialogElement>(null);
   const currentSections = [...sections].sort((a,b)=>a.order-b.order);
+  const hasConflict = currentSections.some((section)=>section.syncStatus==='conflict');
+  const isStale = Boolean(document && (document.designRevision!==aggregate.project.designRevision || currentSections.some((section)=>section.syncStatus==='stale')));
+  const headerStatus = !document ? '초안' : hasConflict ? '충돌 해결 필요' : isStale ? '최신 설계와 다름' : document.status==='ready' ? '사용자 검토 완료' : document.status==='review_required' ? '사용자 검토 전' : document.status;
   const selected = currentSections.find((section)=>section.key===selectedKey);
   const requirements = (document?.requirements ?? []).filter((item)=>selected?.sourceItemIds.some((id)=>item.sourceItemIds.includes(id)));
   const issueCount = document?.reviewIssues?.length ?? 0;
@@ -67,8 +70,8 @@ export function RequirementsDocument({ aggregate, document, sections, generating
   function select(key:string) { setSelectedKey(key); setSelectedRequirementIds([]); setSectionTargetSelected(false); setContentsOpen(false); }
   return <section className="requirements-document" aria-labelledby="requirements-document-title">
     <header className="requirements-document-header">
-      <div><p className="workspace-eyebrow">문서 · {document ? `rev. ${document.designRevision} · ${document.status === 'review_required' ? '검토 필요' : document.status}` : '초안'}</p><h1 id="requirements-document-title">Requirements</h1></div>
-      {document ? <><span role="status">사용자 검토 전</span><DocumentExportActions document={document} sections={currentSections} projectTitle={aggregate.project.title} /></> : null}
+      <div><p className="workspace-eyebrow">문서 · {document ? `rev. ${document.designRevision} · ${headerStatus}` : '초안'}</p><h1 id="requirements-document-title">Requirements</h1></div>
+      {document ? <><span role="status">{headerStatus}</span><DocumentExportActions document={document} sections={currentSections} projectTitle={aggregate.project.title} /></> : null}
     </header>
     {generating ? <div className="requirements-generation-status" role="status" aria-live="polite"><strong>Requirements를 만들고 있습니다</strong><ol><li>설계 계획 검증</li><li>요구사항 작성</li><li>품질 검토</li></ol><p>현재 설계와 기존 문서는 생성이 끝날 때까지 유지됩니다.</p></div> : null}
     {error ? <div className="requirements-generation-error" role="alert"><p>{error}</p><button type="button" onClick={onGenerate}>같은 요청 다시 시도</button></div> : null}

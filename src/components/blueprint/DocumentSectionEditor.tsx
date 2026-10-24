@@ -24,12 +24,12 @@ export function DocumentSectionEditor({aggregate,document,section,onSave}:Props)
   const preview=previewDirectDocumentEdit(aggregate,{documentId:document.id,sectionId:section.id,title,markdown});
   useEffect(()=>{if(previewOpen&&!dialog.current?.open)dialog.current?.showModal();},[previewOpen]);
   useEffect(()=>{if(discardOpen&&!discardDialog.current?.open)discardDialog.current?.showModal();},[discardOpen]);
-  function startEditing(){setTitle(section.title);setMarkdown(section.markdown);setEditBase({version:document.version,revision:aggregate.project.designRevision??0});setError(null);setConflict(null);setEditing(true);}
+  function startEditing(){if(section.syncStatus==='conflict')return;setTitle(section.title);setMarkdown(section.markdown);setEditBase({version:document.version,revision:aggregate.project.designRevision??0});setError(null);setConflict(null);setEditing(true);}
   function closePreview(){if(saving)return;dialog.current?.close();setPreviewOpen(false);setConflict(null);editTrigger.current?.focus();}
   function cancelEditing(){if(title!==section.title||markdown!==section.markdown){setDiscardOpen(true);return;}setEditing(false);editTrigger.current?.focus();}
   function discardChanges(){discardDialog.current?.close();setDiscardOpen(false);setEditing(false);setTitle(section.title);setMarkdown(section.markdown);setError(null);editTrigger.current?.focus();}
   async function confirmSave(){
-    if(!editBase||!title.trim()||saving)return;
+    if(section.syncStatus==='conflict'||!editBase||!title.trim()||saving)return;
     setSaving(true);setError(null);setConflict(null);
     try{
       const result=await onSave({documentId:document.id,sectionId:section.id,baseVersion:editBase.version,baseDesignRevision:editBase.revision,title,markdown,excludedImpactIds:excluded});
@@ -38,6 +38,7 @@ export function DocumentSectionEditor({aggregate,document,section,onSave}:Props)
     }catch{setError('저장하지 못했습니다. 입력한 편집 내용은 보존됐습니다. 다시 시도해 주세요.');}
     finally{setSaving(false);}
   }
+  if(section.syncStatus==='conflict') return <aside className="document-edit-conflict" role="note" aria-label="섹션 충돌 안내"><strong>충돌 해결 필요</strong><p>이 섹션은 공통 설계와 내용이 충돌해 직접 편집할 수 없습니다. 설계에서 충돌을 먼저 해결한 뒤 최신 문서에서 다시 확인해 주세요.</p></aside>;
   return <>
     <div className="document-direct-edit-actions"><button ref={editTrigger} type="button" onClick={startEditing}>섹션 편집</button></div>
     {editing?<section className="document-direct-editor" aria-label={`${section.title} 직접 편집`}>

@@ -27,12 +27,13 @@ export function PrdDocument({aggregate,document,sections,generating,error,patchi
   const stale = document && (document.designRevision!==aggregate.project.designRevision || ordered.some((section)=>section.syncStatus==='stale'));
   const conflict = ordered.some((section)=>section.syncStatus==='conflict');
   const status = !document ? '초안' : conflict ? '충돌' : stale ? '최신 설계와 다름' : document.status==='review_required' ? '검토 필요' : document.status;
+  const headerStatus = !document ? '초안' : conflict ? '충돌 해결 필요' : stale ? '최신 설계와 다름' : document.status==='ready' ? '사용자 검토 완료' : document.status==='review_required' ? '사용자 검토 전' : document.status;
   useEffect(()=>{ if (selected) selectedHeadingRef.current?.focus(); },[selected?.id]);
 
   return <section className="requirements-document prd-document" aria-labelledby="prd-title">
     <header className="requirements-document-header">
       <div><p className="workspace-eyebrow">PRD · {document?`rev. ${document.designRevision} · ${status}`:'준비'}</p><h1 id="prd-title">제품 요구사항 문서</h1></div>
-      {document&&allowed?<><span role="status">{document.status==='ready'?'사용자 검토 완료':'사용자 검토 전'}</span><DocumentExportActions document={document} sections={ordered} projectTitle={aggregate.project.title}/></>:null}
+      {document&&allowed?<><span role="status">{headerStatus}</span><DocumentExportActions document={document} sections={ordered} projectTitle={aggregate.project.title}/></>:null}
     </header>
     {!allowed?<div className="requirements-empty-state prd-locked-state"><p className="workspace-eyebrow">PRD 잠김</p><h3>PRD 생성 전 Requirements 검토가 필요합니다</h3><p>같은 설계 revision의 Requirements를 검토 완료한 뒤 PRD를 생성할 수 있습니다.</p><Link className="design-requirements-action is-primary" to={`/blueprints/${encodeURIComponent(aggregate.project.id)}/requirements`}>Requirements 검토로 이동</Link></div>:null}
     {allowed&&generating?<p role="status" aria-live="polite">PRD를 작성하고 검토하고 있습니다. 기존 문서는 생성이 끝날 때까지 유지됩니다.</p>:null}

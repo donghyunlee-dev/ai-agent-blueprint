@@ -8,6 +8,15 @@ const now = '2026-10-24T00:00:00.000Z';
 const requirementKeys = ['overview','functional','non_functional','data','integration','permissions','exceptions','deployment','operations','exclusions','open_issues'];
 const prdKeys = ['overview','problem_goals','users_scenarios','scope','features','success_metrics','risks','release_plan','open_issues'];
 
+async function setSectionSyncStatus(page:any,databaseName:string,projectId:string,sectionId:string,syncStatus:string) {
+  await page.evaluate(async({databaseName,projectId,sectionId,syncStatus}:any)=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    const tx=db.transaction('projects','readwrite');const store=tx.objectStore('projects');const request=store.get(projectId);
+    request.onsuccess=()=>{const record=request.result;record.sections.find((section:any)=>section.id===sectionId).syncStatus=syncStatus;store.put(record);};
+    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+  },{databaseName,projectId,sectionId,syncStatus});
+}
+
 test('Requirements and PRD overview keeps section details and support actions reachable', async ({page}) => {
   await page.route('**/api/auth/session', (route) => route.fulfill({status:200,json:{authenticated:true,user:identity}}));
   const ownerKey = await deriveOwnerKey(identity);
@@ -31,6 +40,7 @@ test('Requirements and PRD overview keeps section details and support actions re
     const tx=db.transaction(['projects','activities'],'readwrite'); tx.objectStore('projects').put({id:projectId,schemaVersion:1,...aggregate});
     await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);}); db.close();
   },{databaseName:databaseNameForOwner(ownerKey),ownerKey,projectId,now,requirementKeys,prdKeys});
+  const databaseName=databaseNameForOwner(ownerKey);
 
   const viewport = page.viewportSize()!;
   await page.goto(`/blueprints/${projectId}/requirements`);
@@ -42,7 +52,20 @@ test('Requirements and PRD overview keeps section details and support actions re
     }).toBe(true);
   }
   await expect(page.getByRole('heading',{name:'문서 섹션'})).toBeVisible();
+  await expect(page.getByRole('status').filter({hasText:'사용자 검토 완료'})).toBeVisible();
   await page.screenshot({path:test.info().outputPath(`requirements-overview-${viewport.width}x${viewport.height}.png`),scale:'css'});
+  await setSectionSyncStatus(page,databaseName,projectId,'req-open_issues','conflict');
+  await page.reload();
+  await expect(page.getByRole('status').filter({hasText:'충돌 해결 필요'})).toBeVisible();
+  await page.screenshot({path:test.info().outputPath(`requirements-conflict-overview-${viewport.width}x${viewport.height}.png`),scale:'css'});
+  await page.getByRole('button',{name:'open_issues 내용 보기'}).click();
+  await expect(page.getByRole('note',{name:'섹션 충돌 안내'})).toContainText('직접 편집할 수 없습니다');
+  await expect(page.getByRole('button',{name:'섹션 편집'})).toHaveCount(0);
+  await page.screenshot({path:test.info().outputPath(`requirements-conflict-detail-${viewport.width}x${viewport.height}.png`),scale:'css'});
+  await page.getByRole('button',{name:'문서 섹션으로 돌아가기'}).click();
+  await setSectionSyncStatus(page,databaseName,projectId,'req-open_issues','current');
+  await page.reload();
+  await expect(page.getByRole('status').filter({hasText:'사용자 검토 완료'})).toBeVisible();
   await expect(page.getByRole('button',{name:'핵심 기능 요구사항 내용 보기'})).toBeVisible();
   await page.getByRole('button',{name:'핵심 기능 요구사항 내용 보기'}).click();
   await expect(page.getByRole('heading',{name:'핵심 기능 요구사항'})).toBeVisible();
@@ -61,9 +84,24 @@ test('Requirements and PRD overview keeps section details and support actions re
     }).toBe(true);
   }
   await expect(page.getByRole('button',{name:'제품 개요 내용 보기'})).toBeVisible();
+  await expect(page.getByRole('status').filter({hasText:'충돌 해결 필요'})).toBeVisible();
   await expect(page.getByText('4. 최신 설계와 다름')).toBeVisible();
   await expect(page.getByText('9. 충돌 검토')).toBeVisible();
   await page.screenshot({path:test.info().outputPath(`prd-overview-${viewport.width}x${viewport.height}.png`),scale:'css'});
+  await page.getByRole('button',{name:'open_issues 내용 보기'}).click();
+  await expect(page.getByRole('note',{name:'섹션 충돌 안내'})).toContainText('직접 편집할 수 없습니다');
+  await expect(page.getByRole('button',{name:'섹션 편집'})).toHaveCount(0);
+  await page.screenshot({path:test.info().outputPath(`prd-conflict-detail-${viewport.width}x${viewport.height}.png`),scale:'css'});
+  await page.getByRole('button',{name:'문서 섹션으로 돌아가기'}).click();
+  await setSectionSyncStatus(page,databaseName,projectId,'prd-open_issues','current');
+  await page.reload();
+  await expect(page.getByRole('status').filter({hasText:'최신 설계와 다름'})).toBeVisible();
+  await page.screenshot({path:test.info().outputPath(`prd-stale-overview-${viewport.width}x${viewport.height}.png`),scale:'css'});
+  await page.getByRole('button',{name:'scope 내용 보기'}).click();
+  await expect(page.getByRole('heading',{name:'scope'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'섹션 편집'})).toBeVisible();
+  await expect(page.getByRole('note',{name:'섹션 충돌 안내'})).toHaveCount(0);
+  await page.getByRole('button',{name:'문서 섹션으로 돌아가기'}).click();
   await page.getByRole('button',{name:'제품 개요 내용 보기'}).click();
   await expect(page.getByRole('heading',{name:'제품 개요'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'제품 개요'})).toBeFocused();

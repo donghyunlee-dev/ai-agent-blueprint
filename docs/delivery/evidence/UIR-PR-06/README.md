@@ -14,6 +14,8 @@ Ready document overview, 11 sections:
 
 Ready confirmation and document support/source access are also covered by `requirements-ready-*.png` and `requirements-sources-mobile-390x844.png`.
 
+Requirements conflict overview/detail captures are available at both viewports. The header reports `충돌 해결 필요`; the detail view shows the edit lock and resolution guidance.
+
 ## PRD
 
 The overview includes one stale and one conflict section. Selected section detail and focus return, loading, and locked states are captured at both viewports.
@@ -21,6 +23,8 @@ The overview includes one stale and one conflict section. Selected section detai
 ![PRD desktop overview](prd-overview-desktop-1440x900.png)
 
 ![PRD mobile overview](prd-overview-mobile-390x844.png)
+
+The conflict detail and stale overview are also captured at both viewports. Conflict sections show resolution guidance without an edit control, and stale PRD status is labeled `최신 설계와 다름`.
 
 ## Editing and supported flows
 
