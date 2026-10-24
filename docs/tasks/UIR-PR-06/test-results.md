@@ -12,6 +12,13 @@ The independent review P1s were addressed before re-review: all Requirements/PRD
 
 Source commit: `9c67b72f5d8c8b2ca0ee25305d7b37ef4619f10f`, based on PR #55 previous head `ebefae5f215b72b9db9c9d80717b15dcc4d64019`. The final affected Playwright matrix passed **30/30** at 1440×900 and 390×844; this includes a computed-style assertion for the review CTA. `npm run build` and `git diff --check` passed. The source-upload unit failure and Mermaid runtime result are unchanged from the post-merge run recorded below. The screenshots in `docs/delivery/evidence/UIR-PR-06/` were generated from the same source tree as this commit.
 
+
+## Export visibility correction — 2026-10-25
+
+The fresh reviewer found the Markdown download action clipped beyond the right edge of the 1440px workspace. The metadata grid now places export actions on a second row at intermediate desktop widths. The E2E flow asserts both export buttons are visible and that their bounds remain inside the viewport at 1440×900 and 390×844. Review-pending overview, after-scroll review action, requirements/PRD conflict and detail states, and impact-dialog captures were refreshed at application source commit `0801b11`. The desktop stage rail and first section card move down because of the added export row; the anchor table records this deliberate usability exception.
+
+The full affected Playwright matrix passed **30/30** at commit `0801b11`, with a production build in its isolated webServer setup. It exercises generation, 11-section navigation, edit and save, impact confirmation, partial patch and approval, ready confirmation and PRD gating, export, source/evidence/download, and guide flows. Browser automation uses Playwright Chromium; Agent Browser is unavailable in the tool catalog and PATH. Fresh independent code review and QA remain pending on the evidence-updated HEAD.
+
 ## Post-merge visual correction — 2026-10-24
 
 PR #54 was merged as `42f5bc763f76a571329f0d9bfd600be11ed01f39`. The visual correction is on follow-up commit `53a358241a42341373388f734134f68dba0fa3e5`, based on that latest `origin/main`. Its screenshots and rendered UI use 11 Korean-labeled sections, active step 4 `요구사항 명세`, PRD as separate step 5, actual linked section data, and accessible names with no English `Requirement(s)` text.
