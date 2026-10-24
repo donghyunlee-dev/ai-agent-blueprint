@@ -13,9 +13,9 @@
 - PR unit: `UIR-PR-06`; 사용자 결과: 요구사항 명세 단계에서 11개 실제 문서 섹션과 연계 행동을 한국어 UI로 탐색·실행하고, ready 이후 별도 PRD 단계와 기존 지원 흐름을 이어서 사용한다.
 - 요구사항: `UIR-008` (Requirements·PRD), `UIR-009` (자료·정합성·내보내기·가이드·완료), 직접 영향받는 `UIR-002` (기능 범위 보존), `UIR-010` (반응형·접근성).
 - Delivery 작업: `DOC-401`~`DOC-407`, `SRC-501`~`SRC-503`, `EXP-505`, `GDE-504`; UI 변경의 회귀 범위는 이미 병합된 해당 delivery PR을 기준으로 한다.
-- 선행 UIR PR: UIR-PR-01~05 병합. UIR-PR-05는 PR #52, merge commit `73f616be34aac006a545d91afbb1dc5f6deb9824`다. 구현은 이 계획을 작성하는 기준인 최신 `main`에서 시작한다. 브랜치 생성 직전에 `origin/main`과 선행 PR 병합 상태를 다시 확인한다.
+- 선행 UIR PR: UIR-PR-01~05 병합. UIR-PR-05는 PR #52, merge commit `73f616be34aac006a545d91afbb1dc5f6deb9824`다. UIR-PR-06 원 PR #54도 merge commit `42f5bc763f76a571329f0d9bfd600be11ed01f39`로 `main`에 병합됐다. 이 후속 보정 PR은 최신 `origin/main`에서 시작하며 시각 피드백과 UI 표기·기능 회귀만 다룬다.
 - 연결 계약: [UI 문서 작업 공간](../../ui/04-document-workspace.md), [홈·자료 화면 계약](../../ui/05-home-projects-and-files.md), [화면 상태 매트릭스](../../ui/screen-state-matrix.md), [화면별 문서·가이드 상태](../../ui/screens/05-documents-and-guide.md), [제품 PRD](../../product/02-prd.md), [제품 UI 설계](../../product/07-ui-design.md), [문서 delivery 계약](../../delivery/04-documents.md), [자료·가이드·내보내기 delivery 계약](../../delivery/05-sources-guides-export.md), [결정 로그](../../product/10-decision-log.md), [시각 검수](../../ui/07-visual-acceptance.md).
-- 현재 저장소의 workflow/traceability에는 PR #52 병합 상태가 아직 갱신되지 않았다. Coordinator는 이번 PR에 정확한 병합 상태를 기록하되, 선행 문서 구현의 누락이나 새 도메인 작업으로 확대하지 않는다.
+- 현재 `docs/delivery/traceability.md`는 UIR-PR-05를 `done`으로, UIR-008/009를 `in_progress`로 기록한다. Coordinator는 후속 보정 PR의 정확한 상태만 갱신하고 새 도메인 작업으로 확대하지 않는다.
 
 ## 범위
 
@@ -91,7 +91,7 @@ flowchart LR
 
 ## 예상 변경 파일
 
-- Create: `src/components/blueprint/PrdDocument.tsx`, `tests/e2e/uir-pr-06-documents-supported-flows.spec.ts`.
+- Modify: `src/components/blueprint/PrdDocument.tsx`, `tests/e2e/uir-pr-06-documents-supported-flows.spec.ts`.
 - Modify as needed: `src/pages/ProjectPage.tsx`, `src/components/blueprint/BlueprintStageNav.tsx`, `src/components/blueprint/RequirementsDocument.tsx`, `src/components/blueprint/DocumentSectionEditor.tsx`, `src/components/blueprint/DocumentExportActions.tsx`, `src/components/blueprint/SetupGuideDocument.tsx`, `src/components/projects/SourceDocuments.tsx`, `src/styles/blueprint-workspace.css`, `src/styles/setup-guide.css`, `src/styles/source-documents.css`.
 - Update directly affected regression tests only: `tests/e2e/doc-pr-01-requirements-generation.spec.ts`, `doc-pr-02-prd-readiness.spec.ts`, `doc-pr-03-document-refinement.spec.ts`, `doc-pr-04-direct-edit-impact.spec.ts`, `exp-pr-01-document-export.spec.ts`, `gde-pr-01-setup-guide.spec.ts`, `src-pr-01-sources.spec.ts`, `src-pr-02-evidence-linking.spec.ts`, `src-pr-03-source-result-download.spec.ts`.
 - Update delivery/traceability status for UIR-PR-05 and UIR-PR-06 when publishing the PR. Do not change unrelated historic rows. Attach the final screenshot set at `docs/delivery/evidence/UIR-PR-06/` for direct PR review.
@@ -104,7 +104,7 @@ flowchart LR
 | 문서/지원 사용자 여정 | `npx playwright test tests/e2e/uir-pr-06-documents-supported-flows.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-02-prd-readiness.spec.ts tests/e2e/doc-pr-03-document-refinement.spec.ts tests/e2e/doc-pr-04-direct-edit-impact.spec.ts tests/e2e/exp-pr-01-document-export.spec.ts tests/e2e/gde-pr-01-setup-guide.spec.ts tests/e2e/src-pr-01-sources.spec.ts tests/e2e/src-pr-02-evidence-linking.spec.ts tests/e2e/src-pr-03-source-result-download.spec.ts --workers=1` | 새 계층/reachability assertions 및 configured desktop/mobile project의 기존 직접 영향 회귀 모두 pass. mock auth는 화면 검증으로만 기록. |
 | 한국어 UI copy·11-section mapping | 변경 전후 visible text/accessible name scan + browser DOM assertion | UI의 영문 `Requirement(s)` 0건; 11개 key가 누락/중복 없이 대응 한국어 label로 탐색됨. |
 | Actions/callback wiring | Playwright end-to-end: TOC ↔ detail, direct edit/save/cancel/impact, partial patch proposal, ready confirmation/gate, PRD lock/unlock/generate, export, source/support and guide | 모든 활성 action이 기존 실제 callback/transaction에 연결되고 완료·실패 상태를 표시. conflict section direct/AI patch 금지 유지. |
-| unit/contract 회귀 | `npm run test:unit` | exit 0. 관련 없는 사전 실패가 있으면 범위와 결과를 분리 기록. |
+| unit/contract 회귀 | `npm run test:unit` | 관련 회귀가 통과한다. 관련 없는 기존 실패가 있으면 원인·기준 branch 결과를 분리 기록. |
 | production build | `npm run build` | exit 0. |
 | 반응형·접근성 | Playwright Chromium; 1440×900, 1024px 전환 경계, 390×844, keyboard, focus return, 200% zoom, reduced motion | 문서/지원 행동 도달, overflow/가림/숨은 tab stop 없음. |
 | 직접 시안 비교 | Requirements 주 이미지와 최종 HEAD의 요구사항 명세 overview를 같은 CSS viewport·ready/current synthetic 상태로 나란히 비교; template은 시안에 없는 동작 상태에만 사용 | 제목/설명, 상태/기준 설계 요약, stage rail, ToC, section-card layout, footer action anchor의 px/%를 기록. 설명되지 않은 위치 >5% 또는 크기 >10% 차이 0건. |
@@ -130,4 +130,4 @@ Agent Browser를 사용할 수 있으면 같은 흐름을 확인한다. 사용�
 - [x] 기존 route/API/storage/domain contracts를 보존하며 신규 제품 결정은 필요하지 않음.
 - [x] Coordinator가 workflow/traceability의 UIR-PR-05 상태를 PR #52 병합 기록과 동기화하고 UIR-PR-06을 `in_progress`로 표시.
 
-계획은 구현 가능한 상태다. Coordinator가 workflow/traceability의 stale 상태를 정리하고, 구현 직전에 최신 `origin/main`과 선행 PR 상태를 확인한 뒤 구현을 시작한다.
+구현과 자체 검증이 끝났다. 후속 PR은 최신 `origin/main` `42f5bc763f76a571329f0d9bfd600be11ed01f39`에서 시작했으며, 현재 독립 리뷰·QA gate를 진행한다. 보정으로 user-visible English/ARIA 표기를 함께 검사하고 11개 canonical section·기존 callback·저장 규칙을 보존한다.
