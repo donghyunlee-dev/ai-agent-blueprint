@@ -307,8 +307,8 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | 8 | [`UIR-PR-03`](../tasks/UIR-PR-03/plan.md) 단계·대화 | UIR-PR-02E merged (#40) | in_progress |
 | 9 | [`UIR-PR-03A`](../tasks/UIR-PR-03A/plan.md) 대화 화면 시안 정합성 보정 | UIR-PR-03 merged (#41) | in_progress |
 | 10 | `UIR-PR-04` 제안 검토 | UIR-PR-03A merged | planned |
-| 11 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | planned |
-| 12 | `UIR-PR-06` 문서·지원 흐름 | UIR-PR-05 merged | planned |
+| 11 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | merged (#52, `73f616be34aac006a545d91afbb1dc5f6deb9824`) |
+| 12 | [`UIR-PR-06`](../tasks/UIR-PR-06/plan.md) 문서·지원 흐름 | UIR-PR-05 merged (#52) | in_progress |
 
 ### Current-main UI follow-up
 

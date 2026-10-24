@@ -75,9 +75,9 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | UIR-004 단계 프레임 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md), [UIR-PR-03A plan](../tasks/UIR-PR-03A/plan.md) | 5단계 현재 위치·gate·직접 URL·한국어 단계 이름 | in_progress |
 | UIR-005 대화 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md), [UIR-PR-03A plan](../tasks/UIR-PR-03A/plan.md), [UIR-PR-03D plan](../tasks/UIR-PR-03D/plan.md) | 질문·답·summary 접기·job·composer·스크롤과 선택 카드, 같은 viewport 시안 비교 및 주요 anchor 차이 확인 (전체 픽셀 일치율은 진단 지표) | in_progress |
 | UIR-006 제안 검토 | UIR-PR-04 | 단건·수정·거절·일괄·충돌 transaction | planned |
-| UIR-007 준비도 표현 | UIR-PR-05 | 10개 원본 영역의 5개 카드 표현과 기존 gate | planned |
-| UIR-008 문서 | UIR-PR-06 | Requirements·PRD 상태·편집·보완·내보내기 | planned |
-| UIR-009 지원 흐름 | UIR-PR-06 | 자료·정합성·가이드·완료 접근성 | planned |
+| UIR-007 준비도 표현 | UIR-PR-05 | 10개 원본 영역의 5개 카드 표현과 기존 gate | done (PR #52 merged `73f616be34aac006a545d91afbb1dc5f6deb9824`; review/QA pass) |
+| UIR-008 문서 | [UIR-PR-06 plan](../tasks/UIR-PR-06/plan.md) | Requirements·PRD 상태·편집·보완·내보내기 | in_progress |
+| UIR-009 지원 흐름 | [UIR-PR-06 plan](../tasks/UIR-PR-06/plan.md) | 자료·정합성·가이드·완료 접근성 | in_progress |
 | UIR-010 반응형·접근성 | UIR-PR-02~06, UIR-PR-03A, QLT-PR-01 | 최종 HEAD 화면과 5개 viewport·키보드; 요약 접힘·대화 스크롤 | in_progress |
 | UI-AUTH-001 로그인·세션 화면 | AUTH-PR-04 (merged #43), AUTH-PR-05 (merged #46), AUTH-PR-06 | ideon 시안·Google 단일 로그인·인증 상태·모바일 동작; redirect toast와 초기 자동 포커스 없는 로그인 진입 | in_progress (AUTH-PR-06 focus follow-up) |
 

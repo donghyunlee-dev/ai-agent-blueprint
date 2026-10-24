@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 
 export type BlueprintStage = "conversation" | "proposal" | "design" | "requirements" | "prd";
@@ -21,6 +22,7 @@ export function BlueprintStageNav({
   requirementsReady: boolean;
   prdReady: boolean;
 }) {
+  const navRef = useRef<HTMLElement>(null);
   const base = `/blueprints/${encodeURIComponent(projectId)}`;
   const href: Record<BlueprintStage, string> = {
     conversation: base,
@@ -29,7 +31,18 @@ export function BlueprintStageNav({
     requirements: `${base}/requirements`,
     prd: `${base}/prd`,
   };
-  return <nav className="blueprint-stage-nav" aria-label="프로젝트 단계">
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>('[aria-current="step"]');
+    if (!nav || !active || nav.scrollWidth <= nav.clientWidth) return;
+    const navBounds = nav.getBoundingClientRect();
+    const activeBounds = active.getBoundingClientRect();
+    const activeCenter = nav.scrollLeft + activeBounds.left - navBounds.left + activeBounds.width / 2;
+    const nextScrollLeft = Math.max(0, Math.min(nav.scrollWidth - nav.clientWidth, activeCenter - nav.clientWidth / 2));
+    nav.scrollTo({ left: nextScrollLeft, behavior: 'auto' });
+  }, [current]);
+
+  return <nav ref={navRef} className="blueprint-stage-nav" aria-label="프로젝트 단계">
     <ol>{stages.map((stage, index) => {
       const locked = stage.id === "requirements" && !requirementsReady;
       return <li key={stage.id} className={`blueprint-stage blueprint-stage-${stage.id}${current === stage.id ? " is-current" : ""}${locked ? " is-locked" : ""}`}>
