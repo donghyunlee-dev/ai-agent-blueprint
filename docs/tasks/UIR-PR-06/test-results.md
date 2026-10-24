@@ -1,5 +1,11 @@
 # UIR-PR-06 validation results
 
+## Review follow-up — 2026-10-24
+
+The independent review P1s were addressed before re-review: all Requirements/PRD states affected by the shared card/header are recaptured, and the primary comparison now uses a valid `review_required` document with the enabled review action. The review action follows the user's 11-section choice, so it is below the initial viewport; the test confirms it is enabled and appears after scrolling, and separate desktop/mobile captures show it. A scoped workspace-token style makes the action the design's blue primary CTA, with focus and disabled states.
+
+Source commit: `9c67b72f5d8c8b2ca0ee25305d7b37ef4619f10f`, based on PR #55 previous head `ebefae5f215b72b9db9c9d80717b15dcc4d64019`. The final affected Playwright matrix passed **30/30** at 1440×900 and 390×844; this includes a computed-style assertion for the review CTA. `npm run build` and `git diff --check` passed. The source-upload unit failure and Mermaid runtime result are unchanged from the post-merge run recorded below. The screenshots in `docs/delivery/evidence/UIR-PR-06/` were generated from the same source tree as this commit.
+
 ## Post-merge visual correction — 2026-10-24
 
 PR #54 was merged as `42f5bc763f76a571329f0d9bfd600be11ed01f39`. The visual correction is on follow-up commit `53a358241a42341373388f734134f68dba0fa3e5`, based on that latest `origin/main`. Its screenshots and rendered UI use 11 Korean-labeled sections, active step 4 `요구사항 명세`, PRD as separate step 5, actual linked section data, and accessible names with no English `Requirement(s)` text.
