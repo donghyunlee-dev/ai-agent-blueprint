@@ -10,7 +10,7 @@ Additional validation on the same source state:
 
 - `npm run build`: passed; Vite reported the existing large-chunk advisory.
 - `npm run test:unit`: **347 passed, 1 failed (348 total)**. The failure is the existing source-upload removal fixture in `tests/unit/src-pr-01-source-upload-command.test.js:61`, with `undefined.map` in unchanged `src/features/sources/source-upload-command.js:95`.
-- `PUPPETEER_EXECUTABLE_PATH=/home/donghyunlee/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell npm run docs:check:mermaid`: **blocked**, 43 diagrams could not render because the configured `chrome-headless-shell` executable is absent from this environment.
+- `PUPPETEER_EXECUTABLE_PATH=/home/donghyunlee/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell npm run docs:check:mermaid`: passed, **43 diagrams**. The initially configured `1248` browser path was absent; the installed Playwright `1243` headless shell was used.
 - `git diff --check`: passed.
 - Agent Browser is unavailable in the tool catalog and PATH; independent browser QA uses Playwright Chromium. The separate QA report records the accessibility checks and any unverified limits.
 
