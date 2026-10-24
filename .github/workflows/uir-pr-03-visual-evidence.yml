@@ -11,10 +11,14 @@ on:
       - 'src/styles/app-shell.css'
       - 'src/styles/workspace-shell.css'
       - 'src/styles/question-card.css'
+      - 'src/styles/project-composer.css'
+      - 'src/features/conversation/questionEngine.js'
       - 'tests/e2e/uir-pr-03-stage-conversation.spec.ts'
+      - 'tests/e2e/uir-pr-03d-question-choice-polish.spec.ts'
       - 'docs/blueprint-design/**'
       - 'docs/tasks/UIR-PR-03/**'
       - 'docs/tasks/UIR-PR-03A/**'
+      - 'docs/tasks/UIR-PR-03D/**'
   workflow_dispatch:
 
 permissions:
@@ -63,4 +67,30 @@ jobs:
           printf '## UIR PR 03A visual evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
           printf 'Source-size comparison and 1440x900 / 390x844 screenshots: [%s](%s)\n\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
           printf 'Unmasked 1672x941 comparison, anchor geometry, and desktop/mobile assertions: `%s`. Pixel similarity is diagnostic; the UIR acceptance rule is the documented anchor geometry and direct visual review.\n' "$VISUAL_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$VISUAL_OUTCOME" != "success" ]; then exit 1; fi
+
+      - name: Capture UIR PR 03D option and focus evidence
+        id: pr03d-test
+        continue-on-error: true
+        run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-03d-question-choice-polish.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
+
+      - name: Upload UIR PR 03D visual evidence
+        id: upload-pr03d-evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uir-pr-03d-choice-focus-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .pr-artifacts/UIR-PR-03D/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish UIR PR 03D evidence link and gate result
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.upload-pr03d-evidence.outputs.artifact-url }}
+          PR03A_OUTCOME: ${{ steps.visual-test.outcome }}
+          PR03D_OUTCOME: ${{ steps.pr03d-test.outcome }}
+        run: |
+          printf '## UIR PR 03D option and focus evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Desktop/mobile option and focus screenshots: [%s](%s)\n\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Focused browser outcomes — UIR-PR-03A: `%s`; UIR-PR-03D: `%s`.\n' "$PR03A_OUTCOME" "$PR03D_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$PR03A_OUTCOME" != "success" ] || [ "$PR03D_OUTCOME" != "success" ]; then exit 1; fi

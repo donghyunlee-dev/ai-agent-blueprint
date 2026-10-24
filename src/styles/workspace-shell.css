@@ -726,3 +726,89 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 @media (prefers-reduced-motion: reduce) {
   .conversation-summary-toggle svg { transition: none; }
 }
+
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > legend { flex: 0 0 100%; }
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option {
+    flex: 0 1 calc((100% - 36px) / 4);
+    min-width: 0;
+    height: auto;
+    min-height: 133px;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option:not(:has(.question-option-icon)) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option:not(:has(.question-option-icon)) .question-option-copy {
+    display: grid;
+    grid-column: auto;
+    grid-row: auto;
+    place-items: center;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-content: start;
+    gap: 8px;
+    text-align: left;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy {
+    display: contents;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy strong,
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy small {
+    margin-left: 0;
+}
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy strong { grid-column: 2; grid-row: 1; align-self: center; }
+.workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option.has-icon .question-option-copy small { grid-column: 1 / -1; grid-row: 2; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon { width: 36px; height: 36px; border-radius: 10px; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: calc((100% - 12px) / 2); }
+}
+@media (max-width: 767px) {
+  .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: 100%; min-height: 78px; }
+}
+.workspace-panels[data-stage="conversation"] .question-card { container-type: inline-size; }
+@container (max-width: 680px) {
+  .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: calc((100% - 12px) / 2); }
+}
+@container (max-width: 380px) {
+  .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option { flex-basis: 100%; }
+}
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 10px;
+  background: #edf4ff;
+  color: #1877ef;
+}
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-admin { background: #e8faf3; color: #00b983; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-team { background: #f5edff; color: #8b32f6; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-visitor { background: #fff2e6; color: #ef7200; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-team svg { width: 24px; height: 24px; stroke-width: 2.2; }
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-admin svg,
+.workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-visitor svg { stroke-width: 2.2; }
+@media (min-width: 1024px) {
+  .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-team svg { width: 30px; height: 30px; stroke-width: 2.2px; }
+  .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-admin svg,
+  .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-visitor svg { width: 28px; height: 28px; stroke-width: 2.2px; }
+}

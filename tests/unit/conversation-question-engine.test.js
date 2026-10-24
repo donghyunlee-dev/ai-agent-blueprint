@@ -13,6 +13,16 @@ test('catalog covers 12 design areas and all seven answer modes', () => {
   assert.ok(QUESTION_CATALOG.every((item) => item.targetItemTypes.length && item.allowedAnswerModes.includes(item.answerMode)));
 });
 
+test('security choices use Korean labels while retaining stable option values', () => {
+  const security = QUESTION_CATALOG.find(({ id }) => id === 'security');
+  assert.deepEqual(security.options.map(({ value, label }) => [value, label]), [
+    ['personal', '개인/민감 정보'],
+    ['financial', '금융/결제'],
+    ['internal', '사내 내부'],
+    ['none', '해당 없음'],
+  ]);
+});
+
 test('selection is deterministic, excludes answered meanings, and prioritizes required high impact questions', () => {
   const first = selectNextQuestion(aggregate());
   assert.equal(first.id, 'problem');
