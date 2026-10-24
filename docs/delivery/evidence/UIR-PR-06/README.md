@@ -1,6 +1,6 @@
 # UIR-PR-06 visual evidence
 
-These screenshots use synthetic local browser fixtures with generic, non-product-specific Korean section markdown. The requirements overview, review-action, readiness, UIR-PR-06, and document-editing state screenshots were regenerated from source commit `9c67b72f5d8c8b2ca0ee25305d7b37ef4619f10f` at 1440×900 desktop and 390×844 mobile CSS viewports. The final affected Playwright matrix passed 30/30. The main requirements overview shows a `review_required` document with the Korean `요구사항 명세` title, 11 individually navigable localized sections, linked requirement data, step 4 current, and PRD as separate next step 5. The enabled review action uses the workspace primary color; because it follows the selected 11 sections, it is below the initial viewport and is captured after scrolling. The complete evidence set, including interaction-state captures, is stored under `docs/delivery/evidence/UIR-PR-06/`; raw Playwright artifacts remain under `.pr-artifacts/UIR-PR-06/`.
+These screenshots use synthetic local browser fixtures with generic, non-product-specific Korean section markdown. The requirements overview, review-action, readiness, UIR-PR-06, and document-editing state screenshots were regenerated from source commit `9c67b72f5d8c8b2ca0ee25305d7b37ef4619f10f` at 1440×900 desktop and 390×844 mobile CSS viewports. The direct-edit impact dialog was recaptured at application source commit `94bfdce` with Korean-only synthetic document text. The final affected Playwright matrix passed 30/30. The main requirements overview shows a `review_required` document with the Korean `요구사항 명세` title, 11 individually navigable localized sections, linked requirement data, step 4 current, and PRD as separate next step 5. The enabled review action uses the workspace primary color; because it follows the selected 11 sections, it is below the initial viewport and is captured after scrolling. The complete evidence set, including interaction-state captures, is stored under `docs/delivery/evidence/UIR-PR-06/`; raw Playwright artifacts remain under `.pr-artifacts/UIR-PR-06/`.
 
 Primary references: [Requirements dashboard](../../../blueprint-design/회의실%20예약%20서비스%20요구사항%20대시보드.png) and [PRD dashboard](../../../blueprint-design/한국어%20PRD%20대시보드%20화면.png), both 1586×992. Template captures were used only to verify requirements draft/overview/detail and PRD generation states absent from the primary images.
 
@@ -34,7 +34,11 @@ The conflict detail and stale overview are also captured at both viewports. Conf
 
 ## Editing and supported flows
 
-The evidence set also includes direct editor and impact-dialog states, source-result keyboard focus, and setup-guide review on desktop/mobile. The PRD editor mobile capture and desktop impact dialog were regenerated at PR #55 HEAD; unrelated evidence states were retained.
+The evidence set also includes direct editor and impact-dialog states, source-result keyboard focus, and setup-guide review on desktop/mobile. The refreshed impact dialogs show the saved/edited Korean text and the linked design changes on both viewports:
+
+![Document impact dialog desktop](document-impact-dialog-desktop-1440x900.png)
+
+![Document impact dialog mobile](document-impact-dialog-mobile-390x844.png) The PRD editor mobile capture and desktop/mobile impact dialogs were regenerated at PR #55 HEAD; the dialog fixtures use Korean text, and affected document IDs are summarized as a Korean count while persisted IDs remain unchanged. Unrelated evidence states were retained.
 
 ## Primary-reference anchor comparison
 

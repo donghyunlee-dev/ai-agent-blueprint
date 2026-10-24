@@ -1,5 +1,11 @@
 # UIR-PR-06 validation results
 
+## Final review correction — 2026-10-25
+
+The fresh independent review found that the impact summary altered a persisted identifier (`requirements-doc`) for display. The UI now hides document IDs in that summary and shows a Korean affected-document count; IDs remain unchanged in storage and callback payloads. The direct-edit fixture now uses Korean example content and captures the impact dialog at desktop 1440×900 and mobile 390×844.
+
+At application source commit `94bfdceca9ee77fba6511506993fdb2e04ba3d63`, the full affected Playwright matrix passed **30/30** across desktop and mobile. It covers document generation, all 11 section navigation, explicit ready confirmation and PRD gate/generation, partial patch and approval, direct edit and impact confirmation, conflict restrictions, export, sources/evidence/download, and setup-guide review. `npm run build` ran in the Playwright webServer setup and passed with the existing large-chunk advisory. The earlier 347/348 unit-suite result and its unchanged source-upload fixture failure are recorded below. Independent fresh review and QA are pending on the evidence-updated HEAD.
+
 ## Review follow-up — 2026-10-24
 
 The independent review P1s were addressed before re-review: all Requirements/PRD states affected by the shared card/header are recaptured, and the primary comparison now uses a valid `review_required` document with the enabled review action. The review action follows the user's 11-section choice, so it is below the initial viewport; the test confirms it is enabled and appears after scrolling, and separate desktop/mobile captures show it. A scoped workspace-token style makes the action the design's blue primary CTA, with focus and disabled states.
