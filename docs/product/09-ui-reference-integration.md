@@ -7,7 +7,7 @@ Use [the Blueprint redesign map](../blueprint-design/README.md) to choose the vi
 ## Sources of truth
 
 1. Product, security, domain, document, accessibility, and responsive contracts define behavior and gates.
-2. `docs/blueprint-design/README.md` maps the primary redesign images to login, home, conversation, proposal review, readiness, Requirements, and PRD.
+2. `docs/blueprint-design/README.md` maps the primary redesign images to login, home, conversation, proposal review, readiness, 요구사항 명세, and PRD.
 3. For a state absent from those images, use the corresponding [template reference](../template/README.md) and the [screen state matrix](../ui/screen-state-matrix.md).
 4. Existing React, TypeScript, semantic HTML, and local CSS are the implementation base. Extract a shared component only for a real shared contract.
 
@@ -20,9 +20,9 @@ The design board includes global Templates, Knowledge Library, Settings, notific
 ## Layout interpretation
 
 - The common frame identifies the project, save state, signed-in user, and supported navigation.
-- The project path reads `대화 → 제안 검토 → 설계 → Requirements → PRD`. The highlighted step follows the real route or in-page state.
+- The project path reads `대화 → 제안 검토 → 설계 → 요구사항 명세 → PRD`. The highlighted step follows the real route or in-page state.
 - Each step owns the wide primary work area. A summary, issue list, table of contents, or item detail is secondary to that step. A permanent three-panel layout is not required across steps.
-- The five readiness cards group the existing ten `DESIGN_SECTIONS` for display only. `computeDesignReadiness()` continues to decide blockers and the Requirements gate; PRD still requires ready Requirements.
+- The five readiness cards group the existing ten `DESIGN_SECTIONS` for display only. `computeDesignReadiness()` continues to decide blockers and the 요구사항 명세 gate; PRD still requires a ready 요구사항 명세.
 - Source files, consistency review, export, and setup guide remain reachable through existing flows even where the images omit them.
 - On narrow viewports, primary content precedes secondary content or opens it through a labelled control. Hidden regions leave the keyboard and accessibility tree. A fixed composer or footer cannot cover content or safe areas.
 
