@@ -1,15 +1,15 @@
 # 생성·준비 완료·오류 상태
 
-이 Frame들은 [Blueprint 새 시안](../../blueprint-design/README.md)에 없는 상태의 fallback이다. 각 상태는 현재 `Requirements`/`PRD`/대화 단계 안에서만 나타나며 공통 프레임과 사용자 입력을 유지한다.
+이 Frame들은 [Blueprint 새 시안](../../blueprint-design/README.md)에 없는 상태의 fallback이다. 각 상태는 현재 `요구사항 명세`/`PRD`/대화 단계 안에서만 나타나며 공통 프레임과 사용자 입력을 유지한다.
 
 ## F-REQ-GENERATING
 
 기존 문서가 없으면 DocumentWorkspace 골격과 생성 상태를, 기존 문서가 있으면 기존 문서 위 header 아래에 생성 상태를 표시한다.
 
 ```text
-Requirements                     생성 중 · rev.12
+요구사항 명세                     생성 중 · rev.12
 ──────────────────────────────────────────────────
-[Spinner] Requirements를 작성하고 있습니다.
+[Spinner] 요구사항 명세를 작성하고 있습니다.
 ✓ 확정 설계 불러오기
 ✓ 요구사항 구조 만들기
 • 수용 기준 연결하기
@@ -26,27 +26,27 @@ Requirements                     생성 중 · rev.12
 ## F-REQ-READY
 
 ```text
-Requirements                         준비 완료
+요구사항 명세                         준비 완료
 rev.12 · 저장됨 · 미해결 검토 0
                                       [복사] [Markdown 다운로드]
 ──────────────────────────────────────────────────────────────
-Requirements 본문
+요구사항 명세 본문
 ...
 
 다음 단계
-Requirements 검토가 완료되었습니다. 같은 설계 rev.12로 PRD를 만들 수 있습니다.
+요구사항 명세 검토가 완료되었습니다. 같은 설계 rev.12로 PRD를 만들 수 있습니다.
                                                    [PRD 생성]
 ```
 
 - ready는 header `StatusBadge success`와 다음 단계 설명으로 표시한다.
 - 문서 하단 PRD 생성만 primary다.
 - 설계 revision이 바뀌면 ready badge를 즉시 stale/review_required로 바꾸고 PRD 생성 action을 잠근다.
-- 사용자가 `Requirements 검토 완료` 확인을 수행한 시각과 기준 revision을 기록한다.
+- 사용자가 `요구사항 명세 검토 완료` 확인을 수행한 시각과 기준 revision을 기록한다.
 
 ## F-DOC-STALE
 
 ```text
-Requirements                    최신 설계와 다름
+요구사항 명세                    최신 설계와 다름
 rev.12 문서 · rev.13 현재 설계                         [영향 보기]
 ────────────────────────────────────────────────────────────────
 주의: 핵심 기능 변경으로 2개 섹션을 다시 검토해야 합니다.

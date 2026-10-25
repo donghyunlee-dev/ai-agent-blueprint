@@ -29,7 +29,7 @@ DesignItemList
 
 - `4/5` 같은 새 점수나 임의 퍼센트를 만들지 않는다. 시안의 진행 막대는 실제 readiness gate가 아니다.
 - 5개 카드의 원본 영역: 제품과 문제=`product/problem/outcomes`, 사용자=`users/scenarios`, 기능과 범위=`features/scope`, 데이터와 연동=`data`, 보안과 운영=`identity/operations`.
-- `computeDesignReadiness()`의 10개 영역, blocker, `insufficient/workable/ready`, Requirements gate를 그대로 사용한다. 그룹 카드에서 각 원본 영역과 원인을 열 수 있어야 한다.
+- `computeDesignReadiness()`의 10개 영역, blocker, `insufficient/workable/ready`, 요구사항 명세 gate를 그대로 사용한다. 그룹 카드에서 각 원본 영역과 원인을 열 수 있어야 한다.
 - 대표 상태는 `StatusBadge`로 `부족`, `작업 가능`, `준비 완료`를 텍스트로 표시한다.
 - 상태 아래 한 줄에 `필수 미정 2 · 재검토 1 · 명시적 보류 3`처럼 원인을 제시한다.
 - 원인을 선택하면 해당 항목 목록으로 필터링하고 첫 항목 제목에 포커스를 둔다.

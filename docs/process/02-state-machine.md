@@ -74,9 +74,9 @@ UI의 `F-PRD-LOCKED`, `F-SAVE-ERROR`, `F-DOC-STALE`은 독립 도메인 상태�
 | 모든 비인증 상태 | Blueprint API 실행 | session invalid | `401 AUTH_REQUIRED`, 외부 AI 호출 없음 |
 | `PS_PROPOSAL_REVIEW` | 다음 시스템 질문 요청 | 거절, 남은 proposal 수 표시 |
 | `PS_CONFLICT_REVIEW` | proposal 직접 적용 | 거절, 기존 confirmed 유지 |
-| `PS_EVALUATING` insufficient | Requirements 생성 | 거절, 부족 영역 반환 |
+| `PS_EVALUATING` insufficient | 요구사항 명세 생성 | 거절, 부족 영역 반환 |
 | `PS_REQ_DRAFT` | PRD 생성 | 거절, `F-PRD-LOCKED` |
-| `PS_REQ_READY` + revision mismatch | PRD 생성 | Requirements review_required 전환 후 차단 |
+| `PS_REQ_READY` + revision mismatch | PRD 생성 | 요구사항 명세 review_required 전환 후 차단 |
 | 모든 processing 상태 | 같은 trigger 재실행 | 중복 요청 차단 또는 같은 request 연결 |
 
 ## 프로젝트 완료 guard

@@ -24,7 +24,7 @@ flowchart LR
     C --> D[복수 제안 승인]
     D --> E[조건부 질문 답변]
     E --> F[workable]
-    F --> G[Requirements 생성·검토·ready]
+    F --> G[요구사항 명세 생성·검토·ready]
     G --> H[PRD 생성]
 ```
 
@@ -38,7 +38,7 @@ flowchart LR
 | `PATH-AUTH-API-BYPASS` | 비인증 직접 API | 401, 외부 AI 호출 0회 |
 | `PATH-AUTH-USER-SWITCH` | 같은 브라우저 A→B | 로컬 프로젝트 교차 노출 없음 |
 | `PATH-HAPPY-IDEA` | 표준 선택과 승인 | PRD draft, 동일 revision |
-| `PATH-HAPPY-FILE` | 아이디어 없음, 파일 ready | 근거 연결된 Requirements/PRD |
+| `PATH-HAPPY-FILE` | 아이디어 없음, 파일 ready | 근거 연결된 요구사항 명세/PRD |
 | `PATH-PARTIAL-FILE` | 2개 성공, 1개 실패 | 성공 발췌만 사용, 실패 행 유지 |
 | `PATH-CUSTOM-ANSWER` | 직접 입력 | 원문 보존 + proposal 검토 |
 | `PATH-RECOMMEND` | 추천 요청 후 수정 승인 | 추천 자동 확정 없음 |
@@ -115,10 +115,10 @@ And recommendation block과 미확정 proposal을 반환한다
 ### `PT-AI-002` 문서 pipeline과 호출 상한
 
 ```gherkin
-Given Requirements 생성 가능한 design snapshot이 있다
+Given 요구사항 명세 생성 가능한 design snapshot이 있다
 When plan coverage 검증이 통과한다
 Then plan은 코드로 한 번 생성되고 draft와 review API가 각각 한 번 호출된다
-And Requirements draft는 DEFAULT, 최종 PRD draft만 FINAL을 사용한다
+And 요구사항 명세 draft는 DEFAULT, 최종 PRD draft만 FINAL을 사용한다
 When review가 repairable issue를 반환한다
 Then 문제 section repair와 review가 각각 한 번 추가된다
 And 두 번째 자동 repair는 발생하지 않는다
@@ -141,7 +141,7 @@ Given 핵심 영역은 모두 확정됐고 조건부 운영 제약 하나만 남
 When 사용자가 "나중에 결정"을 선택한다
 Then 해당 항목은 deferred로 저장된다
 And readiness는 workable이다
-And Requirements 생성은 허용된다
+And 요구사항 명세 생성은 허용된다
 And 생성 문서의 오픈 이슈에 해당 항목이 포함된다
 ```
 
@@ -160,7 +160,7 @@ And revision은 한 번 증가한다
 ### `PT-004` PRD 잠금
 
 ```gherkin
-Given Requirements 상태가 draft다
+Given 요구사항 명세 상태가 draft다
 When UI 또는 API에서 PRD 생성을 요청한다
 Then PRD 생성 Job은 만들어지지 않는다
 And 문서는 만들어지지 않는다
@@ -180,21 +180,21 @@ And 하나의 성공 Job 결과만 활성 상태다
 ### `PT-006` 문서 편집 영향 취소
 
 ```gherkin
-Given Requirements section을 편집했고 영향 미리보기가 열렸다
+Given 요구사항 명세 section을 편집했고 영향 미리보기가 열렸다
 When 사용자가 편집으로 돌아가기를 선택한다
 Then DesignItem과 revision은 바뀌지 않는다
 And section의 dirty 원문은 유지된다
 ```
 
-### `PT-007` Requirements 검토 완료
+### `PT-007` 요구사항 명세 검토 완료
 
 ```gherkin
 Given 모든 필수 section과 P0 수용 기준이 있고 conflict, stale, review issue가 없다
 And document designRevision이 현재 설계 revision과 같다
 When 시스템이 ready 가능 상태를 계산한다
-Then Requirements 상태는 아직 draft다
-When 사용자가 "Requirements 검토 완료"를 확인한다
-Then Requirements 상태는 ready다
+Then 요구사항 명세 상태는 아직 draft다
+When 사용자가 "요구사항 명세 검토 완료"를 확인한다
+Then 요구사항 명세 상태는 ready다
 And 확정 시각과 기준 revision이 기록된다
 And PRD 생성이 허용된다
 ```

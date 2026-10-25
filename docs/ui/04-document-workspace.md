@@ -9,24 +9,24 @@
 | `UI-DOC-003` | 문서 본문 | 읽기와 섹션 선택 |
 | `UI-DOC-004` | 섹션 편집 | 직접 수정 또는 AI 보완 |
 | `UI-DOC-005` | 영향 미리보기 | 저장 전 공통 설계와 다른 문서 영향 확인 |
-| `UI-DOC-006` | PRD 잠금 | Requirements 준비 작업으로 복귀 |
+| `UI-DOC-006` | PRD 잠금 | 요구사항 명세 준비 작업으로 복귀 |
 | `UI-GDE-001` | 설정 가이드 | 생성된 실행 절차 검토·승인·내보내기 |
 
 ## 데스크톱 레이아웃
 
 ```text
-Project frame: Requirements 또는 PRD 단계
+Project frame: 요구사항 명세 또는 PRD 단계
 DocumentHeader: title | revision · saved · sync | review/export actions
 ┌─ ToC ─────┬─ section overview / selected article ───────────┐
 │ section  │ 실제 문서 데이터, 상태, 편집·보완 행동             │
 └───────────┴───────────────────────────────────────────────────┘
 ```
 
-주 시안은 [Requirements와 PRD 화면](../blueprint-design/README.md)이다. 섹션 목록/요약과 선택한 본문을 같은 단계에서 탐색한다. 이슈·영향 상세는 선택할 때만 열고 목차, 본문과 동시에 좁은 열을 강제하지 않는다. 기존 문서 section과 gate·edit·patch·export 동작을 그대로 사용한다.
+주 시안은 [요구사항 명세와 PRD 화면](../blueprint-design/README.md)이다. 섹션 목록/요약과 선택한 본문을 같은 단계에서 탐색한다. 이슈·영향 상세는 선택할 때만 열고 목차, 본문과 동시에 좁은 열을 강제하지 않는다. 기존 문서 section과 gate·edit·patch·export 동작을 그대로 사용한다.
 
 ## DocumentHeader
 
-- 왼쪽: `Requirements` 또는 `PRD` 제목과 문서 상태 `draft/ready/stale/conflict`.
+- 왼쪽: `요구사항 명세` 또는 `PRD` 제목과 문서 상태 `draft/ready/stale/conflict`.
 - 아래/옆 메타: 기준 설계 revision, 마지막 저장 시간, 미해결 검토 수.
 - 오른쪽: `정합성 검토` secondary, `복사` ghost, `Markdown 다운로드` secondary.
 - 문서 생성 중에는 기존 문서를 유지하고 헤더 아래 `Alert info`와 단계 상태를 보여준다.
@@ -65,18 +65,18 @@ Cancel secondary | Save primary
 저장 버튼 다음 단계로 Modal을 연다. Modal에서 사용자는 각 연결 설계 항목을 개별로 포함하거나 제외할 수 있고, 기본값은 전체 포함이다. 확인하면 문서 본문과 선택한 설계 변경을 같은 저장 transaction으로 반영한다. 제외한 설계 항목을 참조하는 문서 섹션은 stale로 바꾸지 않는다.
 
 1. 바뀌는 공통 설계 항목
-2. stale이 되는 Requirements/PRD 섹션
+2. stale이 되는 요구사항 명세/PRD 섹션
 3. 새로 생기는 재검토 또는 충돌
 4. 저장 후 수행 가능한 다음 행동
 
 `DiffView` 구조로 before/after를 표시하고 footer에 `편집으로 돌아가기`, `확인하고 저장`을 둔다. 저장 기준 version 또는 design revision이 바뀌면 저장을 거부하고 최신 내용과 입력 원문을 비교한다. 실패해도 편집 입력과 Modal 내용을 유지한다.
 
-## Requirements ready와 PRD 잠금
+## 요구사항 명세 ready와 PRD 잠금
 
-- Requirements 상태가 ready가 아니면 PRD 탭에 lock icon과 이유를 제공한다.
+- 요구사항 명세 상태가 ready가 아니면 PRD 탭에 lock icon과 이유를 제공한다.
 - 잠긴 PRD 단계로 이동하면 빈 문서를 보여주지 않고 `UI-DOC-006` 안내 화면을 주 영역에 표시한다.
-- 안내에는 부족/충돌/수용 기준 없음 개수와 `Requirements 검토로 이동` primary 행동 하나를 둔다.
-- 모든 ready 조건을 충족하면 `Requirements 검토 완료` 행동을 활성화한다. 사용자가 확인한 뒤에만 ready가 되고 PRD 잠금이 해제된다.
+- 안내에는 부족/충돌/수용 기준 없음 개수와 `요구사항 명세 검토로 이동` primary 행동 하나를 둔다.
+- 모든 ready 조건을 충족하면 `요구사항 명세 검토 완료` 행동을 활성화한다. 사용자가 확인한 뒤에만 ready가 되고 PRD 잠금이 해제된다.
 
 ## stale/conflict
 

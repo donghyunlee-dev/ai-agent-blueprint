@@ -64,7 +64,7 @@ flowchart LR
 
 ### `G-REQ-ALLOWED`
 
-Requirements 생성 허용 조건:
+요구사항 명세 생성 허용 조건:
 
 ```text
 coreMissingCount = 0
@@ -76,7 +76,7 @@ AND required dependent areas are confirmed or explicitly deferred
 
 ### 상태 판단표
 
-| 조건 | readiness | Requirements CTA |
+| 조건 | readiness | 요구사항 명세 CTA |
 | --- | --- | --- |
 | 핵심 누락 있음 | `insufficient` | 차단 |
 | conflict 또는 pending 있음 | `insufficient` | 차단·검토 이동 |

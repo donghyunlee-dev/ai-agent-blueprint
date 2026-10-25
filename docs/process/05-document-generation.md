@@ -1,4 +1,4 @@
-# Requirements와 PRD 생성
+# 요구사항 명세와 PRD 생성
 
 대화의 확정 설계는 별도 문서 생성 단계의 입력을 준비할 뿐 자동 draft/ready 상태를 만들지 않는다. 사용자가 `요구사항 명세` 생성을 요청해야 아래 readiness gate와 pipeline이 시작된다. 대화 중 확정 사실·제안·미정의 표시와 우측 요약은 [대화·결정 프로세스](../product/04-conversation-process.md)를 따르며, thread summary나 도식은 문서 생성의 source of truth가 아니다.
 
@@ -9,11 +9,11 @@ flowchart TD
     A[readiness 평가] --> B{G-REQ-ALLOWED}
     B -- 실패 --> B1[부족·conflict·pending 항목 표시]
     B1 --> A
-    B -- 통과 --> C{사용자가 Requirements 생성을 선택}
+    B -- 통과 --> C{사용자가 요구사항 명세 생성을 선택}
     C -- 질문 계속 --> C1[다음 질문 선택]
     C1 --> A
     C -- 생성 --> D[design snapshot과 logicalRequestId 고정]
-    D --> E[Requirements plan · DocumentPlanBuilder · AI 없음]
+    D --> E[요구사항 명세 plan · DocumentPlanBuilder · AI 없음]
     E --> F{plan coverage 검증}
     F -- 실패 --> F1[Draft 미호출·prompt 오류]
     F1 --> E
@@ -24,18 +24,18 @@ flowchart TD
     F5 --> F3
     F4 -- 사용자 검토 --> F6[issue와 기존 결과 유지]
     F4 -- pass --> G[Document와 Sections 원자 저장]
-    G --> H[Requirements draft 검토]
+    G --> H[요구사항 명세 초안 검토]
     H --> I[정합성 review]
     I --> J{G-REQ-READY}
     J -- 실패 --> J1[문제 section 편집·AI 보완·설계 검토]
     J1 --> H
     J -- 통과 --> K[사용자 ready 확정]
-    K --> L[Requirements ready]
+    K --> L[요구사항 명세 준비 완료]
     L --> M{PRD 생성 요청 시 G-PRD-ALLOWED}
-    M -- 실패 --> M1[PRD 잠금·Requirements 검토 이동]
+    M -- 실패 --> M1[PRD 잠금·요구사항 명세 검토 이동]
     M -- 통과 --> N[동일 revision snapshot 고정]
     N --> O[PRD plan · DocumentPlanBuilder · AI 없음]
-    O --> P{plan과 Requirements link 검증}
+    O --> P{plan과 요구사항 명세 연결 검증}
     P -- 실패 --> P1[Draft 미호출·prompt 오류]
     P1 --> O
     P -- 성공 --> P2[PRD_DRAFT · FINAL Terra]
@@ -47,7 +47,7 @@ flowchart TD
     P4 -- pass --> Q[PRD draft 원자 저장]
 ```
 
-## Requirements 생성 입력
+## 요구사항 명세 생성 입력
 
 | 포함 | 제외 |
 | --- | --- |
@@ -63,7 +63,7 @@ job 시작 후 설계가 변경되어 현재 revision이 달라져도 실행 중
 
 - Plan은 Markdown을 생성하지 않고 section coverage와 source item mapping만 반환한다.
 - Plan 검증 실패 시 Draft 호출 수는 0이다.
-- Requirements Draft는 DEFAULT(Mini), PRD Draft만 FINAL(Terra) low reasoning을 사용하고 구조화 section/requirement를 반환한다.
+- 요구사항 명세 초안은 DEFAULT(Mini), PRD 초안만 FINAL(Terra) low reasoning을 사용하고 구조화 section/requirement를 반환한다.
 - Review는 DEFAULT(Mini) low로 누락·근거·정합성을 평가하며 직접 수정하지 않는다.
 - Repair는 문제 section만 입력으로 받아 한 번 실행하고 Review를 다시 거친다.
 - 같은 문서에서 두 번째 자동 repair 또는 다른 고가 모델로의 자동 승격을 허용하지 않는다.
@@ -91,9 +91,9 @@ job 시작 후 설계가 변경되어 현재 revision이 달라져도 실행 중
 - section conflict와 stale이 없다.
 - unresolved review issue가 없다.
 - document designRevision이 현재 설계 revision과 같다.
-- 사용자가 `Requirements 검토 완료` 행동을 수행하고 확인한다.
+- 사용자가 `요구사항 명세 검토 완료` 행동을 수행하고 확인한다.
 
-시스템은 조건을 계산할 뿐 자동으로 ready로 바꾸지 않는다. 모든 조건을 충족하면 `Requirements 검토 완료`를 활성화하고, 확인 화면에서 P0 요구사항 수, 수용 기준 수, 오픈 이슈 수와 기준 revision을 보여준다. MVP는 단일 사용자이므로 별도 역할 권한을 두지 않는다.
+시스템은 조건을 계산할 뿐 자동으로 ready로 바꾸지 않는다. 모든 조건을 충족하면 `요구사항 명세 검토 완료`를 활성화하고, 확인 화면에서 P0 요구사항 수, 수용 기준 수, 오픈 이슈 수와 기준 revision을 보여준다. MVP는 단일 사용자이므로 별도 역할 권한을 두지 않는다.
 
 ## `G-PRD-ALLOWED`
 
@@ -139,24 +139,24 @@ sequenceDiagram
 
 ## 설계 변경 후 문서
 
-- Requirements가 ready인 상태에서 관련 설계가 바뀌면 Requirements를 `review_required`로 전환한다.
+- 요구사항 명세가 ready인 상태에서 관련 설계가 바뀌면 요구사항 명세를 `review_required`로 전환한다.
 - 같은 revision을 전제로 한 PRD 생성과 갱신을 차단한다.
 - 기존 PRD는 삭제하지 않고 관련 section만 stale/conflict로 표시한다.
-- Requirements가 다시 ready가 된 뒤 PRD 부분 갱신 또는 재생성을 선택한다.
+- 요구사항 명세가 다시 ready가 된 뒤 PRD 부분 갱신 또는 재생성을 선택한다.
 
 ### Server confirmation boundary
 
-Requirements generation returns a server HMAC artifact bound to the authenticated actor, project, document, design revision, and a digest of the generated document and sections. The explicit ready-confirmation endpoint verifies that artifact and deterministic `G-REQ-READY` eligibility before returning a second HMAC artifact. The PRD endpoint verifies both artifacts and the same snapshot digest before any provider call. The client cannot manufacture a valid confirmation by changing a `ready` flag or revision in IndexedDB.
+요구사항 명세 생성 API는 인증된 사용자, 프로젝트, 문서, 설계 revision과 생성 문서·섹션 digest에 묶인 server HMAC artifact를 반환한다. 명시적 준비 완료 확인 endpoint는 artifact와 결정론적 `G-REQ-READY` 조건을 검증한 뒤 두 번째 HMAC artifact를 반환한다. PRD endpoint는 provider 호출 전에 두 artifact와 동일한 snapshot digest를 검증한다. 클라이언트가 IndexedDB의 `ready` flag나 revision을 바꾸는 것만으로 유효한 확인을 만들 수 없다.
 
-The project/design aggregate is stored in browser IndexedDB, not server persistence. Therefore, the server can authenticate who confirmed the exact Requirements snapshot the server generated, but cannot independently prove that a client-reported revision is the latest revision in that browser's local aggregate. Before confirmation the browser rereads IndexedDB and checks the revision; this protects the normal application flow. A malicious client can lie about its private latest local revision. Authoritative latest-revision enforcement requires server-side project/design persistence and is outside DOC-PR-02.
+프로젝트·설계 aggregate는 서버가 아니라 browser IndexedDB에 저장된다. 따라서 서버는 자신이 생성한 정확한 요구사항 명세 snapshot을 누가 확인했는지 인증할 수 있지만, 클라이언트가 보고한 revision이 그 브라우저 aggregate의 최신 revision인지는 독립적으로 증명할 수 없다. 정상 흐름에서는 확인 직전에 브라우저가 IndexedDB를 다시 읽고 revision을 검사한다. 악의적인 클라이언트는 로컬 최신 revision을 거짓으로 보고할 수 있다. 최신 revision의 권위 있는 검증에는 서버 측 프로젝트·설계 저장이 필요하며 DOC-PR-02 범위에 포함되지 않는다.
 
-PRD review uses the registered Mini review task to compare problem, goals, users, scope, and success metrics against Requirements and their cited source items. This semantic judgment is model-assisted and cannot be proven by source-ID membership alone. Every dimension must return exactly one source-backed `aligned` verdict. Missing, malformed, unsupported, misaligned, unknown, or otherwise non-pass final review blocks PRD persistence; the pipeline fails closed after at most one repair.
+PRD review uses the registered Mini review task to compare problem, goals, users, scope, and success metrics against the 요구사항 명세 and its cited source items. This semantic judgment is model-assisted and cannot be proven by source-ID membership alone. Every dimension must return exactly one source-backed `aligned` verdict. Missing, malformed, unsupported, misaligned, unknown, or otherwise non-pass final review blocks PRD persistence; the pipeline fails closed after at most one repair.
 
 ## 금지 결과
 
-- pending proposal이 Requirements 본문에 확정 사실로 포함됨
-- Requirements ready 전에 PRD document가 생성됨
-- 다른 revision의 Requirements와 PRD가 최신 쌍으로 표시됨
+- pending proposal이 요구사항 명세 본문에 확정 사실로 포함됨
+- 요구사항 명세 준비 완료 전에 PRD document가 생성됨
+- 다른 revision의 요구사항 명세와 PRD가 최신 쌍으로 표시됨
 - schema 실패 응답의 일부 section만 저장됨
 - 직접 편집한 section을 재생성이 자동 덮어씀
 - Plan coverage 실패 뒤 Draft가 호출됨

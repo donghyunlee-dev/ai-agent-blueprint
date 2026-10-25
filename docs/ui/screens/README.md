@@ -13,7 +13,7 @@
 3. [첫 분석과 연속 질문](02-intake-and-discovery.md)
 4. [제안 검토와 충돌 해결](03-proposal-and-conflict.md)
 5. [설계 보드와 준비 상태](04-design-and-readiness.md)
-6. [Requirements·PRD·설정 가이드](05-documents-and-guide.md)
+6. [요구사항 명세·PRD·설정 가이드](05-documents-and-guide.md)
 7. [생성·준비 완료·오류 상태](06-generation-ready-and-errors.md)
 
 ## 공통 규칙

@@ -13,7 +13,7 @@
 - Google 계정으로 로그인한 사용자만 제품 화면과 Blueprint API를 사용하게 한다.
 - 간단한 질문, 설계 분석과 최종 문서 작성에 서로 다른 모델·reasoning·token 정책을 적용한다.
 - 한 AI 응답에서 상황에 맞는 질문·설명·추천·복수 제안 block을 안전하게 제공한다.
-- 프로젝트별 AI 호출·token 예산을 관리하면서 Requirements와 PRD 품질을 자동 평가한다.
+- 프로젝트별 AI 호출·token 예산을 관리하면서 요구사항 명세와 PRD 품질을 자동 평가한다.
 - 첫 입력 후 1분 안에 첫 번째 검토 가능한 설계 제안을 제공한다.
 - 사용자가 이미 제공한 정보를 반복 질문하지 않는다.
 - 한 답변에서 발견된 여러 설계 항목을 개별 검토할 수 있게 한다.
@@ -105,7 +105,7 @@
 - task별 reasoning, 입력·출력 token과 timeout 한도
 - versioned prompt/schema와 ContextManifest
 - 프로젝트별 호출·token 원장과 soft/hard budget
-- Requirements/PRD plan-draft-review-repair pipeline
+- 요구사항 명세/PRD 계획·초안·검토·보완 과정
 - 모델·prompt 변경 전 golden eval과 release gate
 
 ### 선택 폼
@@ -158,7 +158,7 @@
 - Google authorization code와 OIDC ID token은 서버에서 검증하고 Blueprint HttpOnly session으로 교환한다. scope는 `openid email`이며 Gmail API를 요청하지 않는다.
 - 대화 응답과 맥락형 후속 질문·선택 데이터는 `TURN_ANALYZE` DEFAULT, 명시적 추천은 `OPTION_RECOMMEND` DEFAULT를 사용한다. 요구사항 명세서 draft/review는 DEFAULT, 최종 PRD draft만 FINAL을 사용한다. 모든 동적 표시 데이터는 strict schema로 검증한다. 기존 `QUESTION_COMPOSE`/고정 문구 흐름은 현재 runtime 기록이며 CON-PR-05에서 목표 동작으로 대체한다.
 - AI가 process state, readiness와 사용자 확정 여부를 결정하지 않는다.
-- Requirements와 PRD는 plan, draft, review, 선택적 1회 repair로 생성한다.
+- 요구사항 명세와 PRD는 plan, draft, review, 선택적 1회 repair로 생성한다.
 - AI 응답은 허용된 DisplayBlock과 strict schema로만 렌더링한다.
 - 일반 프로젝트는 약 17~21회 AI 호출과 프로젝트당 $0.60 hard 비용 상한을 기준으로 설계한다.
 - Google 계정으로 로그인할 수 있으며 조직 도메인 allowlist를 두지 않는다.
@@ -194,7 +194,7 @@
 - PRD와 요구사항명세서의 목표·사용자·범위 불일치가 자동 검토에서 0건이어야 한다.
 - 최종 문서에 확정되지 않은 내용을 확정 사실로 표시하는 오류가 없어야 한다.
 - golden fixture에서 질문 계약 변경, 존재하지 않는 참조 ID와 미승인 자동 확정이 0건이어야 한다.
-- Requirements 핵심 기능 coverage와 P0 수용 기준 coverage가 100%여야 한다.
+- 요구사항 명세 핵심 기능 coverage와 P0 수용 기준 coverage가 100%여야 한다.
 
 ### 신뢰성
 
@@ -230,7 +230,7 @@ AI task router, LIGHT/DEFAULT profile, 상황별 DisplayBlock, prompt/schema ver
 
 공통 설계에서 요구사항명세서와 PRD를 생성하고 같은 화면에서 읽기·직접 편집·부분 보완할 수 있어야 한다.
 
-결정론적 plan, Mini Requirements, Terra 최종 PRD draft와 Mini review를 사용하는 pipeline과 문서 품질 gate를 함께 완성한다.
+결정론적 plan, Mini 기반 요구사항 명세, Terra 최종 PRD 초안과 Mini review를 사용하는 과정과 문서 품질 gate를 함께 완성한다.
 
 ### 5단계: 자료와 내보내기
 
@@ -244,7 +244,7 @@ AI task router, LIGHT/DEFAULT profile, 상황별 DisplayBlock, prompt/schema ver
 
 - task별 model/reasoning/token 설정과 prompt/schema version이 요청 원장에서 추적된다.
 - AI golden eval에서 미승인 확정, 질문 계약 변경, 존재하지 않는 참조와 문서 핵심 coverage 누락이 0건이다.
-- 일반 프로젝트의 호출 수가 기준 예산 안에서 Requirements와 PRD까지 완료된다.
+- 일반 프로젝트의 호출 수가 기준 예산 안에서 요구사항 명세와 PRD까지 완료된다.
 - 비인증 접근, 만료·위조 세션과 직접 API 호출이 차단된다.
 - Google 로그인 성공 후 원래 보호 경로로 복귀하고 로그아웃 후 로컬 작업 상태가 화면에서 제거된다.
 - 필수 요구사항의 수용 기준이 자동 테스트 또는 브라우저 검증으로 확인된다.

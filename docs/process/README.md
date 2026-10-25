@@ -2,7 +2,7 @@
 
 ## 목적
 
-Google 로그인부터 프로젝트 시작, Requirements 작성과 PRD 생성까지의 판단, 상태 전이, 저장 결과와 화면 변화를 정의한다. 이 문서는 단순 UI 기능 테스트가 아니라 여러 기능이 연결된 업무 프로세스 테스트의 기준이다.
+Google 로그인부터 프로젝트 시작, 요구사항 명세 작성과 PRD 생성까지의 판단, 상태 전이, 저장 결과와 화면 변화를 정의한다. 이 문서는 단순 UI 기능 테스트가 아니라 여러 기능이 연결된 업무 프로세스 테스트의 기준이다.
 
 ## 문서 구조
 
@@ -10,7 +10,7 @@ Google 로그인부터 프로젝트 시작, Requirements 작성과 PRD 생성까
 2. [프로세스 상태 머신](02-state-machine.md)
 3. [질문과 답변 판단](03-question-and-answer-decisions.md)
 4. [제안 처리와 준비도](04-proposal-and-readiness.md)
-5. [Requirements와 PRD 생성](05-document-generation.md)
+5. [요구사항 명세와 PRD 생성](05-document-generation.md)
 6. [실패·중단·복구](06-failure-and-recovery.md)
 7. [프로세스 테스트 명세](07-process-test-spec.md)
 8. [프로세스 추적표](traceability.md)
@@ -50,9 +50,9 @@ event 수신
 | `INV-001` | Agent 응답만으로 `confirmed` 설계 항목을 만들 수 없다. |
 | `INV-002` | 현재 질문에서 만들어진 pending proposal이 있으면 다음 시스템 질문을 열 수 없다. |
 | `INV-003` | 자유 대화 입력은 proposal 검토 중에도 허용한다. |
-| `INV-004` | 핵심 누락 또는 미해결 conflict가 있으면 Requirements를 생성할 수 없다. |
-| `INV-005` | 명시적 deferred 항목만 있는 경우 Requirements 생성을 막지 않는다. |
-| `INV-006` | Requirements가 `ready`가 아니면 PRD를 생성하거나 갱신할 수 없다. |
+| `INV-004` | 핵심 누락 또는 미해결 conflict가 있으면 요구사항 명세를 생성할 수 없다. |
+| `INV-005` | 명시적 deferred 항목만 있는 경우 요구사항 명세 생성을 막지 않는다. |
+| `INV-006` | 요구사항 명세가 `ready`가 아니면 PRD를 생성하거나 갱신할 수 없다. |
 | `INV-007` | retry는 동일 논리 요청을 중복 반영하지 않는다. |
 | `INV-008` | 오류·취소는 마지막 확정 설계와 생성 문서를 변경하지 않는다. |
 | `INV-009` | 문서 직접 편집은 영향 확인 이후에만 설계 revision을 변경한다. |

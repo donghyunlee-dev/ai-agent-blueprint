@@ -2,7 +2,7 @@
 
 ## 목적
 
-라우트 수와 관계없이 사용자 여정의 각 시점에 어떤 단계와 주·보조 영역이 나타나는지 고정한다. 로그인/홈을 제외한 프로젝트 Frame은 공통 프레임과 `대화 → 제안 검토 → 설계 → Requirements → PRD`의 현재 위치를 보여준다. 보조 영역은 단계에 필요한 경우에만 표시한다. 시각 기준은 [개편 시안 매핑](../blueprint-design/README.md)이다.
+라우트 수와 관계없이 사용자 여정의 각 시점에 어떤 단계와 주·보조 영역이 나타나는지 고정한다. 로그인/홈을 제외한 프로젝트 Frame은 공통 프레임과 `대화 → 제안 검토 → 설계 → 요구사항 명세 → PRD`의 현재 위치를 보여준다. 보조 영역은 단계에 필요한 경우에만 표시한다. 시각 기준은 [개편 시안 매핑](../blueprint-design/README.md)이다.
 
 | Frame | 경로/도메인 상태 | 현재 단계 | 주 영역 | 보조/오버레이 | 주요 행동 | 성공 후 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -19,11 +19,11 @@
 | `F-PROPOSAL` | `proposal_review` | 제안 검토 | 미처리 제안·근거·행동 | 확정 내용·남은 수 | 승인/수정/거절 | 다음 제안/질문 |
 | `F-DISCOVERY` | `discovering` | 대화 | 메시지·현재 QuestionCard·composer | 확정·미결정 요약 | 답변 제출 | proposal/extracting |
 | `F-CONFLICT` | `conflict_review` | 제안 검토 | 기존 설계와 제안 비교 | Diff Drawer/Modal | 값 선택 | proposal/discovering |
-| `F-DESIGN-WORKABLE` | 설계 workable | 설계 | 5개 요약→원본 10개 영역·항목 | 선택 상세와 blocker | 질문 계속/Requirements 생성 | document generation |
-| `F-REQ-GENERATING` | requirements generating | Requirements | 기존/빈 문서 + 실제 상태 | 목차·기존 내용 유지 | 중단 가능 여부 | req draft/error |
-| `F-REQ-DRAFT` | requirements draft | Requirements | 목차·섹션 요약/본문 | 문제 상세 | 편집/AI 보완/검토 | ready 후보 |
-| `F-REQ-READY` | requirements ready | Requirements | ready 문서 | 상태·문서 행동 | PRD 생성 | PRD generating |
-| `F-PRD-LOCKED` | requirements not ready | PRD | 잠금 이유와 이동 행동 | 없음 | Requirements 검토 | req draft |
+| `F-DESIGN-WORKABLE` | 설계 workable | 설계 | 5개 요약→원본 10개 영역·항목 | 선택 상세와 blocker | 질문 계속/요구사항 명세 생성 | document generation |
+| `F-REQ-GENERATING` | 요구사항 명세 생성 중 | 요구사항 명세 | 기존/빈 문서 + 실제 상태 | 목차·기존 내용 유지 | 중단 가능 여부 | 초안/오류 |
+| `F-REQ-DRAFT` | 요구사항 명세 초안 | 요구사항 명세 | 목차·섹션 요약/본문 | 문제 상세 | 편집/AI 보완/검토 | 준비 완료 후보 |
+| `F-REQ-READY` | 요구사항 명세 준비 완료 | 요구사항 명세 | 준비된 문서 | 상태·문서 행동 | PRD 생성 | PRD 생성 중 |
+| `F-PRD-LOCKED` | 요구사항 명세 준비 미완료 | PRD | 잠금 이유와 이동 행동 | 없음 | 요구사항 명세 검토 | 명세 초안 |
 | `F-PRD-DRAFT` | PRD draft | PRD | 목차·섹션 요약/본문 | 문제 상세 | 편집/검토 | PRD ready |
 | `F-DOC-IMPACT` | dirty section save | 현재 문서 | 편집 원문 유지 | 영향 미리보기 Modal | 확인하고 저장 | stale 계산 |
 | `F-DOC-STALE` | design revision 변경 | 현재 문서 | 읽기 가능 + warning | 영향 섹션 | 갱신 검토 | patch/regenerate |
@@ -49,7 +49,7 @@
 - `F-AUTH-CHECK`가 끝나기 전에는 `F-HOME-*`와 프로젝트 Frame을 렌더링하지 않는다.
 - 보호 Frame에서 인증이 만료되면 aggregate를 화면에서 제거하고 `F-SESSION-EXPIRED`로 전환한다.
 - Agent 응답 수신만으로 `F-PROPOSAL`의 제안이 확정 설계에 반영되지 않는다.
-- Requirements가 ready가 아니면 어떤 경로로 진입해도 `F-PRD-LOCKED`를 거친다.
+- 요구사항 명세가 ready가 아니면 어떤 경로로 진입해도 `F-PRD-LOCKED`를 거친다.
 - 오류 Frame은 기존 Frame을 교체하지 않고 오류가 발생한 영역에 겹쳐 표현한다.
 - viewport 변화는 Frame을 바꾸지 않고 같은 Frame의 responsive variant를 렌더링한다.
 

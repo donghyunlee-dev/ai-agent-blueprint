@@ -51,19 +51,19 @@ flowchart TD
     N2 --> N
     N1 -- 추천 --> N3[OPTION_RECOMMEND · DEFAULT]
     N3 --> J
-    L --> O{Requirements 생성 가능한가}
+    L --> O{요구사항 명세 생성 가능한가}
     O -- 아니오 --> P[다음 질문 선택]
     P --> N
     O -- 예 --> Q{사용자 선택}
     Q -- 질문 계속 --> P
-    Q -- Requirements 생성 --> R[코드 PLAN → Mini DRAFT → Mini REVIEW]
+    Q -- 요구사항 명세 생성 --> R[코드 PLAN → Mini DRAFT → Mini REVIEW]
     R --> S{검토 통과 또는 사용자 검토 가능}
     S -- 아니오 --> H1
-    S -- 예 --> T[Requirements draft 검토]
+    S -- 예 --> T[요구사항 명세 draft 검토]
     T --> U{ready 조건을 충족했는가}
     U -- 아니오 --> T1[편집·AI 보완·설계 재검토]
     T1 --> T
-    U -- 예 --> V[Requirements ready]
+    U -- 예 --> V[요구사항 명세 ready]
     V --> W[PRD 생성 요청]
     W --> X{ready와 revision guard 통과}
     X -- 아니오 --> X1[PRD 잠금 F-PRD-LOCKED]
@@ -76,7 +76,7 @@ flowchart TD
 
 로그인 성공 전에는 홈과 로컬 프로젝트를 읽지 않는다. 흐름 도중 세션이 만료되면 현재 서버 요청은 `401 AUTH_REQUIRED`로 끝내고, 열린 프로젝트를 화면과 메모리에서 제거한 뒤 `F-SESSION-EXPIRED`를 표시한다. 재인증 성공 후 저장된 마지막 성공 상태를 같은 owner namespace에서 다시 연다.
 
-표준 선택·skip·defer, proposal 승인과 readiness 계산은 AI를 호출하지 않는다. Requirements와 PRD pipeline의 세부 호출·repair 상한은 [문서 생성 프로세스](05-document-generation.md)를 따른다.
+표준 선택·skip·defer, proposal 승인과 readiness 계산은 AI를 호출하지 않는다. 요구사항 명세와 PRD pipeline의 세부 호출·repair 상한은 [문서 생성 프로세스](05-document-generation.md)를 따른다.
 
 ## 시작 입력 경로
 
@@ -99,9 +99,9 @@ flowchart TD
 | 답변 제출 | User Message, Answer, 요청 Job |
 | 제안 승인 | Proposal 처리 상태, DesignItem/AC, revision, ActivityEntry |
 | 제안 거절 | Proposal rejected, ActivityEntry; revision 변화 없음 |
-| Requirements 생성 | Document/Sections, 사용 designRevision, Job |
-| Requirements ready | 문서 상태, 검토 근거, ActivityEntry |
-| PRD 생성 | Document/Sections, Requirements와 designRevision 참조, Job |
+| 요구사항 명세 생성 | Document/Sections, 사용 designRevision, Job |
+| 요구사항 명세 ready | 문서 상태, 검토 근거, ActivityEntry |
+| PRD 생성 | Document/Sections, 요구사항 명세와 designRevision 참조, Job |
 
 ## 종료가 아닌 중간 완료
 

@@ -40,10 +40,10 @@ Canonical conversational behavior lives in `docs/product/04-conversation-process
 The implementer owns only the documents below; exact edits are finalized during document scope review before implementation.
 
 - Product contract: `docs/product/02-prd.md`, `docs/product/03-requirements.md`, `docs/product/04-conversation-process.md`, `docs/product/08-delivery-plan.md`.
-- Process/AI contracts: `docs/process/03-question-and-answer-decisions.md`, `docs/process/04-proposal-and-readiness.md`, `docs/process/05-document-generation.md`, `docs/product/12-ai-orchestration-and-model-policy.md`, `docs/product/13-prompt-and-response-contracts.md`, `docs/product/15-ai-prompt-template-spec.md`.
-- UI contract and screen states: `docs/ui/02-conversation-and-forms.md`, `docs/ui/screens/02-intake-and-discovery.md`, `docs/ui/screens/03-proposal-and-conflict.md`, `docs/ui/screens/04-design-and-readiness.md`.
+- Process/AI contracts: `docs/process/README.md`, `docs/process/01-end-to-end-flow.md`, `docs/process/02-state-machine.md`, `docs/process/03-question-and-answer-decisions.md`, `docs/process/04-proposal-and-readiness.md`, `docs/process/05-document-generation.md`, `docs/process/07-process-test-spec.md`, `docs/product/12-ai-orchestration-and-model-policy.md`, `docs/product/13-prompt-and-response-contracts.md`, `docs/product/15-ai-prompt-template-spec.md`.
+- UI contract, Korean user-facing document labels, and screen states: `docs/ui/00-visual-foundation.md`, `docs/ui/01-workspace-shell.md`, `docs/ui/02-conversation-and-forms.md`, `docs/ui/03-design-board-and-inspector.md`, `docs/ui/04-document-workspace.md`, `docs/ui/06-overlays-responsive-and-states.md`, `docs/ui/screen-state-matrix.md`, `docs/ui/screens/README.md`, `docs/ui/screens/01-home-and-start.md`, `docs/ui/screens/02-intake-and-discovery.md`, `docs/ui/screens/03-proposal-and-conflict.md`, `docs/ui/screens/04-design-and-readiness.md`, `docs/ui/screens/05-documents-and-guide.md`, `docs/ui/screens/06-generation-ready-and-errors.md`.
 - Traceability/development order: `docs/delivery/02-conversation-and-forms.md`, `docs/delivery/ai-model-prompt-and-evaluation.md`, `docs/delivery/traceability.md`, `docs/delivery/development-pr-review-qa-workflow.md`, `docs/tasks/README.md`, and `docs/superpowers/plans/2026-10-22-blueprint-ui-overhaul.md`.
-- Keep the approved image mapping in `docs/blueprint-design/README.md`; modify it only if a product/UI mapping is currently inaccurate. Keep `docs/template/README.md` a fallback index.
+- Keep the approved image mapping in `docs/blueprint-design/README.md`; localize the user-facing document label there to `요구사항 명세`. Keep `docs/template/README.md` a fallback index.
 
 ### Out of scope
 
