@@ -734,6 +734,9 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-panels[data-stage="conversation"] .conversation-stage-inspector .conversation-summary { padding: 18px; }
   .workspace-panels[data-stage="conversation"] .ai-turn-composer textarea { padding-block: 10px; line-height: 20px; }
 }
+@media (min-width: 1024px) {
+  .workspace-panels[data-stage="conversation"] .conversation-message-row-question { margin-top: 16px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .conversation-summary-toggle svg { transition: none; }
 }
