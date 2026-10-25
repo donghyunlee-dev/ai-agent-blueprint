@@ -91,7 +91,7 @@ The process specification must distinguish AI-generated suggestions from persist
 ### Contract coverage
 
 - Product, AI, process, UI, and delivery documents describe the same primary behavior and link to one canonical source.
-- All seven primary design image files and relevant states are mapped correctly; the conversation canvas and readiness mock are named as primary references. Template images are fallback states only.
+- All eight primary design image files and relevant states are mapped correctly; the conversation canvas and readiness mock are named as primary references. Template images are fallback states only.
 - The old fixed catalog/question-first behavior is explicitly recorded as the current implementation and marked for replacement, not as the future acceptance target. The renderer's component type list stays fixed and allowlisted; all question, recommendation, and option content is per-turn context-derived and validated.
 - The follow-on implementation plan cites and resolves the current code constraints recorded above: freeform composer payload, `TURN_ANALYZE` response, `selectNextQuestion`/single `QuestionCard`, and summary data source.
 - User-facing copy uses `요구사항 명세`; existing `Requirements`, PRD, API, schema, and code identifiers are preserved where they are technical contracts.
