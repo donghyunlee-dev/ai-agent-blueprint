@@ -90,7 +90,7 @@ docs/
 15. [로그인부터 PRD까지 프로세스 설계](process/README.md)
 16. [단계별 개발 계획](product/08-delivery-plan.md)
 17. [개발 단위 작업 설계](delivery/README.md)
-18. [개발 PR·리뷰·QA 반복 워크플로](delivery/development-pr-review-qa-workflow.md)
+18. [개발 PR·리뷰·QA 워크플로](delivery/development-pr-review-qa-workflow.md)
 19. [AI 모델·프롬프트·평가 작업 설계](delivery/ai-model-prompt-and-evaluation.md)
 20. [요구사항 추적표](delivery/traceability.md)
 21. [결정 기록](product/10-decision-log.md)

@@ -23,9 +23,9 @@ During the rebuild, add tests with each PRD phase instead of restoring the remov
 ## Commit & Pull Request Guidelines
 Current history uses short imperative messages such as `Initial commit` and `Add files via upload`. Continue with concise imperative commit subjects, but make them more descriptive, for example `Update survey progress copy`. PRs should summarize changed pages, note any deployment or config impact, link related issues, and attach screenshots for visible UI changes.
 
-During the rebuild, invoke `$pr-development-loop` for code, documentation, UI, or repository configuration changes intended for a PR. Follow `docs/delivery/development-pr-review-qa-workflow.md`, implement one PR unit at a time from the latest `main`, and require self-validation, independent code review, and independent QA. The loop may merge only after every gate passes and the user requested the full PR lifecycle; otherwise stop at `ready_to_merge`. Do not start the next implementation unit until the current PR is verified merged.
+For changes prepared as a PR, follow the relevant task plan and summarize scope, validation, and known limitations in the PR. Choose validation and review proportional to the change. Do not merge unless the user explicitly asks.
 
-For visible UI work, read `docs/blueprint-design/README.md` and its mapped screenshots as the primary visual references. Read `docs/template/README.md` for states absent from the new designs. Attach final-HEAD development screenshots to the PR for at least 1440×900 and 390×844, plus every affected loading, empty, error, validation, overlay, or completed state. Verify the same flow with Playwright Chromium and Agent Browser when both are available. If Agent Browser is unavailable in the current execution environment, record the tool-catalog and executable checks and use Playwright Chromium for the complete independent QA flow; its absence alone does not block QA. Keep implementation, code review, and QA in separate agent contexts.
+For UI changes, read `docs/blueprint-design/README.md` and inspect its mapped screenshots as the primary visual references. Read `docs/template/README.md` for states absent from the new designs. Verify the changed flow at relevant desktop and mobile sizes and attach screenshots when preparing a PR.
 
 ## Security & Configuration Tips
 Keep secrets such as `OPENAI_API_KEY` in local environment files only, never in tracked HTML or Markdown. Treat `.env` values, deployment tokens, and internal server details as non-committable data.
@@ -61,16 +61,16 @@ Keep secrets such as `OPENAI_API_KEY` in local environment files only, never in 
 
 - Goal: Maintain repository-scoped Codex agent teams, skills, and reusable orchestration workflows.
 - Trigger: Use `$harness` when asked to configure, extend, audit, or synchronize a harness, custom-agent team, or multi-agent workflow for this repository.
-- Canonical paths: Store repository skills in `.agents/skills/`, Codex custom agents in `.codex/agents/`, hook configuration in `.codex/hooks.json`, and reusable workflows as orchestrator skills under `.agents/skills/`.
-- Authorization: Running `$pr-development-loop` authorizes its planner, implementer, independent reviewer, and QA agents in sequential phases. Outside that workflow, spawn subagents only when the user asks.
-- Workflow: Use `$pr-development-loop` for repository changes intended for a PR. It follows `docs/delivery/development-pr-review-qa-workflow.md`.
+- Canonical paths: Store repository skills in `.agents/skills/` and Codex custom agents in `.codex/agents/` when a harness task requires them.
+- Authorization: Spawn subagents only when the user asks.
 
 ### Harness Change History
 
 | Date | Change | Target | Reason |
 | --- | --- | --- | --- |
 | 2026-07-02 | Add Codex-native harness meta-skill and workflow references | `AGENTS.md`, `.agents/skills/harness/` | Define the repository-native agent harness |
-| 2026-07-02 | Add conversational Blueprint delivery team | `AGENTS.md`, `.agents/skills/conversational-blueprint-workflow/`, `.codex/agents/` | Make the product redesign workflow reusable |
-| 2026-10-13 | Add Codex PR development loop, stage agents, and guarded hooks | `.agents/skills/pr-development-loop/`, `.codex/agents/`, `.codex/hooks.json` | Run implementation, review, QA, and authorized merge as a bounded loop |
+| 2026-07-02 | Add conversational Blueprint delivery team (retired 2026-10-25) | `.agents/skills/conversational-blueprint-workflow/`, `.codex/agents/` | Historical record of the former product redesign workflow |
+| 2026-10-13 | Add Codex PR development loop, stage agents, and guarded hooks (retired 2026-10-25) | `.agents/skills/pr-development-loop/`, `.codex/agents/`, `.codex/hooks.json` | Historical record of the former development and PR automation |
 | 2026-10-13 | Replace Agent Blueprint UI guidance with template screenshot references | `AGENTS.md`, product and delivery UI guidance, `docs/template/README.md` | Make repository screenshots the visual source of truth |
 | 2026-10-22 | Prioritize Blueprint redesign screenshots for current UI work | `AGENTS.md`, product and delivery UI guidance, `docs/blueprint-design/README.md` | Align implementation references with the approved redesign |
+| 2026-10-25 | Remove project development-to-PR automation | `.agents/skills/`, `.codex/agents/`, `.codex/hooks.json` | Reduce workflow overhead and automatic prompt context |

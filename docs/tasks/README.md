@@ -52,7 +52,7 @@
 
 ## 진행 시 사용 순서
 
-1. 해당 PR의 `plan.md`와 연결 명세를 읽고 `$pr-development-loop`의 planner, implementer, reviewer, QA 단계를 순서대로 수행한다. 변경된 business behavior는 test-first로 구현한다.
+1. 해당 PR의 `plan.md`와 연결 명세를 읽고 작업 범위에 맞게 구현과 검증을 진행한다. 변경된 business behavior는 테스트로 확인한다.
 2. 구현 중/후 같은 폴더에 `test-results.md`(테스트 실행 결과), `review-notes.md`(독립 코드 리뷰 finding과 조치), `qa-report.md`(독립 QA 결과와 필요한 경우에만 선택 캡처 링크)를 추가한다.
 3. PR이 `merged` 상태가 되면 이 표의 상태와 `docs/delivery/traceability.md`를 함께 갱신한다.
 
