@@ -13,7 +13,7 @@
 - Google 계정으로 로그인한 사용자만 제품 화면과 Blueprint API를 사용하게 한다.
 - 간단한 질문, 설계 분석과 최종 문서 작성에 서로 다른 모델·reasoning·token 정책을 적용한다.
 - 한 AI 응답에서 상황에 맞는 질문·설명·추천·복수 제안 block을 안전하게 제공한다.
-- 프로젝트별 AI 호출·token 예산을 관리하면서 Requirements와 PRD 품질을 자동 평가한다.
+- 프로젝트별 AI 호출·token 예산을 관리하면서 요구사항 명세와 PRD 품질을 자동 평가한다.
 - 첫 입력 후 1분 안에 첫 번째 검토 가능한 설계 제안을 제공한다.
 - 사용자가 이미 제공한 정보를 반복 질문하지 않는다.
 - 한 답변에서 발견된 여러 설계 항목을 개별 검토할 수 있게 한다.
@@ -46,20 +46,21 @@
 1. 사용자가 Blueprint 이름과 만들고 싶은 제품을 설명한다.
 2. Agent가 목표, 문제, 사용자, 기능 후보를 추출한다.
 3. 사용자가 추출된 항목을 승인하거나 수정한다.
-4. Agent가 중요한 공백을 선택형 또는 자유 입력형 질문으로 제시한다.
-5. 확정된 정보가 설계 개요와 문서 초안에 누적된다.
-6. 문서 준비도가 충족되면 요구사항명세서를 생성하고 검토한다.
-7. 요구사항명세서가 준비 완료되면 PRD를 생성한다.
-8. 사용자가 미정 사항을 해결하고 문서를 내보낸다.
+4. 사용자는 대화를 계속하고 Agent는 빠진 결정이 중요할 때만 맥락에 맞는 후속 질문이나 선택 카드를 제시한다.
+5. 대화에서 추출한 제안은 사용자가 승인해야 확정된다. 오른쪽 요약은 현재 확정 내용과 남은 결정을 각각 보여주고 출처 대화로 연결한다.
+6. 확인된 설계는 그룹 카드나 출처를 따라갈 수 있는 읽기 전용 도식으로 살펴볼 수 있다. 도식에 필요한 근거가 없으면 텍스트 요약을 제공한다.
+7. 문서 준비도가 충족되면 사용자가 별도 `요구사항 명세` 단계에서 생성을 요청하고 검토한다.
+8. 요구사항 명세가 준비 완료되면 사용자가 PRD 생성을 요청한다.
+9. 사용자가 남은 결정을 검토하고 문서를 내보낸다.
 
 ### 여정 B: 기존 자료에서 시작
 
 1. 사용자가 회의록, Markdown 또는 텍스트 자료를 첨부한다.
 2. 시스템이 텍스트 추출 결과와 실패 여부를 표시한다.
-3. Agent가 자료에서 결정, 가정, 요구사항 후보를 분리한다.
-4. 사용자가 필요한 후보만 승인한다.
-5. Agent가 자료에 없는 핵심 정보만 질문한다.
-6. 승인된 근거와 함께 문서를 생성한다.
+3. Agent가 자료에서 확인 가능한 사실, 가정과 제안 후보를 분리한다.
+4. 사용자가 필요한 후보를 승인·수정·거절한다.
+5. Agent가 자료와 대화에서 해소되지 않은 핵심 결정만 맥락에 맞게 묻는다.
+6. 확정된 근거를 바탕으로 사용자가 별도 단계에서 문서를 생성한다.
 
 ### 여정 C: 생성된 문서 보완
 
@@ -88,10 +89,12 @@
 
 ### Agent 대화
 
-- 자유 입력과 구조화 질문 지원
-- 질문 목적과 선택지 설명 제공
+- 카탈로그 질문을 완료하지 않아도 진행할 수 있는 연속 자유 대화
+- 필요한 때만 대화 안에 맥락형 질문·선택 카드 제공
 - 답변과 첨부 자료에서 여러 설계 항목 추출
-- 현재 설계를 기준으로 다음 질문 결정
+- 사용자가 명시적으로 추천을 요청하면 근거가 충분한 11개 대안을 제공하고 선택한 안만 제안 검토로 연결
+- 좌측 대화와 우측 확정 내용·남은 결정 요약을 같은 저장 상태로 연결
+- 확정 데이터에서 파생한 그룹 요약과 선택적 도식 보기, 텍스트 대체 제공
 - 분석, 문서 작성, 검토 등 작업 진행 상태 표시
 - `잘 모르겠어요`, 추천 요청, 자유 답변과 문서 작성에 분리된 AI task 사용
 - 하나의 turn에서 여러 UI block과 atomic proposal 반환
@@ -102,7 +105,7 @@
 - task별 reasoning, 입력·출력 token과 timeout 한도
 - versioned prompt/schema와 ContextManifest
 - 프로젝트별 호출·token 원장과 soft/hard budget
-- Requirements/PRD plan-draft-review-repair pipeline
+- 요구사항 명세/PRD 계획·초안·검토·보완 과정
 - 모델·prompt 변경 전 golden eval과 release gate
 
 ### 선택 폼
@@ -153,9 +156,9 @@
 
 - 홈보다 Google 로그인을 먼저 제공하며 비인증 사용자는 제품과 Blueprint API에 접근할 수 없다.
 - Google authorization code와 OIDC ID token은 서버에서 검증하고 Blueprint HttpOnly session으로 교환한다. scope는 `openid email`이며 Gmail API를 요청하지 않는다.
-- 질문 기본 문구와 문서 plan은 코드로 만들고, 맥락형 보조는 LIGHT, 답변 추출·Requirements는 DEFAULT, 최종 PRD draft만 FINAL을 사용한다.
+- 대화 응답과 맥락형 후속 질문·선택 데이터는 `TURN_ANALYZE` DEFAULT, 명시적 추천은 `OPTION_RECOMMEND` DEFAULT를 사용한다. 요구사항 명세서 draft/review는 DEFAULT, 최종 PRD draft만 FINAL을 사용한다. 모든 동적 표시 데이터는 strict schema로 검증한다. 기존 `QUESTION_COMPOSE`/고정 문구 흐름은 현재 runtime 기록이며 CON-PR-05에서 목표 동작으로 대체한다.
 - AI가 process state, readiness와 사용자 확정 여부를 결정하지 않는다.
-- Requirements와 PRD는 plan, draft, review, 선택적 1회 repair로 생성한다.
+- 요구사항 명세와 PRD는 plan, draft, review, 선택적 1회 repair로 생성한다.
 - AI 응답은 허용된 DisplayBlock과 strict schema로만 렌더링한다.
 - 일반 프로젝트는 약 17~21회 AI 호출과 프로젝트당 $0.60 hard 비용 상한을 기준으로 설계한다.
 - Google 계정으로 로그인할 수 있으며 조직 도메인 allowlist를 두지 않는다.
@@ -191,7 +194,7 @@
 - PRD와 요구사항명세서의 목표·사용자·범위 불일치가 자동 검토에서 0건이어야 한다.
 - 최종 문서에 확정되지 않은 내용을 확정 사실로 표시하는 오류가 없어야 한다.
 - golden fixture에서 질문 계약 변경, 존재하지 않는 참조 ID와 미승인 자동 확정이 0건이어야 한다.
-- Requirements 핵심 기능 coverage와 P0 수용 기준 coverage가 100%여야 한다.
+- 요구사항 명세 핵심 기능 coverage와 P0 수용 기준 coverage가 100%여야 한다.
 
 ### 신뢰성
 
@@ -213,11 +216,11 @@ Google Cloud OAuth client와 환경별 callback 설정을 준비한 뒤 Google �
 
 프로젝트 모델, 로컬 저장소, 통합 작업 공간과 공통 라우팅을 완성한다. 새로고침 후 대화와 설계 상태를 복구할 수 있어야 한다.
 
-### 2단계: 대화와 선택 폼
+### 2단계: 대화와 설계 결정
 
-질문 카탈로그, 질문 선택 규칙, 동적 선택 폼과 복수 제안 검토를 완성한다. 한 답변에서 여러 설계 항목을 승인할 수 있어야 한다.
+연속 자유 대화, 필요할 때만 보이는 context-derived 선택 카드, 근거가 연결된 제안 검토와 우측 결정 요약을 한 사용자 여정으로 완성한다. 현행 fixed `QUESTION_CATALOG`는 교체 대상이며, UI renderer type만 strict allowlist로 유지한다. 명시적 추천 요청은 맥락이 충분할 때만 dynamic grounded 후보 11개를 제공하고, 선택은 pending proposal을 만든 뒤 사용자 승인으로 확정한다.
 
-AI task router, LIGHT/DEFAULT profile, 상황별 DisplayBlock, prompt version과 대화 호출 예산을 함께 완성한다.
+AI task router, LIGHT/DEFAULT profile, 상황별 DisplayBlock, prompt/schema version, 11개 추천의 token-budget 평가와 대화 호출 예산을 함께 완성한다. AI는 사실을 제안할 수 있지만 확정·readiness·문서 상태는 정하지 않는다.
 
 ### 3단계: 구조화 설계
 
@@ -227,7 +230,7 @@ AI task router, LIGHT/DEFAULT profile, 상황별 DisplayBlock, prompt version과
 
 공통 설계에서 요구사항명세서와 PRD를 생성하고 같은 화면에서 읽기·직접 편집·부분 보완할 수 있어야 한다.
 
-결정론적 plan, Mini Requirements, Terra 최종 PRD draft와 Mini review를 사용하는 pipeline과 문서 품질 gate를 함께 완성한다.
+결정론적 plan, Mini 기반 요구사항 명세, Terra 최종 PRD 초안과 Mini review를 사용하는 과정과 문서 품질 gate를 함께 완성한다.
 
 ### 5단계: 자료와 내보내기
 
@@ -241,7 +244,7 @@ AI task router, LIGHT/DEFAULT profile, 상황별 DisplayBlock, prompt version과
 
 - task별 model/reasoning/token 설정과 prompt/schema version이 요청 원장에서 추적된다.
 - AI golden eval에서 미승인 확정, 질문 계약 변경, 존재하지 않는 참조와 문서 핵심 coverage 누락이 0건이다.
-- 일반 프로젝트의 호출 수가 기준 예산 안에서 Requirements와 PRD까지 완료된다.
+- 일반 프로젝트의 호출 수가 기준 예산 안에서 요구사항 명세와 PRD까지 완료된다.
 - 비인증 접근, 만료·위조 세션과 직접 API 호출이 차단된다.
 - Google 로그인 성공 후 원래 보호 경로로 복귀하고 로그아웃 후 로컬 작업 상태가 화면에서 제거된다.
 - 필수 요구사항의 수용 기준이 자동 테스트 또는 브라우저 검증으로 확인된다.

@@ -58,11 +58,13 @@ flowchart LR
 
 예: 인증 불필요 → 인증 필요로 변경되면 로그인 방식은 새 질문 후보가 된다. 인증 필요 → 불필요로 변경되면 기존 로그인 방식은 삭제하지 않고 `review_required`가 된다.
 
+제안 승인 후 대화의 `확정 내용` 요약은 저장된 current aggregate revision에서 다시 계산한다. 모델이 요약 텍스트를 임의로 확정값처럼 제공하지 않는다. 부족한 설계 정보는 다음 대화를 제안할 수 있지만 readiness와 요구사항 명세 생성 gate는 아래 코드 규칙만으로 판정한다. 전체 대화가 고정 카탈로그 질문을 소진해야 하는 상태는 없다.
+
 ## 준비도 guard
 
 ### `G-REQ-ALLOWED`
 
-Requirements 생성 허용 조건:
+요구사항 명세 생성 허용 조건:
 
 ```text
 coreMissingCount = 0
@@ -74,7 +76,7 @@ AND required dependent areas are confirmed or explicitly deferred
 
 ### 상태 판단표
 
-| 조건 | readiness | Requirements CTA |
+| 조건 | readiness | 요구사항 명세 CTA |
 | --- | --- | --- |
 | 핵심 누락 있음 | `insufficient` | 차단 |
 | conflict 또는 pending 있음 | `insufficient` | 차단·검토 이동 |

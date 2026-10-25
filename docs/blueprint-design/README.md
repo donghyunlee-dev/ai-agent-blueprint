@@ -18,20 +18,20 @@
 | 대화·질문 | [회의실 예약 서비스 UI 캔버스.png](./회의실%20예약%20서비스%20UI%20캔버스.png), 디자인 보드 5번 | 프로젝트 제목과 단계 위치, 넓은 대화 흐름, 현재 질문, 보조 요약, 접근 가능한 입력창 | [image (16).png](../template/image%20(16).png), [image (15).png](../template/image%20(15).png) |
 | 제안 검토·충돌 | [회의실 예약 서비스 제안 검토 대시보드.png](./회의실%20예약%20서비스%20제안%20검토%20대시보드.png), 디자인 보드 6번 | 제안별 행동, 근거, 처리 상태와 남은 수 | 기존 [제안·충돌 상태 계약](../ui/screens/03-proposal-and-conflict.md) |
 | 설계 준비 | [회의실 예약 서비스 설계 준비 대시보드.png](./회의실%20예약%20서비스%20설계%20준비%20대시보드.png) | 상단 상태 설명과 5개 요약 카드에서 세부 영역 진입 | 기존 [10개 영역·상세 계약](../ui/screens/04-design-and-readiness.md) |
-| Requirements | [회의실 예약 서비스 요구사항 대시보드.png](./회의실%20예약%20서비스%20요구사항%20대시보드.png), 디자인 보드 8번 | 문서 상태, 목차, 섹션 요약·상세, 수정 행동 | [image (11).png](../template/image%20(11).png), [image (10).png](../template/image%20(10).png), [image (9).png](../template/image%20(9).png) |
+| 요구사항 명세 | [회의실 예약 서비스 요구사항 대시보드.png](./회의실%20예약%20서비스%20요구사항%20대시보드.png), 디자인 보드 8번 | 문서 상태, 목차, 섹션 요약·상세, 수정 행동 | [image (11).png](../template/image%20(11).png), [image (10).png](../template/image%20(10).png), [image (9).png](../template/image%20(9).png) |
 | PRD | [한국어 PRD 대시보드 화면.png](./한국어%20PRD%20대시보드%20화면.png), 디자인 보드 9번 | 문서 상태, 목차, 구조화된 섹션과 상세 | [image (14).png](../template/image%20(14).png), [image (12).png](../template/image%20(12).png), [image (13).png](../template/image%20(13).png) |
 
 [windsoft 한국어 SaaS UI 디자인 보드.png](./windsoft%20한국어%20SaaS%20UI%20디자인%20보드.png)의 2~4번 프로젝트 목록·템플릿·지식 라이브러리와 7·9번의 새로운 세부 기능은 구현 지시가 아니다. 보드의 7번 기술 설계 세부 흐름도 이번 화면 계약에 포함하지 않는다.
 
 ## 화면 계약
 
-- 지원 흐름은 `홈 → 대화 → 제안 검토 → 설계 → Requirements → PRD`다. 단계 표시의 현재 위치는 실제 route 또는 프로젝트 내 상태와 연결한다. 저장 상태, 프로젝트 제목, 인증된 사용자 행동을 유지한다.
+- 지원 흐름은 `홈 → 대화 → 제안 검토 → 설계 → 요구사항 명세 → PRD`다. 단계 표시의 현재 위치는 실제 route 또는 프로젝트 내 상태와 연결한다. 저장 상태, 프로젝트 제목, 인증된 사용자 행동을 유지한다.
 - 전역 탐색에는 실제 목적지만 표시한다. 현재 프로젝트 작업은 기존 `/blueprints/:projectId`와 `/blueprints/:projectId/:documentType`을 사용한다. 설정 가이드는 기존 post-PRD 산출물로 접근시킨다.
 - 데스크톱은 선택한 단계가 주 작업 영역을 차지한다. 대화의 요약, 제안의 처리 현황, 문서의 목차·이슈는 해당 단계의 보조 영역이다. 모든 단계에 대화·중앙·상세 3개 패널을 동시에 고정하지 않는다.
 - 1024·768·390px에서는 주요 콘텐츠를 먼저 읽고 보조 영역을 그 뒤에 읽거나 명시적 제어로 연다. 고정 composer와 footer는 마지막 콘텐츠와 OS safe area를 가리지 않는다. 숨긴 영역은 키보드 순서와 접근성 트리에서도 숨긴다.
 - 제안의 단건·일괄 승인/거절·수정·충돌 해결은 기존 transaction과 저장 실패 복구를 사용한다. 시안의 `검토 완료`는 미처리 제안이 실제로 0개일 때만 가능한 다음 행동으로 해석한다.
-- 준비도는 기존 `computeDesignReadiness()`의 `insufficient/workable/ready`, 10개 `DESIGN_SECTIONS`, blocker와 Requirements gate를 그대로 사용한다. 시안의 5개 카드는 10개 영역을 묶어 보여주는 표현 계층이다. `product/problem/outcomes`, `users/scenarios`, `features/scope`, `data`, `identity/operations`의 다섯 묶음을 사용하고 각 원본 영역을 한 번만 포함한다. `4/5`는 새 준비도 점수나 생성 gate가 아니다.
-- Requirements는 기존 준비도 gate, PRD는 `ready` Requirements gate를 따른다. 실제 문서 section, review/stale/conflict, 직접 편집·부분 보완·정합성 검토·복사·다운로드를 유지한다.
+- 준비도는 기존 `computeDesignReadiness()`의 `insufficient/workable/ready`, 10개 `DESIGN_SECTIONS`, blocker와 요구사항 명세 gate를 그대로 사용한다. 시안의 5개 카드는 10개 영역을 묶어 보여주는 표현 계층이다. `product/problem/outcomes`, `users/scenarios`, `features/scope`, `data`, `identity/operations`의 다섯 묶음을 사용하고 각 원본 영역을 한 번만 포함한다. `4/5`는 새 준비도 점수나 생성 gate가 아니다.
+- 요구사항 명세는 기존 준비도 gate, PRD는 `ready` 요구사항 명세 gate를 따른다. 실제 문서 section, review/stale/conflict, 직접 편집·부분 보완·정합성 검토·복사·다운로드를 유지한다.
 - 자료 첨부·추출·다운로드, 설정 가이드 생성·승인, 프로젝트 완료도 계속 접근 가능해야 한다. 시안에 보이지 않는다고 삭제하거나 새 전역 메뉴를 만들지 않는다.
 
 ## 적용하지 않을 시안 요소

@@ -8,6 +8,24 @@ AI가 같은 대화 안에서도 질문, 설명, 추천, 복수 제안, 충돌 �
 
 각 task의 실제 System/Developer template 문구와 변수는 [AI Prompt Template 명세](15-ai-prompt-template-spec.md)를 따른다.
 
+> **대화 계약 전환:** 현재 아래 HTTP/provider shape 일부는 catalog-first runtime에 맞춰져 있다. 구현 전 목표 동작은 [대화·결정 프로세스](04-conversation-process.md)와 [turn 처리 계약](../process/03-question-and-answer-decisions.md)이다. `CON-PR-05`에서 `TURN_ANALYZE`의 versioned request/response schema와 prompt를 갱신한다. 그때까지 기존 schema를 새 대화 계약 구현 근거로 사용하거나 provider에게 저장 state를 결정하게 해서는 안 된다.
+
+## CON-PR-05 대화형 turn 목표 계약
+
+다음 schema version은 현재 shape를 확장해 자유 대화를 주 입력으로 받는다. catalog `questionId`는 일반 `userTurn`의 필수가 아니다. 애플리케이션은 project, revision, message ID, evidence ID, proposal ID와 choice response ID를 서버 검증·생성한다.
+
+`TURN_ANALYZE`의 target result 의미:
+
+- `assistant_text`: 자연스러운 대화 응답.
+- `proposals`: source ID와 fact/preference/assumption/inference 구분을 가진 0개 이상의 atomic proposal draft.
+- `follow_up`: 선택적 질문·선택 카드 최대 하나. 질문 자체는 catalog의 미리 선택된 항목을 요구하지 않는다.
+- `ambiguities`: 안전하게 제안으로 만들기 어려운 항목과 확인 이유.
+- provider output에는 confirmed state, persisted IDs, readiness, process state, approval, document status/action이 포함되지 않는다.
+
+질문·선택 렌더링은 고정 allowlisted type registry를 사용한다: `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm`. 이것은 renderer type만 고정하며 question/option 콘텐츠는 current context에서 turn마다 생성한다. 응답은 각 type의 strict schema를 통과해야 한다. HTML, React, code, style, 임의 type/action/ID는 허용하지 않는다. 서버는 schema와 evidence를 검증하고 ID를 부여하며, 선택 제출은 pending proposal만 생성한다. 명시적 추천 요청에만 충분한 근거가 있을 때 exactly 11 dynamic candidates를 반환한다.
+
+`OPTION_RECOMMEND`의 목표는 명시적 추천 요청에서 서로 구별되는 candidate 11개다. candidate마다 title, rationale, tradeoffs, assumptions와 request 내에서 검증 가능한 evidence references를 가진다. server는 output을 검증한 뒤 ID를 부여한다. 사용자가 고른 candidate만 ProposalPayload로 정규화한다. 근거 부족 시 candidate array를 채우지 않고 contextual follow-up으로 전환한다. 현재 DEFAULT profile의 output token cap은 바꾸지 않으므로 구현은 짧은 항목으로 맞추고, cap 경계에서 잘림이나 padding 없이 실패를 처리한다.
+
 ## Prompt Registry
 
 모든 AI 작업은 코드에 흩어진 문자열이 아니라 versioned registry로 관리한다.
@@ -221,7 +239,7 @@ interface ProposalPayload {
 }
 ```
 
-The application assigns `id`, `projectId`, `logicalRequestId`, `status`, and timestamps from the validated request/domain operation. Evidence IDs and timestamps are application-owned. A `TURN_ANALYZE` file citation must name a request-local excerpt ID actually sent; proposal normalization maps that ID to the canonical `SourceDocument.id`, exact quoted text, and location before persistence. Proposal target, operation, before/after, rationale and evidence semantics follow [data spec](05-data-spec.md) and [TURN_ANALYZE rules](15-prompt-template-spec.md#turn_analyze--turnanalyzev2). The strict schema must reject all additional properties.
+The application assigns `id`, `projectId`, `logicalRequestId`, `status`, and timestamps from the validated request/domain operation. Evidence IDs and timestamps are application-owned. A `TURN_ANALYZE` file citation must name a request-local excerpt ID actually sent; proposal normalization maps that ID to the canonical `SourceDocument.id`, exact quoted text, and location before persistence. Proposal target, operation, before/after, rationale and evidence semantics follow [data spec](05-data-spec.md) and [TURN_ANALYZE rules](15-ai-prompt-template-spec.md#turn_analyze--turnanalyzev2). The strict schema must reject all additional properties.
 
 Document draft schemas use the source-backed content fields of `DocumentSection`:
 
@@ -241,7 +259,7 @@ The schema contract maps back to existing source fields: question fields/options
 | block | 생성 주체 | 사용 시점 | UI 표현 | 주요 행동 |
 | --- | --- | --- | --- | --- |
 | `assistant_text` | permitted AI tasks | 짧은 확인·전환 | 대화 본문 | 없음 |
-| `question` | application join; optional AI composition | 다음 결정 수집 | QuestionCard + 허용 form | 제출/보조 행동 |
+| `question` | current-context AI data + strict allowlisted renderer schema | 다음 결정 수집 | allowlisted selection component | 제출/보조 행동 |
 | `explanation` | `QUESTION_EXPLAIN` | 잘 모르겠어요 | 설명, 비교 항목, 예시 | 같은 질문으로 돌아가기 |
 | `recommendation` | `OPTION_RECOMMEND` | 추천 요청 | 추천안·이유·trade-off | proposal 검토 |
 | `proposal_summary` | application | 복수 사실 추출 | 변경안 수와 영역 요약 | Inspector로 이동 |

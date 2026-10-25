@@ -4,6 +4,8 @@
 
 Google 로그인부터 프로젝트 시작과 PRD 생성까지 기능 간 전이와 테스트 경로는 [Blueprint 프로세스 설계](../process/README.md)를 따른다.
 
+> **현재 대화 개발 기준:** 아래의 초기 2단계 계획과 기존 catalog/QuestionCard 실행 기록은 과거 구현 이력이다. 다음 대화 기능 개발은 [대화·결정 프로세스](04-conversation-process.md), [대화 turn 처리 계약](../process/03-question-and-answer-decisions.md), [`CON-PR-04` 계획](../tasks/CON-PR-04/plan.md)의 좌 대화·우 결정 요약 계약과 후속 `CON-PR-05` 순서를 따른다. 완료된 과거 PR 기록은 유지하며 고정 질문 목록을 다음 동작의 기준으로 삼지 않는다.
+
 ## 실행 원칙
 
 - 각 단계는 이전 단계의 데이터 계약과 완료 조건을 통과한 뒤 시작한다.

@@ -2,14 +2,14 @@
 
 ## 목적
 
-Blueprint의 AI 품질을 유지하면서 $10 단위의 선불 API 크레딧으로 MVP를 반복 검증할 수 있는 호출 구조를 정의한다. 질문 선택, 표준 문구, 문서 목차와 상태 전이는 코드가 담당하고, AI는 자유 답변 분석·맥락형 도움·문서 작성처럼 생성이 필요한 작업에만 사용한다.
+Blueprint의 AI 품질을 유지하면서 $10 단위의 선불 API 크레딧으로 MVP를 반복 검증할 수 있는 호출 구조를 정의한다. 현재 대화 runtime은 고정 질문 카탈로그 기반이지만, 사용자가 그 고정 콘텐츠를 거부했으며 목표는 자유 대화와 맥락에서 생성한 후속 질문·선택 카드다. 인증, strict renderer schema, proposal 승인, readiness, 문서 목차·gate와 상태 전이는 코드가 담당한다.
 
 프롬프트와 응답 schema는 [프롬프트·응답 계약](13-prompt-and-response-contracts.md), 프로젝트당 예산은 [AI 호출 예산·평가·운영 명세](14-ai-budget-evaluation-and-operations.md)를 따른다.
 
 ## MVP 원칙
 
 1. 월정액 제품의 모델명이 아니라 OpenAI API model ID와 token 단가를 기준으로 선택한다.
-2. 일반 질문 문구, 선택지, 다음 질문, readiness, 문서 outline은 결정론적으로 만든다.
+2. 자유 대화와 필요할 때의 후속 질문·선택 카드는 task schema로 제한해 생성한다. readiness와 문서 outline은 결정론적으로 만든다.
 3. 짧고 정형적인 보조 작업은 `LIGHT`, 자유 답변과 일반 문서는 `DEFAULT`, 최종 PRD 작성만 `FINAL`을 사용한다.
 4. 높은 모델은 자동 승격 수단이 아니다. MVP에서 `FINAL`은 PRD draft와 허용된 1회 repair에만 배정한다.
 5. 한 사용자 사건은 가능한 한 한 번 호출하고 여러 표시 block과 proposal을 함께 반환한다.
@@ -21,15 +21,15 @@ Blueprint의 AI 품질을 유지하면서 $10 단위의 선불 API 크레딧으�
 
 | 판단 또는 작업 | 담당 | AI 호출 |
 | --- | --- | --- |
-| 다음 질문 선택·우선순위 | 질문 카탈로그와 규칙 엔진 | 없음 |
-| 기본 질문·도움말·선택지 문구 | versioned 질문 카탈로그 | 없음 |
-| 특별한 맥락형 질문 표현 | AI | 필요할 때만 `QUESTION_COMPOSE` |
-| 표준 선택, skip/defer, proposal 승인 | schema와 도메인 command | 없음 |
-| 자유 답변에서 복수 사실 추출 | AI | `TURN_ANALYZE` |
+| 대화 응답·필요한 후속 질문 여부 | AI `TURN_ANALYZE`; 출력은 schema 검증 | `TURN_ANALYZE` |
+| 선택 카드의 입력 유형·값·안전성 | task schema 및 애플리케이션 validator | 응답 turn에 포함 |
+| 현행 고정 catalog 선택 폼 | 현행 runtime의 `QUESTION_CATALOG` | 현행 구현 사실; CON-PR-05에서 목표 동작으로 대체 |
+| 표준 선택 입력 처리·proposal 승인 | schema와 도메인 command | 승인/거절은 없음 |
+| 자유 대화에서 복수 사실·제안 추출 | AI | `TURN_ANALYZE` |
 | 설정 가이드 전체 초안 | AI + confirmed 설계/source 근거 검증 | `SETUP_GUIDE_DRAFT` |
 | 정적 도움말 | 질문 카탈로그 | 없음 |
 | 프로젝트 맥락형 추가 설명 | AI | 필요할 때만 `QUESTION_EXPLAIN` |
-| 사용자 맥락 기반 추천 | AI | `OPTION_RECOMMEND` |
+| 명시적 추천 요청의 grounded 후보 11개 | AI + schema/근거 검증 | `OPTION_RECOMMEND` |
 | readiness와 생성 guard | readiness engine | 없음 |
 | 오래된 대화 구조화 요약 | AI | threshold 초과 시 `CONTEXT_COMPACT` |
 | Requirements/PRD section 계획 | `DocumentPlanBuilder` | 없음 |
@@ -37,7 +37,7 @@ Blueprint의 AI 품질을 유지하면서 $10 단위의 선불 API 크레딧으�
 | 최종 PRD 작성·repair | AI pipeline | Terra 작업별 호출 |
 | 문서 revision, stale와 영향 계산 | 도메인 command | 없음 |
 
-`QUESTION_COMPOSE`는 기본 경로가 아니다. catalog 문구로 의미가 충분하지 않고 confirmed context를 반영해야 이해가 쉬워지는 경우에만 호출한다. 같은 자유 답변에서 목표·사용자·기능이 함께 발견되면 `TURN_ANALYZE` 한 번이 여러 atomic proposal을 반환한다.
+`TURN_ANALYZE`는 매 자유 입력·선택 카드 제출에 응답하며, 후속 질문이나 choice card는 현재 정보가 부족하고 물어볼 필요가 있을 때만 포함한다. 현행 `QUESTION_COMPOSE`와 고정 catalog 흐름은 실제 runtime 설명이며 목표 contract가 아니다. `CON-PR-05`는 고정 allowlisted renderer type registry와 context-derived per-turn prompt/options를 strict schema로 검증하고, 버전된 prompt/schema/eval을 갱신한다. 구현 전에는 [대화 정본](04-conversation-process.md)과 [turn 처리 계약](../process/03-question-and-answer-decisions.md)을 따른다. 한 turn에서 목표·사용자·기능이 함께 발견되면 한 호출로 여러 atomic proposal을 반환할 수 있다. 명시적 추천 요청의 dynamic candidate 11개는 `OPTION_RECOMMEND`의 기존 output token cap 안에 간결하게 맞춰야 하며, 이 문서 변경만으로 model profile이나 token cap을 올리지 않는다.
 
 ## 논리 모델 프로필
 
@@ -81,8 +81,8 @@ MVP에서 `medium`, `high` reasoning은 자동 사용하지 않는다. eval에�
 ```mermaid
 flowchart TD
     A[사용자 입력] --> B{입력 유형}
-    B -- 표준 선택·skip·defer --> C[도메인 검증·저장 · AI 없음]
-    B -- 자유 답변 --> D[TURN_ANALYZE · DEFAULT]
+    B -- 선택 카드 응답 또는 자유 대화 --> D[TURN_ANALYZE · DEFAULT]
+    B -- proposal 승인·거절 --> C[도메인 검증·저장 · AI 없음]
     B -- 도움 요청 --> E{정적 도움말 충분}
     E -- 예 --> F[카탈로그 설명 · AI 없음]
     E -- 아니오 --> G[QUESTION_EXPLAIN · LIGHT]
@@ -94,25 +94,27 @@ flowchart TD
     F --> I
     G --> I
     K --> I
-    I --> L{다음 질문 필요}
-    L -- 예 --> M{기본 문구 충분}
-    M -- 예 --> A
-    M -- 아니오 --> N[QUESTION_COMPOSE · LIGHT]
-    N --> A
-    L -- 아니오 --> O[Requirements plan · 코드]
-    O --> P[REQUIREMENTS_DRAFT · DEFAULT]
-    P --> Q[REQUIREMENTS_REVIEW · DEFAULT]
-    Q --> R{품질 gate}
-    R -- repairable --> S[REQUIREMENTS_REPAIR · DEFAULT · 1회]
-    S --> Q
-    R -- 통과 --> T[사용자 검토 후 Requirements ready]
-    T --> U[PRD plan · 코드]
-    U --> V[PRD_DRAFT · FINAL]
-    V --> W[PRD_REVIEW · DEFAULT]
-    W --> X{품질 gate}
-    X -- repairable --> Y[PRD_REPAIR · FINAL · 1회]
-    Y --> W
-    X -- 통과 --> Z[사용자 최종 PRD 검토]
+    I --> L{추가 질문이 유용한가}
+    L -- 예 --> M[TURN_ANALYZE의 후속 질문/선택 카드]
+    M --> A
+    L -- 아니오 --> N[대화 계속 또는 사용자가 다음 단계를 선택]
+    N -- 대화 계속 --> A
+    N -- 사용자가 요구사항 명세 생성 요청 --> O{기존 readiness gate 허용}
+    O -- 아니오 --> I
+    O -- 예 --> P[Requirements plan · 코드]
+    P --> Q[REQUIREMENTS_DRAFT · DEFAULT]
+    Q --> R[REQUIREMENTS_REVIEW · DEFAULT]
+    R --> S{품질 gate}
+    S -- repairable --> T[REQUIREMENTS_REPAIR · DEFAULT · 1회]
+    T --> R
+    S -- 통과 --> U[사용자 검토 후 Requirements ready]
+    U --> V[PRD plan · 코드]
+    V --> W[PRD_DRAFT · FINAL]
+    W --> X[PRD_REVIEW · DEFAULT]
+    X --> Y{품질 gate}
+    Y -- repairable --> Z[PRD_REPAIR · FINAL · 1회]
+    Z --> X
+    Y -- 통과 --> AA[사용자 최종 PRD 검토]
 ```
 
 ## 문서 생성 파이프라인
