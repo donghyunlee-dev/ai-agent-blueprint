@@ -2,21 +2,20 @@
 
 ## Final implementation HEAD
 
-Implementation and focused validation were completed at `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e`, based on `origin/main` `d34dead5f006fc1cb94857688a05f2bee81d863c`.
+Implementation and final focused validation were completed at `28abb915162f7e1097382a399555a1513921e814`, based on `origin/main` `d34dead5f006fc1cb94857688a05f2bee81d863c`.
 
-- Focused Playwright browser coverage: **10/10 passed** across desktop Chromium (1440×900) and mobile Chromium (390×844), covering UIR-03E focus/gutters, UIR-03D textarea focus, and UIR-02E keyboard focus.
-- UIR-02E home viewport suite: **10/10 passed**.
+- Focused Playwright browser coverage on final source: **12/12 passed** across desktop Chromium (1440×900) and mobile Chromium (390×844), covering UIR-03E focus/gutters, UIR-03D focus/role choices, UIR-02E keyboard focus, and UIR-03C internal scrolling.
 - `npm run build`: passed; Vite emitted the existing large-chunk advisory.
 - `git show --check`: passed.
 - Computed textarea styles in pointer, keyboard, invalid, and invalid+keyboard states: `outline: none`, `border: 0px none`, `box-shadow: none`. Composer frame remained unchanged. Keyboard focus background differs from the unfocused background; invalid+keyboard remains distinguishable.
-- Desktop geometry: conversation left/bottom padding **25/25px**; summary right/bottom **26/25px**; no horizontal overflow.
+- Desktop geometry: conversation left inset **25px** and content-end spacer **25px**; summary right/bottom padding **26/25px**; no horizontal overflow.
 - Mobile geometry: no horizontal overflow. The conversation scroller has `scrollHeight=959`, `clientHeight=606`, can scroll to `scrollTop=353`, while `window.scrollY` remains `0`. Summary content follows below the initial viewport.
 
 ## Short desktop viewport correction
 
 The PR's broad evidence workflow exposed that adding `padding-bottom:25px` directly to the conversation scroller makes the UIR-03D role-choice viewport check fail at 1024×768 (the last option remained at y=800.875, beyond the test's y<668 target). The same test passed on unchanged `origin/main`. Removing only the left padding did not change the failure; removing the scroller bottom padding restored the pass. The visible 25px end gap is now a flex spacer after the scroll content, leaving the scroller's viewport size intact.
 
-After this correction, local Playwright checks passed **8/8** for UIR-03E gutters/focus and UIR-03D focus/role options, plus **4/4** for UIR-02E keyboard focus and UIR-03C internal scrolling. The spacer keeps the measured desktop content-end gap at 25px. The final corrected commit's independent code review and QA are pending.
+After this correction, local Playwright checks passed **12/12** for UIR-03E gutters/focus, UIR-03D focus/role options, UIR-02E keyboard focus, and UIR-03C internal scrolling. The spacer keeps the measured desktop content-end gap at 25px. The final corrected commit's independent code review and QA are pending.
 
 ## Broader related-suite observations
 
