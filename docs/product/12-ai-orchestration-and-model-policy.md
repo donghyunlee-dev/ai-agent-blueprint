@@ -96,22 +96,25 @@ flowchart TD
     K --> I
     I --> L{추가 질문이 유용한가}
     L -- 예 --> M[TURN_ANALYZE의 후속 질문/선택 카드]
-    L -- 아니오 --> A
     M --> A
-    L -- 아니오 --> O[Requirements plan · 코드]
-    O --> P[REQUIREMENTS_DRAFT · DEFAULT]
-    P --> Q[REQUIREMENTS_REVIEW · DEFAULT]
-    Q --> R{품질 gate}
-    R -- repairable --> S[REQUIREMENTS_REPAIR · DEFAULT · 1회]
-    S --> Q
-    R -- 통과 --> T[사용자 검토 후 Requirements ready]
-    T --> U[PRD plan · 코드]
-    U --> V[PRD_DRAFT · FINAL]
-    V --> W[PRD_REVIEW · DEFAULT]
-    W --> X{품질 gate}
-    X -- repairable --> Y[PRD_REPAIR · FINAL · 1회]
-    Y --> W
-    X -- 통과 --> Z[사용자 최종 PRD 검토]
+    L -- 아니오 --> N[대화 계속 또는 사용자가 다음 단계를 선택]
+    N -- 대화 계속 --> A
+    N -- 사용자가 요구사항 명세 생성 요청 --> O{기존 readiness gate 허용}
+    O -- 아니오 --> I
+    O -- 예 --> P[Requirements plan · 코드]
+    P --> Q[REQUIREMENTS_DRAFT · DEFAULT]
+    Q --> R[REQUIREMENTS_REVIEW · DEFAULT]
+    R --> S{품질 gate}
+    S -- repairable --> T[REQUIREMENTS_REPAIR · DEFAULT · 1회]
+    T --> R
+    S -- 통과 --> U[사용자 검토 후 Requirements ready]
+    U --> V[PRD plan · 코드]
+    V --> W[PRD_DRAFT · FINAL]
+    W --> X[PRD_REVIEW · DEFAULT]
+    X --> Y{품질 gate}
+    Y -- repairable --> Z[PRD_REPAIR · FINAL · 1회]
+    Z --> X
+    Y -- 통과 --> AA[사용자 최종 PRD 검토]
 ```
 
 ## 문서 생성 파이프라인
