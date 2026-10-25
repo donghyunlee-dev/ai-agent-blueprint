@@ -67,6 +67,6 @@ Suggested focused command: `npx playwright test tests/e2e/uir-pr-03e-focus-and-g
 - Planned from merged predecessor `1f62a20b5b98d1e58b2a4bebe853854a8fd7a26c`.
 - Implementation removes the home and conversation focus-fill selectors while preserving the home invalid-state fill. The updated assertions failed on the original CSS and passed after the fix.
 - Self-validation passed: focused Playwright 6/6 across desktop and mobile; `npm run build`; `git diff --check`. Vite reported its existing large-chunk advisory.
-- At exact source HEAD `4542c8279dd92b5cabafa72fb89871a054bf80d7`, the focused Playwright spec passed 6/6 across desktop and mobile. Screenshots and computed-style/geometry evidence were regenerated at that exact HEAD in [UIR-PR-03F evidence](../../delivery/evidence/UIR-PR-03F/README.md).
+- At source-render SHA `d18b640a27622317dd2512a05714ec050c8e7a51`, the focused Playwright spec passed 6/6 across desktop and mobile. Screenshots and computed-style/geometry evidence were regenerated at that exact SHA in [UIR-PR-03F evidence](../../delivery/evidence/UIR-PR-03F/README.md). Subsequent evidence/tracker commits are documentation-only and do not change the rendered code.
 - Agent Browser was not available in the tool catalog or as an executable (`command -v agent-browser` returned no path); Playwright Chromium was used.
 - Independent review, independent QA, Preview and CI evidence: pending.

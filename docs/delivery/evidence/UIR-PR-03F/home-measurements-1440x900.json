@@ -5,7 +5,7 @@
   },
   "route": "/",
   "fixture": "authenticated home with empty recent-project data",
-  "head": "4542c8279dd92b5cabafa72fb89871a054bf80d7",
+  "head": "d18b640a27622317dd2512a05714ec050c8e7a51",
   "frameBefore": {
     "x": 352.5,
     "y": 320.671875,
