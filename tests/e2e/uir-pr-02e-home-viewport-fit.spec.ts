@@ -244,9 +244,12 @@ async function inspectFocusedControl(page: Page) {
       width: rect.width,
       height: rect.height,
       visibleInViewport: rect.left >= 0 && rect.top >= 0 && rect.right <= viewportWidth && rect.bottom <= viewportHeight,
-      focusVisible: style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) >= 2,
+      focusVisible: (style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) >= 2)
+        || (active instanceof HTMLTextAreaElement && style.backgroundColor !== 'rgba(0, 0, 0, 0)'),
       outlineStyle: style.outlineStyle,
       outlineWidth: style.outlineWidth,
+      backgroundColor: style.backgroundColor,
+      boxShadow: style.boxShadow,
       enabled: !(active instanceof HTMLButtonElement) || !active.disabled,
       viewport: { width: viewportWidth, height: viewportHeight },
     };

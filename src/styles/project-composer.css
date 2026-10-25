@@ -3,9 +3,12 @@
 .project-composer form { display: flex; flex-direction: column; }
 .project-composer textarea { display: block; width: 100%; height: 64px; min-height: 64px; max-height: 240px; overflow: hidden; resize: none; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; color: #102957; font-size: 16px; line-height: 16px; }
 .project-composer textarea::placeholder { color: #7489ab; opacity: 1; }
-.project-composer textarea:focus-visible { outline: none; background: #eff6ff; box-shadow: 0 0 0 4px rgb(37 99 235 / 22%); }
+.project-composer textarea:focus,
+.project-composer textarea:focus-visible,
+.project-composer textarea[aria-invalid="true"] { outline: none; border: 0; box-shadow: none; }
+.project-composer textarea:focus-visible { background: #a5cfff; }
 .project-composer textarea[aria-invalid="true"] { background: #fff1f2; }
-.project-composer textarea:focus-visible[aria-invalid="true"] { box-shadow: 0 0 0 4px rgb(37 99 235 / 22%); }
+.project-composer textarea:focus-visible[aria-invalid="true"] { background: #ffe4e6; }
 .project-composer-meta { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; clip-path: inset(50%); }
 .project-composer-meta.has-validation { position: static; display: flex; width: auto; height: auto; align-items: start; justify-content: space-between; overflow: visible; margin: 8px 0 0; clip: auto; clip-path: none; white-space: normal; }
 .project-composer-meta p { margin: 0; font-size: 12px; line-height: 1.4; }
