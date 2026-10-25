@@ -10,7 +10,7 @@
 
 ## Background and design review
 
-- Latest base: `origin/main` at `9b81e9f97531c40a3236b9d9a54cf4ffbc71b27e`; predecessor PR #60 is merged.
+- Latest base: `origin/main` at `005fcaeaa00898e89a74f14496d7fce08ae3598f`; PR #61 (conversation panel gutters) and PR #62 (development skill retirement) are merged.
 - Primary reference: [`docs/blueprint-design/README.md`](../../blueprint-design/README.md), especially `회의실 예약 서비스 UI 캔버스.png` (freeform conversation, in-turn choice card, right summary with confirmed and remaining decisions) and `회의실 예약 서비스 설계 준비 대시보드.png` (five grouped, scanable domains).
 - State fallback only: [`docs/template/README.md`](../../template/README.md). Template captures do not define the primary product flow.
 - Existing UI redesign UIR-PR-03 implemented the conversation frame and Q cards, but preserves the older catalog-first interaction contract.
@@ -141,7 +141,7 @@ Decision status: **resolved from the user's explicit instruction, “11개 추�
 
 Other DoR evidence:
 
-- [x] PR #60 merged; latest base SHA recorded above.
+- [x] PR #61 and PR #62 merged; rebased on the resulting latest `origin/main` SHA above.
 - [x] Primary UI mock, template fallback, current conversation/process contracts, and development workflow inspected.
 - [x] Candidate docs and code/test surfaces identified.
 - [x] Recommendation count semantics confirmed: exactly 11 candidates for an explicit recommendation request when context is sufficient; ask a follow-up otherwise; never pad or apply the count to every turn.
