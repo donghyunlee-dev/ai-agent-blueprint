@@ -431,7 +431,8 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 }
 @media (min-width: 1024px) {
   .workspace-panels[data-stage="conversation"] .conversation-stage-layout { grid-template-columns: minmax(0, 1fr) 309px; column-gap: 13px; padding-right: 26px; }
-  .workspace-panels[data-stage="conversation"] .workspace-conversation-content { padding-right: 23px; padding-left: 25px; padding-bottom: 25px; }
+  .workspace-panels[data-stage="conversation"] .workspace-conversation-content { padding-right: 23px; padding-left: 25px; }
+  .workspace-panels[data-stage="conversation"] .workspace-conversation-content::after { content: ""; height: 25px; flex: 0 0 25px; }
   .workspace-panels[data-stage="conversation"] .workspace-message-assistant { width: 68%; margin-top: 33px; }
   .workspace-panels[data-stage="conversation"] .question-card { margin-top: 30px; }
 }

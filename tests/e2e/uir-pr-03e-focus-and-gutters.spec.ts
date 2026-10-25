@@ -117,12 +117,12 @@ test('conversation and summary content keep the specified desktop insets and mob
     const layout = document.querySelector('.conversation-stage-layout') as HTMLElement;
     const composer = document.querySelector('.ai-turn-composer') as HTMLElement;
     const read = (element: HTMLElement) => ({ paddingLeft: Number.parseFloat(getComputedStyle(element).paddingLeft), paddingRight: Number.parseFloat(getComputedStyle(element).paddingRight), paddingBottom: Number.parseFloat(getComputedStyle(element).paddingBottom) });
-    return { conversation: read(conversation), summary: read(summary), inspector: read(inspector), layout: layout.getBoundingClientRect().toJSON(), composer: composer.getBoundingClientRect().toJSON(), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    return { conversation: read(conversation), conversationEndSpacerHeight: Number.parseFloat(getComputedStyle(conversation, '::after').height), summary: read(summary), inspector: read(inspector), layout: layout.getBoundingClientRect().toJSON(), composer: composer.getBoundingClientRect().toJSON(), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
   expect(geometry.overflow).toBe(false);
   if (viewport.width >= 1024) {
     expect(geometry.conversation.paddingLeft).toBe(25);
-    expect(geometry.conversation.paddingBottom).toBe(25);
+    expect(geometry.conversationEndSpacerHeight).toBe(25);
     expect(Math.abs(geometry.summary.paddingRight - 25)).toBeLessThanOrEqual(1);
     expect(geometry.summary.paddingBottom).toBe(25);
   } else {

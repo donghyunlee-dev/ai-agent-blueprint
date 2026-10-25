@@ -7,3 +7,7 @@
 - Agent Browser was unavailable in the tool catalog and PATH; Playwright Chromium covered the browser path.
 - Reference comparison: primary home and conversation screenshots were inspected, with template screenshots for focus/in-progress states absent from the new designs. Detailed anchors and the viewport mapping are in the evidence README.
 - Limit: the blue background cue appears for pointer-focused textareas in Chromium as well as keyboard-focused textareas; neither state has a ring. The visual focus cue remains background-only.
+
+## Follow-up QA pending
+
+After this report's reviewed source HEAD, a 1024×768 role-choice test exposed that scroller `padding-bottom` reduced short-viewport reach. The code now uses a 25px content-end spacer; focused regression tests pass locally. Re-run independent QA on the corrected source before marking the PR ready to merge.

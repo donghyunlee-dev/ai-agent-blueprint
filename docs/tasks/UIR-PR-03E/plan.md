@@ -18,7 +18,7 @@ Remove the visible blue focus ring around the home idea textarea while retaining
 
 - Remove the focus-generated `outline`, `border`, and `box-shadow` around the home idea textarea for pointer, keyboard, and invalid states. Keep the composer’s always-visible outer frame unchanged.
 - Retain a clearly distinguishable keyboard focus cue using background color only. Preserve visible validation feedback in the invalid state; when invalid and keyboard-focused, both states must remain understandable without a ring.
-- Add 25px left and bottom padding to the conversation content region and 25px bottom padding to the summary region, matching the summary’s existing 25px right gutter. Preserve the current panel layout and fixed composer placement.
+- Add 25px left padding and a 25px content-end spacer to the conversation scroll region, plus 25px bottom padding to the summary region, matching the summary’s existing 25px right gutter. Use a content-end spacer so the visible inset does not reduce scroll reach at shorter desktop heights. Preserve the current panel layout and fixed composer placement.
 - Add focused browser assertions and capture final-HEAD, same-data visual evidence.
 
 ### Exclude
@@ -31,7 +31,7 @@ Remove the visible blue focus ring around the home idea textarea while retaining
 
 1. Pointer-focused, keyboard-focused, and invalid textarea states have no focus-generated outline, border, or box-shadow. The permanent outer composer border remains visually and geometrically unchanged.
 2. Keyboard focus is visibly distinguishable through the textarea background alone; the invalid state still communicates validation, including when keyboard-focused. Pointer focus does not create a blue ring.
-3. At desktop width, conversation content has a 25px left and bottom inset, summary content has a 25px bottom inset, and the existing summary right inset remains 25px (±1px measurement tolerance).
+3. At desktop width, conversation content has a 25px left inset and 25px content-end gap, summary content has a 25px bottom inset, and the existing summary right inset remains 25px (±1px measurement tolerance).
 4. At 390×844, the conversation and summary flow remains readable without horizontal overflow, clipping, or content hidden behind the fixed composer/safe area. Preserve the existing responsive summary behavior.
 5. Selection, answer submission, retries, keyboard operation, API calls, and conversation scroll ownership are unchanged.
 
@@ -58,7 +58,7 @@ Suggested focused command after implementation: `npx playwright test tests/e2e/u
 
 - A focus ring may survive through a browser default or another selector; inspect computed `outline`, border, and `box-shadow`, plus rendered screenshots for all focus/error combinations.
 - A background-only cue can be too subtle or conflict with the invalid background; make the keyboard-focused invalid state distinguishable while keeping validation legible.
-- Added bottom padding can change scroll extent; verify final content remains reachable and the fixed composer stays in its current position at desktop and mobile.
+- A bottom content-end spacer can change scroll extent; verify final content remains reachable and the fixed composer stays in its current position at desktop and mobile.
 - Production AI remains unavailable until the deployed model configuration and provider credential are corrected; this plan records the finding only and does not claim to resolve it.
 
 ## Definition of Ready
