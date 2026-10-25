@@ -1,5 +1,7 @@
 # Requirements와 PRD 생성
 
+대화의 확정 설계는 별도 문서 생성 단계의 입력을 준비할 뿐 자동 draft/ready 상태를 만들지 않는다. 사용자가 `요구사항 명세` 생성을 요청해야 아래 readiness gate와 pipeline이 시작된다. 대화 중 확정 사실·제안·미정의 표시와 우측 요약은 [대화·결정 프로세스](../product/04-conversation-process.md)를 따르며, thread summary나 도식은 문서 생성의 source of truth가 아니다.
+
 ## 문서 생성 순서
 
 ```mermaid

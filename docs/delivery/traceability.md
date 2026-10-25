@@ -12,8 +12,8 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | AI-001 | AI-001 | task/profile/model/reasoning routing | foundation merged (AI-PR-01 #13; user retained `gpt-5-mini`) |
 | AI-002 | AI-002, AI-009 | prompt/schema version과 변경 gate | registry and synthetic gate merged (AI-PR-01 #13); provider pairwise eval pending later key gate |
 | AI-003 | AI-004 | 6개 block, 8개 proposal 상한, 임의 UI 거절 | ready |
-| AI-004 | AI-004, AI-005 | 복수 atomic proposal과 근거 | ready |
-| AI-005 | AI-005 | 도움 LIGHT, 추천 DEFAULT, 미확정 | ready |
+| AI-004 | AI-004, AI-005, CON-PR-05 | allowlisted block/selection renderer, context-derived content, 복수 atomic proposal과 근거; no arbitrary HTML/code | in_progress (fixed catalog remains in current runtime; CON-PR-04 contract, CON-PR-05 implementation planned) |
+| AI-005 | AI-005, CON-PR-05 | 자유 대화, context-derived choice, explicit recommendation only: grounded 11 candidates or follow-up; approval remains pending until user command | in_progress (current catalog-first behavior superseded as target) |
 | AI-006 | AI-003, AI-008 | context 순서, token/hard budget | foundation merged (AI-PR-01 #13; current budget retained); CON-PR-01 enforces per-request task limits; cumulative project budget needs a trusted durable server usage source |
 | AI-007 | AI-006, AI-007 | plan/draft/review/repair 상한 | ready |
 | AI-008 | AI-008 | usage·latency 원장, 원문 미기록 | ledger foundation merged (AI-PR-01 #13); CON-PR-01 stores sanitized lifecycle attempt metadata only; durable lifetime usage/latency ledger integration needs a trusted server usage source |
@@ -29,15 +29,15 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 | PJT-003 | PRJ-104, PRJ-105 | 최근 목록과 복구 | done (PRJ-PR-03 merged #12) |
 | PJT-004 | PRJ-104 | 20/21 경계, 취소/삭제 | done (PRJ-PR-02 merged #11) |
 | PJT-005 | PRJ-101, PRJ-103 | namespace 분리와 404 | done (PRJ-PR-01 #10, PRJ-PR-02 #11 merged) |
-| CONV-001 | CON-202, CON-203 | 첫 입력 복수 후보 | ready |
-| CONV-002 | CON-203, DSG-302, DSG-305 | 반복 방지, 의존 기반 우선순위와 제안 gate | in_progress (question forms merged #15, proposal review gate merged #17, dependency recheck merged #18) |
-| CONV-003 | CON-202, CON-205 | 단일 thread와 요약 | done (CON-PR-03 merged #16, `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`; source-aware compaction and one-thread UI) |
+| CONV-001 | CON-202, CON-203, CON-PR-04, CON-PR-05 | catalog ID 없이 자유 turn, 맥락형 제안과 선택 | in_progress (current fixed catalog is confirmed runtime behavior; docs contract and replacement implementation are sequenced) |
+| CONV-002 | CON-203, DSG-302, DSG-305, CON-PR-04, CON-PR-05 | 반복 방지, 맥락 기반 확인, pending proposal approval gate | in_progress (question forms merged #15; proposal review gate merged #17; dependency recheck merged #18; fixed catalog selection is superseded as target) |
+| CONV-003 | CON-202, CON-205, CON-PR-05 | 단일 thread, source-aware compaction, aggregate 기반 좌우 결정 요약과 출처 이동 | in_progress (CON-PR-03 merged #16 covers thread/compaction; same-revision aggregate projection and source navigation remain) |
 | CONV-004 | CON-202, CON-205 | 작업 상태와 취소 | done (CON-PR-03 merged #16, `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`; GenerationJob progress and cancel UI) |
 | CONV-005 | CON-206 | 입력 보존과 중복 없는 재시도 | foundation merged (CON-PR-01 #14; full conversation UI remains in CON-PR-03) |
-| FORM-001 | CON-204 | 7개 answer mode | ready |
-| FORM-002 | CON-204 | value/label, 추천 미선택 | ready |
-| FORM-003 | CON-204 | 직접 입력, 추천, 미정 | ready |
-| FORM-004 | CON-203 | 조건부 활성과 재검토 | ready |
+| FORM-001 | CON-204, CON-PR-05 | strict allowlisted selection component types and accessible answer controls | in_progress (existing form components remain usable; dynamic content/schema contract awaits implementation) |
+| FORM-002 | CON-204, CON-PR-05 | stable server-validated values/labels, no implicit selection or approval | in_progress (existing form implementation is not the new context-derived turn flow) |
+| FORM-003 | CON-204, CON-PR-05 | free text remains available; selected values create pending proposals; explicit approve/defer semantics | in_progress |
+| FORM-004 | CON-203, CON-PR-05 | context-aware follow-up and recheck without a fixed question order | in_progress |
 | PROP-001 | DSG-301 | 복수 제안 분리 | done (DSG-PR-01 merged #17) |
 | PROP-002 | DSG-302, DSG-303 | 개별 승인·수정·거절 | done (DSG-PR-01 merged #17) |
 | PROP-003 | DSG-304 | before 재검증과 충돌 해결 | done (DSG-PR-02 merged #18) |
@@ -69,11 +69,11 @@ FND-001~FND-005는 요구사항 ID가 아니라 delivery 작업 ID다. FND-001/0
 
 | 요구사항 | 소유 PR | 검증 지점 | 상태 |
 | --- | --- | --- | --- |
-| UIR-001 시각 기준 | UIR-PR-01, UIR-PR-03A | 이미지 7장, 화면별 fallback, 비범위와 링크; 대화 화면 anchor parity | in_progress |
+| UIR-001 시각 기준 | UIR-PR-01, UIR-PR-03A | 시안 이미지 7개 파일, 화면별 fallback, 비범위와 링크; 대화 화면 anchor parity | in_progress |
 | UIR-002 범위 보존 | UIR-PR-01~06 | 기존 route/data/action과 미지원 메뉴 부재 | in_progress |
 | UIR-003 공통 셸·홈 | UIR-PR-02, UIR-PR-02C, UIR-PR-02D, UIR-PR-02E (PR #40, merge `921d8df2462e7659dbed81cdcdd156d11e916205`), UIR-PR-03D (#53 merged), [UIR-PR-03E](../tasks/UIR-PR-03E/plan.md), [UIR-PR-03F](../tasks/UIR-PR-03F/plan.md) | 시작·파일·최근·한도, 시안 픽셀 일치, 짧은 화면 높이 대응; 아이디어 입력 focus styling | in_progress |
 | UIR-004 단계 프레임 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md), [UIR-PR-03A plan](../tasks/UIR-PR-03A/plan.md) | 5단계 현재 위치·gate·직접 URL·한국어 단계 이름 | in_progress |
-| UIR-005 대화 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md), [UIR-PR-03A plan](../tasks/UIR-PR-03A/plan.md), [UIR-PR-03D plan](../tasks/UIR-PR-03D/plan.md), [UIR-PR-03E plan](../tasks/UIR-PR-03E/plan.md), [UIR-PR-03F plan](../tasks/UIR-PR-03F/plan.md), [UIR-PR-03G plan](../tasks/UIR-PR-03G/plan.md) | 질문·답·summary 접기·job·composer·스크롤과 선택 카드, 외부 패널 여백, focus 시 입력 배경 유지, 같은 viewport 시안 비교 및 주요 anchor 차이 확인 (전체 픽셀 일치율은 진단 지표) | in_progress |
+| UIR-005 대화 | [UIR-PR-03 plan](../tasks/UIR-PR-03/plan.md), [UIR-PR-03A plan](../tasks/UIR-PR-03A/plan.md), [UIR-PR-03D plan](../tasks/UIR-PR-03D/plan.md), [UIR-PR-03E plan](../tasks/UIR-PR-03E/plan.md), [UIR-PR-03F plan](../tasks/UIR-PR-03F/plan.md), [UIR-PR-03G plan](../tasks/UIR-PR-03G/plan.md), [CON-PR-04 contract](../tasks/CON-PR-04/plan.md), [CON-PR-05 implementation design](../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr) | 시안 좌 대화/우 결정 요약, 맥락 생성 선택·allowlisted renderer·source navigation·same-revision update; 현재 catalog-first UI는 historical implementation으로 유지 | in_progress (UIR frame merged; behavior contract and connected flow remain) |
 | UIR-006 제안 검토 | UIR-PR-04 | 단건·수정·거절·일괄·충돌 transaction | planned |
 | UIR-007 준비도 표현 | UIR-PR-05 | 10개 원본 영역의 5개 카드 표현과 기존 gate | done (PR #52 merged `73f616be34aac006a545d91afbb1dc5f6deb9824`; review/QA pass) |
 | UIR-008 문서 | [UIR-PR-06 plan](../tasks/UIR-PR-06/plan.md) | Requirements·PRD 상태·편집·보완·내보내기 | in_progress |

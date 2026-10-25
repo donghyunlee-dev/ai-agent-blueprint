@@ -4,6 +4,10 @@
 
 이 문서는 각 `AiTaskType`이 사용할 실제 prompt template의 역할, 변수, 금지 규칙과 기본 문구를 정의한다. 구현자는 의미를 임의 변경하지 않고 versioned Prompt Registry로 옮긴다. JSON Schema는 [프롬프트·응답 계약](13-prompt-and-response-contracts.md)을 따른다.
 
+> **대화 동작 전환 메모:** 아래 `QUESTION_COMPOSE`, `TURN_ANALYZE`와 `OPTION_RECOMMEND` templates는 현재 runtime의 catalog-first prompt 버전이다. 다음 개발 unit `CON-PR-05`에서 versioned prompt/schema를 갱신하기 전까지는 [대화·결정 프로세스](04-conversation-process.md)와 [turn 처리 계약](../process/03-question-and-answer-decisions.md)이 목표 동작의 정본이다. 이 파일의 catalog 전용 제약을 새 자유 대화 동작으로 간주해 구현하지 않는다.
+
+목표 template는 질문·추천 내용을 고정 catalog에서 선택하지 않는다. 선택 UI의 renderer type은 strict allowlisted registry로 제한하고, 질문/option 표시 데이터는 허용된 context에서 turn별로 생성한다. Prompt/schema는 임의 markup/code/component/action/ID를 금지하고, 선택은 pending proposal로만 연결한다. `CON-PR-05`에서 이 목표를 실제 versioned template/schema와 golden eval로 옮기며 현재 model/budget limits는 유지한다.
+
 ## 공통 작성 규칙
 
 - System에는 모든 task에 공통인 불변식만 둔다.

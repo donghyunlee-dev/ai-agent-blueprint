@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `docs/blueprint-design/`의 디자인 시안 7장을 현재 구현된 Agent Blueprint 기능에 적용하되, 시안에만 있는 기능은 추가하지 않고 기존 제품 동작을 보존한다.
+**Goal:** `docs/blueprint-design/`의 디자인 시안 8장을 현재 구현된 Agent Blueprint 기능에 적용하되, 시안에만 있는 기능은 추가하지 않고 당시 기존 제품 동작을 보존한다.
+
+> **대화 동작 후속:** 이 계획의 UIR-PR-03 대화 표현 작업은 당시 고정 `QUESTION_CATALOG` runtime을 보존했으며, 현재 화면이 다음 질문을 고정 catalog에서 선택하는 구현임을 기록한다. 사용자는 이를 목표 동작으로 승인하지 않았다. [CON-PR-04](../../tasks/CON-PR-04/plan.md)는 디자인 시안의 좌측 자유 대화·우측 결정 요약을 위해 product/process/UI/AI 계약을 재정립하고, 후속 [CON-PR-05 구현 설계](../../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr)는 context-derived content와 strict allowlisted renderer, 사용자 승인 기반 확정을 연결한다. 이 후속 unit은 CON-PR-04가 병합된 뒤 시작한다.
 
 **Architecture:** 첫 PR에서 시각 기준과 제품/UI 계약을 정렬한 뒤 최신 `main`에서 셸·홈, 단계 frame·대화, 제안 검토, 준비도, 문서·지원 흐름을 순차 구현한다. React route, `BlueprintAggregate`, domain/API/storage/auth/AI 계약과 `ProjectPage`의 부수 효과 소유권을 유지한다. 준비도의 5개 카드는 기존 10개 영역을 묶는 표현 계층이며 계산·저장 계약을 바꾸지 않는다.
 

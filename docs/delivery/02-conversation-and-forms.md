@@ -1,5 +1,7 @@
 # 2단계 — 대화와 선택 폼
 
+> **현재와 목표 동작:** 현재 구현은 `QUESTION_CATALOG`에서 고정 질문·옵션을 고르고 AI가 문구를 구성한다. 이 사실은 [CON-PR-02](../tasks/CON-PR-02/plan.md) 구현 기록에 남긴다. 사용자가 고정 질문/추천 콘텐츠를 주 흐름으로 거부했으므로 이 방식은 후속 구현 목표가 아니다. 목표 계약은 [대화·결정 프로세스](../product/04-conversation-process.md)와 [turn 처리 계약](../process/03-question-and-answer-decisions.md)이며, 맥락에서 동적으로 만든 입력을 strict schema로 검증된 allowlisted component type만 렌더링한다. 선택은 pending proposal이고 사용자가 승인한 뒤 확정된다. 진행 순서는 현재 docs-only [`CON-PR-04`](../tasks/CON-PR-04/plan.md) 이후, 해당 문서 PR의 병합과 기술 DoR 확인을 거쳐 [`CON-PR-05`](../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr)에서 구현한다.
+
 ## 목표와 사용자 결과
 
 사용자가 아이디어를 설명하면 Agent가 설계 후보를 찾고, 현재 공백에 맞는 한 가지 질문을 선택형 또는 직접 입력형 폼으로 이어간다. 오류가 발생해도 입력을 잃지 않으며 가짜 결과를 표시하지 않는다.
@@ -64,7 +66,9 @@ idle → queued → running → succeeded
 - schema 오류는 `AI_INVALID_OUTPUT`으로 변환되고 payload가 저장되지 않는다.
 - API 키와 공급자 오류 원문이 클라이언트에 노출되지 않는다.
 
-### CON-203 질문 카탈로그와 선택 엔진
+### CON-203 질문 카탈로그와 선택 엔진 — 기존 구현 기록
+
+> 이 작업은 고정 `QUESTION_CATALOG`가 다음 질문을 선택하던 현행/과거 구현을 설명한다. 고정 질문·추천 content와 순서는 사용자 의도에 따른 목표 계약이 아니므로 다음 구현 acceptance로 재사용하지 않는다. 대체 기준은 [CON-PR-05](../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr)다.
 
 구현:
 
@@ -162,7 +166,7 @@ idle → queued → running → succeeded
 
 ## 완료 증거
 
-- 질문 카탈로그 목록과 조건표
+- 기존 CON-203 구현의 질문 카탈로그 목록과 조건표 (역사 기록; CON-PR-05 acceptance가 아님)
 - 모든 폼의 컴포넌트 테스트
 - 정상·오류 API fixture
 - 질문 선택 규칙 단위 테스트
@@ -171,3 +175,17 @@ idle → queued → running → succeeded
 ## 단계 종료 조건
 
 첫 설명부터 조건부 연속 질문까지 진행할 수 있고, 모든 허용 폼과 오류 재시도가 저장·복구되어야 한다. 확정 설계 반영은 3단계 제안 승인 규칙을 통과해야 한다.
+
+## CON-PR-05 구현 수용 매트릭스
+
+| 사용자 흐름/상태 | 확인할 계약 | 검증 증거 |
+| --- | --- | --- |
+| 첫 자유 입력 → AI 응답 → 근거 있는 제안 | catalog ID 없이 user turn을 분석하고 source-linked pending proposals 생성 | turn/API contract test와 fake-provider E2E |
+| 맥락상 선택이 유용함 | 현재 맥락으로 동적 prompt/options를 만들고 strict-schema allowlist type만 렌더 | type별 schema, unknown type/field, bounds, unique value, markup/code 거부 테스트 |
+| 사용자가 옵션을 제출 | 선택은 pending proposal만 만들며 승인 전 confirmed 설계에 미반영 | proposal command, aggregate, UI state contract |
+| 사용자 승인 → 요약 갱신 | 저장된 동일 aggregate revision에서 right panel을 계산하고 source로 이동 | same-revision/source navigation assertion, refresh after save |
+| 명시적 추천 요청 | 맥락 충분 시 정확히 11개 동적 근거 후보, 부족 시 대화 후속 질문 | golden eval: 11개/insufficient context/no-padding/token-cap |
+| timeout·schema 오류·저장 실패·중복·stale revision | 입력과 기존 확정값 보존, idempotent retry, 오류/다음 행동 표시 | deterministic API/E2E failure matrix |
+| 키보드·모바일 | 키보드 focus order/return, live error, composer와 OS keyboard, 대화 우선 및 접근 가능한 결정 요약 | Playwright Chromium at 1440×900 and 390×844; final-HEAD captures |
+
+세부 코드 소유권, 사용자 흐름, AI schema/eval 변경과 롤백은 [`CON-PR-04` 계획의 후속 구현 설계](../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr)에 있다. 이 구현은 docs-only CON-PR-04가 병합된 뒤 별도 unit으로 계획·검토한다.

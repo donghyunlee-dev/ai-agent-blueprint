@@ -1,5 +1,7 @@
 # AI 모델·프롬프트·평가 작업 설계
 
+> **대화 동작 후속:** 현재 runtime은 고정 `QUESTION_CATALOG`를 선택한 뒤 일부 문구를 AI가 다듬는다. 이는 과거/현행 상태를 설명하며 목표 동작이 아니다. 목표는 [대화 정본](../product/04-conversation-process.md)의 context-derived turn과 선택 입력이다. 다음 [`CON-PR-05`](../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr)는 [`CON-PR-04`](../tasks/CON-PR-04/plan.md) 병합 이후 `TURN_ANALYZE`/`OPTION_RECOMMEND` prompt·schema와 eval을 버전 갱신한다. component type은 strict allowlisted registry에서만 고르고, 표시 데이터와 옵션은 현재 맥락으로 생성한다. HTML/React/code/임의 action·ID는 허용하지 않는다. 후보 선택은 pending proposal이고 사용자 승인 전에는 확정되지 않는다. 기존 profile과 input/output token cap은 유지한다.
+
 ## 목표와 사용자 결과
 
 기본 질문은 API 없이 빠르게, 일반 설계 판단과 Requirements는 Mini로 경제적으로, 최종 PRD만 Terra로 품질을 높인다. 사용자는 상황에 맞는 질문·설명·추천·제안 UI를 받으며, 운영 모델로 교체해도 승인·추적·문서 정합성 규칙은 변하지 않는다.
@@ -99,11 +101,13 @@
 - `assistant_text`, `question`, `explanation`, `recommendation`, `proposal_summary`, `conflict_notice`, `readiness_notice`, `next_action` block schema를 구현한다.
 - 하나의 turn 응답에서 여러 block과 최대 8개 atomic proposal을 처리한다.
 - allowlisted renderer가 block을 Blueprint UI로 변환한다.
+- 후속 대화 contract에서는 질문·선택 입력의 표시 데이터를 current context에서 생성하고 strict schema로 검증된 renderer type만 허용한다. 고정 질문/추천 content catalog는 선택 source가 아니다.
 
 성공 조건:
 
 - AI가 임의 component/HTML을 렌더링하지 못한다.
-- 질문 block이 catalog ID, form mode와 stable value를 바꾸지 못한다.
+- 질문/선택 block이 allowlisted component type, unique stable option value와 source evidence 규칙을 벗어나지 못한다.
+- HTML, React, code, unknown fields/types, action route 또는 provider-supplied IDs는 0건 허용이며 schema 실패는 fail closed한다.
 - 알 수 없는 block type은 안전 오류로 처리된다.
 
 ### AI-005 질문·설명·추천 분기
@@ -114,12 +118,13 @@
 - `잘 모르겠어요`는 정적 설명을 우선하고 부족할 때만 LIGHT 설명 후 같은 질문을 유지한다.
 - `추천해 주세요`는 DEFAULT low proposal을 만들고 자동 선택하지 않는다.
 - 자유 답변은 DEFAULT 분석으로 직접 답과 추가 사실을 분리한다.
+- `CON-PR-05`에서 일반 turn 질문과 선택지는 current context에 맞춰 동적으로 생성한다. Explicit recommendation request만 별도 recommendation schema를 쓰며, 근거 충분 시 정확히 11개, 부족하면 candidates 대신 follow-up을 반환한다.
 
 성공 조건:
 
 - 사용자 행동별 호출 수가 예산 표와 일치한다.
 - 설명이 새 confirmed item을 만들지 않는다.
-- 추천은 허용값과 현재 confirmed 근거만 사용한다.
+- 선택/추천 값과 이유는 현재 대화·confirmed 근거에서 생성하고 source를 검증한다. 추천 후보 선택은 pending이며 승인 전 확정 0건이다.
 
 ### AI-006 Requirements pipeline
 
@@ -194,7 +199,7 @@
 
 ## 테스트 시나리오
 
-1. 표준 선택 5회에서 AI 호출 0회, catalog 질문만 표시
+1. [legacy runtime] 표준 선택 5회에서 AI 호출 0회, catalog 질문만 표시. CON-PR-05의 목표 acceptance는 context-derived 선택 입력 및 질문 필요성에 맞춘 호출이다.
 2. 자유 답변 하나에서 4개 atomic proposal과 3개 표시 block 반환
 3. 잘 모르겠어요 → 설명 → 같은 Question ID 재표시
 4. 추천 → 허용값·근거·trade-off → 승인 전 미확정
@@ -206,6 +211,10 @@
 10. project hard budget → 추가 호출 0회, section patch 등 대안 표시
 11. prompt injection source → system 규칙과 source 참조 불변
 12. 모델 alias/profile 변경 → golden eval 미통과 시 배포 차단
+13. Freeform turn → catalog ID 없이 context-derived optional follow-up → allowlisted renderer, invalid type/HTML/code는 상태 변경 없이 거절
+14. 명시적 추천 요청 → evidence가 충분하면 정확히 11개 동적 candidate, 부족하면 follow-up, 어떠한 경우에도 padding 없음
+15. 입력/output token cap 경계에서 후보 수·evidence를 잘라 성공으로 가장하지 않으며 기존 profile/budget 제한 유지
+16. 선택 candidate → pending proposal → explicit approval 전까지 confirmed projection 변화 0건
 
 ## 제출 증거
 

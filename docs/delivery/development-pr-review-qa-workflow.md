@@ -289,6 +289,15 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 
 위 표는 저장소의 일반 delivery PR 순서다. 현재 화면 개편은 이 순서와 독립된 [UI 개편 계획](../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md)의 선행 관계를 따른다. 각 UIR 후속 PR은 바로 앞 UIR PR의 GitHub 병합을 확인한 최신 `main`에서 시작한다.
 
+### 대화 동작 계약 후속
+
+CON-PR-01~03은 해당 PR 당시 승인된 질문/catalog 동작을 구현한 과거 기록이다. 현재 실행과 문서가 고정 `QUESTION_CATALOG`를 다음 질문 source로 쓴다는 점을 확인했으며, 사용자가 이를 목표 동작으로 거부했다. 후속 계약은 [대화 정본](../product/04-conversation-process.md)이다. component type registry는 strict allowlist로 유지하지만 질문과 선택지 데이터는 current context에서 만들고, 선택은 pending proposal로 저장해 사용자 승인 후 확정한다.
+
+| PR unit | 선행 조건 | 결과 | 상태 |
+| --- | --- | --- | --- |
+| [`CON-PR-04`](../tasks/CON-PR-04/plan.md) 대화·결정 요약 계약 재정립 | PR #60 merged; docs-only unit | product/process/UI/AI 계약 및 CON-PR-05 구현 설계 정렬 | in_progress |
+| [`CON-PR-05`](../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr) 대화 주도 발견·결정 패널 동기화 | CON-PR-04 merged; technical DoR verified | freeform turn, context-derived choices, allowlisted renderer, proposal approval, same-revision summary, responsive error recovery | planned |
+
 | 순서 | UIR PR unit | 선행 조건 | 상태 |
 | ---: | --- | --- | --- |
 | 1 | `UIR-PR-01` 시각 기준·제품/UI 계약 | 완료된 기반 작업 | merged |
