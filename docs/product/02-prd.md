@@ -156,7 +156,7 @@
 
 - 홈보다 Google 로그인을 먼저 제공하며 비인증 사용자는 제품과 Blueprint API에 접근할 수 없다.
 - Google authorization code와 OIDC ID token은 서버에서 검증하고 Blueprint HttpOnly session으로 교환한다. scope는 `openid email`이며 Gmail API를 요청하지 않는다.
-- 질문 기본 문구와 문서 plan은 코드로 만들고, 맥락형 보조는 LIGHT, 답변 추출·Requirements는 DEFAULT, 최종 PRD draft만 FINAL을 사용한다.
+- 대화 응답과 맥락형 후속 질문·선택 데이터는 `TURN_ANALYZE` DEFAULT, 명시적 추천은 `OPTION_RECOMMEND` DEFAULT를 사용한다. 요구사항 명세서 draft/review는 DEFAULT, 최종 PRD draft만 FINAL을 사용한다. 모든 동적 표시 데이터는 strict schema로 검증한다. 기존 `QUESTION_COMPOSE`/고정 문구 흐름은 현재 runtime 기록이며 CON-PR-05에서 목표 동작으로 대체한다.
 - AI가 process state, readiness와 사용자 확정 여부를 결정하지 않는다.
 - Requirements와 PRD는 plan, draft, review, 선택적 1회 repair로 생성한다.
 - AI 응답은 허용된 DisplayBlock과 strict schema로만 렌더링한다.

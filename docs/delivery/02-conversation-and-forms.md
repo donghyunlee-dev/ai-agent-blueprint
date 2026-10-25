@@ -41,12 +41,14 @@ Agent 이름이나 모델명보다 현재 수행 중인 작업과 사용자에�
 - 취소하면 입력을 유지하고 네트워크 요청을 보내지 않는다.
 - 안내 버전이 바뀌면 재확인할 수 있는 데이터 구조를 가진다.
 
-### CON-202 turn API와 요청 수명주기
+### CON-202 turn API와 요청 수명주기 — 기존 요청/응답 shape 기록
+
+> 아래 `questionId`와 자유 답변/질문 compose 분리는 현재 구현 기록이다. 이 수명주기의 인증, idempotency, 취소, 입력 보존은 유지하지만 고정 질문에 묶인 요청/응답 shape는 목표 계약이 아니다. [CON-PR-05](../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr)는 자유 대화 turn, 맥락에서 생성하는 후속 카드와 strict allowlisted renderer를 구현한다.
 
 구현:
 
 - `POST /api/blueprint/turn` 요청과 strict response 검증을 구현한다.
-- 자유 답변은 `TURN_ANALYZE` DEFAULT, 질문은 catalog 기본 문구와 필요한 경우의 `QUESTION_COMPOSE` LIGHT로 분리한다.
+- 기존 구현은 자유 답변을 `TURN_ANALYZE` DEFAULT, 질문 표현을 catalog와 필요 시 `QUESTION_COMPOSE` LIGHT로 분리했다. 이 동작은 과거 runtime 기록이며 CON-PR-05 acceptance로 사용하지 않는다.
 - 응답은 허용된 DisplayBlock과 복수 atomic proposal을 함께 반환한다.
 - 사용자 의도마다 `logicalRequestId`, 실행 시도마다 `attemptId`를 발급하고 실행 중 중복 전송과 중복 반영을 차단한다.
 - 성공 전에는 프로젝트의 확정 설계를 변경하지 않는다.
