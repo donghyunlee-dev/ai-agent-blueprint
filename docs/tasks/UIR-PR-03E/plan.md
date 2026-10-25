@@ -8,7 +8,7 @@ Remove the visible blue focus ring around the home idea textarea while retaining
 
 - **Requirements:** `UIR-003` (home and idea input), `UIR-005` (conversation and summary), `UIR-010` (responsive/accessibility), `NFR-001` (keyboard focus and visible indication).
 - **Product contracts:** [Blueprint UI redesign](../../blueprint-design/README.md), [conversation and forms](../../ui/02-conversation-and-forms.md), [UIR contracts](../../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md#ui-003--공통-셸과-홈), and [visual acceptance](../../ui/07-visual-acceptance.md).
-- **Predecessor:** PR #54 merged. Implemented from latest `origin/main` at `d34dead5f006fc1cb94857688a05f2bee81d863c`.
+- **Predecessor:** Initial UIR-PR-03E implementation merged in PR #57 (`a74946ce825001c5bcc815e2a51dc392fe21ddce`). The short-viewport follow-up was cherry-picked onto latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a`.
 - **Relevant implementation:** `src/styles/project-composer.css`, `src/styles/workspace-shell.css`; focused coverage belongs in the existing/new UIR-PR-03E browser spec.
 - **Separate finding, out of scope:** production `POST /api/blueprint/turn` returned 503; deployed `AI_MODEL_*` settings do not match the current registry, and the configured `OPENAI_API_KEY` was present but OpenAI `/v1/models` returned 401. This points to environment credential/configuration remediation. Do not change Vercel environment variables, provider/model routing, or AI behavior in this UI PR.
 
@@ -71,9 +71,8 @@ Suggested focused command after implementation: `npx playwright test tests/e2e/u
 
 ## Delivery evidence
 
-- Implementation commits: `68f8197483c70b9497ff59b81aaca93d7b5c2500`, focus-cue review correction `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e`, and short-viewport scroll correction `28abb915162f7e1097382a399555a1513921e814`.
+- Initial implementation: PR #57 merged. Follow-up source commit on latest main: `019604a`.
 - Self-validation: final-source focused Playwright 12/12, `npm run build`, and `git show --check` passed. Existing build output includes the Vite large-chunk advisory.
-- Independent code review: pass on `cde4ca24e0503f81785fa90134a64ce0d2f8285f`; focus-cue and short-viewport corrections passed, and the reference-delta documentation finding was resolved.
-- Independent QA: pass on `cde4ca24e0503f81785fa90134a64ce0d2f8285f`; UIR-03E 4/4, UIR-03D role/focus 4/4 (including 1024×768 reachability), UIR-02E keyboard focus 2/2, and UIR-03C internal scrolling 2/2.
+- Independent code review and QA passed on the equivalent source tree in the prior branch; exact review and QA on this latest-main follow-up branch are pending.
 - Final screenshots and measured comparisons: [evidence README](../../delivery/evidence/UIR-PR-03E/README.md).
 - Known scope limit: a broader conversation run also exposed two unrelated cases (prior-answer edit click is intercepted by the fixed composer; the full-canvas fixture does not create scroll extent). They were not changed by this UI task; see [test results](test-results.md).

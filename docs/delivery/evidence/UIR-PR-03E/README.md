@@ -2,7 +2,7 @@
 
 ## Capture details
 
-- Source commit: `28abb915162f7e1097382a399555a1513921e814`, based on `d34dead5f006fc1cb94857688a05f2bee81d863c`.
+- Follow-up source commit: `019604a` on latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a`; screenshots and measurements were regenerated at branch HEAD `9bb1aba`.
 - Routes/fixtures: home with deterministic UIR-03E fixture; `/blueprints/uir-pr-03e-meeting-room` with deterministic meeting-room aggregate.
 - Browser: Playwright Chromium. The reference PNGs are 1672×941. For 1440×900 comparisons, fit proportionally to viewport width (`scale=0.8612`) and center vertically (`y offset=44.8px`); do not stretch. At mobile width, no mapped mobile reference exists.
 - The design references do not depict focused or invalid focus states. The template focus screenshots are used for those states; those captures are checked for state behavior, not design parity.

@@ -1,6 +1,6 @@
 # UIR-PR-03E independent code review
 
-## Final review
+## Prior review and latest-main re-review pending
 
 - Result: **PASS**, no findings.
 - Reviewed exact implementation HEAD: `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e` against base `d34dead5f006fc1cb94857688a05f2bee81d863c`.
@@ -13,4 +13,4 @@ The first independent review marked `pass_with_non_blocking` and reported that t
 
 ## Final review
 
-A later PR CI viewport check showed that a 25px `padding-bottom` on the scroll container interfered with a short-height role-choice viewport check. The implementation now uses a 25px content-end spacer instead. Final review of exact HEAD `cde4ca24e0503f81785fa90134a64ce0d2f8285f` passed with no remaining findings. The reviewer also confirmed that the evidence README resolves the earlier missing reference/render delta finding.
+A later PR CI viewport check showed that a 25px `padding-bottom` on the scroll container interfered with a short-height role-choice viewport check. The implementation now uses a 25px content-end spacer instead. The follow-up implementation and reference-delta documentation passed review on the prior branch. The short-viewport correction was cherry-picked onto latest main at `019604a`; a fresh review of the latest-main branch is pending.
