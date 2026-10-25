@@ -158,8 +158,9 @@ test('conversation composer focus uses a background cue without a blue ring', as
   else expect(pointer.background).toBe(baseline.background);
   await page.screenshot({ path: `${artifactDirectory}/conversation-composer-pointer-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
 
-  await idea.blur();
-  await idea.focus();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(idea).toBeFocused();
   await expect.poll(() => idea.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
   const keyboard = await readStyles();
   expect(keyboard.focusVisible).toBe(true);
