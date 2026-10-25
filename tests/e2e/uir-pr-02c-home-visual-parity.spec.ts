@@ -188,20 +188,23 @@ test('captures the validation state at the configured desktop or mobile viewport
   await captureState(page, 'validation');
 });
 
-test('captures the completed first design workspace after creating a synthetic Blueprint', async ({ page }) => {
+test('captures the initial conversation workspace after synthetic Blueprint creation', async ({ page }) => {
   const ideaText = '합성 캡처용으로 새 Blueprint를 시작합니다.';
   await page.goto('/');
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill(ideaText);
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
 
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
   await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue(ideaText);
-  await expect(page.getByRole('heading', { name: ideaText })).toBeVisible();
-  await expect(page.getByText(/^저장됨 ·/)).toBeVisible();
-  await captureState(page, 'created-design-workspace');
+  const conversation = page.locator('#workspace-conversation-panel');
+  await expect(conversation).toBeVisible();
+  await expect(conversation.locator('.workspace-panel-heading h1')).toHaveText('대화');
+  await expect(page.locator('.workspace-first-message p')).toHaveText(ideaText);
+  await expect(page.locator('#project-save-state')).toContainText('저장됨');
+  await captureState(page, 'created-conversation-workspace');
 });
 
-test('long ideas expand for review and preserve all 1000 characters through creation', async ({ page }) => {
+test('long ideas expand for review and preserve all 1000 characters through conversation creation', async ({ page }) => {
   await page.goto('/');
   const ideaText = `${('긴 제품 상세 설명을 검토하고 전체 내용을 보존합니다. ').repeat(100).slice(0, 999)}상`;
   const idea = page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' });
@@ -211,7 +214,13 @@ test('long ideas expand for review and preserve all 1000 characters through crea
   expect(height).toBeGreaterThan(30);
   await captureState(page, 'long-idea-expanded');
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
+  const conversation = page.locator('#workspace-conversation-panel');
+  await expect(conversation).toBeVisible();
+  await expect(conversation.locator('.workspace-panel-heading h1')).toHaveText('대화');
+  await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue(ideaText.replace(/\s+/gu, ' ').trim().slice(0, 100).trim());
+  await expect(page.locator('.workspace-first-message p')).toHaveText(ideaText);
+  await expect(page.locator('#project-save-state')).toContainText('저장됨');
   const projectId = new URL(page.url()).pathname.split('/')[2];
   const databaseName = databaseNameForOwner(await deriveOwnerKey(identity));
   const persistedIdea = await page.evaluate(async ({ databaseName, projectId }) => new Promise<string>((resolve, reject) => {
