@@ -137,6 +137,9 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-title-error { display: none; }
   .workspace-shell[data-mobile-mode="review"] .workspace-inspector { position: relative; inset: auto; grid-column: 1; display: block; width: auto; height: auto; transform: none; box-shadow: none; }
   .workspace-shell[data-mobile-mode="review"] .workspace-inspector .workspace-drawer-close { display: none; }
+  .blueprint-shell .workspace-shell[data-stage="requirements"] { grid-template-rows:56px auto 52px 40px minmax(0,1fr); }
+  .blueprint-shell .workspace-shell[data-stage="requirements"] > .workspace-mobile-tabs { display:flex; grid-row:4; }
+  .blueprint-shell .workspace-shell[data-stage="requirements"] > .workspace-panels { grid-row:5; }
 }
 
 /* Align the normal desktop conversation composition to the approved canvas. */
