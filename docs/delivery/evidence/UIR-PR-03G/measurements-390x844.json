@@ -5,7 +5,7 @@
   },
   "route": "/blueprints/uir-pr-03e-meeting-room",
   "fixture": "UIR-PR-03E deterministic meeting room aggregate",
-  "head": "f8d78c2bb2440cce7c51391ec489c19b40f6ae8d",
+  "head": "3a4e5ac8e664d509f83b4f0de90eb5c9bb91d80a",
   "geometry": {
     "conversation": {
       "paddingLeft": 14,
@@ -53,6 +53,26 @@
       "bottom": 1210.328125,
       "left": 10
     },
+    "questionCard": {
+      "x": 71,
+      "y": 496.515625,
+      "width": 294,
+      "height": 610.59375,
+      "top": 496.515625,
+      "right": 365,
+      "bottom": 1107.109375,
+      "left": 71
+    },
+    "assistantMessage": {
+      "x": 71,
+      "y": 346.515625,
+      "width": 210.984375,
+      "height": 130,
+      "top": 346.515625,
+      "right": 281.984375,
+      "bottom": 476.515625,
+      "left": 71
+    },
     "composer": {
       "x": 20,
       "y": 788,
@@ -63,6 +83,7 @@
       "bottom": 844,
       "left": 20
     },
+    "questionComposerGap": -319.109375,
     "layoutPadding": {
       "paddingLeft": 10,
       "paddingRight": 10,
