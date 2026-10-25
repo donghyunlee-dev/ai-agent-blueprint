@@ -1,5 +1,11 @@
 # UIR-PR-06 validation results
 
+## Short-height responsive correction — 2026-10-25
+
+After PR #55 merged, independent QA found that the requirements-stage mobile tabs were hidden and the work panel collapsed at 720×450 CSS pixels (a 200%-zoom-equivalent viewport). The shell now assigns explicit rows to the mobile tabs and work panels, and the requirements header/navigation compact only at widths up to 767px and heights up to 600px. The regression flow confirms the work panel and tabs stay visible, both Markdown actions remain inside the viewport, and users can open a section and return to the overview.
+
+The test-first check reproduced the hidden tabs on the uncorrected layout. From latest `origin/main` `d34dead5f006fc1cb94857688a05f2bee81d863c`, the full affected Playwright matrix passed **30/30** across 1440×900 desktop and 390×844 mobile; the requirements UI spec also exercised 720×450 and verified detail/return. The isolated Playwright webServer ran `npm run build`, which passed with the existing large-chunk advisory. `git diff --check` passed. Evidence: [720×450 overview](../../delivery/evidence/UIR-PR-06/requirements-short-height-overview-720x450.png) and [section detail](../../delivery/evidence/UIR-PR-06/requirements-short-height-detail-720x450.png). Independent review and separate QA remain pending on the final PR HEAD. Synthetic session and IndexedDB fixtures do not verify real authentication or backend behavior.
+
 ## Final review correction — 2026-10-25
 
 The fresh independent review found that the impact summary altered a persisted identifier (`requirements-doc`) for display. The UI now hides document IDs in that summary and shows a Korean affected-document count; IDs remain unchanged in storage and callback payloads. The direct-edit fixture now uses Korean example content and captures the impact dialog at desktop 1440×900 and mobile 390×844.

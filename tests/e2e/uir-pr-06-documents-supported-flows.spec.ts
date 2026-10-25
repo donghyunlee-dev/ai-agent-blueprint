@@ -224,4 +224,38 @@ test('Requirements and PRD overview keeps section details and support actions re
   await reviewAction.scrollIntoViewIfNeeded();
   await expect(reviewAction).toBeInViewport();
   await page.screenshot({path:test.info().outputPath(`requirements-review-action-${viewport.width}x${viewport.height}.png`),scale:'css'});
+
+  if (viewport.width >= 1024) {
+    await page.setViewportSize({width:720,height:450});
+    await page.goto(`/blueprints/${projectId}/requirements`);
+    await expect(page.getByRole('heading',{name:'요구사항 명세',level:1})).toBeVisible();
+    const shortTabs=page.locator('.workspace-mobile-tabs');
+    await expect(shortTabs).toBeVisible();
+    await expect(shortTabs).toBeInViewport();
+    const shortPanels=page.locator('.workspace-panels[data-stage="requirements"]');
+    const shortWork=page.locator('#workspace-work-panel');
+    const panelsBounds=await shortPanels.boundingBox();
+    const workBounds=await shortWork.boundingBox();
+    expect(panelsBounds?.height ?? 0).toBeGreaterThan(80);
+    expect(workBounds?.height ?? 0).toBeGreaterThan(80);
+    await expect(shortPanels).toBeInViewport();
+    await expect(shortWork).toBeInViewport();
+    const shortExportButtons=page.locator('.requirements-page-meta .document-export-actions button');
+    await expect(shortExportButtons).toHaveCount(2);
+    for (const button of await shortExportButtons.all()) {
+      await expect(button).toBeVisible();
+      await expect(button).toBeInViewport();
+      const bounds=await button.boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(bounds!.x).toBeGreaterThanOrEqual(0);
+      expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(720);
+      expect(bounds!.y+bounds!.height).toBeLessThanOrEqual(450);
+    }
+    await page.getByRole('button',{name:'기능 요구사항 내용 보기',exact:true}).click();
+    await expect(page.getByRole('heading',{name:'기능 요구사항',level:2})).toBeVisible();
+    await page.screenshot({path:test.info().outputPath('requirements-short-height-detail-720x450.png'),scale:'css'});
+    await page.getByRole('button',{name:'문서 섹션으로 돌아가기'}).click();
+    await expect(page.getByRole('heading',{name:'문서 섹션',level:2})).toBeVisible();
+    await page.screenshot({path:test.info().outputPath('requirements-short-height-overview-720x450.png'),scale:'css'});
+  }
 });

@@ -22,6 +22,14 @@ Ready confirmation and document support/source access are also covered separatel
 
 Requirements conflict overview/detail captures are available at both viewports. The header reports `충돌 해결 필요`; the detail view shows the edit lock and resolution guidance. These captures were regenerated at PR #55 HEAD with the current 11-card hierarchy.
 
+## Short-height and zoom-equivalent viewport
+
+QA found that the requirements-stage mobile tabs and work panel collapsed at 720×450 CSS pixels, an approximation of 200% zoom on a 1440×900 display. The compact-height layout restores the tabs, work area, section detail/return flow, and both export actions. The primary references do not define this viewport; it supplements the 1440×900 and 390×844 design comparisons.
+
+![720×450 requirements overview](requirements-short-height-overview-720x450.png)
+
+![720×450 requirements section detail](requirements-short-height-detail-720x450.png)
+
 ## PRD
 
 The overview includes one stale and one conflict section. Selected section detail and focus return, loading, and locked states are captured at both viewports.
