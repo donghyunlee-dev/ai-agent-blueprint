@@ -1,0 +1,30 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "route": "/blueprints/uir-pr-03e-meeting-room",
+  "fixture": "UIR-PR-03E deterministic meeting room aggregate",
+  "head": "4542c8279dd92b5cabafa72fb89871a054bf80d7",
+  "baseline": {
+    "outline": "none",
+    "border": "1px solid rgb(220, 231, 244)",
+    "shadow": "none",
+    "background": "rgb(255, 255, 255)",
+    "focusVisible": false
+  },
+  "pointer": {
+    "outline": "none",
+    "border": "1px solid rgb(220, 231, 244)",
+    "shadow": "none",
+    "background": "rgb(255, 255, 255)",
+    "focusVisible": true
+  },
+  "keyboard": {
+    "outline": "none",
+    "border": "1px solid rgb(220, 231, 244)",
+    "shadow": "none",
+    "background": "rgb(255, 255, 255)",
+    "focusVisible": true
+  }
+}
