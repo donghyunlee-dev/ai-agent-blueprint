@@ -15,7 +15,7 @@ Implementation and final focused validation were completed at `28abb915162f7e109
 
 The PR's broad evidence workflow exposed that adding `padding-bottom:25px` directly to the conversation scroller makes the UIR-03D role-choice viewport check fail at 1024×768 (the last option remained at y=800.875, beyond the test's y<668 target). The same test passed on unchanged `origin/main`. Removing only the left padding did not change the failure; removing the scroller bottom padding restored the pass. The visible 25px end gap is now a flex spacer after the scroll content, leaving the scroller's viewport size intact.
 
-After this correction, local Playwright checks passed **12/12** for UIR-03E gutters/focus, UIR-03D focus/role options, UIR-02E keyboard focus, and UIR-03C internal scrolling. The spacer keeps the measured desktop content-end gap at 25px. The final corrected commit's independent code review and QA are pending.
+After this correction, local Playwright checks passed **12/12** for UIR-03E gutters/focus, UIR-03D focus/role options, UIR-02E keyboard focus, and UIR-03C internal scrolling. The spacer keeps the measured desktop content-end gap at 25px. Independent code review and QA passed on `cde4ca24e0503f81785fa90134a64ce0d2f8285f`; see [review notes](review-notes.md) and [QA report](qa-report.md).
 
 ## Broader related-suite observations
 
@@ -28,7 +28,7 @@ These were not changed because answer editing and conversation scroll ownership 
 
 ## Pull request workflow checks
 
-On the initial PR head, repository-wide visual evidence workflows also failed on unrelated older assertions: home creation tests expected `/blueprints/{id}/design` while the current route is `/blueprints/{id}`; conversation evidence additionally hit the prior-answer edit failure and the 1024×768 role-choice viewport case described above. The role-choice case was corrected by replacing scroller bottom padding with a content-end spacer. A CI rerun on the corrected head is pending. The stale home-route and prior-answer edit failures remain outside this scope.
+On initial PR head `e7695dd`, repository-wide visual evidence workflows failed on unrelated older assertions: home creation tests expected `/blueprints/{id}/design` while the current route is `/blueprints/{id}`; conversation evidence additionally hit the prior-answer edit failure and the 1024×768 role-choice viewport case described above. The role-choice case was corrected by replacing scroller bottom padding with a content-end spacer, and its focused regression check passes on corrected source HEAD `28abb915`. The stale home-route and prior-answer edit failures remain outside this scope. The initial GitHub CI run is attached to the older head; latest-head CI status is pending confirmation.
 
 ## Browser tooling
 

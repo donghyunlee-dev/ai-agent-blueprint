@@ -11,6 +11,6 @@
 
 The first independent review marked `pass_with_non_blocking` and reported that the original `#e8f1ff` keyboard background had only **1.14:1** contrast against white. The cue was strengthened to `#a5cfff`, and a focused-vs-unfocused background assertion was added. The final review found no remaining issues.
 
-## Follow-up review pending on corrected source
+## Final review
 
-A later PR CI viewport check showed that a 25px `padding-bottom` on the scroll container interfered with a short-height role-choice viewport check. The implementation now uses a 25px content-end spacer instead. Re-review source commit `28abb915162f7e1097382a399555a1513921e814` before marking the PR ready to merge.
+A later PR CI viewport check showed that a 25px `padding-bottom` on the scroll container interfered with a short-height role-choice viewport check. The implementation now uses a 25px content-end spacer instead. Final review of exact HEAD `cde4ca24e0503f81785fa90134a64ce0d2f8285f` passed with no remaining findings. The reviewer also confirmed that the evidence README resolves the earlier missing reference/render delta finding.
