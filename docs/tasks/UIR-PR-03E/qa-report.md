@@ -10,4 +10,4 @@
 
 ## Follow-up QA pending
 
-After this report's reviewed source HEAD, a 1024×768 role-choice test exposed that scroller `padding-bottom` reduced short-viewport reach. The code now uses a 25px content-end spacer; focused regression tests pass locally. Re-run independent QA on the corrected source before marking the PR ready to merge.
+After the initial QA source HEAD, a 1024×768 role-choice test exposed that scroller `padding-bottom` reduced short-viewport reach. Source commit `28abb915162f7e1097382a399555a1513921e814` now uses a 25px content-end spacer; focused regression tests pass locally. Re-run independent QA on the corrected source before marking the PR ready to merge.

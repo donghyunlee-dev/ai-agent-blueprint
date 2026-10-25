@@ -71,9 +71,9 @@ Suggested focused command after implementation: `npx playwright test tests/e2e/u
 
 ## Delivery evidence
 
-- Implementation commits: `68f8197483c70b9497ff59b81aaca93d7b5c2500`, followed by review correction `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e`.
-- Self-validation: focused Playwright 10/10, affected home keyboard-focus test 10/10, `npm run build`, and `git show --check` passed. Existing build output includes the Vite large-chunk advisory.
-- Independent code review: pass on `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e`; the initial low-contrast focus cue finding was fixed and re-reviewed.
-- Independent QA: pass on `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e`; UIR-03E 4/4, UIR-02E focus 2/2, UIR-03C internal scrolling 2/2, and UIR-03D focus 2/2.
+- Implementation commits: `68f8197483c70b9497ff59b81aaca93d7b5c2500`, focus-cue review correction `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e`, and short-viewport scroll correction `28abb915162f7e1097382a399555a1513921e814`.
+- Self-validation: final-source focused Playwright 12/12, `npm run build`, and `git show --check` passed. Existing build output includes the Vite large-chunk advisory.
+- Independent code review: prior source review passed; re-review of the short-viewport scroll correction is pending.
+- Independent QA: prior source QA passed; re-QA of the short-viewport scroll correction is pending.
 - Final screenshots and measured comparisons: [evidence README](../../delivery/evidence/UIR-PR-03E/README.md).
 - Known scope limit: a broader conversation run also exposed two unrelated cases (prior-answer edit click is intercepted by the fixed composer; the full-canvas fixture does not create scroll extent). They were not changed by this UI task; see [test results](test-results.md).
