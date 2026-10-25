@@ -1,0 +1,73 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "route": "/blueprints/uir-pr-03e-meeting-room",
+  "fixture": "UIR-PR-03E deterministic meeting room aggregate",
+  "head": "f8d78c2bb2440cce7c51391ec489c19b40f6ae8d",
+  "geometry": {
+    "conversation": {
+      "paddingLeft": 25,
+      "paddingRight": 23,
+      "paddingBottom": 110
+    },
+    "conversationEndSpacerHeight": 25,
+    "summary": {
+      "paddingLeft": 26,
+      "paddingRight": 26,
+      "paddingBottom": 25
+    },
+    "inspector": {
+      "paddingLeft": 0,
+      "paddingRight": 0,
+      "paddingBottom": 0
+    },
+    "layout": {
+      "x": 249,
+      "y": 196,
+      "width": 1191,
+      "height": 704,
+      "top": 196,
+      "right": 1440,
+      "bottom": 900,
+      "left": 249
+    },
+    "conversationCard": {
+      "x": 275,
+      "y": 196,
+      "width": 817,
+      "height": 678,
+      "top": 196,
+      "right": 1092,
+      "bottom": 874,
+      "left": 275
+    },
+    "summaryCard": {
+      "x": 1105,
+      "y": 196,
+      "width": 309,
+      "height": 678,
+      "top": 196,
+      "right": 1414,
+      "bottom": 874,
+      "left": 1105
+    },
+    "composer": {
+      "x": 305,
+      "y": 786,
+      "width": 757,
+      "height": 78,
+      "top": 786,
+      "right": 1062,
+      "bottom": 864,
+      "left": 305
+    },
+    "layoutPadding": {
+      "paddingLeft": 26,
+      "paddingRight": 26,
+      "paddingBottom": 26
+    },
+    "overflow": false
+  }
+}

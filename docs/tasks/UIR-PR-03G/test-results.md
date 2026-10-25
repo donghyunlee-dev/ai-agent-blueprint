@@ -7,6 +7,7 @@
 - The focused browser case checks 1440×900 outer card gutters and composer bounds, 1024×768 transition overflow/composer containment, and 390×844 stacked layout and 10px inset.
 - `npm run build` passed. Vite emitted its existing large-chunk advisory.
 - `git diff --check` passed.
+- `PUPPETEER_EXECUTABLE_PATH=/home/donghyunlee/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell npm run docs:check:mermaid` passed: **44/44**. The default Puppeteer browser cache was incomplete, so the installed Playwright Chromium shell was selected explicitly.
 
 ## Measurements
 
@@ -14,4 +15,6 @@ At 1440×900, the Playwright fixture measured the stage at `(249,196)`, size `11
 
 At 390×844, the existing 10px layout inset and stacked summary behavior remain; horizontal overflow was false.
 
-The browser screenshots and exact source-render SHA are recorded in [the UI evidence README](../../delivery/evidence/UIR-PR-03G/README.md) after the final implementation commit.
+Final source-render SHA: `f8d78c2bb2440cce7c51391ec489c19b40f6ae8d`. The Playwright rerun after this commit passed 6/6 and regenerated the desktop/mobile captures and measurements at that exact SHA. See [the UI evidence README](../../delivery/evidence/UIR-PR-03G/README.md).
+
+The independent reviewer, QA reviewer, and required GitHub checks have not yet run for this PR unit.

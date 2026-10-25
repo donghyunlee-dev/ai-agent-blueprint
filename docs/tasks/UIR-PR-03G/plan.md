@@ -77,8 +77,8 @@ None. This is a CSS and browser-test-only change.
 
 ## Done checklist
 
-- [ ] Browser regression assertion fails before the CSS change and passes after it.
-- [ ] Desktop/mobile focused tests and `npm run build` pass.
-- [ ] Matched desktop reference/render evidence and responsive screenshots are attached.
+- [x] Browser regression assertion failed before the CSS change and passed after it.
+- [x] Desktop/mobile focused tests and `npm run build` pass.
+- [x] Matched desktop reference/render evidence and responsive screenshots are attached.
 - [ ] Independent code review and QA pass on the exact final HEAD.
 - [ ] Required CI checks pass; PR is left open at `ready_to_merge`.
