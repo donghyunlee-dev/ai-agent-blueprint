@@ -125,7 +125,7 @@ flowchart TD
 - PR 범위와 제품 결과를 확인한다.
 - 코드 리뷰와 QA가 `pass`인지 확인한다.
 - 필요하면 수정·보류를 결정한다.
-- 전체 PR lifecycle 요청 여부를 결정하고 병합 뒤 다음 PR의 조건을 검토한다.
+- 병합 여부를 결정하고 병합 뒤 다음 PR의 조건을 검토한다.
 
 ## Definition of Ready
 

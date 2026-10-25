@@ -70,7 +70,7 @@ Google OAuth/OIDC가 유일한 로그인 방식이다. 별도 OTP 입력, Gmail 
 | --- | --- | --- |
 | DEC-034 | 개발은 검증 가능한 사용자 결과 또는 기술 계약 단위의 작은 PR로 진행한다. | 개발 계획, delivery workflow |
 | DEC-035 | 모든 PR은 구현자 자체 검증, 독립 코드 리뷰와 독립 QA를 통과해야 머지 가능하다. 최종 통합 QA는 매 PR QA를 대체하지 않는다. | delivery workflow, QA, AGENTS |
-| DEC-036 | Agent는 기본적으로 `ready_to_merge`에서 멈춘다. 사용자가 full PR lifecycle을 요청하면 자체 검증·독립 리뷰·독립 QA·필요한 CI가 모두 통과한 뒤에만 병합할 수 있다. 다음 PR은 현재 병합 확인 후 별도 요청에서 시작한다. (2026-10-25 자동화 스킬 폐기) | delivery workflow, 개발 계획, AGENTS, Codex PR loop (historical) |
+| DEC-036 (superseded 2026-10-25) | Agent는 기본적으로 `ready_to_merge`에서 멈춘다. 사용자가 full PR lifecycle을 요청하면 자체 검증·독립 리뷰·독립 QA·필요한 CI가 모두 통과한 뒤에만 병합할 수 있다. 다음 PR은 현재 병합 확인 후 별도 요청에서 시작한다. | delivery workflow, 개발 계획, AGENTS, retired Codex PR loop (historical) |
 | DEC-037 | 화면 작업 PR은 `docs/template/`의 관련 캡처를 참고하고 최종 HEAD의 desktop/mobile 개발 화면과 관련 상태 캡처를 PR에서 직접 볼 수 있게 제공한다. | PR template, delivery workflow, `docs/template/README.md` |
 | DEC-038 | 단계별 개발은 Codex `$pr-development-loop` skill과 분리된 planner, implementer, code reviewer, QA reviewer agent를 사용한다. (2026-10-25 폐기) | AGENTS, Codex PR loop, delivery workflow (historical) |
 | DEC-039 | 구현은 `docs/template/` 시각 참고와 semantic HTML/CSS를 사용한다. 새 화면은 기존 외부 UI library에 의존하지 않으며 legacy imports는 UI migration unit에서 dependency와 함께 제거한다. | UI design, architecture, delivery plan |

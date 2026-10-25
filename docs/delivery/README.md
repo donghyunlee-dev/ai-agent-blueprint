@@ -28,7 +28,7 @@ PR 단위 목록과 각 작업의 검증 계약은 [개발 PR·리뷰·QA 워크
 | `code_review` | 독립 코드 리뷰 중 | 차단 finding 0건 |
 | `qa` | 독립 동작·프로세스 QA 중 | QA 차단 finding 0건 |
 | `fix_required` | 리뷰·QA 수정 필요 | 수정 후 관련 검증 재실행 |
-| `ready_to_merge` | 모든 gate 통과, 병합 대기 | full lifecycle 요청이면 Codex가 병합, 아니면 사용자 직접 병합 |
+| `ready_to_merge` | 검증과 PR 리뷰 결과를 확인한 병합 대기 상태 | 사용자가 병합 여부를 결정 |
 | `done` | 기본 브랜치 병합 확인 완료 | 후속 작업 시작 가능 |
 
 ## 공통 작업 문서 구조
