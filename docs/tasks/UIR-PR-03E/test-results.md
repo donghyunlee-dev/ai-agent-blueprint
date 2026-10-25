@@ -2,7 +2,7 @@
 
 ## Final implementation HEAD
 
-The initial focus change merged in PR #57. The short-viewport correction was cherry-picked onto latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a` as `019604a`. Follow-up focused validation ran at branch HEAD `9bb1aba`.
+The initial focus change merged in PR #57 (merge commit `a74946ce825001c5bcc815e2a51dc392fe21ddce`). The short-viewport correction was cherry-picked onto latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a` as `019604a`. The follow-up was independently reviewed and QA-validated at exact HEAD `33488142712e90d2c44f59cff492385b4926f27f`.
 
 - Focused Playwright browser coverage on final source: **12/12 passed** across desktop Chromium (1440×900) and mobile Chromium (390×844), covering UIR-03E focus/gutters, UIR-03D focus/role choices, UIR-02E keyboard focus, and UIR-03C internal scrolling.
 - `npm run build`: passed; Vite emitted the existing large-chunk advisory.
@@ -15,7 +15,7 @@ The initial focus change merged in PR #57. The short-viewport correction was che
 
 The PR's broad evidence workflow exposed that adding `padding-bottom:25px` directly to the conversation scroller makes the UIR-03D role-choice viewport check fail at 1024×768 (the last option remained at y=800.875, beyond the test's y<668 target). The same test passed on unchanged `origin/main`. Removing only the left padding did not change the failure; removing the scroller bottom padding restored the pass. The visible 25px end gap is now a flex spacer after the scroll content, leaving the scroller's viewport size intact.
 
-After this correction, local Playwright checks passed **12/12** for UIR-03E gutters/focus, UIR-03D focus/role options, UIR-02E keyboard focus, and UIR-03C internal scrolling. The spacer keeps the measured desktop content-end gap at 25px. The source has equivalent prior-branch review/QA; exact review and QA of the latest-main follow-up branch are pending.
+After this correction, local Playwright checks passed **12/12** for UIR-03E gutters/focus, UIR-03D focus/role options, UIR-02E keyboard focus, and UIR-03C internal scrolling. The final independent latest-main QA then passed **28/28** across desktop and mobile for UIR-03E, UIR-03D, UIR-02E, and UIR-03C at exact HEAD `33488142712e90d2c44f59cff492385b4926f27f`. The spacer keeps the measured desktop content-end gap at 25px and preserves role-choice reachability at 1024×768. The independent latest-main review passed with no findings.
 
 ## Broader related-suite observations
 

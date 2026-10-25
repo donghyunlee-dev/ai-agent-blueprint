@@ -73,6 +73,6 @@ Suggested focused command after implementation: `npx playwright test tests/e2e/u
 
 - Initial implementation: PR #57 merged. Follow-up source commit on latest main: `019604a`.
 - Self-validation: final-source focused Playwright 12/12, `npm run build`, and `git show --check` passed. Existing build output includes the Vite large-chunk advisory.
-- Independent code review and QA passed on the equivalent source tree in the prior branch; exact review and QA on this latest-main follow-up branch are pending.
+- Independent latest-main code review passed with no findings at exact HEAD `33488142712e90d2c44f59cff492385b4926f27f`; independent Playwright QA passed 28/28 at the same HEAD. The review and QA reports contain the detailed evidence.
 - Final screenshots and measured comparisons: [evidence README](../../delivery/evidence/UIR-PR-03E/README.md).
 - Known scope limit: a broader conversation run also exposed two unrelated cases (prior-answer edit click is intercepted by the fixed composer; the full-canvas fixture does not create scroll extent). They were not changed by this UI task; see [test results](test-results.md).

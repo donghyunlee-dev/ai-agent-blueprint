@@ -1,6 +1,6 @@
 # UIR-PR-03E independent code review
 
-## Prior review and latest-main re-review pending
+## Latest-main follow-up review
 
 - Result: **PASS**, no findings.
 - Reviewed exact implementation HEAD: `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e` against base `d34dead5f006fc1cb94857688a05f2bee81d863c`.
@@ -13,4 +13,4 @@ The first independent review marked `pass_with_non_blocking` and reported that t
 
 ## Final review
 
-A later PR CI viewport check showed that a 25px `padding-bottom` on the scroll container interfered with a short-height role-choice viewport check. The implementation now uses a 25px content-end spacer instead. The follow-up implementation and reference-delta documentation passed review on the prior branch. The short-viewport correction was cherry-picked onto latest main at `019604a`; a fresh review of the latest-main branch is pending.
+A later PR CI viewport check showed that a 25px `padding-bottom` on the scroll container interfered with a short-height role-choice viewport check. The implementation now uses a 25px content-end spacer instead. The latest-main follow-up at exact HEAD `33488142712e90d2c44f59cff492385b4926f27f`, based on `7e805ef398e3ddf21262234b18ead793eaaf778a`, passed independent review with no findings. The reviewer verified the spacer preserves the scroller viewport and the 1024×768 role-choice reachability.

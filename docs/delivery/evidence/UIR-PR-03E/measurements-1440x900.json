@@ -5,7 +5,7 @@
   },
   "route": "/blueprints/uir-pr-03e-meeting-room",
   "fixture": "UIR-PR-03E deterministic meeting room aggregate",
-  "head": "9bb1aba0331d3afb61daa186004daaa652cb00b9",
+  "head": "33488142712e90d2c44f59cff492385b4926f27f",
   "geometry": {
     "conversation": {
       "paddingLeft": 25,
