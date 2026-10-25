@@ -2,22 +2,23 @@
 
 ## Outcome
 
-Remove the visible blue focus ring around the home idea textarea while retaining a clear keyboard-only focus cue through its background. Give the conversation content a consistent 25px left and bottom inset, and give the summary panel a 25px bottom inset to match its existing right gutter. Preserve the permanent composer frame and all conversation/API behavior.
+Remove the visible blue focus ring around both the home idea textarea and the conversation-tab free-text textarea while retaining a clear `:focus-visible` cue through the textarea background. Give the conversation content a consistent 25px left and bottom inset, and give the summary panel a 25px bottom inset to match its existing right gutter. Preserve the permanent composer frame, the conversation textarea's neutral pill border, and all conversation/API behavior.
 
 ## Traceability and prerequisites
 
 - **Requirements:** `UIR-003` (home and idea input), `UIR-005` (conversation and summary), `UIR-010` (responsive/accessibility), `NFR-001` (keyboard focus and visible indication).
-- **Product contracts:** [Blueprint UI redesign](../../blueprint-design/README.md), [conversation and forms](../../ui/02-conversation-and-forms.md), [UIR contracts](../../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md#ui-003--공통-셸과-홈), and [visual acceptance](../../ui/07-visual-acceptance.md).
+- **Product contracts:** [Blueprint UI redesign](../../blueprint-design/README.md), [conversation and forms (`UI-CONV-003` composer)](../../ui/02-conversation-and-forms.md), [UIR contracts](../../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md#ui-003--공통-셸과-홈), and [visual acceptance](../../ui/07-visual-acceptance.md).
 - **Predecessor:** Initial UIR-PR-03E implementation merged in PR #57 (`a74946ce825001c5bcc815e2a51dc392fe21ddce`). The short-viewport follow-up was cherry-picked onto latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a`.
-- **Relevant implementation:** `src/styles/project-composer.css`, `src/styles/workspace-shell.css`; focused coverage belongs in the existing/new UIR-PR-03E browser spec.
+- **Relevant implementation:** `src/styles/project-composer.css`, `src/styles/globals.css`, `src/styles/workspace-shell.css`; focused coverage belongs in the existing UIR-PR-03E browser spec.
+- **Conversation focus root cause:** `AiTurnComposer` uses the global `:where(...):focus-visible` 3px outline from `globals.css`. The conversation textarea also has a permanent neutral 1px pill border; preserve it and remove only the focus-generated ring. Apply the background cue whenever `:focus-visible` matches; browsers may match it for pointer-focused textareas too.
 - **Separate finding, out of scope:** production `POST /api/blueprint/turn` returned 503; deployed `AI_MODEL_*` settings do not match the current registry, and the configured `OPENAI_API_KEY` was present but OpenAI `/v1/models` returned 401. This points to environment credential/configuration remediation. Do not change Vercel environment variables, provider/model routing, or AI behavior in this UI PR.
 
 ## Scope
 
 ### Include
 
-- Remove the focus-generated `outline`, `border`, and `box-shadow` around the home idea textarea for pointer, keyboard, and invalid states. Keep the composer’s always-visible outer frame unchanged.
-- Retain a clearly distinguishable keyboard focus cue using background color only. Preserve visible validation feedback in the invalid state; when invalid and keyboard-focused, both states must remain understandable without a ring.
+- Remove focus-generated `outline` and `box-shadow` from the home idea textarea and conversation-tab free-text textarea for pointer and keyboard focus. Keep the home's always-visible outer composer frame and the conversation textarea's neutral pill border unchanged.
+- Retain a clearly distinguishable focus cue using background color only on both textareas whenever `:focus-visible` matches. Preserve visible validation feedback in the home input's invalid state; when invalid and focus-visible, both states must remain understandable without a ring. Focus-visible modality is browser-determined and may include pointer focus.
 - Add 25px left padding and a 25px content-end spacer to the conversation scroll region, plus 25px bottom padding to the summary region, matching the summary’s existing 25px right gutter. Use a content-end spacer so the visible inset does not reduce scroll reach at shorter desktop heights. Preserve the current panel layout and fixed composer placement.
 - Add focused browser assertions and capture final-HEAD, same-data visual evidence.
 
@@ -29,8 +30,8 @@ Remove the visible blue focus ring around the home idea textarea while retaining
 
 ## Acceptance criteria
 
-1. Pointer-focused, keyboard-focused, and invalid textarea states have no focus-generated outline, border, or box-shadow. The permanent outer composer border remains visually and geometrically unchanged.
-2. Keyboard focus is visibly distinguishable through the textarea background alone; the invalid state still communicates validation, including when keyboard-focused. Pointer focus does not create a blue ring.
+1. Pointer- and keyboard-focused home and conversation textareas have no focus-generated outline or box-shadow. The home's permanent outer composer border and the conversation textarea's neutral pill border remain visually unchanged.
+2. Whenever `:focus-visible` matches, focus is visibly distinguishable through each textarea's background alone; the home input's invalid state still communicates validation, including when focus-visible. Neither pointer nor keyboard focus creates a ring. Browsers may apply `:focus-visible` after pointer focus, so modality is not asserted as keyboard-only.
 3. At desktop width, conversation content has a 25px left inset and 25px content-end gap, summary content has a 25px bottom inset, and the existing summary right inset remains 25px (±1px measurement tolerance).
 4. At 390×844, the conversation and summary flow remains readable without horizontal overflow, clipping, or content hidden behind the fixed composer/safe area. Preserve the existing responsive summary behavior.
 5. Selection, answer submission, retries, keyboard operation, API calls, and conversation scroll ownership are unchanged.
@@ -40,6 +41,7 @@ Remove the visible blue focus ring around the home idea textarea while retaining
 | Area | Cases | Evidence/check |
 | --- | --- | --- |
 | Home focus | Pointer focus; keyboard Tab focus; invalid; invalid + keyboard focus | Playwright computed-style assertions for `outline`, border, and `box-shadow`; screenshot confirms background-only keyboard cue and legible validation state |
+| Conversation composer focus | Pointer focus; keyboard Tab focus | At 1440×900 and 390×844, assert computed `outline-style: none` and `box-shadow: none`; verify the neutral 1px pill border is unchanged and the background cue appears whenever `:focus-visible` matches. Record whether each browser/input method matches `:focus-visible`; capture focused and unfocused states. |
 | Composer frame | Before/after outer frame bounds, border width/color/style | Assert unchanged at 1440×900 and 390×844; include focused and unfocused captures |
 | Conversation gutters | Desktop content left/bottom and summary bottom/right geometry | Playwright bounding-box measurements at 1440×900; target 25px ±1px; verify composer does not cover content |
 | Responsive | Conversation and summary at 390×844; no horizontal overflow or clipping | Playwright Chromium, deterministic same-data fixture; verify visible content and safe-area clearance |
@@ -52,7 +54,7 @@ Suggested focused command after implementation: `npx playwright test tests/e2e/u
 
 - Home primary reference: `docs/blueprint-design/윈드소프트 모던 SaaS 대시보드.png`; fallback for states absent from the redesign: `docs/template/image (17).png`.
 - Conversation primary reference: `docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png`; fallback for in-progress details absent from the redesign: `docs/template/image (15).png` and `docs/template/image (16).png`.
-- Capture the same deterministic data at 1440×900 and 390×844 on final HEAD, including home default/pointer/keyboard/invalid states and conversation with summary. Record route, state, fixture, viewport, HEAD SHA, artifact path, measured gutters, and composer-frame dimensions. Compare same-state reference/render pairs where comparable; document focus states absent from the design image as accessibility states rather than claiming pixel parity.
+- Capture the same deterministic data at 1440×900 and 390×844 on final HEAD, including home default/pointer/keyboard/invalid states and conversation default/pointer/keyboard focus with summary. Record route, state, fixture, viewport, HEAD SHA, artifact path, measured gutters, and composer-frame dimensions. Record browser `:focus-visible` matching for pointer and keyboard input without requiring pointer focus to remain unhighlighted. Compare same-state reference/render pairs where comparable; document focus states absent from the design image as accessibility states rather than claiming pixel parity.
 
 ## Failure states and risks
 

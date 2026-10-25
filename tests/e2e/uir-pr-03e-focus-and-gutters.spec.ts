@@ -133,3 +133,40 @@ test('conversation and summary content keep the specified desktop insets and mob
   await page.screenshot({ path: `${artifactDirectory}/conversation-summary-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
   await writeFile(`${artifactDirectory}/measurements-${viewport.width}x${viewport.height}.json`, JSON.stringify({ viewport, route: `/blueprints/${projectId}`, fixture: 'UIR-PR-03E deterministic meeting room aggregate', head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), geometry }, null, 2));
 });
+
+test('conversation composer focus uses a background cue without a blue ring', async ({ page }, testInfo) => {
+  const viewport = testInfo.project.name === 'mobile-chromium' ? { width: 390, height: 844 } : { width: 1440, height: 900 };
+  await page.setViewportSize(viewport);
+  await page.goto(`/blueprints/${projectId}`);
+  const idea = page.locator('#ai-turn-draft');
+  await expect(idea).toBeVisible();
+  await mkdir(artifactDirectory, { recursive: true });
+  const readStyles = () => idea.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outline: style.outlineStyle, border: style.border, shadow: style.boxShadow, background: style.backgroundColor, focusVisible: element.matches(':focus-visible') };
+  });
+  const baseline = await readStyles();
+  await page.screenshot({ path: `${artifactDirectory}/conversation-composer-default-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+
+  await idea.click();
+  await expect(idea).toBeFocused();
+  const pointer = await readStyles();
+  expect(pointer.outline).toBe('none');
+  expect(pointer.shadow).toBe('none');
+  expect(pointer.border).toBe(baseline.border);
+  if (pointer.focusVisible) expect(pointer.background).not.toBe(baseline.background);
+  else expect(pointer.background).toBe(baseline.background);
+  await page.screenshot({ path: `${artifactDirectory}/conversation-composer-pointer-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+
+  await idea.blur();
+  await idea.focus();
+  await expect.poll(() => idea.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+  const keyboard = await readStyles();
+  expect(keyboard.focusVisible).toBe(true);
+  expect(keyboard.outline).toBe('none');
+  expect(keyboard.shadow).toBe('none');
+  expect(keyboard.border).toBe(baseline.border);
+  expect(keyboard.background).not.toBe(baseline.background);
+  await page.screenshot({ path: `${artifactDirectory}/conversation-composer-keyboard-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+  await writeFile(`${artifactDirectory}/conversation-composer-focus-${viewport.width}x${viewport.height}.json`, JSON.stringify({ viewport, route: `/blueprints/${projectId}`, fixture: 'UIR-PR-03E deterministic meeting room aggregate', head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), baseline, pointer, keyboard }, null, 2));
+});
