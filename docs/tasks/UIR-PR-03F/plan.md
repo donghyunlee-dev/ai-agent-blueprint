@@ -27,7 +27,7 @@ The user explicitly rejected replacing the focus outline with a blue background.
 
 - Adding a replacement focus color, outline, ring, or shadow to these two textareas.
 - Changing validation styling, composer surfaces/borders/geometry, other controls’ focus indicators, conversation gutters, mobile summary icon, or the rest of PR #59.
-- Changes to AI/API behavior, Vercel configuration, authentication, routes, dependencies, or unrelated test expectations.
+- Changes to AI/API behavior, Vercel configuration, authentication, application routes, or dependencies. The two existing UIR-PR-02C synthetic-create test expectations are explicitly in scope only to align them with the current route/workspace and unblock the required UI CI gate; no application route behavior changes.
 
 ## Acceptance criteria
 
@@ -76,4 +76,4 @@ Suggested focused command: `npx playwright test tests/e2e/uir-pr-03e-focus-and-g
 - Agent Browser was not available in the tool catalog or as an executable (`command -v agent-browser` returned no path); Playwright Chromium was used.
 - Independent code review: **pass**, no findings, on PR HEAD `72ce6d12f3b1f1cf82eca6e2c98bf2c77717b227`.
 - Independent QA: **pass** on that exact HEAD using the READY protected Preview `windsoft-agent-blueprint-hr2w2kbwm.vercel.app`. Desktop/mobile focus, home validation, conversation border/gutters, mobile summary icon, and scroll/overflow checks passed. Evidence is in the PR description and `.pr-artifacts/UIR-PR-03F/qa/`.
-- PR #60's UIR-PR-03 visual evidence check passed. Required `Capture home UI states` failed on source HEAD `72ce6d12f3b1f1cf82eca6e2c98bf2c77717b227` in pre-existing synthetic creation tests (run [40167270290](https://github.com/donghyunlee-dev/ai-agent-blueprint/actions/runs/40167270290)): they expect `/blueprints/{id}/design`, while the application navigates to `/blueprints/{id}`. This route assertion is unrelated to the focus-fill change and was not changed here. The latest PR HEAD `922e81f20e73d7876569b62bdf6be1aebdd5c45e` contains only documentation changes and its checks were still running when this status was recorded. PR #60 remains open and blocked; it has not been merged or deployed to production.
+- The required `Capture home UI states` check failed at earlier source HEAD `72ce6d12f3b1f1cf82eca6e2c98bf2c77717b227` (run [40167270290](https://github.com/donghyunlee-dev/ai-agent-blueprint/actions/runs/40167270290)) because two synthetic-create tests expected a stale `/blueprints/{id}/design` route and design-stage UI. This PR now updates only those tests to the existing `/blueprints/{id}` conversation route and preserves title, saved state, initial message, and full long-idea persistence; application routes and behavior remain unchanged. The updated UIR-PR-02C suite passes locally 22/22. CI, independent review, and QA are being rerun for the updated HEAD; the PR remains open and has not been merged or deployed to production.
