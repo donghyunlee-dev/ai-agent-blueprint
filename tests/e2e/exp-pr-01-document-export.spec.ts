@@ -28,7 +28,7 @@ async function downloadText(download:any){const stream=await download.createRead
 test('Requirements copies and downloads the whole canonical document with a safe filename',async({page,context})=>{
   await context.grantPermissions(['clipboard-read','clipboard-write']);
   await seed(page);await page.goto(`/blueprints/${projectId}/requirements`);
-  const actions=page.getByRole('group',{name:'Requirements 내보내기'});
+  const actions=page.getByRole('group',{name:'요구사항 명세 내보내기'});
   await actions.getByRole('button',{name:'Markdown 복사'}).click();
   await expect(actions.getByRole('status')).toHaveText('문서 전체를 Markdown으로 복사했습니다.');
   const clipboard=await page.evaluate(()=>navigator.clipboard.readText());

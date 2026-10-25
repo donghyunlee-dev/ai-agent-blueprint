@@ -26,7 +26,7 @@ import { bulkApproveProposals, bulkRejectProposals, classifyProposalConflicts, p
 import { DesignBoard } from "../features/design/DesignBoard.js";
 import { ProposalReviewPanel } from "../components/proposals/ProposalReviewPanel.js";
 import { computeDesignReadiness } from "../features/design/readiness.js";
-import { RequirementsDocument } from "../components/blueprint/RequirementsDocument.js";
+import { RequirementsDocument, RequirementsPageHeader } from "../components/blueprint/RequirementsDocument.js";
 import { PrdDocument } from "../components/blueprint/PrdDocument.js";
 import { SetupGuideDocument } from "../components/blueprint/SetupGuideDocument.js";
 import { commitRequirementsResult } from "../features/documents/requirements-generation.js";
@@ -444,7 +444,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       if(committed.status==='stale')throw new Error('DOCUMENT_REVISION_STALE');
       if(committed.aggregate)applyCommittedAggregate(committed.aggregate);
       setConsistencyReview({status:'completed',findings});
-    }catch(error){setConsistencyReview({status:'failed',findings:[],error:error instanceof Error&&error.message==='DOCUMENTS_MISSING'?'Requirements와 PRD 문서를 모두 만든 뒤 검토할 수 있습니다.':error instanceof Error&&error.message==='DOCUMENT_REVISION_STALE'?'검토 중 문서가 바뀌어 결과와 제안을 저장하지 않았습니다. 최신 문서에서 다시 검토해 주세요.':'정합성 검토를 완료하지 못했습니다. 현재 문서는 유지됐습니다. 다시 시도해 주세요.'});}
+    }catch(error){setConsistencyReview({status:'failed',findings:[],error:error instanceof Error&&error.message==='DOCUMENTS_MISSING'?'요구사항 명세와 PRD를 모두 만든 뒤 검토할 수 있습니다.':error instanceof Error&&error.message==='DOCUMENT_REVISION_STALE'?'검토 중 문서가 바뀌어 결과와 제안을 저장하지 않았습니다. 최신 문서에서 다시 검토해 주세요.':'정합성 검토를 완료하지 못했습니다. 현재 문서는 유지됐습니다. 다시 시도해 주세요.'});}
   }
 
   async function resolveProposal(proposalId: string, action: "approve" | "reject" | "edit") {
@@ -615,6 +615,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const designBoardVisible = (documentType === "design" && !proposalStageVisible) || (documentType === "requirements" && !designReadiness.canGenerateRequirements);
   const currentStage: BlueprintStage = documentType === "requirements" ? "requirements" : documentType === "prd" || documentType === "setup_guide" ? "prd" : documentType === "design" ? location.hash === "#proposal-review-title" ? "proposal" : "design" : "conversation";
   const prdReady = validatePrdAllowed(aggregate).allowed;
+  const requirementsDocument = aggregate.documents.filter((document) => document.type === 'requirements').sort((a,b)=>b.version-a.version)[0];
+  const requirementsSections = requirementsDocument ? aggregate.sections.filter((section) => section.documentId === requirementsDocument.id) : [];
 
   function openDesignItem(item: BlueprintAggregate["designItems"][number]) {
     setSelectedDesignItemId(item.id);
@@ -644,7 +646,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       const current = await repository.get(ownerKey, projectId);
       if (!current || current.project.designRevision !== request.snapshot.project.designRevision) {
         requirementsRequestRef.current = null;
-        throw new Error('설계가 변경되어 Requirements를 생성하지 않았습니다. 최신 설계를 다시 확인해 주세요.');
+        throw new Error('설계가 변경되어 요구사항 명세를 생성하지 않았습니다. 최신 설계를 다시 확인해 주세요.');
       }
       const response = await fetchBlueprintApi('/api/blueprint/documents/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -659,7 +661,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         if (payload.error === 'REQUIREMENTS_BLOCKED') throw new Error((payload.blockers ?? []).map((item: { reason?:string }) => item.reason).filter(Boolean).join(' '));
-        throw new Error(payload.error === 'AI_BUDGET_EXCEEDED' ? '요청 예산을 초과해 생성하지 못했습니다.' : 'Requirements를 생성하지 못했습니다. 저장된 설계는 유지됩니다. 다시 시도해 주세요.');
+        throw new Error(payload.error === 'AI_BUDGET_EXCEEDED' ? '요청 예산을 초과해 생성하지 못했습니다.' : '요구사항 명세를 생성하지 못했습니다. 저장된 설계는 유지됩니다. 다시 시도해 주세요.');
       }
       const committed = await repository.transact(ownerKey, projectId, (current) => ({ status: 'updated', aggregate: commitRequirementsResult(current, payload, current.project.designRevision) }));
       if (!committed.aggregate) throw new Error('저장 결과를 확인하지 못했습니다. 설계는 보존됐으며 다시 시도할 수 있습니다.');
@@ -667,7 +669,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       aggregateRef.current = committed.aggregate;
       setAggregate(committed.aggregate);
     } catch (error) {
-      setRequirementsError(error instanceof Error ? error.message : 'Requirements를 생성하지 못했습니다. 저장된 설계는 유지됩니다. 다시 시도해 주세요.');
+      setRequirementsError(error instanceof Error ? error.message : '요구사항 명세를 생성하지 못했습니다. 저장된 설계는 유지됩니다. 다시 시도해 주세요.');
     } finally { setRequirementsGenerating(false); }
   }
 
@@ -696,14 +698,14 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         const latestSections = current.sections.filter((section) => section.documentId === latestRequirements.id);
         if (current.project.designRevision !== latest.project.designRevision || JSON.stringify({ document:latestRequirements, sections:latestSections }) !== confirmedSnapshot) throw new Error('REQUIREMENTS_READY_STALE');
         const updated = confirmRequirementsReady(current, latestRequirements.id, { confirmed:true, designRevision:latest.project.designRevision ?? -1, readyConfirmationArtifact:attestation.readyConfirmationArtifact, readyAt });
-        const aggregate:BlueprintAggregate = { ...current, documents:current.documents.map((document)=>document.id===updated.id?updated:document), project:{...current.project,processState:'requirements_ready',updatedAt:readyAt}, activityEntries:[...current.activityEntries,{id:crypto.randomUUID(),projectId:current.project.id,action:'requirements_marked_ready',targetType:'document',targetId:updated.id,summary:`Requirements 검토 완료 · design revision ${updated.readyDesignRevision}`,createdAt:readyAt}] };
+        const aggregate:BlueprintAggregate = { ...current, documents:current.documents.map((document)=>document.id===updated.id?updated:document), project:{...current.project,processState:'requirements_ready',updatedAt:readyAt}, activityEntries:[...current.activityEntries,{id:crypto.randomUUID(),projectId:current.project.id,action:'requirements_marked_ready',targetType:'document',targetId:updated.id,summary:`요구사항 명세 검토 완료 · 설계 revision ${updated.readyDesignRevision}`,createdAt:readyAt}] };
         return {status:'updated',aggregate};
       });
       if (!committed.aggregate) throw new Error('REQUIREMENTS_READY_SAVE_FAILED');
       aggregateRef.current = committed.aggregate;
       setAggregate(committed.aggregate);
     } catch (error) {
-      setRequirementsReadyError(error instanceof Error ? '확인 중 설계가 바뀌었거나 저장에 실패했습니다. 최신 Requirements를 다시 확인해 주세요.' : 'Requirements를 ready로 저장하지 못했습니다. 다시 시도해 주세요.');
+      setRequirementsReadyError(error instanceof Error ? '확인 중 설계가 바뀌었거나 저장에 실패했습니다. 최신 요구사항 명세를 다시 확인해 주세요.' : '요구사항 명세를 검토 완료로 저장하지 못했습니다. 다시 시도해 주세요.');
     }
   }
 
@@ -711,7 +713,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     const snapshot = aggregateRef.current;
     if (!ownerKey || !projectId || !snapshot || prdGenerating) return;
     const guard = validatePrdAllowed(snapshot);
-    if (!guard.allowed) { setPrdError('PRD를 생성할 수 없습니다. Requirements를 검토하고 최신 설계 revision에서 ready로 확정해 주세요.'); return; }
+    if (!guard.allowed) { setPrdError('PRD를 생성할 수 없습니다. 요구사항 명세를 검토하고 최신 설계 revision에서 검토 완료로 확정해 주세요.'); return; }
     setPrdGenerating(true); setPrdError(null);
     try {
       const repository = repositoryFactory();
@@ -735,7 +737,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       if(!saved.aggregate) throw new Error('PRD_SAVE_FAILED');
       aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);
     } catch {
-      setPrdError('PRD를 생성하지 못했습니다. Requirements와 설계는 유지됩니다. ready 상태와 최신 revision을 확인한 뒤 다시 시도해 주세요.');
+      setPrdError('PRD를 생성하지 못했습니다. 요구사항 명세와 설계는 유지됩니다. 검토 완료 상태와 최신 revision을 확인한 뒤 다시 시도해 주세요.');
     } finally { setPrdGenerating(false); }
   }
 
@@ -792,6 +794,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         </div>
         <button className="workspace-export" type="button" disabled title="내보내기는 다음 단계에서 제공됩니다">내보내기</button>
       </header>
+      {documentType === 'requirements' ? <RequirementsPageHeader aggregate={aggregate} document={requirementsDocument} sections={requirementsSections} /> : null}
       <BlueprintStageNav projectId={aggregate.project.id} current={currentStage} requirementsReady={designReadiness.canGenerateRequirements} prdReady={prdReady} />
       <span className="workspace-sr-only">{aggregate.project.title}</span>
       <nav className="workspace-mobile-tabs" role="tablist" aria-label="작업 패널" onKeyDown={(event) => {
@@ -874,12 +877,12 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
               })}</ol>
             </section> : null}
             </ProposalReviewPanel> : null}
-            {!proposalStageVisible && designBoardVisible ? <DesignBoard aggregate={aggregate} readiness={designReadiness} selectedItemId={selectedDesignItemId} onSelectItem={openDesignItem} onContinueDeciding={continueDeciding} onOpenRequirements={openRequirements} /> : documentType === 'requirements' ? (() => { const saved = aggregate.documents.filter((document) => document.type === 'requirements').sort((a,b)=>b.version-a.version)[0]; const readySummary=saved?assessRequirementsReady(aggregate,saved):undefined; return <RequirementsDocument aggregate={aggregate} document={saved} sections={saved ? aggregate.sections.filter((section) => section.documentId === saved.id) : []} generating={requirementsGenerating} error={requirementsError} readySummary={readySummary} readyError={requirementsReadyError} patching={documentPatchBusy} patchError={documentPatchError} impactPreview={(targets)=>saved?previewDocumentImpact(aggregate,saved.id,targets):{targetIds:[],itemIds:[],documentIds:[]}} onRequestPatch={(targets)=>requestDocumentPatch(targets,'requirements')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generateRequirementsDraft()} onMarkReady={() => void markRequirementsReady()} onOpenPrd={() => navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/prd`)} />; })() : documentType === 'prd' ? (() => { const saved = aggregate.documents.filter((item) => item.type === 'prd').sort((a,b)=>b.version-a.version)[0]; const sections = saved ? aggregate.sections.filter((section) => section.documentId === saved.id) : []; return <PrdDocument aggregate={aggregate} document={saved} sections={sections} generating={prdGenerating} error={prdError} patching={documentPatchBusy} patchError={documentPatchError} impactPreview={(targets)=>saved?previewDocumentImpact(aggregate,saved.id,targets):{targetIds:[],itemIds:[],documentIds:[]}} onRequestPatch={(targets)=>requestDocumentPatch(targets,'prd')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generatePrdDraft()} />; })() : documentType==='setup_guide'? (()=>{const saved=aggregate.documents.filter((item)=>item.type==='setup_guide').sort((a,b)=>b.version-a.version)[0];return <SetupGuideDocument aggregate={aggregate} document={saved} sections={saved?aggregate.sections.filter((section)=>section.documentId===saved.id):[]} generating={setupGuideGenerating} error={setupGuideError} readyError={setupGuideReadyError} onGenerate={()=>void generateSetupGuideDraft()} onApprove={()=>void approveSetupGuide()} onComplete={()=>void completeProject()}/>;})():null}
+            {!proposalStageVisible && designBoardVisible ? <DesignBoard aggregate={aggregate} readiness={designReadiness} selectedItemId={selectedDesignItemId} onSelectItem={openDesignItem} onContinueDeciding={continueDeciding} onOpenRequirements={openRequirements} /> : documentType === 'requirements' ? (() => { const saved = requirementsDocument; const readySummary=saved?assessRequirementsReady(aggregate,saved):undefined; return <RequirementsDocument aggregate={aggregate} document={saved} sections={requirementsSections} generating={requirementsGenerating} error={requirementsError} readySummary={readySummary} readyError={requirementsReadyError} patching={documentPatchBusy} patchError={documentPatchError} impactPreview={(targets)=>saved?previewDocumentImpact(aggregate,saved.id,targets):{targetIds:[],itemIds:[],documentIds:[]}} onRequestPatch={(targets)=>requestDocumentPatch(targets,'requirements')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generateRequirementsDraft()} onMarkReady={() => void markRequirementsReady()} onOpenPrd={() => navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/prd`)} />; })() : documentType === 'prd' ? (() => { const saved = aggregate.documents.filter((item) => item.type === 'prd').sort((a,b)=>b.version-a.version)[0]; const sections = saved ? aggregate.sections.filter((section) => section.documentId === saved.id) : []; return <PrdDocument aggregate={aggregate} document={saved} sections={sections} generating={prdGenerating} error={prdError} patching={documentPatchBusy} patchError={documentPatchError} impactPreview={(targets)=>saved?previewDocumentImpact(aggregate,saved.id,targets):{targetIds:[],itemIds:[],documentIds:[]}} onRequestPatch={(targets)=>requestDocumentPatch(targets,'prd')} onDirectEdit={saveDirectDocumentEdit} onGenerate={() => void generatePrdDraft()} />; })() : documentType==='setup_guide'? (()=>{const saved=aggregate.documents.filter((item)=>item.type==='setup_guide').sort((a,b)=>b.version-a.version)[0];return <SetupGuideDocument aggregate={aggregate} document={saved} sections={saved?aggregate.sections.filter((section)=>section.documentId===saved.id):[]} generating={setupGuideGenerating} error={setupGuideError} readyError={setupGuideReadyError} onGenerate={()=>void generateSetupGuideDraft()} onApprove={()=>void approveSetupGuide()} onComplete={()=>void completeProject()}/>;})():null}
             {documentType === 'design' && !proposalStageVisible ? <SourceDocuments aggregate={aggregate} repository={repositoryFactory()} onAggregate={applyCommittedAggregate} beforeMutation={flushProposalAutosave} initialMessage={(location.state as { sourceNotice?: string } | null)?.sourceNotice ?? ''} /> : null}
             {!proposalStageVisible && documentType !== 'design' ? <details className="document-support-flows">
               <summary>자료와 정합성 지원</summary>
               <SourceDocuments aggregate={aggregate} repository={repositoryFactory()} onAggregate={applyCommittedAggregate} beforeMutation={flushProposalAutosave} initialMessage={(location.state as { sourceNotice?: string } | null)?.sourceNotice ?? ''} />
-              {['requirements','prd'].includes(documentType??'')&&aggregate.documents.some((document)=>document.type==='requirements')&&aggregate.documents.some((document)=>document.type==='prd')?<section className="requirements-ready-review" aria-labelledby="consistency-review-title"><h2 id="consistency-review-title">Requirements · PRD 정합성</h2><p>확정 설계와 두 문서의 목표, 범위, 근거와 최신 상태를 비교합니다. 결과는 검토용이며 자동 수정하지 않습니다.</p><button type="button" disabled={consistencyReview?.status==='loading'} onClick={()=>void runConsistencyReview()}>{consistencyReview?.status==='loading'?'문서 정합성 검토 중…':'문서 정합성 검토'}</button>{consistencyReview?.status==='failed'?<p role="alert">{consistencyReview.error}</p>:null}{consistencyReview?.status==='completed'?consistencyReview.findings.length?<ol aria-label="정합성 검토 결과">{consistencyReview.findings.map((finding,index)=><li key={`${String(finding.type)}-${index}`}><strong>{String(finding.severity==='error'?'필수 확인':'확인 권장')} · {String(finding.type)}</strong><p>{String(finding.location)} · 관련 항목: {((finding.sourceItemIds as string[])??[]).join(', ')}</p><p>{String(finding.nextAction)}</p>{finding.proposal?<p>수정 제안을 생성했습니다. 제안 목록에서 승인하거나 거절할 수 있습니다.</p>:null}</li>)}</ol>:<p role="status">정합성 검토 완료 · 발견 사항 0개</p>:null}</section>:null}
+              {['requirements','prd'].includes(documentType??'')&&aggregate.documents.some((document)=>document.type==='requirements')&&aggregate.documents.some((document)=>document.type==='prd')?<section className="requirements-ready-review" aria-labelledby="consistency-review-title"><h2 id="consistency-review-title">요구사항 명세 · PRD 정합성</h2><p>확정 설계와 두 문서의 목표, 범위, 근거와 최신 상태를 비교합니다. 결과는 검토용이며 자동 수정하지 않습니다.</p><button type="button" disabled={consistencyReview?.status==='loading'} onClick={()=>void runConsistencyReview()}>{consistencyReview?.status==='loading'?'문서 정합성 검토 중…':'문서 정합성 검토'}</button>{consistencyReview?.status==='failed'?<p role="alert">{consistencyReview.error}</p>:null}{consistencyReview?.status==='completed'?consistencyReview.findings.length?<ol aria-label="정합성 검토 결과">{consistencyReview.findings.map((finding,index)=><li key={`${String(finding.type)}-${index}`}><strong>{String(finding.severity==='error'?'필수 확인':'확인 권장')} · {String(finding.type)}</strong><p>{String(finding.location)} · 관련 항목: {((finding.sourceItemIds as string[])??[]).join(', ')}</p><p>{String(finding.nextAction)}</p>{finding.proposal?<p>수정 제안을 생성했습니다. 제안 목록에서 승인하거나 거절할 수 있습니다.</p>:null}</li>)}</ol>:<p role="status">정합성 검토 완료 · 발견 사항 0개</p>:null}</section>:null}
             </details> : null}
             {!proposalStageVisible && aggregate.designItems.some((item) => item.status === "review_required" && !item.archivedAt) ? <section className="proposal-review-required" aria-labelledby="review-required-title"><h2 id="review-required-title">선행 변경으로 재검토가 필요한 항목</h2><ul>{aggregate.designItems.filter((item) => item.status === "review_required" && !item.archivedAt).map((item) => <li key={item.id}><strong>{item.title}</strong><p>{String(item.attributes.reviewRequiredReason ?? "선행 결정 변경으로 확인이 필요합니다.")}</p></li>)}</ul></section> : null}
           </div>
