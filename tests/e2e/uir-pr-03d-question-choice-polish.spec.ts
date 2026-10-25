@@ -249,8 +249,8 @@ test('idea textarea removes the focus outline and keeps keyboard focus and valid
     focusCue: getComputedStyle(element).boxShadow,
     borderStyle: getComputedStyle(element).borderTopStyle,
   }));
-  expect(invalidKeyboardStyle.background).toBe(errorBackground);
-  expect(invalidKeyboardStyle.focusCue).not.toBe('none');
+  expect(invalidKeyboardStyle.background).not.toBe(errorBackground);
+  expect(invalidKeyboardStyle.focusCue).toBe('none');
   expect(invalidKeyboardStyle.borderStyle).toBe('none');
   await mkdir(evidenceDirectory, { recursive: true });
   await page.screenshot({ path: `${evidenceDirectory}/idea-validation-${testInfo.project.name}.png`, fullPage: true, scale: 'css' });

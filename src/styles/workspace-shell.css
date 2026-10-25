@@ -431,7 +431,7 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 }
 @media (min-width: 1024px) {
   .workspace-panels[data-stage="conversation"] .conversation-stage-layout { grid-template-columns: minmax(0, 1fr) 309px; column-gap: 13px; padding-right: 26px; }
-  .workspace-panels[data-stage="conversation"] .workspace-conversation-content { padding-right: 23px; }
+  .workspace-panels[data-stage="conversation"] .workspace-conversation-content { padding-right: 23px; padding-left: 25px; padding-bottom: 25px; }
   .workspace-panels[data-stage="conversation"] .workspace-message-assistant { width: 68%; margin-top: 33px; }
   .workspace-panels[data-stage="conversation"] .question-card { margin-top: 30px; }
 }
@@ -620,7 +620,7 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   box-sizing: border-box;
   min-height: 100%;
   margin: 0;
-  padding: 20px 26px;
+  padding: 20px 26px 25px;
   border: 1px solid var(--color-border);
   border-radius: 14px;
   background: var(--color-surface);
