@@ -44,7 +44,9 @@
 | 32 | `AUTH-PR-05` 로그인 redirect 토스트와 Vercel SPA 경로 fallback | UI·배포 설정 | merged (#46) | [plan](AUTH-PR-05/plan.md) |
 | 33 | `AUTH-PR-06` Google 로그인 버튼 초기 자동 포커스 제거 | UI 접근성 | in_progress | [plan](AUTH-PR-06/plan.md) |
 | 34 | `UIR-PR-03D` 대화 선택 카드·아이디어 입력 focus 보정 | UI 후속 | merged (#53, `ac5b8abade7b1235e68cb549703e7081a55379fa`) | [plan](UIR-PR-03D/plan.md) |
-| 35 | `UIR-PR-03E` 아이디어 포커스 링 제거·대화 여백 정리 | UI 후속 | in_progress (PR #59; stale home route check blocks merge) | [plan](UIR-PR-03E/plan.md) |
+| 35 | `UIR-PR-03E` 아이디어 포커스 링 제거·대화 여백 정리 | UI 후속 | merged (#59) | [plan](UIR-PR-03E/plan.md) |
+| 36 | `UIR-PR-03F` 포커스 시 입력 배경 유지 | UI 후속 | merged (#60, `9b81e9f`) | [plan](UIR-PR-03F/plan.md) |
+| 37 | `UIR-PR-03G` 대화·요약 패널 외부 여백 보정 | UI 후속 | in_progress (branch from `origin/main` `9b81e9f`) | [plan](UIR-PR-03G/plan.md) |
 
 상태 최신값은 `docs/delivery/development-pr-review-qa-workflow.md`와 `docs/delivery/traceability.md`가 원본이다. 이 표는 탐색 편의를 위한 것이며 실제 진행 상태는 두 원본 문서에서 갱신한다.
 

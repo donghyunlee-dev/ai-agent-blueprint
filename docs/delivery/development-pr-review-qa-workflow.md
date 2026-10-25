@@ -316,7 +316,8 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | --- | --- | --- | --- |
 | [`UIR-PR-03D`](../tasks/UIR-PR-03D/plan.md) 선택 카드·아이디어 입력 포커스 보정 | UIR-PR-03C merged (#51); branch from latest `origin/main` | 선택지 개수에 맞는 균형 배치, 필요한 아이콘 표시, 보안 문구 한국어화, 키보드 접근성을 유지한 입력 포커스 표시 | merged (#53, `ac5b8abade7b1235e68cb549703e7081a55379fa`) |
 | [`UIR-PR-03E`](../tasks/UIR-PR-03E/plan.md) 아이디어 포커스 링 제거·대화 여백 정리 | PR #59 merged to `main` at `1f62a20` | 홈·대화 입력 포커스 링 제거, 대화·요약 여백 및 모바일 요약 아이콘 정리 | merged (PR #59; `Capture home UI states` failed on stale `/design` route assertion) |
-| [`UIR-PR-03F`](../tasks/UIR-PR-03F/plan.md) 포커스 시 입력 배경 유지 | UIR-PR-03E merged (#59); branch from `origin/main` `1f62a20` | 홈·대화 입력 포커스 시 대체 배경 강조 제거, 홈 검증 배경 보존 | in_progress (PR #60; source/test HEAD `0d49c0f` passed; latest docs-only HEAD is awaiting required checks and final verification) |
+| [`UIR-PR-03F`](../tasks/UIR-PR-03F/plan.md) 포커스 시 입력 배경 유지 | UIR-PR-03E merged (#59); branch from `origin/main` `1f62a20` | 홈·대화 입력 포커스 시 대체 배경 강조 제거, 홈 검증 배경 보존 | merged (PR #60; merge `9b81e9f`) |
+| [`UIR-PR-03G`](../tasks/UIR-PR-03G/plan.md) 대화·요약 패널 외부 여백 보정 | UIR-PR-03F merged (#60); branch from `origin/main` `9b81e9f` | 대화·요약 카드의 데스크톱 좌측·하단 외부 여백을 26px로 정리하고 composer를 카드 안에 유지 | in_progress |
 
 기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
 

@@ -107,6 +107,7 @@ test('idea textarea focus states have no ring and preserve the outer composer fr
 
 test('conversation and summary content keep the specified desktop insets and mobile flow', async ({ page }, testInfo) => {
   const viewport = testInfo.project.name === 'mobile-chromium' ? { width: 390, height: 844 } : { width: 1440, height: 900 };
+  const gutterArtifactDirectory = '.pr-artifacts/UIR-PR-03G';
   await page.setViewportSize(viewport);
   await page.goto(`/blueprints/${projectId}`);
   await expect(page.locator('.workspace-first-message')).toBeVisible();
@@ -117,8 +118,9 @@ test('conversation and summary content keep the specified desktop insets and mob
     const summary = document.querySelector('.conversation-summary') as HTMLElement;
     const layout = document.querySelector('.conversation-stage-layout') as HTMLElement;
     const composer = document.querySelector('.ai-turn-composer') as HTMLElement;
+    const conversationCard = document.querySelector('.workspace-conversation') as HTMLElement;
     const read = (element: HTMLElement) => ({ paddingLeft: Number.parseFloat(getComputedStyle(element).paddingLeft), paddingRight: Number.parseFloat(getComputedStyle(element).paddingRight), paddingBottom: Number.parseFloat(getComputedStyle(element).paddingBottom) });
-    return { conversation: read(conversation), conversationEndSpacerHeight: Number.parseFloat(getComputedStyle(conversation, '::after').height), summary: read(summary), inspector: read(inspector), layout: layout.getBoundingClientRect().toJSON(), composer: composer.getBoundingClientRect().toJSON(), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    return { conversation: read(conversation), conversationEndSpacerHeight: Number.parseFloat(getComputedStyle(conversation, '::after').height), summary: read(summary), inspector: read(inspector), layout: layout.getBoundingClientRect().toJSON(), conversationCard: conversationCard.getBoundingClientRect().toJSON(), summaryCard: summary.getBoundingClientRect().toJSON(), composer: composer.getBoundingClientRect().toJSON(), layoutPadding: read(layout), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
   expect(geometry.overflow).toBe(false);
   if (viewport.width >= 1024) {
@@ -126,13 +128,37 @@ test('conversation and summary content keep the specified desktop insets and mob
     expect(geometry.conversationEndSpacerHeight).toBe(25);
     expect(Math.abs(geometry.summary.paddingRight - 25)).toBeLessThanOrEqual(1);
     expect(geometry.summary.paddingBottom).toBe(25);
+    expect(Math.abs(geometry.conversationCard.x - geometry.layout.x - 26)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.layout.y + geometry.layout.height - geometry.conversationCard.y - geometry.conversationCard.height - 26)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.layout.y + geometry.layout.height - geometry.summaryCard.y - geometry.summaryCard.height - 26)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.composer.x - geometry.conversationCard.x - 30)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.conversationCard.x + geometry.conversationCard.width - geometry.composer.x - geometry.composer.width - 30)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.conversationCard.y + geometry.conversationCard.height - geometry.composer.y - geometry.composer.height - 10)).toBeLessThanOrEqual(1);
   } else {
     await expect(page.locator('.workspace-first-message')).toBeInViewport();
     expect(geometry.composer.bottom).toBeLessThanOrEqual(geometry.layout.height + geometry.layout.y + 1);
+    expect(geometry.layoutPadding.paddingLeft).toBe(10);
+    expect(geometry.layoutPadding.paddingRight).toBe(10);
   }
-  await mkdir(artifactDirectory, { recursive: true });
-  await page.screenshot({ path: `${artifactDirectory}/conversation-summary-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
-  await writeFile(`${artifactDirectory}/measurements-${viewport.width}x${viewport.height}.json`, JSON.stringify({ viewport, route: `/blueprints/${projectId}`, fixture: 'UIR-PR-03E deterministic meeting room aggregate', head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), geometry }, null, 2));
+  await mkdir(gutterArtifactDirectory, { recursive: true });
+  await page.screenshot({ path: `${gutterArtifactDirectory}/conversation-summary-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+  await writeFile(`${gutterArtifactDirectory}/measurements-${viewport.width}x${viewport.height}.json`, JSON.stringify({ viewport, route: `/blueprints/${projectId}`, fixture: 'UIR-PR-03E deterministic meeting room aggregate', head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), geometry }, null, 2));
+
+  if (viewport.width >= 1440) {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    const transitionGeometry = await page.evaluate(() => {
+      const layout = document.querySelector('.conversation-stage-layout') as HTMLElement;
+      const conversationCard = document.querySelector('.workspace-conversation') as HTMLElement;
+      const summary = document.querySelector('.conversation-summary') as HTMLElement;
+      const composer = document.querySelector('.ai-turn-composer') as HTMLElement;
+      const bounds = (element: HTMLElement) => element.getBoundingClientRect().toJSON();
+      return { layout: bounds(layout), conversationCard: bounds(conversationCard), summary: bounds(summary), composer: bounds(composer), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    });
+    expect(transitionGeometry.overflow).toBe(false);
+    expect(transitionGeometry.composer.x).toBeGreaterThanOrEqual(transitionGeometry.conversationCard.x);
+    expect(transitionGeometry.composer.x + transitionGeometry.composer.width).toBeLessThanOrEqual(transitionGeometry.conversationCard.x + transitionGeometry.conversationCard.width + 1);
+    expect(transitionGeometry.composer.y + transitionGeometry.composer.height).toBeLessThanOrEqual(transitionGeometry.conversationCard.y + transitionGeometry.conversationCard.height + 1);
+  }
 });
 
 test('conversation composer focus preserves its surface without a ring', async ({ page }, testInfo) => {
