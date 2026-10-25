@@ -315,7 +315,7 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | PR unit | 선행 조건 | 결과 | 상태 |
 | --- | --- | --- | --- |
 | [`UIR-PR-03D`](../tasks/UIR-PR-03D/plan.md) 선택 카드·아이디어 입력 포커스 보정 | UIR-PR-03C merged (#51); branch from latest `origin/main` | 선택지 개수에 맞는 균형 배치, 필요한 아이콘 표시, 보안 문구 한국어화, 키보드 접근성을 유지한 입력 포커스 표시 | merged (#53, `ac5b8abade7b1235e68cb549703e7081a55379fa`) |
-| [`UIR-PR-03E`](../tasks/UIR-PR-03E/plan.md) 아이디어 포커스 링 제거·대화 여백 정리 | Initial PR #57 merged; short-viewport correction from latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a` | 링 없이 배경으로 키보드 포커스를 표시하고 대화·요약 패널 여백을 맞춤 | in_progress (follow-up PR pending) |
+| [`UIR-PR-03E`](../tasks/UIR-PR-03E/plan.md) 아이디어 포커스 링 제거·대화 여백 정리 | Initial PR #57 merged; PR #59 follow-up based on latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a` | 홈·대화 입력 포커스 링 제거, 대화·요약 여백 및 모바일 요약 아이콘 정리 | in_progress (PR #59; required home capture check fails on stale `/design` route assertion) |
 
 기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
 

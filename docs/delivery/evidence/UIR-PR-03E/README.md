@@ -2,7 +2,7 @@
 
 ## Capture details
 
-- Follow-up source commit: `019604a` on latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a`; screenshots and measurements were regenerated at latest-main QA HEAD `33488142712e90d2c44f59cff492385b4926f27f`.
+- Follow-up source commit: `f40ab7ec98e2607d8f261fd9fbd59148955fe288` on latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a`; screenshots and measurements were regenerated at this exact source HEAD.
 - Routes/fixtures: home with deterministic UIR-03E fixture; `/blueprints/uir-pr-03e-meeting-room` with deterministic meeting-room aggregate.
 - Browser: Playwright Chromium. The reference PNGs are 1672×941. For 1440×900 comparisons, fit proportionally to viewport width (`scale=0.8612`) and center vertically (`y offset=44.8px`); do not stretch. At mobile width, no mapped mobile reference exists.
 - The design references do not depict focused or invalid focus states. The template focus screenshots are used for those states; those captures are checked for state behavior, not design parity.
@@ -24,7 +24,10 @@ Primary reference: `docs/blueprint-design/윈드소프트 모던 SaaS 대시보�
 Composer bounds and outer border remain unchanged across focus states. The focused capture shows background-only focus with no outline, border, or shadow.
 
 - Default: [desktop](home-default-1440x900.png), [mobile](home-default-390x844.png)
+- Pointer focus: [desktop](home-pointer-1440x900.png), [mobile](home-pointer-390x844.png)
 - Keyboard focus: [desktop](home-keyboard-1440x900.png), [mobile](home-keyboard-390x844.png)
+- Invalid: [desktop](home-invalid-1440x900.png), [mobile](home-invalid-390x844.png)
+- Invalid + pointer focus: [desktop](home-invalid-pointer-1440x900.png), [mobile](home-invalid-pointer-390x844.png)
 - Invalid + keyboard focus: [desktop](home-invalid-keyboard-1440x900.png), [mobile](home-invalid-keyboard-390x844.png)
 - Measurements: [desktop JSON](measurements-1440x900.json), [mobile JSON](measurements-390x844.json)
 
@@ -40,6 +43,17 @@ Primary reference: `docs/blueprint-design/회의실 예약 서비스 UI 캔버�
 - Conversation insets: left=25px, content-end spacer=25px. Computed scroller bottom padding includes the pre-existing fixed-composer clearance. Summary insets: right=26px, bottom=25px.
 - No horizontal overflow.
 - Render captures: [desktop](conversation-summary-1440x900.png), [mobile](conversation-summary-390x844.png).
+
+### Conversation composer focus states
+
+The captured field is `AiTurnComposer` `#ai-turn-draft`. Its permanent neutral 1px pill border is unchanged. Pointer and Tab/Shift+Tab focus have no outline or box-shadow; when Chromium matches `:focus-visible`, the background cue is `rgb(165, 207, 255)`. Chromium also matches `:focus-visible` on pointer-focused textareas, so that cue appears for both tested input methods.
+
+- Default: [desktop](conversation-composer-default-1440x900.png), [mobile](conversation-composer-default-390x844.png)
+- Pointer focus: [desktop](conversation-composer-pointer-1440x900.png), [mobile](conversation-composer-pointer-390x844.png)
+- Tab/Shift+Tab focus: [desktop](conversation-composer-keyboard-1440x900.png), [mobile](conversation-composer-keyboard-390x844.png)
+- Computed styles and modality: [desktop JSON](conversation-composer-focus-1440x900.json), [mobile JSON](conversation-composer-focus-390x844.json)
+
+At 390×844, focusing the fixed composer scrolls `.conversation-stage-layout` internally (`scrollTop=351`) while `window.scrollY` stays 0. The summary then appears below the conversation. Its confirmed icon remains 26×26px with a visible 15×15px outlined SVG instead of expanding into a black shape: [mobile focused summary](conversation-summary-focus-scroll-390x844.png), [icon measurements](mobile-focus-summary-icon-geometry.json).
 
 **Explicit scope exception:** the reference shows a full-width composer dock, while the existing application pins it inside the narrower conversation panel. Changing its width would alter the composer frame/placement explicitly excluded by UIR-PR-03E, so this PR preserves that existing behavior. The summary width difference also reflects its existing fixed-width panel at this viewport. These differences are visible and measured; neither is introduced by the gutter/focus changes. The changed gutters and focus states are verified independently.
 

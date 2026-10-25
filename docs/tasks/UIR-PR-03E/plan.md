@@ -9,7 +9,7 @@ Remove the visible blue focus ring around both the home idea textarea and the co
 - **Requirements:** `UIR-003` (home and idea input), `UIR-005` (conversation and summary), `UIR-010` (responsive/accessibility), `NFR-001` (keyboard focus and visible indication).
 - **Product contracts:** [Blueprint UI redesign](../../blueprint-design/README.md), [conversation and forms (`UI-CONV-003` composer)](../../ui/02-conversation-and-forms.md), [UIR contracts](../../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md#ui-003--공통-셸과-홈), and [visual acceptance](../../ui/07-visual-acceptance.md).
 - **Predecessor:** Initial UIR-PR-03E implementation merged in PR #57 (`a74946ce825001c5bcc815e2a51dc392fe21ddce`). The short-viewport follow-up was cherry-picked onto latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a`.
-- **Relevant implementation:** `src/styles/project-composer.css`, `src/styles/globals.css`, `src/styles/workspace-shell.css`; focused coverage belongs in the existing UIR-PR-03E browser spec.
+- **Relevant implementation:** `src/styles/project-composer.css`, `src/styles/globals.css`, `src/styles/workspace-shell.css`; focused coverage is in the existing UIR-PR-03E browser spec.
 - **Conversation focus root cause:** `AiTurnComposer` uses the global `:where(...):focus-visible` 3px outline from `globals.css`. The conversation textarea also has a permanent neutral 1px pill border; preserve it and remove only the focus-generated ring. Apply the background cue whenever `:focus-visible` matches; browsers may match it for pointer-focused textareas too.
 - **Mobile summary icon root cause:** `.conversation-summary-icon svg` sizing and outline styles are scoped to `min-width: 1024px`, so the mobile SVG falls back to its intrinsic 332×332 black-filled rendering. Apply equivalent intended 26px-container/15px-outline-icon styling at mobile widths without changing desktop output.
 - **Separate finding, out of scope:** production `POST /api/blueprint/turn` returned 503; deployed `AI_MODEL_*` settings do not match the current registry, and the configured `OPENAI_API_KEY` was present but OpenAI `/v1/models` returned 401. This points to environment credential/configuration remediation. Do not change Vercel environment variables, provider/model routing, or AI behavior in this UI PR.
@@ -77,8 +77,9 @@ Suggested focused command after implementation: `npx playwright test tests/e2e/u
 
 ## Delivery evidence
 
-- Initial implementation: PR #57 merged. Follow-up source commit on latest main: `019604a`.
-- Self-validation: final-source focused Playwright 12/12, `npm run build`, and `git show --check` passed. Existing build output includes the Vite large-chunk advisory.
-- Independent latest-main code review passed with no findings at exact HEAD `33488142712e90d2c44f59cff492385b4926f27f`; independent Playwright QA passed 28/28 at the same HEAD. The review and QA reports contain the detailed evidence.
+- Initial home focus/gutter implementation: PR #57 merged. Latest-main follow-up source HEAD: `f40ab7ec98e2607d8f261fd9fbd59148955fe288`.
+- Self-validation: UIR-PR-03E focused Playwright 6/6 across desktop and mobile, `npm run build`, and `git diff --check` passed. Existing build output includes the Vite large-chunk advisory.
+- Independent latest-main Playwright QA passed 30/30 on the READY Vercel Preview at exact HEAD `f40ab7ec98e2607d8f261fd9fbd59148955fe288`. The conversation composer has no focus ring, retains its neutral border, and shows the background cue; the mobile summary icon stays sized and outlined.
+- The code reviewer confirmed the implementation at source HEAD `f40ab7e` with an evidence-freshness note; this update attaches the missing source-head screenshots. See [review notes](review-notes.md), [QA report](qa-report.md), and [evidence README](../../delivery/evidence/UIR-PR-03E/README.md).
 - Final screenshots and measured comparisons: [evidence README](../../delivery/evidence/UIR-PR-03E/README.md).
 - Known scope limit: a broader conversation run also exposed two unrelated cases (prior-answer edit click is intercepted by the fixed composer; the full-canvas fixture does not create scroll extent). They were not changed by this UI task; see [test results](test-results.md).
