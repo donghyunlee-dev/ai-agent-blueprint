@@ -434,9 +434,10 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-panels[data-stage="conversation"] .ai-turn-composer { bottom: 11px; min-height: 78px; padding-block: 8px; }
 }
 @media (min-width: 1024px) {
-  .workspace-panels[data-stage="conversation"] .conversation-stage-layout { grid-template-columns: minmax(0, 1fr) 309px; column-gap: 13px; padding-right: 26px; }
+  .workspace-panels[data-stage="conversation"] .conversation-stage-layout { grid-template-columns: minmax(0, 1fr) 309px; column-gap: 13px; padding: 0 26px 26px; }
   .workspace-panels[data-stage="conversation"] .workspace-conversation-content { padding-right: 23px; padding-left: 25px; }
   .workspace-panels[data-stage="conversation"] .workspace-conversation-content::after { content: ""; height: 25px; flex: 0 0 25px; }
+  .workspace-panels[data-stage="conversation"] .ai-turn-composer { left: 305px; bottom: 36px; }
   .workspace-panels[data-stage="conversation"] .workspace-message-assistant { width: 68%; margin-top: 33px; }
   .workspace-panels[data-stage="conversation"] .question-card { margin-top: 30px; }
 }
@@ -732,6 +733,9 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-panels[data-stage="conversation"] .conversation-stage-inspector { margin-top: 12px; }
   .workspace-panels[data-stage="conversation"] .conversation-stage-inspector .conversation-summary { padding: 18px; }
   .workspace-panels[data-stage="conversation"] .ai-turn-composer textarea { padding-block: 10px; line-height: 20px; }
+}
+@media (min-width: 1024px) {
+  .workspace-panels[data-stage="conversation"] .conversation-message-row-question { margin-top: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .conversation-summary-toggle svg { transition: none; }

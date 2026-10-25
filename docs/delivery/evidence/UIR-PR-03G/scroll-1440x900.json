@@ -1,0 +1,14 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "endScroll1440": {
+    "questionBottom": 737.765625,
+    "composerTop": 786,
+    "questionComposerGap": 48.234375,
+    "layoutScrollTop": 0,
+    "contentScrollTop": 38,
+    "windowScrollY": 0
+  }
+}
