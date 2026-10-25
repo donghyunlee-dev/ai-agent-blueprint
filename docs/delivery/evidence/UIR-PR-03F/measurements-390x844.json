@@ -1,0 +1,48 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "route": "/blueprints/uir-pr-03e-meeting-room",
+  "fixture": "UIR-PR-03E deterministic meeting room aggregate",
+  "head": "d18b640a27622317dd2512a05714ec050c8e7a51",
+  "geometry": {
+    "conversation": {
+      "paddingLeft": 14,
+      "paddingRight": 14,
+      "paddingBottom": 92
+    },
+    "conversationEndSpacerHeight": null,
+    "summary": {
+      "paddingLeft": 18,
+      "paddingRight": 18,
+      "paddingBottom": 18
+    },
+    "inspector": {
+      "paddingLeft": 0,
+      "paddingRight": 0,
+      "paddingBottom": 0
+    },
+    "layout": {
+      "x": 0,
+      "y": 229.328125,
+      "width": 390,
+      "height": 628,
+      "top": 229.328125,
+      "right": 390,
+      "bottom": 857.328125,
+      "left": 0
+    },
+    "composer": {
+      "x": 20,
+      "y": 788,
+      "width": 350,
+      "height": 56,
+      "top": 788,
+      "right": 370,
+      "bottom": 844,
+      "left": 20
+    },
+    "overflow": false
+  }
+}

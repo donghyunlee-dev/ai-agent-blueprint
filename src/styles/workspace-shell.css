@@ -401,7 +401,6 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .workspace-panels[data-stage="conversation"] .ai-turn-composer > label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 .workspace-panels[data-stage="conversation"] .ai-turn-composer textarea { min-height: 46px; height: 46px; flex: 1; resize: none; }
 .workspace-panels[data-stage="conversation"] .ai-turn-composer textarea:focus,.workspace-panels[data-stage="conversation"] .ai-turn-composer textarea:focus-visible { outline: none; box-shadow: none; }
-.workspace-panels[data-stage="conversation"] .ai-turn-composer textarea:focus-visible { background: #a5cfff; }
 .workspace-panels[data-stage="conversation"] .ai-turn-composer > button,.workspace-panels[data-stage="conversation"] .ai-turn-composer > .ai-consent-gate button { width: 46px; min-width: 46px; min-height: 46px; border: 0; border-radius: 50%; background: var(--color-primary); color: var(--color-on-primary, white); font-size: 22px; }
 .workspace-panels[data-stage="conversation"] .ai-turn-composer > p[role="alert"] { position: absolute; bottom: calc(100% + 4px); left: 16px; max-width: min(600px, calc(100% - 32px)); margin: 0; padding: 8px 12px; border: 1px solid var(--color-danger, #b83232); border-radius: 8px; background: var(--color-surface); pointer-events: none; }
 @media (max-width: 1023px) {

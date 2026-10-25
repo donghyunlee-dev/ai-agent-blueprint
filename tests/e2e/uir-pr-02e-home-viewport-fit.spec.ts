@@ -69,7 +69,7 @@ test('intermediate desktop and 200-percent effective viewports preserve the comp
   }
 });
 
-test('keyboard can reach the idea textarea and submit with visible focus on desktop and at 200% effective size', async ({ page }) => {
+test('keyboard can reach the idea textarea without a cue and submit with visible focus', async ({ page }) => {
   await seedProjects(page, 3);
   const captures: Array<Record<string, unknown>> = [];
   for (const viewport of [
@@ -88,8 +88,12 @@ test('keyboard can reach the idea textarea and submit with visible focus on desk
 
     await tabTo(page, '#project-idea');
     const textareaFocus = await inspectFocusedControl(page);
+    expect(textareaFocus.selector).toBe('#project-idea');
     expect(textareaFocus.visibleInViewport, `${viewport.width}x${viewport.height} textarea stays visible`).toBe(true);
-    expect(textareaFocus.focusVisible, 'textarea shows a visible keyboard focus indicator').toBe(true);
+    expect(textareaFocus.outlineStyle, 'textarea has no focus outline').toBe('none');
+    expect(textareaFocus.boxShadow, 'textarea has no focus shadow').toBe('none');
+    expect(textareaFocus.backgroundColor, 'textarea keeps its normal transparent surface').toBe('rgba(0, 0, 0, 0)');
+    expect(textareaFocus.focusVisible, 'textarea has no replacement focus cue').toBe(false);
 
     await tabTo(page, '.project-submit-button');
     const submitFocus = await inspectFocusedControl(page);

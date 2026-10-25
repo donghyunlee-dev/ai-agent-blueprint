@@ -221,8 +221,19 @@ test('security options are Korean, keep stable values, and render without placeh
 test('idea textarea removes the focus outline and keeps keyboard focus and validation cues', async ({ page }, testInfo) => {
   await page.goto('/');
   const idea = page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' });
+  const defaultStyle = await idea.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, outline: style.outlineStyle, shadow: style.boxShadow, borderStyle: style.borderTopStyle };
+  });
   await idea.click();
-  await expect.poll(() => idea.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('none');
+  const pointerStyle = await idea.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, outline: style.outlineStyle, shadow: style.boxShadow, borderStyle: style.borderTopStyle };
+  });
+  expect(pointerStyle.background).toBe(defaultStyle.background);
+  expect(pointerStyle.outline).toBe('none');
+  expect(pointerStyle.shadow).toBe('none');
+  expect(pointerStyle.borderStyle).toBe('none');
   await expect(idea).toHaveValue('');
   await idea.fill('입력 중');
   await idea.focus();
@@ -230,14 +241,19 @@ test('idea textarea removes the focus outline and keeps keyboard focus and valid
   await page.keyboard.press('Shift+Tab');
   await expect(idea).toBeFocused();
   await expect.poll(() => idea.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
-  await expect.poll(() => idea.evaluate((element) => getComputedStyle(element).outlineStyle)).toBe('none');
-  const keyboardBackground = await idea.evaluate((element) => getComputedStyle(element).backgroundColor);
-  expect(keyboardBackground).not.toBe('rgba(0, 0, 0, 0)');
+  const keyboardStyle = await idea.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, outline: style.outlineStyle, shadow: style.boxShadow, borderStyle: style.borderTopStyle };
+  });
+  expect(keyboardStyle.background).toBe(defaultStyle.background);
+  expect(keyboardStyle.outline).toBe('none');
+  expect(keyboardStyle.shadow).toBe('none');
+  expect(keyboardStyle.borderStyle).toBe('none');
   await idea.fill('   ');
   await idea.blur();
   await expect(idea).toHaveAttribute('aria-invalid', 'true');
   const errorBackground = await idea.evaluate((element) => getComputedStyle(element).backgroundColor);
-  expect(errorBackground).not.toBe(keyboardBackground);
+  expect(errorBackground).not.toBe(defaultStyle.background);
   await idea.focus();
   await page.keyboard.press('Tab');
   await page.keyboard.press('Shift+Tab');
@@ -249,7 +265,7 @@ test('idea textarea removes the focus outline and keeps keyboard focus and valid
     focusCue: getComputedStyle(element).boxShadow,
     borderStyle: getComputedStyle(element).borderTopStyle,
   }));
-  expect(invalidKeyboardStyle.background).not.toBe(errorBackground);
+  expect(invalidKeyboardStyle.background).toBe(errorBackground);
   expect(invalidKeyboardStyle.focusCue).toBe('none');
   expect(invalidKeyboardStyle.borderStyle).toBe('none');
   await mkdir(evidenceDirectory, { recursive: true });

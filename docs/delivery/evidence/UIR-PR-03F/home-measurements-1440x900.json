@@ -1,0 +1,121 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "route": "/",
+  "fixture": "authenticated home with empty recent-project data",
+  "head": "d18b640a27622317dd2512a05714ec050c8e7a51",
+  "frameBefore": {
+    "x": 352.5,
+    "y": 320.671875,
+    "width": 985,
+    "height": 171,
+    "border": "1px solid rgb(220, 229, 241)",
+    "borderRadius": "16px"
+  },
+  "states": [
+    {
+      "state": "default",
+      "styles": {
+        "outline": "none",
+        "border": "0px none rgb(16, 41, 87)",
+        "shadow": "none",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "frame": {
+        "x": 352.5,
+        "y": 320.671875,
+        "width": 985,
+        "height": 171,
+        "border": "1px solid rgb(220, 229, 241)",
+        "borderRadius": "16px"
+      }
+    },
+    {
+      "state": "pointer",
+      "styles": {
+        "outline": "none",
+        "border": "0px none rgb(16, 41, 87)",
+        "shadow": "none",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "frame": {
+        "x": 352.5,
+        "y": 320.671875,
+        "width": 985,
+        "height": 171,
+        "border": "1px solid rgb(220, 229, 241)",
+        "borderRadius": "16px"
+      }
+    },
+    {
+      "state": "keyboard",
+      "styles": {
+        "outline": "none",
+        "border": "0px none rgb(16, 41, 87)",
+        "shadow": "none",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "frame": {
+        "x": 352.5,
+        "y": 320.671875,
+        "width": 985,
+        "height": 171,
+        "border": "1px solid rgb(220, 229, 241)",
+        "borderRadius": "16px"
+      }
+    },
+    {
+      "state": "invalid",
+      "styles": {
+        "outline": "none",
+        "border": "0px none rgb(16, 41, 87)",
+        "shadow": "none",
+        "background": "rgb(255, 241, 242)"
+      },
+      "frame": {
+        "x": 352.5,
+        "y": 320.671875,
+        "width": 985,
+        "height": 195.796875,
+        "border": "1px solid rgb(220, 229, 241)",
+        "borderRadius": "16px"
+      }
+    },
+    {
+      "state": "invalid-pointer",
+      "styles": {
+        "outline": "none",
+        "border": "0px none rgb(16, 41, 87)",
+        "shadow": "none",
+        "background": "rgb(255, 241, 242)"
+      },
+      "frame": {
+        "x": 352.5,
+        "y": 320.671875,
+        "width": 985,
+        "height": 195.796875,
+        "border": "1px solid rgb(220, 229, 241)",
+        "borderRadius": "16px"
+      }
+    },
+    {
+      "state": "invalid-keyboard",
+      "styles": {
+        "outline": "none",
+        "border": "0px none rgb(16, 41, 87)",
+        "shadow": "none",
+        "background": "rgb(255, 241, 242)"
+      },
+      "frame": {
+        "x": 352.5,
+        "y": 320.671875,
+        "width": 985,
+        "height": 195.796875,
+        "border": "1px solid rgb(220, 229, 241)",
+        "borderRadius": "16px"
+      }
+    }
+  ]
+}

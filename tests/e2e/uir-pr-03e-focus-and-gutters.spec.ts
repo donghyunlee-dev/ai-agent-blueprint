@@ -6,7 +6,7 @@ import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-mi
 
 const identity = { issuer: 'https://accounts.google.com', subject: 'uir-pr-03e-focus-and-gutters', email: 'uir-pr-03e@example.test' };
 const projectId = 'uir-pr-03e-meeting-room';
-const artifactDirectory = '.pr-artifacts/UIR-PR-03E';
+const artifactDirectory = '.pr-artifacts/UIR-PR-03F';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: { authenticated: true, user: identity } }));
@@ -78,14 +78,15 @@ test('idea textarea focus states have no ring and preserve the outer composer fr
   const ideaBounds = await idea.boundingBox();
   await page.mouse.click(ideaBounds!.x + ideaBounds!.width / 2, ideaBounds!.y + ideaBounds!.height / 2);
   await expect(idea).toBeFocused();
-  await capture('pointer');
+  const pointer = await capture('pointer');
+  expect(pointer.background).toBe(unfocused.background);
   await idea.fill('회의실 예약 서비스');
   await page.keyboard.press('Tab');
   await page.keyboard.press('Shift+Tab');
   await expect(idea).toBeFocused();
   await expect.poll(() => idea.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
   const keyboard = await capture('keyboard');
-  expect(keyboard.background).not.toBe(unfocused.background);
+  expect(keyboard.background).toBe(unfocused.background);
   await idea.fill('   ');
   await idea.blur();
   await expect(idea).toHaveAttribute('aria-invalid', 'true');
@@ -94,13 +95,13 @@ test('idea textarea focus states have no ring and preserve the outer composer fr
   const invalidBounds = await idea.boundingBox();
   await page.mouse.click(invalidBounds!.x + invalidBounds!.width / 2, invalidBounds!.y + invalidBounds!.height / 2);
   const invalidPointer = await capture('invalid-pointer', false);
-  expect(invalidPointer.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(invalidPointer.background).toBe(invalid.background);
   await idea.focus();
   await page.keyboard.press('Tab');
   await page.keyboard.press('Shift+Tab');
   await expect(idea).toBeFocused();
   const invalidKeyboard = await capture('invalid-keyboard', false);
-  expect(invalidKeyboard.background).not.toBe(invalid.background);
+  expect(invalidKeyboard.background).toBe(invalid.background);
   await writeFile(`${artifactDirectory}/home-measurements-${viewport.width}x${viewport.height}.json`, JSON.stringify({ viewport, route: '/', fixture: 'authenticated home with empty recent-project data', head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), frameBefore, states }, null, 2));
 });
 
@@ -134,7 +135,7 @@ test('conversation and summary content keep the specified desktop insets and mob
   await writeFile(`${artifactDirectory}/measurements-${viewport.width}x${viewport.height}.json`, JSON.stringify({ viewport, route: `/blueprints/${projectId}`, fixture: 'UIR-PR-03E deterministic meeting room aggregate', head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), geometry }, null, 2));
 });
 
-test('conversation composer focus uses a background cue without a blue ring', async ({ page }, testInfo) => {
+test('conversation composer focus preserves its surface without a ring', async ({ page }, testInfo) => {
   const viewport = testInfo.project.name === 'mobile-chromium' ? { width: 390, height: 844 } : { width: 1440, height: 900 };
   await page.setViewportSize(viewport);
   await page.goto(`/blueprints/${projectId}`);
@@ -154,8 +155,7 @@ test('conversation composer focus uses a background cue without a blue ring', as
   expect(pointer.outline).toBe('none');
   expect(pointer.shadow).toBe('none');
   expect(pointer.border).toBe(baseline.border);
-  if (pointer.focusVisible) expect(pointer.background).not.toBe(baseline.background);
-  else expect(pointer.background).toBe(baseline.background);
+  expect(pointer.background).toBe(baseline.background);
   await page.screenshot({ path: `${artifactDirectory}/conversation-composer-pointer-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
 
   await page.keyboard.press('Tab');
@@ -167,7 +167,7 @@ test('conversation composer focus uses a background cue without a blue ring', as
   expect(keyboard.outline).toBe('none');
   expect(keyboard.shadow).toBe('none');
   expect(keyboard.border).toBe(baseline.border);
-  expect(keyboard.background).not.toBe(baseline.background);
+  expect(keyboard.background).toBe(baseline.background);
   await page.screenshot({ path: `${artifactDirectory}/conversation-composer-keyboard-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
 
   if (viewport.width === 390) {
