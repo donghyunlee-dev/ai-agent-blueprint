@@ -73,7 +73,7 @@ test('idea textarea focus states have no ring and preserve the outer composer fr
     await page.screenshot({ path: `${artifactDirectory}/home-${state}-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
     return styles;
   };
-  await capture('default');
+  const unfocused = await capture('default');
   await idea.evaluate((element) => element.blur());
   const ideaBounds = await idea.boundingBox();
   await page.mouse.click(ideaBounds!.x + ideaBounds!.width / 2, ideaBounds!.y + ideaBounds!.height / 2);
@@ -85,7 +85,7 @@ test('idea textarea focus states have no ring and preserve the outer composer fr
   await expect(idea).toBeFocused();
   await expect.poll(() => idea.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
   const keyboard = await capture('keyboard');
-  expect(keyboard.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(keyboard.background).not.toBe(unfocused.background);
   await idea.fill('   ');
   await idea.blur();
   await expect(idea).toHaveAttribute('aria-invalid', 'true');

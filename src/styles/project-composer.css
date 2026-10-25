@@ -6,7 +6,7 @@
 .project-composer textarea:focus,
 .project-composer textarea:focus-visible,
 .project-composer textarea[aria-invalid="true"] { outline: none; border: 0; box-shadow: none; }
-.project-composer textarea:focus-visible { background: #e8f1ff; }
+.project-composer textarea:focus-visible { background: #a5cfff; }
 .project-composer textarea[aria-invalid="true"] { background: #fff1f2; }
 .project-composer textarea:focus-visible[aria-invalid="true"] { background: #ffe4e6; }
 .project-composer-meta { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; clip-path: inset(50%); }
