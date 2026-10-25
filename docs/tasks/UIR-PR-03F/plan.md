@@ -12,7 +12,7 @@ The user explicitly rejected replacing the focus outline with a blue background.
 - **Product contracts:** [Blueprint UI redesign](../../blueprint-design/README.md), [conversation composer](../../ui/02-conversation-and-forms.md#composer), [UIR contracts](../../superpowers/plans/2026-10-22-blueprint-ui-overhaul.md), [visual acceptance](../../ui/07-visual-acceptance.md), and [template reference map](../../template/README.md).
 - **Predecessor:** UIR-PR-03E follow-up PR #59 merged to `main` as `1f62a20b5b98d1e58b2a4bebe853854a8fd7a26c`.
 - **Definition of Ready:** `origin/main` is at the predecessor merge; the focused CSS selectors and existing browser coverage are known; the user’s decision to remove the added blue fill is explicit. No API, data, route, or design-system decision is needed.
-- **Relevant files:** `src/styles/project-composer.css`, `src/styles/workspace-shell.css`, and `tests/e2e/uir-pr-03e-focus-and-gutters.spec.ts`. Update only the two focus-fill rules and their existing assertions; preserve the other UIR-PR-03E fixes.
+- **Relevant files:** `src/styles/project-composer.css`, `src/styles/workspace-shell.css`, `tests/e2e/uir-pr-03e-focus-and-gutters.spec.ts`, and the existing home-focus regression in `tests/e2e/uir-pr-03d-question-choice-polish.spec.ts`. Keep both browser specs aligned with the no-focus-fill contract and preserve the other UIR-PR-03E fixes.
 
 ## Scope
 
@@ -42,6 +42,7 @@ The user explicitly rejected replacing the focus outline with a blue background.
 | Area | Cases | Evidence/check |
 | --- | --- | --- |
 | Home textarea | default, pointer focus, real Tab/Shift+Tab focus, invalid, invalid + keyboard focus | Playwright computed background equality against matching unfocused state; outline/border/shadow and outer-frame assertions; screenshots |
+| Existing home focus regression | Pointer/keyboard focus, invalid state, invalid + keyboard focus | UIR-PR-03D browser spec asserts focus retains normal background, validation changes to pale red, and invalid focus retains the validation background |
 | Conversation textarea | default, pointer focus, real Tab/Shift+Tab focus | Playwright background equality, no outline/shadow, unchanged neutral border; screenshots |
 | Responsive | Home and conversation on desktop 1440×900 and mobile 390×844 | Focused spec in Chromium; verify no overflow or composer occlusion |
 | Preservation | Conversation gutters and mobile summary icon | Existing focused UIR-PR-03E assertions remain green |
@@ -66,7 +67,8 @@ Suggested focused command: `npx playwright test tests/e2e/uir-pr-03e-focus-and-g
 
 - Planned from merged predecessor `1f62a20b5b98d1e58b2a4bebe853854a8fd7a26c`.
 - Implementation removes the home and conversation focus-fill selectors while preserving the home invalid-state fill. The updated assertions failed on the original CSS and passed after the fix.
-- Self-validation passed: focused Playwright 6/6 across desktop and mobile; `npm run build`; `git diff --check`. Vite reported its existing large-chunk advisory.
+- Self-validation passed: `npx playwright test tests/e2e/uir-pr-03e-focus-and-gutters.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1` (6/6); `npx playwright test tests/e2e/uir-pr-03d-question-choice-polish.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1` (10/10); `npm run build`; `git diff --check`. Vite reported its existing large-chunk advisory.
+- The previous UIR-PR-03D focus assertions reproduced the direct CI failure on both desktop and mobile: they expected a non-transparent keyboard fill, but computed background was `rgba(0, 0, 0, 0)`. Revised assertions now pass while retaining the validation error fill.
 - At source-render SHA `d18b640a27622317dd2512a05714ec050c8e7a51`, the focused Playwright spec passed 6/6 across desktop and mobile. Screenshots and computed-style/geometry evidence were regenerated at that exact SHA in [UIR-PR-03F evidence](../../delivery/evidence/UIR-PR-03F/README.md). Subsequent evidence/tracker commits are documentation-only and do not change the rendered code.
 - Agent Browser was not available in the tool catalog or as an executable (`command -v agent-browser` returned no path); Playwright Chromium was used.
 - Independent review, independent QA, Preview and CI evidence: pending.

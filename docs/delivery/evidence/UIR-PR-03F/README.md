@@ -38,6 +38,7 @@ At 1440×900, the mapped canvas image is compared proportionally with the same 0
 
 - Test-first proof on the unmodified CSS: the revised equality assertions failed on desktop and mobile because pointer focus computed `rgb(165, 207, 255)` for both textareas.
 - At source-render SHA `d18b640a27622317dd2512a05714ec050c8e7a51`, the focused UIR-PR-03E spec passed **6/6** across desktop and mobile.
+- The UIR-PR-03D home focus regression spec also passed **10/10** across desktop and mobile after updating its assertions to match the same contract. Running its pre-fix version reproduced the CI failure on both viewports: keyboard focus expected a non-transparent fill but computed `rgba(0, 0, 0, 0)`.
 - `npm run build` passed; Vite emitted the existing large-chunk advisory.
 - Agent Browser was absent from the tool catalog; `command -v agent-browser` returned no executable. Playwright Chromium provided the browser validation.
 - `git diff --check` passed on the current branch diff.
