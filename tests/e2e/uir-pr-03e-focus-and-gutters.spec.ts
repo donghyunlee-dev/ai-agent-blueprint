@@ -179,13 +179,17 @@ test('conversation composer focus uses a background cue without a blue ring', as
       const svg = element.querySelector('svg')!;
       const icon = svg.getBoundingClientRect();
       const style = getComputedStyle(svg);
-      return { container: { width: container.width, height: container.height }, svg: { width: icon.width, height: icon.height }, fill: style.fill };
+      return { container: { width: container.width, height: container.height }, svg: { width: icon.width, height: icon.height }, fill: style.fill, stroke: style.stroke, strokeWidth: Number.parseFloat(style.strokeWidth), visibility: style.visibility, opacity: Number.parseFloat(style.opacity) };
     });
     expect(iconGeometry.container.width).toBe(26);
     expect(iconGeometry.container.height).toBe(26);
     expect(iconGeometry.svg.width).toBe(15);
     expect(iconGeometry.svg.height).toBe(15);
     expect(iconGeometry.fill).toBe('none');
+    expect(iconGeometry.stroke).not.toBe('none');
+    expect(iconGeometry.strokeWidth).toBeGreaterThan(0);
+    expect(iconGeometry.visibility).toBe('visible');
+    expect(iconGeometry.opacity).toBeGreaterThan(0);
     await page.screenshot({ path: `${artifactDirectory}/conversation-summary-focus-scroll-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
   }
 
