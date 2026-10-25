@@ -169,5 +169,25 @@ test('conversation composer focus uses a background cue without a blue ring', as
   expect(keyboard.border).toBe(baseline.border);
   expect(keyboard.background).not.toBe(baseline.background);
   await page.screenshot({ path: `${artifactDirectory}/conversation-composer-keyboard-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+
+  if (viewport.width === 390) {
+    const confirmedIcon = page.locator('.conversation-stage-inspector .conversation-summary-icon.is-confirmed').first();
+    await expect(confirmedIcon).toBeAttached();
+    await confirmedIcon.scrollIntoViewIfNeeded();
+    const iconGeometry = await confirmedIcon.evaluate((element) => {
+      const container = element.getBoundingClientRect();
+      const svg = element.querySelector('svg')!;
+      const icon = svg.getBoundingClientRect();
+      const style = getComputedStyle(svg);
+      return { container: { width: container.width, height: container.height }, svg: { width: icon.width, height: icon.height }, fill: style.fill };
+    });
+    expect(iconGeometry.container.width).toBe(26);
+    expect(iconGeometry.container.height).toBe(26);
+    expect(iconGeometry.svg.width).toBe(15);
+    expect(iconGeometry.svg.height).toBe(15);
+    expect(iconGeometry.fill).toBe('none');
+    await page.screenshot({ path: `${artifactDirectory}/conversation-summary-focus-scroll-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+  }
+
   await writeFile(`${artifactDirectory}/conversation-composer-focus-${viewport.width}x${viewport.height}.json`, JSON.stringify({ viewport, route: `/blueprints/${projectId}`, fixture: 'UIR-PR-03E deterministic meeting room aggregate', head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), baseline, pointer, keyboard }, null, 2));
 });

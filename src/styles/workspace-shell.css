@@ -468,9 +468,6 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-title-icon { position: absolute; top: 50%; left: -48px; display: grid; width: 60px; height: 60px; transform: translateY(-50%); place-items: center; border-radius: 16px; background: #f1edff; color: #812bff; }
   .workspace-title-icon svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
   .conversation-stage-inspector .conversation-summary section h3 { display: flex; align-items: center; gap: 14px; }
-  .conversation-summary-icon { display: grid; width: 26px; height: 26px; flex: none; place-items: center; border: 2px solid currentColor; border-radius: 50%; color: #2563c5; font-size: 15px; font-weight: 700; line-height: 1; }
-  .conversation-summary-icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.2px; }
-  .conversation-summary-icon.is-confirmed { border-color: #16bd88; background: #16bd88; color: white; }
 }
 .conversation-message-row-user .workspace-first-message p { margin-top: 0; }
 @media (min-width: 1024px) {
@@ -671,6 +668,9 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .conversation-stage-inspector .conversation-summary .conversation-summary-group p { padding-left: 16px; }
 .blueprint-stage.is-current::after { position: absolute; right: 10px; bottom: 6px; left: 42px; height: 3px; border-radius: 999px; background: var(--color-primary); content: ""; }
 .conversation-stage-inspector .conversation-summary .conversation-summary-group + .conversation-summary-group { margin-top: 20px; }
+.conversation-summary-icon { display: grid; width: 26px; height: 26px; flex: none; place-items: center; border: 2px solid currentColor; border-radius: 50%; color: #2563c5; font-size: 15px; font-weight: 700; line-height: 1; }
+.conversation-summary-icon svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.2px; }
+.conversation-summary-icon.is-confirmed { border-color: #16bd88; background: #16bd88; color: white; }
 .conversation-summary-icon.is-pending { border-color: var(--color-primary); color: var(--color-primary); }
 .conversation-summary-icon.is-pending svg { width: 16px; height: 16px; }
 .conversation-stage-layout { column-gap: 13px; padding-right: 26px; }

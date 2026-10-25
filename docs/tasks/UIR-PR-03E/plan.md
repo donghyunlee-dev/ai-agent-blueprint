@@ -11,6 +11,7 @@ Remove the visible blue focus ring around both the home idea textarea and the co
 - **Predecessor:** Initial UIR-PR-03E implementation merged in PR #57 (`a74946ce825001c5bcc815e2a51dc392fe21ddce`). The short-viewport follow-up was cherry-picked onto latest `origin/main` `7e805ef398e3ddf21262234b18ead793eaaf778a`.
 - **Relevant implementation:** `src/styles/project-composer.css`, `src/styles/globals.css`, `src/styles/workspace-shell.css`; focused coverage belongs in the existing UIR-PR-03E browser spec.
 - **Conversation focus root cause:** `AiTurnComposer` uses the global `:where(...):focus-visible` 3px outline from `globals.css`. The conversation textarea also has a permanent neutral 1px pill border; preserve it and remove only the focus-generated ring. Apply the background cue whenever `:focus-visible` matches; browsers may match it for pointer-focused textareas too.
+- **Mobile summary icon root cause:** `.conversation-summary-icon svg` sizing and outline styles are scoped to `min-width: 1024px`, so the mobile SVG falls back to its intrinsic 332×332 black-filled rendering. Apply equivalent intended 26px-container/15px-outline-icon styling at mobile widths without changing desktop output.
 - **Separate finding, out of scope:** production `POST /api/blueprint/turn` returned 503; deployed `AI_MODEL_*` settings do not match the current registry, and the configured `OPENAI_API_KEY` was present but OpenAI `/v1/models` returned 401. This points to environment credential/configuration remediation. Do not change Vercel environment variables, provider/model routing, or AI behavior in this UI PR.
 
 ## Scope
@@ -19,6 +20,7 @@ Remove the visible blue focus ring around both the home idea textarea and the co
 
 - Remove focus-generated `outline` and `box-shadow` from the home idea textarea and conversation-tab free-text textarea for pointer and keyboard focus. Keep the home's always-visible outer composer frame and the conversation textarea's neutral pill border unchanged.
 - Retain a clearly distinguishable focus cue using background color only on both textareas whenever `:focus-visible` matches. Preserve visible validation feedback in the home input's invalid state; when invalid and focus-visible, both states must remain understandable without a ring. Focus-visible modality is browser-determined and may include pointer focus.
+- Make the conversation summary status icon styles apply at mobile widths: keep the 26px icon container, size its SVG to 15px with the intended outline stroke and no black fill, and preserve the existing desktop appearance.
 - Add 25px left padding and a 25px content-end spacer to the conversation scroll region, plus 25px bottom padding to the summary region, matching the summary’s existing 25px right gutter. Use a content-end spacer so the visible inset does not reduce scroll reach at shorter desktop heights. Preserve the current panel layout and fixed composer placement.
 - Add focused browser assertions and capture final-HEAD, same-data visual evidence.
 
@@ -32,9 +34,10 @@ Remove the visible blue focus ring around both the home idea textarea and the co
 
 1. Pointer- and keyboard-focused home and conversation textareas have no focus-generated outline or box-shadow. The home's permanent outer composer border and the conversation textarea's neutral pill border remain visually unchanged.
 2. Whenever `:focus-visible` matches, focus is visibly distinguishable through each textarea's background alone; the home input's invalid state still communicates validation, including when focus-visible. Neither pointer nor keyboard focus creates a ring. Browsers may apply `:focus-visible` after pointer focus, so modality is not asserted as keyboard-only.
-3. At desktop width, conversation content has a 25px left inset and 25px content-end gap, summary content has a 25px bottom inset, and the existing summary right inset remains 25px (±1px measurement tolerance).
-4. At 390×844, the conversation and summary flow remains readable without horizontal overflow, clipping, or content hidden behind the fixed composer/safe area. Preserve the existing responsive summary behavior.
-5. Selection, answer submission, retries, keyboard operation, API calls, and conversation scroll ownership are unchanged.
+3. At 390×844, the confirmed summary SVG is 15px inside its 26px icon container, has outline styling and no black fill, and remains readable while the conversation composer is focused. Desktop summary icon rendering remains unchanged.
+4. At desktop width, conversation content has a 25px left inset and 25px content-end gap, summary content has a 25px bottom inset, and the existing summary right inset remains 25px (±1px measurement tolerance).
+5. At 390×844, the conversation and summary flow remains readable without horizontal overflow, clipping, or content hidden behind the fixed composer/safe area. Preserve the existing responsive summary behavior.
+6. Selection, answer submission, retries, keyboard operation, API calls, and conversation scroll ownership are unchanged.
 
 ## Focused validation matrix
 
@@ -42,6 +45,7 @@ Remove the visible blue focus ring around both the home idea textarea and the co
 | --- | --- | --- |
 | Home focus | Pointer focus; keyboard Tab focus; invalid; invalid + keyboard focus | Playwright computed-style assertions for `outline`, border, and `box-shadow`; screenshot confirms background-only keyboard cue and legible validation state |
 | Conversation composer focus | Pointer focus; keyboard Tab focus | At 1440×900 and 390×844, assert computed `outline-style: none` and `box-shadow: none`; verify the neutral 1px pill border is unchanged and the background cue appears whenever `:focus-visible` matches. Record whether each browser/input method matches `:focus-visible`; capture focused and unfocused states. |
+| Mobile summary icon | Confirmed summary icon while conversation composer is pointer/keyboard focused | At 390×844, assert icon container is 26px, SVG is 15px, SVG fill is not black, and outline stroke is visible; capture with focused composer. Confirm desktop icon rendering is unchanged. |
 | Composer frame | Before/after outer frame bounds, border width/color/style | Assert unchanged at 1440×900 and 390×844; include focused and unfocused captures |
 | Conversation gutters | Desktop content left/bottom and summary bottom/right geometry | Playwright bounding-box measurements at 1440×900; target 25px ±1px; verify composer does not cover content |
 | Responsive | Conversation and summary at 390×844; no horizontal overflow or clipping | Playwright Chromium, deterministic same-data fixture; verify visible content and safe-area clearance |
