@@ -316,7 +316,7 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 | --- | --- | --- | --- |
 | [`UIR-PR-03D`](../tasks/UIR-PR-03D/plan.md) 선택 카드·아이디어 입력 포커스 보정 | UIR-PR-03C merged (#51); branch from latest `origin/main` | 선택지 개수에 맞는 균형 배치, 필요한 아이콘 표시, 보안 문구 한국어화, 키보드 접근성을 유지한 입력 포커스 표시 | merged (#53, `ac5b8abade7b1235e68cb549703e7081a55379fa`) |
 | [`UIR-PR-03E`](../tasks/UIR-PR-03E/plan.md) 아이디어 포커스 링 제거·대화 여백 정리 | PR #59 merged to `main` at `1f62a20` | 홈·대화 입력 포커스 링 제거, 대화·요약 여백 및 모바일 요약 아이콘 정리 | merged (PR #59; `Capture home UI states` failed on stale `/design` route assertion) |
-| [`UIR-PR-03F`](../tasks/UIR-PR-03F/plan.md) 포커스 시 입력 배경 유지 | UIR-PR-03E merged (#59); branch from `origin/main` `1f62a20` | 홈·대화 입력 포커스 시 대체 배경 강조 제거, 홈 검증 배경 보존 | blocked (PR #60; required home capture check has a pre-existing `/design` route assertion failure; review/QA passed) |
+| [`UIR-PR-03F`](../tasks/UIR-PR-03F/plan.md) 포커스 시 입력 배경 유지 | UIR-PR-03E merged (#59); branch from `origin/main` `1f62a20` | 홈·대화 입력 포커스 시 대체 배경 강조 제거, 홈 검증 배경 보존 | blocked (PR #60; run [40167270290](https://github.com/donghyunlee-dev/ai-agent-blueprint/actions/runs/40167270290) failed at `72ce6d1` on pre-existing `/design` route assertions; review/QA passed) |
 
 기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
 
