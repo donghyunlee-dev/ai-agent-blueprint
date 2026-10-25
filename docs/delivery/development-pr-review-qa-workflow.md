@@ -23,12 +23,12 @@ PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현�
 3. 구현자 자체 검증, 독립 코드 리뷰, 독립 QA를 모두 통과해야 `ready_to_merge`가 된다.
 4. 구현자가 자신의 작업을 최종 승인하지 않는다.
 5. 자동 테스트만으로 UI/프로세스 QA를 대체하지 않는다.
-6. Agent는 사용자가 전체 PR lifecycle을 요청했을 때만 모든 gate가 통과된 PR을 병합할 수 있다. 이 요청이 없으면 `ready_to_merge`에서 멈춘다.
+6. 작업자는 사용자의 명시적 승인 없이 PR을 병합하지 않는다.
 7. 현재 PR이 기본 브랜치에 병합됐다는 확인 전에는 다음 PR의 구현을 시작하지 않는다.
 8. 미결정·차단 요구사항은 임의로 구현하지 않고 별도 PR 단위도 시작하지 않는다.
 9. 각 PR은 변경 동작과 직접 영향받는 계약만 테스트한다. 전체 회귀는 별도 품질 단계에서 수행한다.
 10. UI PR의 검증은 변경된 화면 동작과 직접 영향받는 반응형·접근성 조건에 한정한다. UIR 개편 UI PR은 최종 HEAD의 1440×900·390×844 및 영향을 받은 상태 캡처와 [`시안 직접 비교`](../ui/07-visual-acceptance.md#시안과-구현-화면의-직접-비교)를 필수 증거로 남긴다. 설명되지 않은 실질적인 시각 차이가 있으면 `ready_to_merge`가 될 수 없다. 문서 전용 PR에는 화면 캡처가 필요 없다.
-11. 단계별 구현은 Codex `$pr-development-loop` skill과 별도 planner, implementer, code-reviewer, QA agent 규칙을 따른다.
+11. 이 문서는 참고용 절차다. 필요한 검증과 리뷰 범위는 변경 위험과 사용자의 요청에 맞게 정한다.
 
 ## PR 개발 단위 기준
 
@@ -54,7 +54,7 @@ PRD의 개발 단위를 독립적으로 검증 가능한 Pull Request로 구현�
 | `code_review` | 독립 리뷰 중 | build·관련 테스트·self-check 통과 | 차단 finding 0건 |
 | `qa` | 동작 검증 중 | 코드 리뷰 통과 | QA 차단 finding 0건 |
 | `fix_required` | 수정 필요 | 리뷰 또는 QA 실패 | 한 번의 수정 pass 후 재검증 |
-| `ready_to_merge` | 모든 merge gate 통과 | 리뷰·QA·증거 및 필요한 CI 성공 | 전체 lifecycle 요청이면 Agent 병합, 아니면 사용자 대기 |
+| `ready_to_merge` | 리뷰·QA·필수 증거 및 CI 확인 완료 | PR 병합 가능 상태 확인 | 사용자 결정에 따라 병합 또는 보류 |
 | `merged` | 기본 브랜치 반영 | GitHub에서 병합 확인 | 다음 PR `ready` 전환 |
 | `blocked` | 진행 불가 | 결정·환경·선행 산출물 누락 | 원인 해소 후 재계획 |
 
@@ -79,23 +79,17 @@ flowchart TD
     K --> L{QA 통과}
     L -- 아니오 --> J
     L -- 예 --> M[ready_to_merge 보고]
-    M --> N{전체 lifecycle 요청 및 모든 gate 통과}
-    N -- 아니오 --> M
-    N -- 예 --> O[Agent 병합·merged 기록·다음 PR 해제]
+    M --> N{사용자 병합 결정}
+    N -- 보류 --> M
+    N -- 승인 --> O[PR 병합·merged 기록·다음 PR 해제]
     O --> A
 ```
 
-코드 리뷰 finding은 Codex `$pr-development-loop`의 bounded fix/re-review loop를 따른다. QA finding은 하나의 통합 correction pass로 묶고 수정 후 전체 관련 테스트와 영향 경로를 다시 검증한다. 재시도 한도 뒤에도 같은 QA 차단 문제가 남으면 PR을 `blocked`로 돌리고 범위·설계를 다시 정한다.
+코드 리뷰나 QA에서 발견된 문제는 영향받는 테스트와 사용자 경로를 다시 확인해 수정한다. 필요한 절차와 횟수는 변경 범위에 맞게 정한다.
 
-## Skill과 멀티 에이전트 실행
+## UI 구현 참고
 
-- Codex는 저장소 root `AGENTS.md`와 [`$pr-development-loop`](../../.agents/skills/pr-development-loop/SKILL.md)를 먼저 따른다.
-- coordinator와 프로젝트 agents `blueprint-task-planner`, `blueprint-implementer`, `blueprint-code-reviewer`, `blueprint-qa-reviewer` 역할을 분리한다.
-- implementer는 production/test 파일을 쓰지만 자신의 최종 코드 리뷰나 QA를 승인하지 않는다.
-- reviewer와 QA는 서로 다른 agent context를 사용한다. QA는 diff뿐 아니라 실행 중 화면과 프로세스를 검증한다.
-- 구현 agent를 병렬 실행해 공유 파일을 수정하지 않는다. 리뷰와 QA는 앞 단계 산출물에 의존하므로 순차 실행한다.
 - UI 개편 작업은 제품 동작·보안·접근성·반응형 계약을 먼저 지키고, `docs/blueprint-design/README.md`의 매핑 이미지를 주 시안으로 사용한다. `docs/template/README.md`는 새 시안에 없는 상태에만 사용한다. third-party UI package, design tokens, stylesheet, or MCP를 UI 기준으로 새로 추가하지 않는다.
-- 프로젝트 `.codex/hooks.json`은 workflow context를 제공하고 gate 누락 상태의 PR merge, 일반·간접 `main` 직접 push, Git aliases와 `gh api`/`curl` GitHub API merge를 차단한다. merge hook은 프로세스 잠금 안에서 최신 PR HEAD와 리뷰·QA 증거가 일치하는지 확인하고 15분 1회 허가를 소비한다. hook은 Codex에서 검토·신뢰된 뒤 실행된다. GitHub `main` branch protection도 pull request를 요구하도록 설정해 hook을 우회하는 외부 push를 막는다.
 
 ## 역할과 책임
 
@@ -174,7 +168,7 @@ PR 생성 전 최소 검증:
 - 실패 경로·경계값 테스트 누락
 - 임의 디자인 값 또는 중복 UI primitive 추가
 - UI의 시안/렌더 쌍을 직접 비교하지 않았거나 설명되지 않은 실질적인 anchor 차이를 남김
-- 독립 review/QA 또는 required check가 pass가 아닌 PR의 자동 merge 설정
+- 독립 review/QA 또는 required check가 pass가 아닌데 병합을 허용하는 설정
 
 리뷰 결과는 `pass`, `pass_with_non_blocking`, `fail` 중 하나다. `pass_with_non_blocking` 항목은 후속 작업 ID가 있어야 하며 P0 결함에는 사용할 수 없다.
 
@@ -238,7 +232,7 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 - 알려진 제한:
 
 ## Merge
-- Agent auto-merge: 전체 PR lifecycle을 사용자가 요청한 경우 모든 gate 통과 후에만 허용
+- Automated merge: 사용하지 않는다; 병합 여부는 사용자 결정에 따른다
 - Merge result: pending | merged
 ```
 
@@ -339,16 +333,15 @@ UI QA는 기준 이미지와 렌더 쌍을 독립적으로 검사하고 실질 �
 
 ### 정상 UI PR
 
-1. `blueprint-task-planner`가 plan과 화면·상태 acceptance를 작성한다.
-2. `blueprint-implementer`가 TDD 구현과 self-check를 수행한다.
-3. `blueprint-code-reviewer`가 별도 context에서 diff와 spec을 검토한다.
-4. finding 수정과 scoped re-review가 끝나면 `blueprint-qa-reviewer`가 변경된 사용자 경로와 직접 영향받는 desktop/mobile 반응형·접근성 조건을 Playwright Chromium으로 검증한다. Agent Browser가 사용 가능하면 같은 흐름을 확인한다.
-5. UIR 화면 개편 PR은 필수 최종 HEAD 상태 캡처를 첨부한다.
-6. 전체 PR lifecycle 요청이면 gate 통과 후 Agent가 PR을 병합하고 결과를 확인한다. 요청이 없으면 `ready_to_merge`에서 멈춘다.
+1. 작업 계획의 범위와 수용 기준에 맞춰 UI를 구현한다.
+2. 변경된 동작에 필요한 테스트와 자체 검증을 수행한다.
+3. 사용자 요청과 변경 위험에 따라 코드 리뷰와 동작 QA를 진행한다.
+4. 화면 변경이면 적용되는 시안과 desktop/mobile 렌더 근거를 PR에 첨부한다.
+5. 병합 전 PR 상태와 필요한 검증 결과를 확인한다.
 
 ### Agent 또는 QA 실패
 
-- 필수 QA agent, UI runtime, fixture 또는 사용 가능한 모든 브라우저 자동화를 사용할 수 없으면 정확한 누락을 기록하고 해당 gate를 `blocked`로 둔다. Agent Browser 부재 시 허용되는 Playwright Chromium 대체 검증은 위 조건에 해당하지 않는다.
+- 필요한 QA 도구, UI runtime, fixture 또는 브라우저 자동화를 사용할 수 없으면 정확한 누락과 영향 범위를 기록한다.
 - UI 런타임이나 사용 가능한 브라우저 자동화가 없으면 QA를 `blocked`로 기록한다. Playwright Chromium으로 같은 흐름과 viewport를 검증할 수 있고 Agent Browser만 사용할 수 없는 경우, 도구 목록·실행 파일 확인을 기록한 뒤 Playwright 결과로 QA를 판정한다. 캡처만 올리고 `pass`로 처리하지 않는다.
 - QA correction pass 뒤에도 같은 차단 finding이 남으면 PR을 머지 대기로 보내지 않고 task 범위나 설계를 다시 정한다.
 

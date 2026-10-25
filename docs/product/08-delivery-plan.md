@@ -17,10 +17,8 @@ Google 로그인부터 프로젝트 시작과 PRD 생성까지 기능 간 전이
 - model, reasoning, prompt, schema와 token 한도를 작업별 registry로 관리하고 변경 시 golden eval을 실행한다.
 - UI 또는 상호작용이 바뀌는 단계는 빌드와 E2E, 데스크톱·모바일 브라우저 검증을 수행한다.
 - 관련 없는 기존 작업 파일을 변경하거나 정리하지 않는다.
-- 구현은 [PR·리뷰·QA 반복 워크플로](../delivery/development-pr-review-qa-workflow.md)의 PR unit 순서로 진행한다.
-- 각 PR은 자체 검증 → 독립 코드 리뷰 → 독립 QA를 통과해야 한다. `$pr-development-loop`는 사용자가 전체 PR lifecycle을 요청한 경우에만 gate 통과 후 자동 머지한다.
-- 현재 PR의 머지를 확인하기 전에는 다음 PR 구현을 시작하지 않는다.
-- Codex 실행은 `$pr-development-loop` skill과 `.codex/agents/`의 단계별 planner, implementer, reviewer, QA 역할을 따른다.
+- 구현 순서와 PR unit은 [개발 단위 작업 설계](../delivery/README.md)에서 확인한다.
+- PR 설명에 변경 범위와 실제 실행한 검증 결과를 기록한다. 리뷰, QA, 병합은 작업 위험과 사용자의 요청에 맞게 진행한다.
 - 화면 작업 PR은 최종 HEAD의 desktop/mobile 개발 화면 캡처를 PR에서 직접 볼 수 있게 제공해야 한다.
 
 ## 전체 순서
