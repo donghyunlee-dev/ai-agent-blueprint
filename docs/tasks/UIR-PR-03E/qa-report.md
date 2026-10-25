@@ -8,6 +8,6 @@
 - Reference comparison: primary home and conversation screenshots were inspected, with template screenshots for focus/in-progress states absent from the new designs. Detailed anchors and the viewport mapping are in the evidence README.
 - Limit: the blue background cue appears for pointer-focused textareas in Chromium as well as keyboard-focused textareas; neither state has a ring. The visual focus cue remains background-only.
 
-## Follow-up QA pending
+## Final QA
 
-After the initial QA source HEAD, a 1024×768 role-choice test exposed that scroller `padding-bottom` reduced short-viewport reach. Source commit `28abb915162f7e1097382a399555a1513921e814` now uses a 25px content-end spacer; focused regression tests pass locally. Re-run independent QA on the corrected source before marking the PR ready to merge.
+Final QA passed on exact HEAD `cde4ca24e0503f81785fa90134a64ce0d2f8285f`. In addition to the prior checks, UIR-03D role choices passed at 1672×941, 1024×768, and 768×1024; the 1024×768 last-option reachability assertion passed with the 25px content-end spacer. The review-approved anchor comparison and the preserved composer-size exception are documented in the evidence README.
