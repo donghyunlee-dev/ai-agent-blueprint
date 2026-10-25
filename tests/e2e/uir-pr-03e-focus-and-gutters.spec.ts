@@ -117,12 +117,12 @@ test('conversation and summary content keep the specified desktop insets and mob
     const layout = document.querySelector('.conversation-stage-layout') as HTMLElement;
     const composer = document.querySelector('.ai-turn-composer') as HTMLElement;
     const read = (element: HTMLElement) => ({ paddingLeft: Number.parseFloat(getComputedStyle(element).paddingLeft), paddingRight: Number.parseFloat(getComputedStyle(element).paddingRight), paddingBottom: Number.parseFloat(getComputedStyle(element).paddingBottom) });
-    return { conversation: read(conversation), summary: read(summary), inspector: read(inspector), layout: layout.getBoundingClientRect().toJSON(), composer: composer.getBoundingClientRect().toJSON(), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    return { conversation: read(conversation), conversationEndSpacerHeight: Number.parseFloat(getComputedStyle(conversation, '::after').height), summary: read(summary), inspector: read(inspector), layout: layout.getBoundingClientRect().toJSON(), composer: composer.getBoundingClientRect().toJSON(), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
   expect(geometry.overflow).toBe(false);
   if (viewport.width >= 1024) {
     expect(geometry.conversation.paddingLeft).toBe(25);
-    expect(geometry.conversation.paddingBottom).toBe(25);
+    expect(geometry.conversationEndSpacerHeight).toBe(25);
     expect(Math.abs(geometry.summary.paddingRight - 25)).toBeLessThanOrEqual(1);
     expect(geometry.summary.paddingBottom).toBe(25);
   } else {
@@ -132,4 +132,66 @@ test('conversation and summary content keep the specified desktop insets and mob
   await mkdir(artifactDirectory, { recursive: true });
   await page.screenshot({ path: `${artifactDirectory}/conversation-summary-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
   await writeFile(`${artifactDirectory}/measurements-${viewport.width}x${viewport.height}.json`, JSON.stringify({ viewport, route: `/blueprints/${projectId}`, fixture: 'UIR-PR-03E deterministic meeting room aggregate', head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), geometry }, null, 2));
+});
+
+test('conversation composer focus uses a background cue without a blue ring', async ({ page }, testInfo) => {
+  const viewport = testInfo.project.name === 'mobile-chromium' ? { width: 390, height: 844 } : { width: 1440, height: 900 };
+  await page.setViewportSize(viewport);
+  await page.goto(`/blueprints/${projectId}`);
+  const idea = page.locator('#ai-turn-draft');
+  await expect(idea).toBeVisible();
+  await mkdir(artifactDirectory, { recursive: true });
+  const readStyles = () => idea.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outline: style.outlineStyle, border: style.border, shadow: style.boxShadow, background: style.backgroundColor, focusVisible: element.matches(':focus-visible') };
+  });
+  const baseline = await readStyles();
+  await page.screenshot({ path: `${artifactDirectory}/conversation-composer-default-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+
+  await idea.click();
+  await expect(idea).toBeFocused();
+  const pointer = await readStyles();
+  expect(pointer.outline).toBe('none');
+  expect(pointer.shadow).toBe('none');
+  expect(pointer.border).toBe(baseline.border);
+  if (pointer.focusVisible) expect(pointer.background).not.toBe(baseline.background);
+  else expect(pointer.background).toBe(baseline.background);
+  await page.screenshot({ path: `${artifactDirectory}/conversation-composer-pointer-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(idea).toBeFocused();
+  await expect.poll(() => idea.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+  const keyboard = await readStyles();
+  expect(keyboard.focusVisible).toBe(true);
+  expect(keyboard.outline).toBe('none');
+  expect(keyboard.shadow).toBe('none');
+  expect(keyboard.border).toBe(baseline.border);
+  expect(keyboard.background).not.toBe(baseline.background);
+  await page.screenshot({ path: `${artifactDirectory}/conversation-composer-keyboard-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+
+  if (viewport.width === 390) {
+    const confirmedIcon = page.locator('.conversation-stage-inspector .conversation-summary-icon.is-confirmed').first();
+    await expect(confirmedIcon).toBeAttached();
+    await confirmedIcon.scrollIntoViewIfNeeded();
+    const iconGeometry = await confirmedIcon.evaluate((element) => {
+      const container = element.getBoundingClientRect();
+      const svg = element.querySelector('svg')!;
+      const icon = svg.getBoundingClientRect();
+      const style = getComputedStyle(svg);
+      return { container: { width: container.width, height: container.height }, svg: { width: icon.width, height: icon.height }, fill: style.fill, stroke: style.stroke, strokeWidth: Number.parseFloat(style.strokeWidth), visibility: style.visibility, opacity: Number.parseFloat(style.opacity) };
+    });
+    expect(iconGeometry.container.width).toBe(26);
+    expect(iconGeometry.container.height).toBe(26);
+    expect(iconGeometry.svg.width).toBe(15);
+    expect(iconGeometry.svg.height).toBe(15);
+    expect(iconGeometry.fill).toBe('none');
+    expect(iconGeometry.stroke).not.toBe('none');
+    expect(iconGeometry.strokeWidth).toBeGreaterThan(0);
+    expect(iconGeometry.visibility).toBe('visible');
+    expect(iconGeometry.opacity).toBeGreaterThan(0);
+    await page.screenshot({ path: `${artifactDirectory}/conversation-summary-focus-scroll-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
+  }
+
+  await writeFile(`${artifactDirectory}/conversation-composer-focus-${viewport.width}x${viewport.height}.json`, JSON.stringify({ viewport, route: `/blueprints/${projectId}`, fixture: 'UIR-PR-03E deterministic meeting room aggregate', head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), baseline, pointer, keyboard }, null, 2));
 });
