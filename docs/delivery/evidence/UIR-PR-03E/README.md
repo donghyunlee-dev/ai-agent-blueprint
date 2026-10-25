@@ -2,7 +2,7 @@
 
 ## Capture details
 
-- Source commit: `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e` (based on `d34dead5f006fc1cb94857688a05f2bee81d863c`).
+- Source commit before short-viewport correction: `8d88a6d79cd9ef09a77e695e1c98dd0aa44e3f6e`; current evidence is regenerated after replacing scroller bottom padding with an end spacer. Both are based on `d34dead5f006fc1cb94857688a05f2bee81d863c`.
 - Routes/fixtures: home with deterministic UIR-03E fixture; `/blueprints/uir-pr-03e-meeting-room` with deterministic meeting-room aggregate.
 - Browser: Playwright Chromium. The reference PNGs are 1672×941; comparison uses their top-left 1440×900 viewport crop without stretching. The remaining right/bottom design canvas is outside the target viewport.
 - The design references do not depict focused or invalid focus states. The template focus screenshots are used for those states; those captures are checked for state behavior, not design parity.
@@ -34,7 +34,7 @@ Primary reference: `docs/blueprint-design/회의실 예약 서비스 UI 캔버�
 
 - Stage layout: x=249, y=196, width=1191, height=704.
 - Composer: x=279, y=811, width=783, height=78.
-- Conversation insets: left=25px, bottom=25px. Summary insets: right=26px, bottom=25px.
+- Conversation insets: left=25px, content-end spacer=25px. Summary insets: right=26px, bottom=25px.
 - No horizontal overflow.
 - Render captures: [desktop](conversation-summary-1440x900.png), [mobile](conversation-summary-390x844.png).
 
