@@ -31,4 +31,14 @@ The primary visual reference is [`회의실 예약 서비스 UI 캔버스.png`](
 
 ## Comparison record
 
-The rendered hierarchy retains the approved conversation canvas: stage navigation above a conversation-first workspace, contextual cards inside the conversation, a fixed composer, and a right-side aggregate summary on desktop. Recommendation cards now include source excerpts and an accessible action to move to the cited conversation turn. Mobile keeps the conversation first and opens the same summary in a keyboard-accessible dialog. The independent QA report will record matched source/render anchor measurements and any material exceptions against the reference.
+The rendered hierarchy retains the approved conversation canvas: stage navigation above a conversation-first workspace, contextual cards inside the conversation, a fixed composer, and a right-side aggregate summary on desktop. Recommendation cards now include source excerpts and an accessible action to move to the cited conversation turn. Mobile keeps the conversation first and opens the same summary in a keyboard-accessible dialog.
+
+### Matched canvas comparison
+
+- Reference: [`회의실 예약 서비스 UI 캔버스.png`](../../../blueprint-design/회의실%20예약%20서비스%20UI%20캔버스.png)
+- Render: [desktop-canvas contextual follow-up](./desktop-canvas-contextual-question.png)
+- Route/state: `/blueprints/con-pr-05-conversation-flow`, contextual follow-up card
+- CSS viewport: 1672×941 for both images; render uses deterministic API/session fixtures
+- Anchor measurements (approximate): left rail ends at x=249 in both; conversation stage begins at y=196 in both; summary is x=1338–1646 in the reference and x=1337–1646 in the render (-1px left, same right edge). Composer is x=278–1638 in the reference and x=305–1638 in the render (+27px left, -27px width; 2.0% of reference width), with the same 34px right margin. Its bottom is approximately 36px from the render viewport edge versus 11px in the reference (25px vertical offset, 2.7% of viewport height).
+- Exception: the 27px composer left/width difference follows the current conversation panel's 26px inner gutter. The composer still spans beneath the summary column and the measured horizontal/vertical deltas stay below the repository's 5% position and 10% size thresholds.
+- Evidence SHA: the PR description records the exact reviewed source commit for this captured render; documentation-only changes may follow without changing the rendered application.

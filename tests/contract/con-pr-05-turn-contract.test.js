@@ -108,4 +108,9 @@ test('turn contract rejects nested fenced and recognizable bare code without rej
   assert.equal(validateTurnAnalyzeV3(unsafeRecommendations, { text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' }).valid, true);
   recommendations[3].proposal.after.description = 'Return to the booking page to review the remaining seats.';
   assert.equal(validateTurnAnalyzeV3(unsafeRecommendations, { text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' }).valid, true);
+
+  for (const code of ['print("hello")', 'def main():\n  print("hello")']) {
+    const unsafeProposal = { ...validPayload, proposals: [{ operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: '예약 정책', description: code }, rationale: '예약 충돌을 줄이는 제안입니다.', evidence: [], affectedItemIds: [] }] };
+    assert.equal(validateTurnAnalyzeV3(unsafeProposal, { text: '예약 정책을 정리해 주세요.' }).valid, false);
+  }
 });

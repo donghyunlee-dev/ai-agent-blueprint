@@ -82,6 +82,17 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
   await expect(question).toBeVisible();
   await expect(page.locator('.ai-turn-cancel')).toBeHidden();
   const contextualCard=page.locator('.contextual-question-card').last();
+  if(testInfo.project.name==='desktop-chromium'){
+    const composerGeometry=await page.evaluate(()=>{
+      const composer=document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
+      const summary=document.querySelector('.conversation-stage-inspector')!.getBoundingClientRect();
+      return {left:composer.left,right:composer.right,viewportWidth:window.innerWidth,summaryLeft:summary.left,summaryRight:summary.right};
+    });
+    expect(composerGeometry.right).toBeGreaterThanOrEqual(composerGeometry.viewportWidth-40);
+    expect(composerGeometry.right).toBeLessThanOrEqual(composerGeometry.viewportWidth-28);
+    expect(composerGeometry.right).toBeGreaterThanOrEqual(composerGeometry.summaryRight-20);
+    expect(composerGeometry.left).toBeLessThan(composerGeometry.summaryLeft);
+  }
   if(testInfo.project.name==='mobile-chromium'){
     await expect.poll(()=>contextualCard.evaluate((element)=>element.getBoundingClientRect().width)).toBeGreaterThan(250);
     const actionAndComposer=await page.evaluate(()=>({action:document.querySelector('.contextual-question-card .question-card-submit')?.getBoundingClientRect().bottom??0,composer:document.querySelector('.ai-turn-composer')?.getBoundingClientRect().top??0,scrollWidth:document.documentElement.scrollWidth,viewport:window.innerWidth,textareaHeight:document.querySelector<HTMLTextAreaElement>('.ai-turn-composer textarea')?.scrollHeight??0,textareaClientHeight:document.querySelector<HTMLTextAreaElement>('.ai-turn-composer textarea')?.clientHeight??0}));

@@ -13,7 +13,7 @@ const unsafeCopy = (text) => {
   const copy = String(text ?? '');
   const containsMarkupOrExecutableUrl = /<\/?[a-z][^>]*>|javascript:|data:text\/html/i.test(copy);
   const containsCodeFence = /(?:^|\n)\s*(?:```|~~~)/.test(copy);
-  const containsBareCode = /(?:^|\n)\s*(?:#!|(?:const|let|var)\s+[\w$]+\s*=|(?:async\s+)?function\s+[\w$]*\s*\(|return\s+[^.!?;\n]+;|import\s+(?:['"]|.*\sfrom\s+['"])|export\s+(?:default\s+)?(?:const|let|var|function|class)\b|(?:fetch|eval|alert|console\.(?:log|warn|error))\s*\(|(?:curl|wget)\s+\S+.*(?:\||&&|;)|(?:node|python|bash|sh)\s+-(?:e|c)\b|(?:npm|pnpm|yarn)\s+(?:install|add|exec|run)\b|(?:sudo\s+|rm\s+-rf\b))/im.test(copy);
+  const containsBareCode = /(?:^|\n)\s*(?:#!|(?:const|let|var)\s+[\w$]+\s*=|(?:async\s+)?function\s+[\w$]*\s*\(|(?:async\s+)?def\s+[\w]+\s*\([^)]*\)\s*:|class\s+[\w]+(?:\s*\([^)]*\))?\s*:|print\s*\(|return\s+[^.!?;\n]+;|import\s+(?:['"]|.*\sfrom\s+['"])|export\s+(?:default\s+)?(?:const|let|var|function|class)\b|(?:fetch|eval|alert|console\.(?:log|warn|error))\s*\(|(?:curl|wget)\s+\S+.*(?:\||&&|;)|(?:node|python|bash|sh)\s+-(?:e|c)\b|(?:npm|pnpm|yarn)\s+(?:install|add|exec|run)\b|(?:sudo\s+|rm\s+-rf\b))/im.test(copy);
   return containsMarkupOrExecutableUrl || containsCodeFence || containsBareCode;
 };
 const containsUnsafeCopy = (value) => {
