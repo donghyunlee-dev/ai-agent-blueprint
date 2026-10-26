@@ -203,8 +203,10 @@
   .document-export-actions button { flex:1 1 auto; }
   .requirements-document-layout { grid-template-columns:minmax(0,1fr); }
   .requirements-contents-trigger { display:inline-flex; margin-bottom:.75rem; }
-  .requirements-contents { display:none; position:fixed; z-index:60; inset:10vh 8vw auto; max-height:80vh; overflow:auto; box-shadow:0 16px 48px #141b2b38; }
-  .requirements-contents.is-open { display:block; }
+  .requirements-contents { display:none; position:fixed; z-index:60; inset:10vh 8vw auto; max-height:80vh; flex-direction:column; overflow:hidden; box-shadow:0 16px 48px #141b2b38; }
+  .requirements-contents.is-open { display:flex; }
+  .requirements-contents header { flex:none; }
+  .requirements-contents nav { min-height:0; flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain; }
   .requirements-contents-close { display:inline-flex; }
   .requirements-contents-backdrop { display:block; position:fixed; z-index:59; inset:0; border:0; background:#10182866; }
   .document-section-overview-card { grid-template-columns:minmax(0,1fr); }

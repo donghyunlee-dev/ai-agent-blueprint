@@ -85,6 +85,7 @@ test('stacks the summary below usable proposal cards at the 768px tablet breakpo
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Tablet capture is run once in the desktop Chromium project.');
   await page.setViewportSize({ width: 768, height: 1024 });
   await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
+  await expect(page.locator('.workspace-title-input')).toHaveValue('UIR-PR-04 검토');
   const main = await page.locator('.proposal-stage-main').boundingBox();
   const card = await page.locator('.proposal-review-item').first().boundingBox();
   const bulkSummary = await page.locator('.proposal-bulk-controls p').boundingBox();
@@ -95,4 +96,36 @@ test('stacks the summary below usable proposal cards at the 768px tablet breakpo
   expect((summary?.y ?? 0)).toBeGreaterThan((main?.y ?? 0) + (main?.height ?? 0) - 200);
   await mkdir('.pr-artifacts/UIR-PR-04', { recursive: true });
   await page.screenshot({ path: '.pr-artifacts/UIR-PR-04/tablet-768-pending.png' });
+});
+
+test('keeps proposal cards usable and summary responsive at 1024px, 1279px, and 1280px', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Responsive boundary checks run once in the desktop Chromium project.');
+
+  for (const width of [1024, 1279, 1280]) {
+    await page.setViewportSize({ width, height: 1024 });
+    await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
+    const main = await page.locator('.proposal-stage-main').boundingBox();
+    const card = await page.locator('.proposal-review-item').first().boundingBox();
+    const summary = await page.locator('.proposal-stage-summary').boundingBox();
+    const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(pageWidth, `document should not overflow horizontally at ${width}px`).toBeLessThanOrEqual(width);
+    expect(card?.width ?? 0, `proposal card should remain readable at ${width}px`).toBeGreaterThan(500);
+
+    if (width < 1280) {
+      expect(summary?.y ?? 0, `summary should follow the main proposal area at ${width}px`).toBeGreaterThan((main?.y ?? 0) + (main?.height ?? 0) - 1);
+    } else {
+      expect(summary?.x ?? 0, 'summary should sit beside the main area at 1280px').toBeGreaterThanOrEqual((main?.x ?? 0) + (main?.width ?? 0) - 1);
+    }
+
+    const approve = page.locator('.proposal-review-actions').first().getByRole('button', { name: '승인', exact: true });
+    await approve.scrollIntoViewIfNeeded();
+    await expect(approve).toBeVisible();
+    const action = await approve.boundingBox();
+    expect(action?.x ?? -1, `proposal action should remain horizontally reachable at ${width}px`).toBeGreaterThanOrEqual(0);
+    expect((action?.x ?? width) + (action?.width ?? 0), `proposal action should remain within the viewport at ${width}px`).toBeLessThanOrEqual(width);
+    if (width === 1024) {
+      await mkdir('.pr-artifacts/QLT-PR-01', { recursive: true });
+      await page.screenshot({ path: '.pr-artifacts/QLT-PR-01/proposal-review-1024x1024.png' });
+    }
+  }
 });

@@ -186,6 +186,7 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
   await confirmation.check();
   await expect(sendButton).toBeEnabled();
   await sendButton.click();
+  await expect.poll(()=>calls).toBe(2);
   await expect(page.locator('.ai-unknown-recovery')).toContainText('24시간 tombstone');
   expect(calls).toBe(2);
   await page.clock.fastForward(24*60*60*1000+1000);

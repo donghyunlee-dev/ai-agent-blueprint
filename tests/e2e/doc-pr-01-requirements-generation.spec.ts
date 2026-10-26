@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
 import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/index.js';
@@ -9,6 +10,7 @@ const now = '2026-10-15T00:00:00.000Z';
 const sectionKeys = ['overview','functional','non_functional','data','integration','permissions','exceptions','deployment','operations','exclusions','open_issues'];
 
 test('generates a review_required Requirements document and supports section navigation on desktop and mobile', async ({ page }) => {
+  await mkdir('.pr-artifacts/QLT-PR-01', { recursive: true });
   await page.route('**/api/auth/session', (route) => route.fulfill({ status:200, json:{authenticated:true,user:identity} }));
   const ownerKey = await deriveOwnerKey(identity);
   await page.goto('/');
@@ -60,11 +62,40 @@ test('generates a review_required Requirements document and supports section nav
   if (page.viewportSize()!.width <= 767) {
     await page.getByRole('button',{name:'목차 열기'}).click();
     await expect(page.getByRole('button',{name:'닫기',exact:true})).toBeFocused();
+    await page.screenshot({path:`.pr-artifacts/QLT-PR-01/requirements-toc-drawer-${page.viewportSize()!.width}x${page.viewportSize()!.height}.png`});
   }
   await page.locator('.requirements-contents').getByRole('button',{name:'기능 요구사항',exact:true}).click();
   await expect(page.getByRole('heading',{name:'화면 결과 표시'})).toBeVisible();
   await expect(page.getByText('오류 상황의 문구를 확인해 주세요.')).toBeVisible();
   if (page.viewportSize()!.width <= 767) await expect(page.getByRole('button',{name:'목차 열기'})).toBeFocused();
+  const selectedSectionHeading=page.getByRole('heading',{name:'기능 요구사항',level:2});
+  await selectedSectionHeading.focus();
+  for (const viewport of [{width:768,height:520},{width:1024,height:520},{width:1280,height:768}]) {
+    await page.setViewportSize(viewport);
+    await expect(selectedSectionHeading).toBeFocused();
+    await expect(page.locator('.requirements-contents nav button[aria-current="location"]')).toHaveAttribute('aria-label','기능 요구사항');
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+
+    if (viewport.width<=1024) {
+      const trigger=page.getByRole('button',{name:'목차 열기'});
+      await expect(trigger).toBeVisible();
+      await trigger.click();
+      const drawer=page.locator('.requirements-contents.is-open');
+      const close=drawer.getByRole('button',{name:'닫기',exact:true});
+      await expect(close).toBeFocused();
+      await page.screenshot({path:`.pr-artifacts/QLT-PR-01/requirements-toc-drawer-${viewport.width}x${viewport.height}.png`});
+      const headingTop=await drawer.locator('header').evaluate((element)=>element.getBoundingClientRect().top);
+      await drawer.locator('nav').evaluate((element)=>{element.scrollTop=element.scrollHeight;});
+      await expect.poll(()=>drawer.locator('nav').evaluate((element)=>element.scrollTop)).toBeGreaterThan(0);
+      expect(await drawer.locator('header').evaluate((element)=>element.getBoundingClientRect().top)).toBe(headingTop);
+      await page.keyboard.press('Escape');
+      await expect(trigger).toBeFocused();
+      await expect(page.locator('.requirements-contents nav button[aria-current="location"]')).toHaveAttribute('aria-label','기능 요구사항');
+      await selectedSectionHeading.focus();
+    } else {
+      await expect(page.getByRole('button',{name:'목차 열기'})).toBeHidden();
+    }
+  }
   const stored = await page.evaluate(async ({databaseName,projectId})=>{
     const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
     const tx=db.transaction(['projects','activities'],'readonly'); const request=tx.objectStore('projects').get(projectId); const activities=tx.objectStore('activities').index('projectId').getAll(projectId);

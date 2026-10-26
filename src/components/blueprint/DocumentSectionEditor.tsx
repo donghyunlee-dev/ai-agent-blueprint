@@ -19,13 +19,14 @@ export function DocumentSectionEditor({aggregate,document,section,displayTitle=s
   const [error,setError]=useState<string|null>(null);
   const [conflict,setConflict]=useState<LatestDocument|null>(null);
   const editTrigger=useRef<HTMLButtonElement>(null);
+  const previewTrigger=useRef<HTMLButtonElement>(null);
   const dialog=useRef<HTMLDialogElement>(null);
   const discardDialog=useRef<HTMLDialogElement>(null);
   const preview=previewDirectDocumentEdit(aggregate,{documentId:document.id,sectionId:section.id,title,markdown});
   useEffect(()=>{if(previewOpen&&!dialog.current?.open)dialog.current?.showModal();},[previewOpen]);
   useEffect(()=>{if(discardOpen&&!discardDialog.current?.open)discardDialog.current?.showModal();},[discardOpen]);
   function startEditing(){if(section.syncStatus==='conflict')return;setTitle(displayTitle);setMarkdown(section.markdown);setEditBase({version:document.version,revision:aggregate.project.designRevision??0});setError(null);setConflict(null);setEditing(true);}
-  function closePreview(){if(saving)return;dialog.current?.close();setPreviewOpen(false);setConflict(null);editTrigger.current?.focus();}
+  function closePreview(){if(saving)return;dialog.current?.close();setPreviewOpen(false);setConflict(null);previewTrigger.current?.focus();}
   function cancelEditing(){if(title!==displayTitle||markdown!==section.markdown){setDiscardOpen(true);return;}setEditing(false);editTrigger.current?.focus();}
   function discardChanges(){discardDialog.current?.close();setDiscardOpen(false);setEditing(false);setTitle(displayTitle);setMarkdown(section.markdown);setError(null);editTrigger.current?.focus();}
   async function confirmSave(){
@@ -44,11 +45,11 @@ export function DocumentSectionEditor({aggregate,document,section,displayTitle=s
     {editing?<section className="document-direct-editor" aria-label={`${displayTitle} 직접 편집`}>
       <label>섹션 제목<input value={title} maxLength={160} onChange={(event)=>setTitle(event.target.value)} /></label>
       <label>문서 내용<textarea rows={8} value={markdown} onChange={(event)=>setMarkdown(event.target.value)} /></label>
-      <div className="document-direct-editor-actions"><button type="button" onClick={cancelEditing}>취소</button><button type="button" className="design-requirements-action is-primary" disabled={!title.trim()||!editBase||title===displayTitle&&markdown===section.markdown} onClick={()=>{setExcluded([]);setConflict(null);setError(null);setPreviewOpen(true);}}>영향 확인 후 저장</button></div>
+      <div className="document-direct-editor-actions"><button type="button" onClick={cancelEditing}>취소</button><button ref={previewTrigger} type="button" className="design-requirements-action is-primary" disabled={!title.trim()||!editBase||title===displayTitle&&markdown===section.markdown} onClick={()=>{setExcluded([]);setConflict(null);setError(null);setPreviewOpen(true);}}>영향 확인 후 저장</button></div>
       {error&&!previewOpen?<p role="alert">{error}</p>:null}
     </section>:null}
     <dialog ref={discardDialog} className="document-impact-dialog" aria-labelledby={`discard-edit-${section.id}`} onCancel={(event)=>{event.preventDefault();discardDialog.current?.close();setDiscardOpen(false);}}><h3 id={`discard-edit-${section.id}`}>편집 내용을 취소할까요?</h3><p>저장하지 않은 제목과 문서 내용이 사라집니다.</p><footer><button type="button" onClick={()=>{discardDialog.current?.close();setDiscardOpen(false);}}>계속 편집</button><button type="button" onClick={discardChanges}>입력 삭제</button></footer></dialog>
-    <dialog ref={dialog} className="document-impact-dialog" aria-labelledby={`direct-edit-preview-${section.id}`} onCancel={(event)=>{event.preventDefault();closePreview();}} onClose={()=>{if(previewOpen){setPreviewOpen(false);editTrigger.current?.focus();}}}>
+    <dialog ref={dialog} className="document-impact-dialog" aria-labelledby={`direct-edit-preview-${section.id}`} onCancel={(event)=>{event.preventDefault();closePreview();}} onClose={()=>{if(previewOpen){setPreviewOpen(false);(editing?previewTrigger:editTrigger).current?.focus();}}}>
       <h3 id={`direct-edit-preview-${section.id}`}>문서 변경 영향 확인</h3>
       <p>확인 후 선택한 설계 항목과 문서 편집 내용이 한 번에 저장됩니다. 제외한 항목과 연결 문서는 변경하지 않습니다.</p>
       <div className="document-edit-diff"><div><strong>저장된 본문</strong><p>{section.markdown||'내용 없음'}</p></div><div><strong>편집한 본문</strong><p>{markdown||'내용 없음'}</p></div></div>

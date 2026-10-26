@@ -112,7 +112,7 @@ flowchart TD
 | 14 | `CON-PR-03` 메시지·AI block | CON-201, 205, AI-004 | 프로젝트 AI 데이터 동의, 허용 block 렌더, 진행·취소·compaction | merged (#16, `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`) |
 | 15 | `DSG-PR-01` 제안 검토·확정 | DSG-301~303 | 복수 제안 개별 수정·승인·거절 | merged (#17, `e33212d2de305f571db287631fb9256eda0196eb`) |
 | 16 | `DSG-PR-02` 충돌·의존·일괄 처리 | DSG-304, 305, 307 | 충돌 해결, dependents 재검토와 atomic 일괄 승인·거절 | merged (#18, `7246eaee32d2d72856e0fafaf3b4910e1e237613`) |
-| 17 | `DSG-PR-03` 설계 보드·readiness | DSG-306 | 10개 설계 영역, 3상태 readiness, Requirements 진입 gate | ready (base `7246eaee32d2d72856e0fafaf3b4910e1e237613`) |
+| 17 | `DSG-PR-03` 설계 보드·readiness | DSG-306 | 10개 설계 영역, 3상태 readiness, Requirements 진입 gate | merged (#19) |
 | 18 | `DOC-PR-01` Requirements | DOC-401, 402, AI-006 | 코드 plan, Mini draft/review, 추적 가능한 요구사항 | merged (#20; head `47f4cdf7304ee546547b96b255f98d345752f31a`, merge `6ded90838a415ee10f9a3ba0b518ebd0932c9618`; tests 13/13, Playwright 2/2, build, Mermaid 38/38; independent review/QA pass; AI eval and Vercel pass) |
 | 19 | `DOC-PR-02` Requirements ready·PRD | DOC-403, 404, AI-007 | ready 잠금과 Terra PRD, Mini review | merged (#21; head `490c84fc7aa7375b0348ab9648f8b110a61d90d0`, merge `f0c922635ae0a620022f4a05d86fe6ea4fcc1ff9`; focused QA 16/16, Playwright 2/2, build; independent review/QA pass; AI eval and Vercel pass) |
 | 20 | `DOC-PR-03` 부분 보완·정합성 | DOC-406, 407 | 선택 section만 patch, 불일치 proposal | merged (#22; head `775ec6bd14ee1ec38e04768b205750cc870c7ad6`, merge `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`; tests 36/36, Playwright desktop/mobile 1/1 each, build; independent review/QA pass; AI eval and Vercel pass) |
@@ -122,8 +122,8 @@ flowchart TD
 | 24 | `EXP-PR-01` 문서 복사·다운로드 | EXP-505 | 안전한 개별 Markdown 내보내기 | merged (#25; merge `aee5afddcdf32d4da7d46e1aebf260522670a780`) |
 | 25 | `DEC-PR-01` 자료 수정·설정 가이드 완료 정책 | DEC-044, DEC-045 | 추출 결과 read-only/download, 사용자 승인된 setup guide 완료 gate, 병합 상태 동기화 | merged (PR #27; merge `1ee6ff4f879389cefce1892b2cba5b8037c4ba39`) |
 | 26 | `SRC-PR-03` 추출 결과 다운로드 | SRC-502 | 원본 파일과 구분되는 추출 텍스트 다운로드, 외부 편집, 원본 자료·근거 불변 | merged (PR #28; merge `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`) |
-| 27 | `GDE-PR-01` 설정 가이드 | GDE-504 | SETUP_GUIDE_DRAFT registry/prompt/schema와 golden eval, 근거 있는 가이드 생성·승인 gate | ready_to_merge (코드 리뷰·QA 통과, 사용자 병합 승인 대기) |
-| 28 | `QLT-PR-01` 접근성·반응형·성능 | QLT-601~603 | 지정 viewport와 키보드·성능 gate | planned |
+| 27 | `GDE-PR-01` 설정 가이드 | GDE-504 | SETUP_GUIDE_DRAFT registry/prompt/schema와 golden eval, 근거 있는 가이드 생성·승인 gate | merged (#29) |
+| 28 | `QLT-PR-01` 접근성·반응형·성능 | QLT-601~603 | 지정 viewport와 키보드·성능 gate | in_progress |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | QLT-604, 605, 608 | 전체 프로세스와 보안·모델 회귀 통과 | planned |
 | 30 | `QLT-PR-03` 사용자 검증·출시 정리 | QLT-606, 607 | P0 결함 0건과 release checklist | planned |
 | 31 | `AUTH-PR-04` ideon 로그인 화면 시안 개편 | AUTH-001, UI-AUTH-001, UIR-010 | ideon 로그인 시각 개편, Google 단일 로그인과 인증 상태 보존 | merged (#43) |
@@ -139,7 +139,7 @@ CON-PR-01~03은 해당 PR 당시 승인된 질문/catalog 동작을 구현한 �
 | PR unit | 선행 조건 | 결과 | 상태 |
 | --- | --- | --- | --- |
 | [`CON-PR-04`](../tasks/CON-PR-04/plan.md) 대화·결정 요약 계약 재정립 | PR #63 merged; docs-only unit | product/process/UI/AI 계약 및 CON-PR-05 구현 설계 정렬 | merged (#63) |
-| [`CON-PR-05`](../tasks/CON-PR-05/plan.md) 대화 주도 발견·결정 패널 동기화 | CON-PR-04 merged; technical DoR verified | freeform turn, context-derived choices, allowlisted renderer, proposal approval, same-revision summary, responsive error recovery | in_progress (application/test evidence is from app-code HEAD `caf2e01`; the current PR HEAD is separate after a docs-only refresh, and its review/QA/configured-check evidence is tracked on PR #64) |
+| [`CON-PR-05`](../tasks/CON-PR-05/plan.md) 대화 주도 발견·결정 패널 동기화 | CON-PR-04 merged; technical DoR verified | freeform turn, context-derived choices, allowlisted renderer, proposal approval, same-revision summary, responsive error recovery | merged (#64) |
 
 | 순서 | UIR PR unit | 선행 조건 | 상태 |
 | ---: | --- | --- | --- |
@@ -150,11 +150,11 @@ CON-PR-01~03은 해당 PR 당시 승인된 질문/catalog 동작을 구현한 �
 | 5 | [`UIR-PR-02C`](../tasks/UIR-PR-02C/plan.md) 홈 픽셀 일치 보정 | UIR-PR-02B merged | merged (PR #38; merge `2d9a32f`) |
 | 6 | [`UIR-PR-02D`](../tasks/UIR-PR-02D/plan.md) 홈 정렬·입력 보정 | UIR-PR-02C merged | merged (PR #39; merge `8148725`) |
 | 7 | [`UIR-PR-02E`](../tasks/UIR-PR-02E/plan.md) 짧은 데스크톱 홈 첫 화면 맞춤 | UIR-PR-02D merged | merged (PR #40; merge `921d8df2462e7659dbed81cdcdd156d11e916205`) |
-| 8 | [`UIR-PR-03`](../tasks/UIR-PR-03/plan.md) 단계·대화 | UIR-PR-02E merged (#40) | in_progress |
-| 9 | [`UIR-PR-03A`](../tasks/UIR-PR-03A/plan.md) 대화 화면 시안 정합성 보정 | UIR-PR-03 merged (#41) | in_progress |
-| 10 | `UIR-PR-04` 제안 검토 | UIR-PR-03A merged | planned |
+| 8 | [`UIR-PR-03`](../tasks/UIR-PR-03/plan.md) 단계·대화 | UIR-PR-02E merged (#40) | merged (#41) |
+| 9 | [`UIR-PR-03A`](../tasks/UIR-PR-03A/plan.md) 대화 화면 시안 정합성 보정 | UIR-PR-03 merged (#41) | merged (#44) |
+| 10 | `UIR-PR-04` 제안 검토 | UIR-PR-03A merged | merged (#49, #50) |
 | 11 | `UIR-PR-05` 준비도 표현 | UIR-PR-04 merged | merged (#52, `73f616be34aac006a545d91afbb1dc5f6deb9824`) |
-| 12 | [`UIR-PR-06`](../tasks/UIR-PR-06/plan.md) 문서·지원 흐름 | UIR-PR-05 merged (#52) | in_progress |
+| 12 | [`UIR-PR-06`](../tasks/UIR-PR-06/plan.md) 문서·지원 흐름 | UIR-PR-05 merged (#52) | merged (#54, #55, #56) |
 
 ### Current-main UI follow-up
 
@@ -163,7 +163,7 @@ CON-PR-01~03은 해당 PR 당시 승인된 질문/catalog 동작을 구현한 �
 | [`UIR-PR-03D`](../tasks/UIR-PR-03D/plan.md) 선택 카드·아이디어 입력 포커스 보정 | UIR-PR-03C merged (#51); branch from latest `origin/main` | 선택지 개수에 맞는 균형 배치, 필요한 아이콘 표시, 보안 문구 한국어화, 키보드 접근성을 유지한 입력 포커스 표시 | merged (#53, `ac5b8abade7b1235e68cb549703e7081a55379fa`) |
 | [`UIR-PR-03E`](../tasks/UIR-PR-03E/plan.md) 아이디어 포커스 링 제거·대화 여백 정리 | PR #59 merged to `main` at `1f62a20` | 홈·대화 입력 포커스 링 제거, 대화·요약 여백 및 모바일 요약 아이콘 정리 | merged (PR #59; `Capture home UI states` failed on stale `/design` route assertion) |
 | [`UIR-PR-03F`](../tasks/UIR-PR-03F/plan.md) 포커스 시 입력 배경 유지 | UIR-PR-03E merged (#59); branch from `origin/main` `1f62a20` | 홈·대화 입력 포커스 시 대체 배경 강조 제거, 홈 검증 배경 보존 | merged (PR #60; merge `9b81e9f`) |
-| [`UIR-PR-03G`](../tasks/UIR-PR-03G/plan.md) 대화·요약 패널 외부 여백 보정 | UIR-PR-03F merged (#60); branch from `origin/main` `9b81e9f` | 대화·요약 카드의 데스크톱 좌측·하단 외부 여백을 26px로 정리하고 composer를 카드 안에 유지 | in_progress |
+| [`UIR-PR-03G`](../tasks/UIR-PR-03G/plan.md) 대화·요약 패널 외부 여백 보정 | UIR-PR-03F merged (#60); branch from `origin/main` `9b81e9f` | 대화·요약 카드의 데스크톱 좌측·하단 외부 여백을 26px로 정리하고 composer를 카드 안에 유지 | merged (#61) |
 
 기존 `QLT-PR-01`의 전체 화면 감사는 UIR-PR-01~06이 병합된 뒤 새 UI에도 적용한다.
 
