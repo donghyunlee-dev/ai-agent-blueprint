@@ -110,12 +110,4 @@ Google OAuth/OIDC가 유일한 로그인 방식이다. 별도 OTP 입력, Gmail 
 
 | ID | 결정 | 반영 문서 |
 | --- | --- | --- |
-| DEC-047 | 개발부터 PR 발행까지 자동 진행하는 프로젝트 스킬, 전용 agents와 hooks를 제거한다. 작업 계획과 수동 delivery 안내 문서는 보존한다. | AGENTS, development plan, delivery workflow |
-
-| DEC-047 | 개발부터 PR 발행까지 자동 진행하는 프로젝트 스킬, 전용 agents와 hooks를 제거한다. 작업 계획과 제품별 개발 계약은 보존하되 참고 자료로 사용한다. | AGENTS, development plan, delivery workflow, task guide |
-
-## 2026-10-26 개발 자동화 범위 결정
-
-| ID | 결정 | 반영 문서 |
-| --- | --- | --- |
-| DEC-047 | 남아 있는 프로젝트 harness skill을 제거하고, 개발부터 PR 발행까지 자동 진행하는 skill·전용 agents·hooks를 두지 않는다. 작업 계획과 제품별 개발 계약은 보존하되 참고 자료로 사용한다. | AGENTS, delivery plan, delivery workflow, task guide |
+| DEC-047 | 저장소에 남아 있던 harness skill을 제거하고, 개발부터 PR 발행까지 자동 진행하는 프로젝트 skill, 전용 agents와 hooks를 두지 않는다. 작업 계획과 제품별 개발 계약은 보존하되 참고 자료로 사용한다. | AGENTS, delivery plan, delivery workflow, task guide |
