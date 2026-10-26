@@ -100,7 +100,7 @@ Given sessionStorage의 이전 값이 손상된 JSON인 경우, when 이전을 �
 - session audience를 바꾸면 배포 전 기존 session cookie는 만료 전이어도 거부되어 사용자가 다시 로그인해야 한다. 이는 오래된 identity context를 받아들이지 않는 안전한 계약 변경이다.
 - sessionStorage key를 단순 교체하면 같은 탭의 임시 PRD 문맥을 잃는다. 호환 이전을 구현하고 테스트해야 한다.
 - 외부 shared UI package의 실제 이름은 제품 브랜드와 별개이므로 현재 의존성 계약에 맞춰 유지한다.
-- `AGENTS.md`와 `.agents/skills/pr-development-loop/SKILL.md`에 현재 사용자 편집이 있다. 구현 단계에서는 해당 편집을 보존하며 최소 범위로 함께 조정한다.
+- `AGENTS.md`에 현재 사용자 편집이 있을 수 있다. 구현 단계에서는 해당 편집을 보존하며 필요한 범위만 조정한다.
 
 ## Done Checklist
 

@@ -8,7 +8,7 @@
 
 - 선행: `UIR-PR-01`, `UIR-PR-02`의 GitHub 병합 확인. PR #35는 `main`에 병합됐다.
 - 연결 작업: UIR-001~010 화면 계약의 시각 검증 절차. 제품 동작이나 요구사항 ID를 새로 만들지 않는다.
-- 포함: `$pr-development-loop`와 대화형 Blueprint skill의 시각 기준 우선순위, delivery의 독립 리뷰·QA gate, `docs/ui/07-visual-acceptance.md`의 직접 비교·판정 절차, UI 개편 계획과 PR 단위 등록.
+- 포함: 시각 기준 우선순위, delivery 검증 안내, `docs/ui/07-visual-acceptance.md`의 직접 비교·판정 절차, UI 개편 계획과 PR 단위 등록.
 - 제외: 제품 UI·CSS·테스트·route·API·배포 변경, PR #35 화면 자체의 수정, 시안에만 있는 기능 추가.
 - 후속: 이 PR의 병합 확인 뒤 최신 `main`에서 `UIR-PR-03`을 시작한다.
 
@@ -27,8 +27,6 @@
 
 ## 변경 파일
 
-- `.agents/skills/pr-development-loop/SKILL.md`
-- `.agents/skills/conversational-blueprint-workflow/SKILL.md`
 - `docs/delivery/development-pr-review-qa-workflow.md`
 - `docs/ui/07-visual-acceptance.md`
 - `docs/superpowers/plans/2026-10-22-blueprint-ui-overhaul.md`

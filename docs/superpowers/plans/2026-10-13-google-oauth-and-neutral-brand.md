@@ -1,6 +1,5 @@
 # Google OAuth and Neutral Documentation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Remove former-company and internal identity-service content from tracked Markdown, adopt Google OIDC sign-in as the sole authentication design, and align the PRD and delivery sequence.
 
