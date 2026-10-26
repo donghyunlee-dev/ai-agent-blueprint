@@ -55,7 +55,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: con-pr-05-conversation-prd-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: .pr-artifacts/**
+          path: |
+            .pr-artifacts/**
+            test-results/**/*.png
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
 
