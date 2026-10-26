@@ -4,9 +4,9 @@
 
 이 문서는 각 `AiTaskType`이 사용할 실제 prompt template의 역할, 변수, 금지 규칙과 기본 문구를 정의한다. 구현자는 의미를 임의 변경하지 않고 versioned Prompt Registry로 옮긴다. JSON Schema는 [프롬프트·응답 계약](13-prompt-and-response-contracts.md)을 따른다.
 
-> **대화 동작 전환 메모:** 아래 `QUESTION_COMPOSE`, `TURN_ANALYZE`와 `OPTION_RECOMMEND` templates는 현재 runtime의 catalog-first prompt 버전이다. 다음 개발 unit `CON-PR-05`에서 versioned prompt/schema를 갱신하기 전까지는 [대화·결정 프로세스](04-conversation-process.md)와 [turn 처리 계약](../process/03-question-and-answer-decisions.md)이 목표 동작의 정본이다. 이 파일의 catalog 전용 제약을 새 자유 대화 동작으로 간주해 구현하지 않는다.
+> **현재 대화 runtime:** `TURN_ANALYZE`는 prompt/schema `turn.analyze.v3` (`v3`)를 사용하며 자유 turn을 현재 context에 근거해 분석한다. `turn.analyze.v1`과 `turn.analyze.v2`는 registry에 남아 있는 이전 schema shape이고, 새 turn에는 v3가 선택된다. `QUESTION_COMPOSE`와 `OPTION_RECOMMEND`는 별도 registry task다. 자유 대화의 질문 순서와 recommendation 후보는 이들 task 또는 catalog가 결정하지 않는다.
 
-목표 template는 질문·추천 내용을 고정 catalog에서 선택하지 않는다. 선택 UI의 renderer type은 strict allowlisted registry로 제한하고, 질문/option 표시 데이터는 허용된 context에서 turn별로 생성한다. Prompt/schema는 임의 markup/code/component/action/ID를 금지하고, 선택은 pending proposal로만 연결한다. `CON-PR-05`에서 이 목표를 실제 versioned template/schema와 golden eval로 옮기며 현재 model/budget limits는 유지한다.
+v3 template는 자유 입력, 대화 context, confirmed design, 그리고 허용된 source excerpt에 근거해 자연스러운 응답과 pending proposal을 만든다. 필요한 경우에만 질문 하나를 만들며, 질문과 선택지 내용은 현재 context에서 생성한다. 선택 UI renderer type은 strict allowlist를 사용한다. 명시적 recommendation 요청에 근거가 충분할 때는 정확히 11개의 후보를 반환하고, 근거가 부족하면 후보를 임의로 채우지 않고 필요한 맥락을 묻는다. Prompt/schema는 임의 markup/code/component/action/ID를 금지한다. model profile과 budget은 변경하지 않는다.
 
 ## 공통 작성 규칙
 
@@ -112,35 +112,26 @@ USER_INPUT:
 - returnToQuestionId는 현재 questionId와 같아야 한다.
 ```
 
-## `TURN_ANALYZE` — `turn.analyze.v2`
+## `TURN_ANALYZE` — `turn.analyze.v3` (`v3`)
 
-```text
-사용자의 최신 자유 답변과 허용된 자료 발췌에서 설계 변경 후보를 추출한다.
+사용자의 최신 자유 turn, 대화 context, confirmed design, 허용된 자료 발췌에서 자연스러운 대화 응답과 설계 변경 후보를 추출한다. 일반 turn을 질문 catalog 순서에 종속시키지 않는다.
 
-분석 순서:
-1. 현재 질문에 대한 직접 답을 식별한다.
-2. 같은 답변에 포함된 추가 제품 사실을 식별한다.
-3. 각 내용을 사실, 선호, 가정, AI 추론으로 구분한다.
-4. confirmed 설계와 의미가 같으면 중복 proposal을 만들지 않는다.
-5. confirmed 설계와 다르면 conflict 가능성을 표시하는 update proposal을 만든다.
-6. 근거가 불명확하면 proposal 대신 ambiguity로 남긴다.
+Provider payload의 필드는 다음과 같다:
 
-Proposal 규칙:
-- proposal 하나는 target 하나와 create/update/delete 의도 하나만 가진다.
-- 최대 8개다.
-- evidence는 제공된 message/source ID만 참조한다.
-- 파일 근거 `sourceId`에는 제공된 발췌의 request-local `id`만 사용한다. 발췌 객체의 원본 `sourceId`는 인용 ID로 사용하지 않는다.
-- 파일 근거 `excerpt`는 해당 발췌 텍스트에서 그대로 복사한 연속 문구여야 한다.
-- 사용자 발언에 없는 값으로 빈칸을 채우지 않는다.
-- confidence가 높아도 confirmed로 표시하지 않는다.
+- `assistantMessage`: 자연스러운 한국어 응답.
+- `proposals`: 최대 8개의 atomic proposal draft.
+- `answerInterpretation`: 선택적 `directAnswer`, 그리고 `additionalFacts`와 `ambiguities` 배열.
+- `followUp` (선택): 질문 하나의 `componentType`, `topic`, `prompt`, 선택적 `help`/`options`, 허용 동작과 `targetItemTypes`.
+- `recommendations` (선택): 명시적 추천 요청에 충분한 근거가 있을 때 반환하는 후보 배열. 각 후보는 title, rationale, tradeoffs, assumptions, evidence와 proposal을 포함한다.
 
-표시 규칙:
-- 사용자의 답을 짧게 확인하는 assistant_text를 제공할 수 있다.
-- provider 응답에는 허용된 assistant_text block과 proposal/ambiguity 데이터만 포함한다. proposal_summary와 conflict_notice block은 반환하지 않는다.
-- 애플리케이션은 proposal 검증 후 ID를 할당하고, 현재 confirmed 값과 before-value 충돌을 확인한 다음 proposal_summary 및 충돌이 검증된 경우 conflict_notice를 생성한다.
-- provider와 애플리케이션이 결합한 normalized 표시 응답은 최대 6개 block이다. 이 상한은 애플리케이션이 최종 조립 후 적용한다.
-- 다음 QuestionSpec, readiness와 process state를 결정하지 않는다.
-```
+규칙:
+
+- 한 proposal은 대상 하나와 create/update/delete 의도 하나만 가진다.
+- follow-up의 renderer `componentType`은 `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm` 중 하나다. 질문과 option 내용은 현재 context에서 생성하며, model이 question ID나 stable ID를 만들지 않는다.
+- recommendation 요청에서만 정확히 11개의 서로 다른 후보를 반환한다. 근거가 부족하면 `recommendations`를 생략하고 필요한 맥락을 묻는 `followUp`을 작성한다.
+- message/source/evidence 참조는 전달된 request context 안의 값만 사용한다. 파일 근거는 전달된 request-local excerpt ID만 인용하고, excerpt는 제공된 연속 문구를 그대로 복사한다.
+- 사용자가 제공하지 않은 내용을 채우거나 후보를 임의로 padding하지 않는다. proposal, 선택, 추천을 confirmed로 표시하지 않는다.
+- 다음 질문 순서, readiness, 승인, persisted state, process state, Requirements/PRD 상태 또는 document action을 결정하지 않는다.
 
 ## `OPTION_RECOMMEND` — `option.recommend.v1`
 
