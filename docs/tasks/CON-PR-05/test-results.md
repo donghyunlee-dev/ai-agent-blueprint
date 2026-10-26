@@ -20,7 +20,13 @@ The contract validation recursively rejects unsafe markup, executable text, fenc
 
 `npm run test:unit` reported 349 passed and 1 failed. The failing test is `tests/unit/src-pr-01-source-upload-command.test.js` — “removes a source transactionally without replacing sibling records” — where `removeSourceAndReferences` reads `undefined.map`. The same targeted failure was reproduced on clean `main` at `df54aafa`; it is pre-existing and outside this PR's source/conversation changes.
 
-Agent Browser is unavailable in the current environment; Playwright Chromium was used for the complete desktop and mobile flow. Live provider and Google OAuth behavior remain unverified by this validation. Independent code review and protected Preview QA passed on docs-updated PR HEAD `1015656869a9f6f3b5d398b0c6fc872357479be2` (21 passed, 1 existing tablet-only viewport skip, 0 failed). The current status-only docs update is not part of that SHA; run the standard final-HEAD review/QA and configured checks on it before merge. The application code and screenshots are unchanged.
+Agent Browser is unavailable in the current environment; Playwright Chromium was used for the complete desktop and mobile flow. Live provider and Google OAuth behavior remain unverified by this validation. Independent code review and protected Preview QA passed on PR HEAD `494985948061b5920f2f1d46e143b512e938b528` (21 passed, 1 existing tablet-only viewport skip, 0 failed). The current workflow update changes only which evidence tests run; final-HEAD review, QA, and configured checks are pending.
+
+## Current-flow evidence workflow
+
+GitHub run `40254334782` exposed that the former UIR-PR-03D evidence tests seed catalog-style `answers` and expect the page to choose a fixed next question. CON-PR-05 intentionally replaced that driver with contextual question blocks persisted in assistant messages. Its failed screenshot showed saved answer history and the freeform composer, with no assistant question block in the fixture; it did not indicate a rendering failure in the current flow. The same workflow's UIR-PR-03A spec also failed because it expects legacy catalog-answer editing and a composer constrained to the left conversation panel; the approved CON-PR-05 canvas places the composer beneath the summary column. Local reproduction of the old UIR-PR-03D spec was **8 failed, 2 passed**, with all eight failures waiting for catalog-driven question cards; its keyboard/focus cases passed.
+
+The evidence workflow now runs the active freeform conversation, contextual choice/recommendation, Requirements generation/ready, same-revision PRD, and proposal-review browser specs at desktop and mobile viewports. The replacement command passed locally: **21 passed, 1 existing tablet-only viewport skip, 0 failed**. It uploads the current-flow screenshots from `.pr-artifacts/`; the committed matched-canvas comparison remains in the evidence index.
 
 ## Screenshot evidence
 

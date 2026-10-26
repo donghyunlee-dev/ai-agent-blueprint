@@ -296,7 +296,7 @@ CON-PR-01~03은 해당 PR 당시 승인된 질문/catalog 동작을 구현한 �
 | PR unit | 선행 조건 | 결과 | 상태 |
 | --- | --- | --- | --- |
 | [`CON-PR-04`](../tasks/CON-PR-04/plan.md) 대화·결정 요약 계약 재정립 | PR #63 merged; docs-only unit | product/process/UI/AI 계약 및 CON-PR-05 구현 설계 정렬 | merged (#63) |
-| [`CON-PR-05`](../tasks/CON-PR-05/plan.md) 대화 주도 발견·결정 패널 동기화 | CON-PR-04 merged; technical DoR verified | freeform turn, context-derived choices, allowlisted renderer, proposal approval, same-revision summary, responsive error recovery | qa (independent review and protected Preview QA passed on `1015656`; this status-only update needs final-HEAD review/QA and configured checks) |
+| [`CON-PR-05`](../tasks/CON-PR-05/plan.md) 대화 주도 발견·결정 패널 동기화 | CON-PR-04 merged; technical DoR verified | freeform turn, context-derived choices, allowlisted renderer, proposal approval, same-revision summary, responsive error recovery | in_progress (current-flow evidence workflow replaces obsolete catalog-driven UI fixtures; local 21 passed/1 skipped; final-HEAD review/QA and configured checks pending) |
 
 | 순서 | UIR PR unit | 선행 조건 | 상태 |
 | ---: | --- | --- | --- |
