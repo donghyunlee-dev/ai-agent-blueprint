@@ -9,7 +9,7 @@ import { getIndexedDbProjectRepository } from "../infrastructure/storage/indexed
 import type { ProjectRepository } from "../infrastructure/storage/indexeddb-project-repository.js";
 import { setLastProjectId } from "../features/projects/persistProjectCreation.js";
 import { clampConversationWidth, clampScrollOffset, getConversationScrollTop, getConversationWidth, setConversationScrollTop, setConversationWidth } from "../features/projects/workspacePreferences.js";
-import { QuestionCard } from "../components/conversation/QuestionCard";
+import type { ContextualResponse } from "../components/conversation/ContextualQuestionCard";
 import { ConversationWorkspace } from "../components/conversation/ConversationWorkspace";
 import { BlueprintStageNav } from "../components/blueprint/BlueprintStageNav";
 import type { BlueprintStage } from "../components/blueprint/BlueprintStageNav";
@@ -18,7 +18,8 @@ import { DisplayBlocks } from "../components/blueprint/display-blocks/DisplayBlo
 import { compactConversationContext } from "../features/conversation/context-compaction-view.js";
 import { AiTurnComposer } from "../components/conversation/AiTurnComposer";
 import type { CatalogQuestion } from "../features/conversation/questionEngine.js";
-import { createQuestionAnswerRecord, getAnswerReviewState, QUESTION_CATALOG, selectNextQuestion } from "../features/conversation/questionEngine.js";
+import { createQuestionAnswerRecord, getAnswerReviewState, QUESTION_CATALOG } from "../features/conversation/questionEngine.js";
+import { projectDecisionSummary } from "../features/conversation/project-decision-summary.js";
 import { NotFoundPage } from "./NotFoundPage";
 import { ProjectNotFoundPage } from "./ProjectNotFoundPage";
 import { approveProposal, editAndApproveProposal, rejectProposal } from "../features/proposals/proposal-commands.js";
@@ -101,6 +102,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading');
   const [saveState, setSaveState] = useState<ProjectSaveState>({ status: 'saved', savedAt: null });
   const [reopenedQuestionAnswerId, setReopenedQuestionAnswerId] = useState<string | null>(null);
+  const [revealedSourceMessageId, setRevealedSourceMessageId] = useState<string | null>(null);
+  const [sourceMessageFocusId, setSourceMessageFocusId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [conversationWidth, setConversationWidthState] = useState(() => getConversationWidth(projectId ?? "") ?? 360);
   const [mobileMode, setMobileMode] = useState<"conversation" | "work" | "review">("work");
@@ -136,8 +139,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const aggregateRef = useRef<BlueprintAggregate | null>(null);
   const attemptRef = useRef(attempt);
   const activeTurnCancellationRef = useRef<{ jobId:string; abort:()=>void } | null>(null);
+  const contextualSubmitRef = useRef<((response:ContextualResponse)=>Promise<void>)|null>(null);
   const saverRef = useRef<ProjectSaver | null>(null);
   const conversationRef = useRef<HTMLElement | null>(null);
+  const conversationContentRef = useRef<HTMLDivElement | null>(null);
   const inspectorPanelRef = useRef<HTMLElement | null>(null);
   const inspectorTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inspectorCloseRef = useRef<HTMLButtonElement | null>(null);
@@ -168,6 +173,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     saverRef.current = null;
     setAggregate(null);
     aggregateRef.current = null;
+    setRevealedSourceMessageId(null);
+    setSourceMessageFocusId(null);
     setTitleDraft('');
     setTitleInvalid(false);
     setLoadStatus('loading');
@@ -337,6 +344,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
   async function persistAggregateNow(snapshot: BlueprintAggregate) {
     if (!ownerKey || !projectId || snapshot.project.id !== projectId) throw new Error("PROJECT_CONTEXT_STALE");
+    await flushProposalAutosave();
     await repositoryFactory().save(ownerKey, snapshot);
   }
 
@@ -588,6 +596,22 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     saverRef.current?.schedule(updated);
   }
 
+  useEffect(() => {
+    if (!sourceMessageFocusId) return;
+    const target = document.getElementById(`conversation-message-${sourceMessageFocusId}`);
+    if (!target) return;
+    target.scrollIntoView({ block: 'center', behavior: 'auto' });
+    target.focus({ preventScroll: true });
+    setSourceMessageFocusId(null);
+  }, [sourceMessageFocusId, revealedSourceMessageId, aggregate?.messages.length]);
+
+  useEffect(() => {
+    const content = conversationContentRef.current;
+    if (!content) return;
+    const frame = window.requestAnimationFrame(() => { content.scrollTop = content.scrollHeight; });
+    return () => window.cancelAnimationFrame(frame);
+  }, [aggregate?.messages.length]);
+
   if (documentType && !documentTypes.has(documentType)) return <NotFoundPage />;
   if (aggregate && (aggregate.project.ownerKey !== ownerKey || aggregate.project.id !== projectId)) return <main className="project-route-state" role="status">프로젝트를 불러오는 중입니다.</main>;
   if (loadStatus === 'loading') return <main className="project-route-state" role="status">프로젝트를 불러오는 중입니다.</main>;
@@ -603,11 +627,25 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   if (!aggregate) return <ProjectNotFoundPage />;
 
   const compactedConversation = compactConversationContext({ messages: aggregate.messages, summary: aggregate.thread.summary, threshold: 20 });
-  const visibleConversationMessages = compactedConversation.compacted ? compactedConversation.originalMessages : aggregate.messages;
+  const baseVisibleMessages = compactedConversation.compacted ? compactedConversation.originalMessages : aggregate.messages;
+  const revealedSourceMessage = compactedConversation.compacted && revealedSourceMessageId && !baseVisibleMessages.some((message) => message.id === revealedSourceMessageId)
+    ? aggregate.messages.find((message) => message.id === revealedSourceMessageId)
+    : undefined;
+  const visibleConversationMessages = baseVisibleMessages;
   const firstVisibleUserMessage = visibleConversationMessages.find((message) => message.role === "user");
-  const visibleSummary = compactedConversation.summary ?? aggregate.thread.summary;
+  const visibleSummary = projectDecisionSummary(aggregate);
   const reopenedAnswer = aggregate.answers.find((answer) => answer.id === reopenedQuestionAnswerId);
-  const activeQuestion = reopenedAnswer ? QUESTION_CATALOG.find((question) => question.id === reopenedAnswer.questionId) ?? null : selectNextQuestion(aggregate);
+  function navigateToSourceMessage(messageId:string) {
+    const target = document.getElementById(`conversation-message-${messageId}`);
+    if (target) {
+      target.scrollIntoView({block:'center',behavior:'auto'});
+      target.focus({preventScroll:true});
+      return;
+    }
+    if (!aggregateRef.current?.messages.some((message) => message.id === messageId)) return;
+    setRevealedSourceMessageId(messageId);
+    setSourceMessageFocusId(messageId);
+  }
   const designReadiness = computeDesignReadiness(aggregate);
   const currentProjectId = aggregate.project.id;
   const selectedDesignItem = aggregate.designItems.find((item) => item.id === selectedDesignItemId && !item.archivedAt) ?? null;
@@ -668,6 +706,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       requirementsRequestRef.current = null;
       aggregateRef.current = committed.aggregate;
       setAggregate(committed.aggregate);
+      saverRef.current?.schedule(committed.aggregate);
     } catch (error) {
       setRequirementsError(error instanceof Error ? error.message : '요구사항 명세를 생성하지 못했습니다. 저장된 설계는 유지됩니다. 다시 시도해 주세요.');
     } finally { setRequirementsGenerating(false); }
@@ -704,6 +743,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       if (!committed.aggregate) throw new Error('REQUIREMENTS_READY_SAVE_FAILED');
       aggregateRef.current = committed.aggregate;
       setAggregate(committed.aggregate);
+      saverRef.current?.schedule(committed.aggregate);
     } catch (error) {
       setRequirementsReadyError(error instanceof Error ? '확인 중 설계가 바뀌었거나 저장에 실패했습니다. 최신 요구사항 명세를 다시 확인해 주세요.' : '요구사항 명세를 검토 완료로 저장하지 못했습니다. 다시 시도해 주세요.');
     }
@@ -735,7 +775,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       if(!response.ok) throw new Error(payload.error==='PRD_BLOCKED'?'PRD_BLOCKED':payload.error==='AI_BUDGET_EXCEEDED'?'AI_BUDGET_EXCEEDED':'PRD_GENERATION_FAILED');
       const saved=await repository.transact(ownerKey,projectId,(latest)=>({status:'updated',aggregate:commitPrdResult(latest,payload,latest.project.designRevision)}));
       if(!saved.aggregate) throw new Error('PRD_SAVE_FAILED');
-      aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);
+      aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);saverRef.current?.schedule(saved.aggregate);
     } catch {
       setPrdError('PRD를 생성하지 못했습니다. 요구사항 명세와 설계는 유지됩니다. 검토 완료 상태와 최신 revision을 확인한 뒤 다시 시도해 주세요.');
     } finally { setPrdGenerating(false); }
@@ -751,7 +791,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       const response=await fetchBlueprintApi('/api/blueprint/documents/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({documentType:'setup_guide',projectId,designRevision:snapshot.project.designRevision,currentDesignRevision:current.project.designRevision,logicalRequestId:crypto.randomUUID(),attemptId:crypto.randomUUID(),project:{id:snapshot.project.id,title:snapshot.project.title,designRevision:snapshot.project.designRevision},designItems:snapshot.designItems.filter((item)=>['technical_decision','constraint','requirement','risk','open_issue'].includes(item.type)).map(({id,type,key,title,description,status,archivedAt,attributes,evidence})=>({id,type,key,title,description,status,archivedAt,attributes,evidence:evidence.map(({sourceId,excerpt,location})=>({sourceId,...(excerpt?{excerpt}:{}),...(location?{location}:{})}))})),sources:snapshot.sources.map(({id,extractionStatus,extractedText,archivedAt})=>({id,extractionStatus,...(extractedText?{extractedText}:{}),archivedAt}))})});
       const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error('설정 가이드를 생성하지 못했습니다.');
       const saved=await repository.transact(ownerKey,projectId,(latest)=>({status:'updated',aggregate:commitSetupGuideResult(latest,payload,latest.project.designRevision)}));
-      if(!saved.aggregate)throw new Error('SETUP_GUIDE_SAVE_FAILED');aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);
+      if(!saved.aggregate)throw new Error('SETUP_GUIDE_SAVE_FAILED');aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);saverRef.current?.schedule(saved.aggregate);
     }catch(error){setSetupGuideError(error instanceof Error?error.message:'설정 가이드를 생성하지 못했습니다.');}finally{setSetupGuideGenerating(false);}
   }
 
@@ -765,12 +805,12 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       const response=await fetchBlueprintApi('/api/blueprint/documents/setup-guide/ready',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmed:true,projectId,designRevision:current.project.designRevision,document,sections,generationArtifact:document.generationArtifact})});
       const attestation=await response.json().catch(()=>({}));if(!response.ok||typeof attestation.readyConfirmationArtifact!=='string')throw new Error('invalid');
       const readyAt=new Date().toISOString();const saved=await repository.transact(ownerKey,projectId,(latest)=>{const currentGuide=latest.documents.find((item)=>item.id===document.id);const latestSections=latest.sections.filter((section)=>section.documentId===document.id);if(latest.project.designRevision!==document.designRevision)throw new Error('revision-mismatch');if(!currentGuide)throw new Error('transaction-guide-missing');if(stableJson({document:currentGuide,sections:latestSections})!==stableJson({document,sections}))throw new Error('guide-content-mismatch');const updated={...currentGuide,status:'ready' as const,readyDesignRevision:latest.project.designRevision,readyAt,readyConfirmationArtifact:attestation.readyConfirmationArtifact,updatedAt:readyAt};return {status:'updated',aggregate:{...latest,documents:latest.documents.map((item)=>item.id===updated.id?updated:item),activityEntries:[...latest.activityEntries,{id:crypto.randomUUID(),projectId,targetType:'document',targetId:updated.id,action:'setup_guide_marked_ready',summary:`설정 가이드 승인 · design revision ${updated.readyDesignRevision}`,createdAt:readyAt}]}};});
-      if(!saved.aggregate)throw new Error('save');aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);
+      if(!saved.aggregate)throw new Error('save');aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);saverRef.current?.schedule(saved.aggregate);
     }catch(error){const message=error instanceof Error?error.message:'';setSetupGuideReadyError(message==='revision-mismatch'?'설계가 변경됐습니다. 최신 가이드로 다시 생성해 주세요.':message==='guide-not-found-before'?'저장된 설정 가이드가 없습니다. 새 가이드를 생성해 주세요.':message==='transaction-guide-missing'?'승인 저장 중 설정 가이드가 사라졌습니다. 최신 상태를 다시 확인해 주세요.':message==='generation-proof-missing'?'생성 확인이 없어 설정 가이드를 승인할 수 없습니다. 다시 생성해 주세요.':message==='project-missing'?'프로젝트를 찾을 수 없습니다.':message==='guide-content-mismatch'?'승인 요청 후 설정 가이드가 변경됐습니다. 최신 내용을 다시 검토해 주세요.':message==='invalid'?'설정 가이드 승인 확인이 유효하지 않습니다. 다시 검토해 주세요.':message==='save'?'설정 가이드를 저장하지 못했습니다. 다시 시도해 주세요.':`설정 가이드를 ready로 저장하지 못했습니다 (${message}).`);}
   }
 
   async function completeProject() {
-    if(!ownerKey||!projectId)return;const saved=await repositoryFactory().transact(ownerKey,projectId,(latest)=>{if(setupGuideCompletionBlockers(latest).length)throw new Error('SETUP_GUIDE_COMPLETION_BLOCKED');return {status:'updated',aggregate:{...latest,project:{...latest.project,status:'completed',updatedAt:new Date().toISOString()}}};});if(saved.aggregate){aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);}
+    if(!ownerKey||!projectId)return;const saved=await repositoryFactory().transact(ownerKey,projectId,(latest)=>{if(setupGuideCompletionBlockers(latest).length)throw new Error('SETUP_GUIDE_COMPLETION_BLOCKED');return {status:'updated',aggregate:{...latest,project:{...latest.project,status:'completed',updatedAt:new Date().toISOString()}}};});if(saved.aggregate){aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);saverRef.current?.schedule(saved.aggregate);}
   }
 
   return (
@@ -813,10 +853,10 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         {([["conversation", "대화"], ["work", documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)], ["review", "검토"]] as const).map(([mode, label]) => <button key={mode} id={`workspace-mode-tab-${mode}`} type="button" role="tab" data-mode-tab={mode} aria-controls={`workspace-${mode}-panel`} aria-selected={mobileMode === mode} tabIndex={mobileMode === mode ? 0 : -1} onClick={() => selectMode(mode)}>{label}</button>)}
       </nav>
       <div className="workspace-panels" data-stage={currentStage} data-inspector-active={currentStage === "design" ? String(inspectorOpen) : undefined}>
-        <ConversationWorkspace summary={visibleSummary}>
+        <ConversationWorkspace summary={visibleSummary} availableMessageIds={aggregate.messages.map((message) => message.id)} onNavigateSource={navigateToSourceMessage}>
         <section ref={conversationRef} id="workspace-conversation-panel" className="workspace-panel workspace-conversation" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-conversation" : undefined} aria-label={modeTabsVisible ? undefined : "대화"}>
           <header className="workspace-panel-heading"><h1>대화</h1><span>초기 아이디어</span></header>
-          <div className="workspace-conversation-content" role="region" aria-label="대화 기록" tabIndex={0} onKeyDown={(event) => {
+          <div ref={conversationContentRef} className="workspace-conversation-content" role="region" aria-label="대화 기록" tabIndex={0} onKeyDown={(event) => {
             if (event.target !== event.currentTarget) return;
             const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
             const movement = event.key === "PageDown" ? clientHeight * 0.8 : event.key === "PageUp" ? -clientHeight * 0.8 : event.key === "ArrowDown" ? 48 : event.key === "ArrowUp" ? -48 : 0;
@@ -824,10 +864,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
             else if (event.key === "Home") { event.preventDefault(); event.currentTarget.scrollTo({ top: 0 }); }
             else if (event.key === "End") { event.preventDefault(); event.currentTarget.scrollTo({ top: scrollHeight }); }
           }}>
-            <div className="conversation-message-row conversation-message-row-user"><ConversationAvatar role="user" /><article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{firstVisibleUserMessage?.content ?? (compactedConversation.compacted ? "요약 아래에 최근 대화가 표시됩니다." : "아직 대화가 없습니다.")}</p></article>{firstVisibleUserMessage?.createdAt ? <time className="conversation-message-time" dateTime={firstVisibleUserMessage.createdAt}>{formatConversationTime(firstVisibleUserMessage.createdAt)}</time> : null}</div>
-            {visibleConversationMessages.filter((message) => message.id !== firstVisibleUserMessage?.id).map((message) => <div key={message.id} className={`conversation-message-row conversation-message-row-${message.role}`}>
+            {revealedSourceMessage ? <section className="conversation-source-reveal" aria-label="접힌 대화에서 연 원본 메시지"><p className="conversation-source-reveal-label" role="status">접힌 대화에서 연 원본 메시지</p><div id={`conversation-message-${revealedSourceMessage.id}`} tabIndex={-1} className={`conversation-message-row conversation-message-row-${revealedSourceMessage.role} conversation-source-revealed-row`}>{revealedSourceMessage.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}<article className={`workspace-message workspace-message-${revealedSourceMessage.role}`}><span className="workspace-message-label">{revealedSourceMessage.role === "assistant" ? "Agent" : revealedSourceMessage.role === "system" ? "작업 상태" : "나"}</span><p>{revealedSourceMessage.content}</p></article></div></section> : null}
+            <div id={firstVisibleUserMessage ? `conversation-message-${firstVisibleUserMessage.id}` : undefined} tabIndex={firstVisibleUserMessage ? -1 : undefined} className="conversation-message-row conversation-message-row-user"><ConversationAvatar role="user" /><article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{firstVisibleUserMessage?.content ?? (compactedConversation.compacted ? "요약 아래에 최근 대화가 표시됩니다." : "아직 대화가 없습니다.")}</p></article>{firstVisibleUserMessage?.createdAt ? <time className="conversation-message-time" dateTime={firstVisibleUserMessage.createdAt}>{formatConversationTime(firstVisibleUserMessage.createdAt)}</time> : null}</div>
+            {visibleConversationMessages.filter((message) => message.id !== firstVisibleUserMessage?.id).map((message) => <div id={`conversation-message-${message.id}`} tabIndex={-1} key={message.id} className={`conversation-message-row conversation-message-row-${message.role}`}>
               {message.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}
-              <article className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{message.blocks ? <DisplayBlocks blocks={message.blocks} questionCatalog={QUESTION_CATALOG} proposalIds={aggregate.proposals.map((proposal) => proposal.id)} onQuestionSubmit={(question,answer,mode)=>saveQuestionAnswer(question,answer,mode)} /> : <p>{message.content}</p>}</article>
+              <article className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{message.blocks ? <DisplayBlocks blocks={message.blocks} questionCatalog={QUESTION_CATALOG} proposalIds={aggregate.proposals.map((proposal) => proposal.id)} messages={aggregate.messages} messageId={message.id} onNavigateSource={navigateToSourceMessage} onContextualSubmit={(response)=>void contextualSubmitRef.current?.(response)} onQuestionSubmit={(question,answer,mode)=>saveQuestionAnswer(question,answer,mode)} /> : <p>{message.content}</p>}</article>
               {message.createdAt ? <time className="conversation-message-time" dateTime={message.createdAt}>{formatConversationTime(message.createdAt)}</time> : null}
             </div>)}
             {aggregate.generationJobs.filter((job) => job.status === "queued" || job.status === "running").map((job) => <GenerationJobStatus key={job.id} job={job} onCancel={cancelGenerationJob} />)}
@@ -838,8 +879,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
               const value = answer.action === "defer" ? "나중에 결정" : answer.action === "skip" ? "건너뜀" : answer.action === "unknown" ? "잘 모르겠어요 · 설명 요청" : answer.action === "recommend" ? "추천 요청 · 검토 전" : [answer.customText, ...(answer.selectedValues ?? []).map((selected) => question?.options?.find((option) => option.value === selected)?.label ?? selected), answer.numberValue === undefined ? "" : String(answer.numberValue), answer.rangeValue ? `${answer.rangeValue.start}–${answer.rangeValue.end}` : "", ...(answer.rankedValues ?? []).map((ranked) => question?.options?.find((option) => option.value === ranked)?.label ?? ranked)].filter(Boolean).join(", ");
               return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{reviewRequired ? <p role="status">선행 답변 변경으로 다시 검토가 필요합니다.</p> : null}{answer.action === "defer" ? <button className="question-answer-edit" type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : answer.action === "answer" ? <button className="question-answer-edit" type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>수정</button> : null}</article>;
             })}</section> : null}
-            {activeQuestion ? <div className="conversation-message-row conversation-message-row-question"><ConversationAvatar role="assistant" /><QuestionCard key={`${activeQuestion.id}-${reopenedQuestionAnswerId ?? "next"}`} question={activeQuestion} onSubmit={(answer, effectiveAnswerMode) => saveQuestionAnswer(activeQuestion, answer, effectiveAnswerMode)} /></div> : <p className="question-complete-state" role="status">{aggregate.project.readiness.pendingProposalCount ? "제안 검토를 마치면 다음 질문이 이어집니다." : "현재 필요한 질문에 답했습니다."}</p>}
-            <AiTurnComposer aggregate={aggregate} projectId={aggregate.project.id} question={activeQuestion} onAggregateChange={applyAggregate} persistAggregate={persistAggregateNow} activeTurnCancellationRef={activeTurnCancellationRef} onQuestionSubmit={saveQuestionAnswer} />
+            <p className="question-complete-state" role="status">대화에 답하면 필요한 선택지가 여기 표시됩니다.</p>
+            <AiTurnComposer aggregate={aggregate} projectId={aggregate.project.id} onAggregateChange={applyAggregate} persistAggregate={persistAggregateNow} activeTurnCancellationRef={activeTurnCancellationRef} contextualSubmitRef={contextualSubmitRef} />
           </div>
         </section>
         </ConversationWorkspace>

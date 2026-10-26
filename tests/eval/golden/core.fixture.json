@@ -42,14 +42,9 @@
   {
     "id": "turn-analyze-basic",
     "task": "TURN_ANALYZE",
-    "schemaVersion": "v2",
+    "schemaVersion": "v3",
     "response": {
-      "blocks": [
-        {
-          "type": "assistant_text",
-          "content": "자동 저장이 필요하다고 이해했습니다."
-        }
-      ],
+      "assistantMessage": "자동 저장이 필요하다고 이해했습니다.",
       "proposals": [],
       "answerInterpretation": {
         "directAnswer": "자동 저장",
@@ -67,6 +62,52 @@
       ],
       "summaryIds": []
     }
+  },
+  {
+    "id": "turn-analyze-contextual-follow-up",
+    "task": "TURN_ANALYZE",
+    "schemaVersion": "v3",
+    "response": {
+      "assistantMessage": "예약 기준을 더 구체화하겠습니다.",
+      "proposals": [],
+      "answerInterpretation": {"additionalFacts": [], "ambiguities": []},
+      "followUp": {
+        "componentType": "single_choice",
+        "topic": "예약 정책",
+        "prompt": "어떤 예약 기준이 필요할까요?",
+        "options": [{"value": "capacity", "label": "수용 인원 기준"}, {"value": "approval", "label": "담당자 승인 기준"}],
+        "required": true,
+        "allowCustomAnswer": false,
+        "allowUnknown": true,
+        "allowDefer": true,
+        "targetItemTypes": ["requirement"]
+      }
+    },
+    "manifest": {"designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": []}
+  },
+  {
+    "id": "turn-analyze-explicit-grounded-recommendations",
+    "task": "TURN_ANALYZE",
+    "schemaVersion": "v3",
+    "response": {
+      "assistantMessage": "확인한 조건에 맞는 후보입니다.",
+      "proposals": [],
+      "answerInterpretation": {"additionalFacts": [], "ambiguities": []},
+      "recommendations": [
+        {"title":"회의실 예약안 1","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 2","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 3","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 4","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 5","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 6","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 7","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 8","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 9","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 10","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}},
+        {"title":"회의실 예약안 11","rationale":"예약 충돌을 줄입니다.","tradeoffs":["운영 기준이 필요합니다."],"assumptions":["회의실 목록이 최신입니다."],"evidence":[],"proposal":{"operation":"create","targetType":"design_item","rationale":"선택 시 검토합니다.","evidence":[],"affectedItemIds":[]}}
+      ]
+    },
+    "manifest": {"designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": [], "summaryIds": []}
   },
   {
     "id": "option-recommend-baseline",

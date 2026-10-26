@@ -24,7 +24,7 @@ test('normalized DisplayBlock schema accepts each documented block shape only', 
 });
 
 test('provider task schemas enforce their producer allowlist and task payload contracts', () => {
-  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{blocks:[{type:'assistant_text',content:'확인'}],proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}}).valid,true);
+  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{assistantMessage:'확인',proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}}).valid,true);
   assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{task:'TURN_ANALYZE',blocks:[],proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}}).valid,false);
   assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{blocks:[],proposals:[]}).valid,false);
   assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{blocks:[{type:'readiness_notice',readiness:{state:'ready',areas:[],pendingProposalCount:0,conflictCount:0}}],proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}}).valid,false);
@@ -34,9 +34,10 @@ test('provider task schemas enforce their producer allowlist and task payload co
 });
 
 test('strict public API DTO schemas preserve documented top-level fields and reject extras', () => {
-  assert.equal(validateSchema(schemas.http.turnRequest,{logicalRequestId:'l',attemptId:'a',projectSummary:{projectId:'p',title:'프로젝트',designRevision:1},answer:{questionId:'q',answerMode:'single',action:'answer'},recentMessages:[{id:'m',role:'user',kind:'text',content:'응답'}],relevantDesignItems:[{id:'i',type:'goal',title:'목표',description:'설명',attributes:{}}],sources:[{id:'e',sourceId:'s',text:'근거'}]}).valid,true);
-  assert.equal(validateSchema(schemas.http.turnRequest,{logicalRequestId:'l',attemptId:'a',projectSummary:{projectId:'p',title:'프로젝트',designRevision:1},answer:{questionId:'q',answerMode:'single',action:'answer'},recentMessages:[],relevantDesignItems:[],sources:[],model:'gpt'}).valid,false);
-  assert.equal(validateSchema(schemas.http.turnRequest,{logicalRequestId:'l',attemptId:'a',projectSummary:{projectId:'p',title:'프로젝트',designRevision:1,ownerKey:'secret'},answer:{questionId:'q',answerMode:'single',action:'answer'},recentMessages:[],relevantDesignItems:[],sources:[]}).valid,false);
+  const base={logicalRequestId:'l',attemptId:'a',projectSummary:{projectId:'p',title:'프로젝트',designRevision:1},userTurn:{id:'m1',kind:'text',text:'응답'},recentMessages:[{id:'m',role:'user',kind:'text',content:'응답'}],relevantDesignItems:[{id:'i',type:'goal',title:'목표',description:'설명',attributes:{}}],sources:[{id:'e',sourceId:'s',text:'근거'}]};
+  assert.equal(validateSchema(schemas.http.turnRequest,base).valid,true);
+  assert.equal(validateSchema(schemas.http.turnRequest,{...base,model:'gpt'}).valid,false);
+  assert.equal(validateSchema(schemas.http.turnRequest,{...base,projectSummary:{...base.projectSummary,ownerKey:'secret'}}).valid,false);
   assert.equal(validateSchema(schemas.http.documentsGenerateRequest,{documentType:'requirements',designRevision:2}).valid,true);
   assert.equal(validateSchema(schemas.http.documentsPatchRequest,{documentId:'d',targetSectionIds:['s']}).valid,true);
   assert.equal(validateSchema(schemas.http.documentsPatchRequest,{documentId:'d',targetSectionIds:['s'],targetRequirementIds:['r']}).valid,false);
@@ -53,7 +54,7 @@ test('versioned response envelopes reject extra fields, unknown enums, and missi
 });
 
 test('turn analysis enforces eight proposals and rejects a ninth', () => {
- const base={blocks:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}};
+ const base={assistantMessage:'확인했습니다.',answerInterpretation:{additionalFacts:[],ambiguities:[]}};
  const proposals=Array.from({length:8},(_,index)=>({operation:'create',targetType:'design_item',rationale:`근거 ${index}`,evidence:[],affectedItemIds:[]}));
  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{...base,proposals}).valid,true);
  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{...base,proposals:[...proposals,proposals[0]]}).valid,false);

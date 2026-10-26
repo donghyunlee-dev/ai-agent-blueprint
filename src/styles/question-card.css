@@ -29,6 +29,22 @@
 .question-card-actions button { min-height: 36px; padding: 7px 10px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--color-text-muted, #555); font: inherit; font-size: 12px; cursor: pointer; }
 .question-card-actions button:focus-visible, .question-card-rank button:focus-visible, .question-card input:focus-visible, .question-card textarea:focus-visible { outline: 3px solid #6554c080; outline-offset: 2px; }
 .question-card-actions .question-card-submit { margin-left: auto; padding-inline: 16px; background: var(--color-brand, #6554c0); color: #fff; font-weight: 600; }
+.recommendation-candidates { display: grid; gap: 14px; margin-top: 12px; }
+.recommendation-candidates h2 { margin: 0; font-size: 20px; line-height: 1.4; }
+.recommendation-candidates ol { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.recommendation-candidates li article { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); }
+.recommendation-candidates h3,.recommendation-candidates p { margin: 0; }
+.recommendation-candidates h3 { font-size: 16px; line-height: 1.45; }
+.recommendation-candidates p { color: var(--color-text-muted); font-size: 13px; line-height: 1.5; }
+.recommendation-evidence-list { display: grid; gap: 8px; }
+.recommendation-evidence { display: grid; justify-items: start; gap: 5px; padding: 10px 12px; border-left: 3px solid var(--color-primary); border-radius: 0 8px 8px 0; background: var(--color-surface-muted, #f4f5f7); }
+.recommendation-evidence p { color: var(--color-text-strong); }
+.recommendation-evidence blockquote { margin: 0; color: var(--color-text-muted); font-size: 13px; line-height: 1.5; }
+.recommendation-candidates .recommendation-source-link { min-height: 32px; padding: 4px 8px; border-color: var(--color-border); background: transparent; color: var(--color-text-strong); font-size: 12px; font-weight: 600; }
+.recommendation-candidates .recommendation-source-link:hover { background: var(--color-surface); }
+.recommendation-candidates button { justify-self: start; min-height: 38px; padding: 8px 14px; border: 1px solid var(--color-primary); border-radius: 999px; background: var(--color-primary); color: var(--color-on-primary, #fff); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+.recommendation-candidates button:hover { background: var(--color-primary-strong, #124da0); }
+.recommendation-candidates button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
 @media (max-width: 600px) { .question-card { padding: 14px; } .question-card-range { grid-template-columns: 1fr; } .question-card-actions .question-card-submit { flex-basis: 100%; margin-left: 0; } }
 
 .question-card { margin: 26px 0 0 49px; padding: 22px; border-color: var(--color-border); border-radius: 16px; background: var(--color-surface); }
@@ -42,3 +58,13 @@
 @media (min-width: 1024px) { .question-option-break-desktop { display: block; } }
 @media (max-width: 1023px) { .question-card > form > .question-card-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .question-card { margin-left: 0; padding: 14px; } .question-card > form > .question-card-options { grid-template-columns: 1fr; } .question-card > form > .question-card-options > .question-card-option { min-height: 52px; } }
+
+@media (max-width: 767px) {
+  .workspace-panels[data-stage="conversation"] .workspace-message-assistant .contextual-question-card {
+    width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; margin: 12px 0 0; padding: 12px;
+  }
+  .workspace-panels[data-stage="conversation"] .workspace-message-assistant .contextual-question-card h2 { font-size: 19px; line-height: 1.4; overflow-wrap: anywhere; }
+  .workspace-panels[data-stage="conversation"] .workspace-message-assistant .contextual-question-card .question-card-meta { flex-wrap: wrap; }
+  .workspace-panels[data-stage="conversation"] .workspace-message-assistant .contextual-question-card .question-card-option { min-width: 0; }
+  .workspace-panels[data-stage="conversation"] .workspace-message-assistant .contextual-question-card .question-option-copy { min-width: 0; overflow-wrap: anywhere; }
+}

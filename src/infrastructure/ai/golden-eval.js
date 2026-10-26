@@ -7,8 +7,7 @@ import { validateSetupGuideCommandEvidence } from './setup-guide-output-validati
 export function evaluateGoldenFixture(fixture) {
   const errors = [];
   if (!fixture || typeof fixture.id !== 'string' || typeof fixture.task !== 'string') return { pass: false, errors: ['fixture id and task are required'] };
-  const baseSchemaId = `${fixture.task.toLowerCase().replaceAll('_', '.')}.v1`;
-  const schemaId = fixture.schemaVersion === 'v2' ? `${fixture.task.toLowerCase().replaceAll('_', '.')}.v2` : baseSchemaId;
+  const schemaId = `${fixture.task.toLowerCase().replaceAll('_', '.')}.${fixture.schemaVersion ?? 'v1'}`;
   let schema;
   try { schema = getSchemaDefinition(schemaId, fixture.schemaVersion); }
   catch { return { pass: false, errors: [`unknown task/schema version: ${fixture.task} ${fixture.schemaVersion}`] }; }

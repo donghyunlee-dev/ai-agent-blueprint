@@ -25,13 +25,13 @@ test('declined, stale, or failed consent persistence sends no request', async ()
   assert.equal(calls, 0);
 });
 
-test('display block preparation is allowlisted and enforces response bounds and catalog identity', () => {
+test('display block preparation is allowlisted and enforces response bounds without catalog-first identity', () => {
  const q = {type:'question',id:'q',topic:'goal',prompt:'목표',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['goal'],options:[{value:'a',label:'A'}]};
  assert.equal(prepareDisplayBlocks([{type:'assistant_text',content:'안내'}, q], {questionCatalog:[q]}).valid,true);
  assert.equal(prepareDisplayBlocks([{type:'made_up',content:'x'}]).errorCode,'AI_INVALID_OUTPUT');
  assert.equal(prepareDisplayBlocks(Array.from({length:7},()=>({type:'assistant_text',content:'x'}))).valid,false);
  assert.equal(prepareDisplayBlocks([q,q], {questionCatalog:[q]}).valid,false);
- assert.equal(prepareDisplayBlocks([{...q,options:[{value:'evil',label:'변조'}]}], {questionCatalog:[q]}).valid,false);
+ assert.equal(prepareDisplayBlocks([{...q,options:[{value:'contextual-value',label:'대화에서 생성한 선택'}]}]).valid,true);
  assert.equal(prepareDisplayBlocks([{type:'next_action',action:'generate_requirements'},{type:'readiness_notice',readiness:{state:'ready',areas:[],pendingProposalCount:0,conflictCount:0}}]).valid,false);
 });
 

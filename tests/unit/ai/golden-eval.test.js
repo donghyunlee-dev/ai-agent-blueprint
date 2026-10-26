@@ -15,8 +15,13 @@ test('synthetic golden fixtures pass deterministic schema, reference, and forbid
 
 test('every task has a passing synthetic fixture without provider calls', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
-  assert.equal(fixtures.length, 46);
+  assert.equal(fixtures.length, 48);
   for (const fixture of fixtures) assert.deepEqual(evaluateGoldenFixture(fixture), { pass: true, errors: [] }, fixture.id);
+});
+
+test('versioned golden fixtures resolve the current v3 turn schema', () => {
+  const fixture={id:'turn-v3-follow-up',task:'TURN_ANALYZE',schemaVersion:'v3',response:{assistantMessage:'선택을 좁히겠습니다.',proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]},followUp:{componentType:'single_choice',topic:'예약',prompt:'어떤 기준인가요?',options:[{value:'capacity',label:'수용 인원'}],required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},manifest:{designItemIds:[],sourceExcerptIds:[],recentMessageIds:[],summaryIds:[]}};
+  assert.deepEqual(evaluateGoldenFixture(fixture),{pass:true,errors:[]});
 });
 
 test('setup guide golden fixtures exercise evidence, injection, schema, and source-reference rejection paths', async () => {

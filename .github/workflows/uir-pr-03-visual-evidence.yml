@@ -13,12 +13,13 @@ on:
       - 'src/styles/question-card.css'
       - 'src/styles/project-composer.css'
       - 'src/features/conversation/questionEngine.js'
-      - 'tests/e2e/uir-pr-03-stage-conversation.spec.ts'
-      - 'tests/e2e/uir-pr-03d-question-choice-polish.spec.ts'
+      - 'tests/e2e/con-pr-05-conversation-flow.spec.ts'
+      - 'tests/e2e/doc-pr-01-requirements-generation.spec.ts'
+      - 'tests/e2e/doc-pr-02-prd-readiness.spec.ts'
+      - 'tests/e2e/uir-pr-04-proposal-review.spec.ts'
       - 'docs/blueprint-design/**'
-      - 'docs/tasks/UIR-PR-03/**'
-      - 'docs/tasks/UIR-PR-03A/**'
-      - 'docs/tasks/UIR-PR-03D/**'
+      - 'docs/tasks/CON-PR-05/**'
+      - 'docs/delivery/evidence/CON-PR-05/**'
   workflow_dispatch:
 
 permissions:
@@ -43,18 +44,21 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Capture desktop, mobile, and source-size comparison
+      - name: Capture current conversation, Requirements, PRD, and proposal-review flows
         id: visual-test
         continue-on-error: true
-        run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-03-stage-conversation.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
+        run: ./node_modules/.bin/playwright test tests/e2e/con-pr-05-conversation-flow.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-02-prd-readiness.spec.ts tests/e2e/uir-pr-04-proposal-review.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1 --reporter=line
 
-      - name: Upload UIR PR 03A visual evidence
+      - name: Upload current conversation and document-flow evidence
         id: upload-evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: uir-pr-03a-conversation-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: .pr-artifacts/UIR-PR-03A/**
+          name: con-pr-05-conversation-prd-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            .pr-artifacts/**
+            test-results/**/*.png
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
 
@@ -64,33 +68,7 @@ jobs:
           ARTIFACT_URL: ${{ steps.upload-evidence.outputs.artifact-url }}
           VISUAL_OUTCOME: ${{ steps.visual-test.outcome }}
         run: |
-          printf '## UIR PR 03A visual evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
-          printf 'Source-size comparison and 1440x900 / 390x844 screenshots: [%s](%s)\n\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
-          printf 'Unmasked 1672x941 comparison, anchor geometry, and desktop/mobile assertions: `%s`. Pixel similarity is diagnostic; the UIR acceptance rule is the documented anchor geometry and direct visual review.\n' "$VISUAL_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Capture UIR PR 03D option and focus evidence
-        id: pr03d-test
-        continue-on-error: true
-        run: ./node_modules/.bin/playwright test tests/e2e/uir-pr-03d-question-choice-polish.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1
-
-      - name: Upload UIR PR 03D visual evidence
-        id: upload-pr03d-evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: uir-pr-03d-choice-focus-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: .pr-artifacts/UIR-PR-03D/**
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Publish UIR PR 03D evidence link and gate result
-        if: always()
-        env:
-          ARTIFACT_URL: ${{ steps.upload-pr03d-evidence.outputs.artifact-url }}
-          PR03A_OUTCOME: ${{ steps.visual-test.outcome }}
-          PR03D_OUTCOME: ${{ steps.pr03d-test.outcome }}
-        run: |
-          printf '## UIR PR 03D option and focus evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
-          printf 'Desktop/mobile option and focus screenshots: [%s](%s)\n\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
-          printf 'Focused browser outcomes — UIR-PR-03A: `%s`; UIR-PR-03D: `%s`.\n' "$PR03A_OUTCOME" "$PR03D_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$PR03A_OUTCOME" != "success" ] || [ "$PR03D_OUTCOME" != "success" ]; then exit 1; fi
+          printf '## Current conversation and document-flow evidence\n\n' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Playwright screenshots at 1440x900 and 390x844 for the free conversation, contextual choices/recommendations, Requirements, PRD, and proposal review: [%s](%s)\n\n' "$ARTIFACT_URL" "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Current user-flow browser outcome: `%s`. Matched source/render geometry and final visual review remain recorded in the CON-PR-05 evidence index.\n' "$VISUAL_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$VISUAL_OUTCOME" != "success" ]; then exit 1; fi
