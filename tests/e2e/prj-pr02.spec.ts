@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { createServer, type ViteDevServer } from 'vite';
@@ -10,6 +10,31 @@ declare global { interface Window { releaseProjectCommand?: () => void; releaseD
 
 const evidenceDirectory = path.resolve('.pr-artifacts/PRJ-PR-02');
 const identity = { issuer: 'https://accounts.google.com', subject: 'prj-qa-user', email: 'verified@example.test' };
+
+async function textContrastRatio(locator: Locator) {
+  return locator.evaluate((element) => {
+    const channels = (color: string) => color.match(/[\d.]+/g)?.map(Number) ?? [];
+    const luminance = (color: number[]) => color.slice(0, 3).map((channel) => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+    const foreground = getComputedStyle(element).color;
+    let parent: HTMLElement | null = element as HTMLElement;
+    let background = 'rgb(255, 255, 255)';
+    while (parent) {
+      const candidate = getComputedStyle(parent).backgroundColor;
+      if (candidate !== 'rgba(0, 0, 0, 0)' && candidate !== 'transparent') {
+        background = candidate;
+        break;
+      }
+      parent = parent.parentElement;
+    }
+    const foregroundLuminance = luminance(channels(foreground));
+    const backgroundLuminance = luminance(channels(background));
+    return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+  });
+}
+
 let composerVite: ViteDevServer;
 let composerOrigin = '';
 
@@ -47,10 +72,41 @@ test('saving state remains visible while project creation is pending', async ({ 
   await page.goto(`${composerOrigin}/tests/e2e/fixtures/project-composer-harness.html?mode=pending`);
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill('저장 중 상태를 확인합니다.');
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
-  await expect(page.getByRole('status')).toContainText('저장 중');
+  const savingStatus = page.getByRole('status');
+  await expect(savingStatus).toContainText('저장 중');
+  expect(await textContrastRatio(savingStatus)).toBeGreaterThanOrEqual(4.5);
   await page.screenshot({ path: path.join(evidenceDirectory, `saving-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
   await page.evaluate(() => window.releaseProjectCommand?.());
   await expect.poll(() => page.locator('[data-created-project]').getAttribute('data-created-project')).toMatch(/^[0-9a-f-]{36}$/i);
+});
+
+test('project title stays editable while autosave is in flight and saves the newest value', async ({ page }, testInfo) => {
+  await page.unroute('**/api/auth/session');
+  await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: {
+    authenticated: true,
+    user: { issuer: 'https://accounts.google.com', subject: 'retry-owner-a', email: 'retry-owner-a@example.test' },
+  } }));
+  await page.goto(`${composerOrigin}/tests/e2e/fixtures/project-page-harness.html?mode=delayed-autosave`);
+  await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue('A 소유자 프로젝트');
+  await expect.poll(() => page.locator('body').getAttribute('data-a-saves')).toBe('1');
+  await expect(page.locator('#project-save-state')).toContainText('저장됨');
+
+  const title = page.getByRole('textbox', { name: '프로젝트 제목' });
+  await title.fill('저장 중에도 바꿀 수 있는 제목');
+  await expect(page.locator('#project-save-state')).toContainText('저장 중');
+  await expect.poll(() => page.locator('body').getAttribute('data-a-saves')).toBe('2');
+
+  const startedAt = await page.evaluate(() => performance.now());
+  await title.fill('지연 저장 중 입력한 최신 제목');
+  const inputResponseMs = await page.evaluate((start) => performance.now() - start, startedAt);
+  await expect(title).toHaveValue('지연 저장 중 입력한 최신 제목');
+  await expect(page.locator('#project-save-state')).toContainText('저장 중');
+  await testInfo.attach('autosave-input-response', { body: JSON.stringify({ inputResponseMs, pendingSaveCalls: 2 }), contentType: 'application/json' });
+
+  await page.evaluate(() => window.releaseRetry?.());
+  await expect.poll(() => page.locator('body').getAttribute('data-a-saves')).toBe('3');
+  await expect.poll(() => page.locator('body').getAttribute('data-saved-title')).toBe('지연 저장 중 입력한 최신 제목');
+  await expect(page.locator('#project-save-state')).toContainText('저장됨');
 });
 
 test('owner switch while delete settles releases the composer lock for the new owner', async ({ page }) => {

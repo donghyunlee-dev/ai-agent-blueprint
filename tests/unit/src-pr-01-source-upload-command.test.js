@@ -4,7 +4,7 @@ import { addSourceFiles, removeSource, retrySourceFile } from '../../src/feature
 import { selectedFileForSourceResult } from '../../src/features/sources/source-file-correlation.js';
 
 function repositoryWith(sources = []) {
-  let aggregate = { project: { id: 'project-one', ownerKey: 'owner-one', updatedAt: 'before' }, sources, messages: [{ id: 'keep-me' }] };
+  let aggregate = { project: { id: 'project-one', ownerKey: 'owner-one', updatedAt: 'before' }, sources, designItems: [], messages: [{ id: 'keep-me' }] };
   let queue = Promise.resolve();
   return {
     get aggregate() { return aggregate; },

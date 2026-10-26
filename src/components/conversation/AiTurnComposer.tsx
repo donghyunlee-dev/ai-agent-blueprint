@@ -56,7 +56,10 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
 
         const failedJob: GenerationJob = {...nextJob,status:code==='AI_CANCELLED'?'cancelled':'failed',errorCode:code,finishedAt:new Date().toISOString()};
         updateJob(failedJob);
-        if (code === 'AI_REQUEST_UNKNOWN') { try { await persistAggregate(aggregateRef.current); } catch { /* Keep the in-memory lock even if local persistence is unavailable. */ } }
+        if (code === 'AI_REQUEST_UNKNOWN') {
+          pendingTurnRef.current = null;
+          try { await persistAggregate(aggregateRef.current); } catch { /* Keep the in-memory lock even if local persistence is unavailable. */ }
+        }
         setError(code === 'AI_REQUEST_UNKNOWN' ? '요청 결과가 불명확합니다. 24시간 동안 새 요청은 잠기며, 만료 후 현재 프로젝트 상태를 확인해야 새 요청을 만들 수 있습니다.' : code === 'AI_CANCELLED' ? '요청을 취소했습니다. 초안은 유지됩니다.' : `요청을 완료하지 못했습니다 (${code}). 초안은 유지됩니다.`);
         return;
       }

@@ -40,16 +40,17 @@ test('desktop edit previews individual impacts and commits selected design chang
   }
   await page.getByRole('button',{name:'섹션 편집'}).click();
   await page.getByLabel('문서 내용').fill('새 요구사항 명세 본문');
-  await page.getByRole('button',{name:'영향 확인 후 저장'}).click();
+  const impactTrigger=page.getByRole('button',{name:'영향 확인 후 저장'});
+  await impactTrigger.click();
   const dialog=page.getByRole('dialog',{name:'문서 변경 영향 확인'});await expect(dialog).toBeVisible();
   await expect(dialog).not.toContainText(/\brequirements?\b/i);
   const viewport=page.viewportSize();
   const evidenceName=viewport&&viewport.width<=767?'document-impact-dialog-mobile-390x844.png':'document-impact-dialog-desktop-1440x900.png';
-  await page.screenshot({path:`docs/delivery/evidence/UIR-PR-06/${evidenceName}`});
+  await page.screenshot({path:test.info().outputPath(evidenceName)});
   await page.screenshot({path:test.info().outputPath('document-impact-dialog-1440x900.png')});
   await expect(dialog).toContainText('기능 A · 설명');await expect(dialog).toContainText('범위 B · 설명');await expect(dialog).toContainText('PRD · 핵심 기능');
   await dialog.getByLabel('범위 B · 설명').uncheck();
-  await dialog.getByRole('button',{name:'편집으로 돌아가기'}).click();await expect(page.getByLabel('문서 내용')).toHaveValue('새 요구사항 명세 본문');
+  await dialog.getByRole('button',{name:'편집으로 돌아가기'}).click();await expect(page.getByLabel('문서 내용')).toHaveValue('새 요구사항 명세 본문');await expect(impactTrigger).toBeFocused();
   await page.getByRole('button',{name:'영향 확인 후 저장'}).click();
   await page.getByRole('dialog',{name:'문서 변경 영향 확인'}).getByLabel('범위 B · 설명').uncheck();
   await page.getByRole('dialog',{name:'문서 변경 영향 확인'}).getByRole('button',{name:'확인하고 저장'}).click();

@@ -38,5 +38,5 @@
 .proposal-stage-layout .proposal-bulk-controls { padding: 14px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); }
 .proposal-stage-layout .proposal-review-item { box-shadow: none; }
 @media (max-width: 767px) { .workspace-panels[data-stage="proposal"] { grid-template-columns: minmax(0, 1fr); overflow: auto; } .blueprint-shell .workspace-panels[data-stage="proposal"] .proposal-stage-layout { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 1023px) { .blueprint-shell .workspace-panels[data-stage="proposal"] .proposal-stage-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; align-content: start; } .proposal-stage-summary { margin: 0 24px 20px; } .proposal-stage-layout .proposal-bulk-controls { grid-template-columns: minmax(0, 1fr); align-items: stretch; } }
+@media (max-width: 1279px) { .blueprint-shell .workspace-panels[data-stage="proposal"] .proposal-stage-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; align-content: start; } .proposal-stage-summary { margin: 0 24px 20px; } .proposal-stage-layout .proposal-bulk-controls { grid-template-columns: minmax(0, 1fr); align-items: stretch; } }
 @media (max-width: 767px) { .proposal-stage-summary { margin: 0 16px 20px; } }

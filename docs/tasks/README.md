@@ -26,7 +26,7 @@
 | 14 | `CON-PR-03` 메시지·AI block and consent | 2단계 | merged (#16, `ecbb7e0402f4a81f5fa1c184916a776a0723a38c`) | [plan](CON-PR-03/plan.md) |
 | 15 | `DSG-PR-01` 제안 검토·확정 | 3단계 | merged (#17, `e33212d2de305f571db287631fb9256eda0196eb`) | [plan](DSG-PR-01/plan.md) |
 | 16 | `DSG-PR-02` 충돌·의존·일괄 처리 | 3단계 | merged (#18, `7246eaee32d2d72856e0fafaf3b4910e1e237613`) | [plan](DSG-PR-02/plan.md) |
-| 17 | `DSG-PR-03` 설계 보드·readiness | 3단계 | ready (base `7246eaee32d2d72856e0fafaf3b4910e1e237613`) | [plan](DSG-PR-03/plan.md) |
+| 17 | `DSG-PR-03` 설계 보드·readiness | 3단계 | merged (#19) | [plan](DSG-PR-03/plan.md) |
 | 18 | `DOC-PR-01` Requirements | 4단계 | merged (#20; merge `6ded90838a415ee10f9a3ba0b518ebd0932c9618`; tests 13/13, Playwright 2/2, build, Mermaid 38/38; review/QA pass) | [plan](DOC-PR-01/plan.md) · [tests](DOC-PR-01/test-results.md) |
 | 19 | `DOC-PR-02` Requirements ready·PRD | 4단계 | merged (#21; merge `f0c922635ae0a620022f4a05d86fe6ea4fcc1ff9`; QA tests 16/16, Playwright 2/2, build; review/QA pass) | [plan](DOC-PR-02/plan.md) · [tests](DOC-PR-02/test-results.md) |
 | 20 | `DOC-PR-03` 부분 보완·정합성 | 4단계 | merged (#22; merge `94bdf704e1909d49813a9e3592dcf056c8e9f3cb`; tests 36/36, Playwright desktop/mobile 1/1 each, build; review/QA pass) | [plan](DOC-PR-03/plan.md) · [tests](DOC-PR-03/test-results.md) |
@@ -36,19 +36,19 @@
 | 24 | `EXP-PR-01` 문서 복사·다운로드 | 5단계 | merged (#25; merge `aee5afddcdf32d4da7d46e1aebf260522670a780`) | [plan](EXP-PR-01/plan.md) · [tests](EXP-PR-01/test-results.md) |
 | 25 | `DEC-PR-01` 자료 수정·설정 가이드 완료 정책 | 5단계 | merged (PR #27; merge `1ee6ff4f879389cefce1892b2cba5b8037c4ba39`) | [plan](DEC-PR-01/plan.md) · [tests](DEC-PR-01/test-results.md) · [review](DEC-PR-01/review-notes.md) · [QA](DEC-PR-01/qa-report.md) |
 | 26 | `SRC-PR-03` 추출 결과 다운로드 | 5단계 | merged (PR #28; merge `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`) | [plan](SRC-PR-03/plan.md) · [tests](SRC-PR-03/test-results.md) · [review](SRC-PR-03/review-notes.md) · [QA](SRC-PR-03/qa-report.md) |
-| 27 | `GDE-PR-01` 설정 가이드 | 5단계 | ready_to_merge (코드 리뷰·QA 통과, 사용자 병합 승인 대기) | [plan](GDE-PR-01/plan.md), [review notes](GDE-PR-01/review-notes.md) |
-| 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | planned | [plan](QLT-PR-01/plan.md) |
+| 27 | `GDE-PR-01` 설정 가이드 | 5단계 | merged (#29) | [plan](GDE-PR-01/plan.md), [review notes](GDE-PR-01/review-notes.md) |
+| 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | in_progress | [plan](QLT-PR-01/plan.md) |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | planned | [plan](QLT-PR-02/plan.md) |
 | 30 | `QLT-PR-03` 사용자 검증·출시 정리 | 6단계 | planned | [plan](QLT-PR-03/plan.md) |
 | 31 | `AUTH-PR-04` ideon 로그인 화면 시안 개편 | UI 개선 | merged (#43) | [plan](AUTH-PR-04/plan.md) |
 | 32 | `AUTH-PR-05` 로그인 redirect 토스트와 Vercel SPA 경로 fallback | UI·배포 설정 | merged (#46) | [plan](AUTH-PR-05/plan.md) |
-| 33 | `AUTH-PR-06` Google 로그인 버튼 초기 자동 포커스 제거 | UI 접근성 | in_progress | [plan](AUTH-PR-06/plan.md) |
+| 33 | `AUTH-PR-06` Google 로그인 버튼 초기 자동 포커스 제거 | UI 접근성 | merged (#48) | [plan](AUTH-PR-06/plan.md) |
 | 34 | `UIR-PR-03D` 대화 선택 카드·아이디어 입력 focus 보정 | UI 후속 | merged (#53, `ac5b8abade7b1235e68cb549703e7081a55379fa`) | [plan](UIR-PR-03D/plan.md) |
 | 35 | `UIR-PR-03E` 아이디어 포커스 링 제거·대화 여백 정리 | UI 후속 | merged (#59) | [plan](UIR-PR-03E/plan.md) |
 | 36 | `UIR-PR-03F` 포커스 시 입력 배경 유지 | UI 후속 | merged (#60, `9b81e9f`) | [plan](UIR-PR-03F/plan.md) |
 | 37 | `UIR-PR-03G` 대화·요약 패널 외부 여백 보정 | UI 후속 | merged (#61) | [plan](UIR-PR-03G/plan.md) |
 | 38 | `CON-PR-04` 대화·결정 요약 계약 재정립 | 대화 계약 | merged (#63; merge `df54aafa654142f11348321754c749588a2fbf9a`) | [plan](CON-PR-04/plan.md) |
-| 39 | `CON-PR-05` 대화 주도 발견·결정 패널 동기화 | 대화 구현 후속 | in_progress (application/test evidence is from app-code HEAD `caf2e01`; PR #64 has a subsequent docs-only contract/evidence refresh and a separate PR HEAD; exact-head review/QA/check evidence is tracked on PR #64) | [plan](CON-PR-05/plan.md) · [tests](CON-PR-05/test-results.md) · [screenshots](../delivery/evidence/CON-PR-05/README.md) |
+| 39 | `CON-PR-05` 대화 주도 발견·결정 패널 동기화 | 대화 구현 후속 | merged (#64) | [plan](CON-PR-05/plan.md) · [tests](CON-PR-05/test-results.md) · [screenshots](../delivery/evidence/CON-PR-05/README.md) |
 
 상태 최신값은 `docs/delivery/development-pr-review-qa-workflow.md`와 `docs/delivery/traceability.md`가 원본이다. 이 표는 탐색 편의를 위한 것이며 실제 진행 상태는 두 원본 문서에서 갱신한다.
 
