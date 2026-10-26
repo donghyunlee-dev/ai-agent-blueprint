@@ -29,6 +29,7 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
   const [confirmedUnknownJobId, setConfirmedUnknownJobId] = useState<string|null>(null);
   useEffect(() => { const timer=window.setInterval(()=>setRecoveryNow(Date.now()),60_000); return ()=>window.clearInterval(timer); }, []);
   const controllerRef = useRef<AbortController|null>(null);
+  const pendingTurnRef = useRef<{text:string;logicalRequestId:string;userMessage:ConversationMessage}|null>(null);
   const aggregateRef = useRef(aggregate);
   aggregateRef.current = aggregate;
   const unknownJob = aggregate.generationJobs.filter((item)=>item.errorCode==='AI_REQUEST_UNKNOWN').sort((a,b)=>(b.finishedAt??'').localeCompare(a.finishedAt??''))[0];
@@ -73,9 +74,17 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
       if (!valid.valid) throw new Error('AI_INVALID_OUTPUT');
       const message: ConversationMessage = { id:crypto.randomUUID(), threadId:latest.thread.id, logicalRequestId, role:'assistant',kind:'text',content:data.assistantMessage,blocks:nextBlocks,createdAt:new Date().toISOString() };
       const succeededJob: GenerationJob = {...nextJob,status:'succeeded',finishedAt:new Date().toISOString()};
-      setJob(succeededJob);
       const updated: BlueprintAggregate = {...latest,messages:[...latest.messages,message],proposals:[...latest.proposals,...proposals],generationJobs:[...latest.generationJobs.filter((item)=>item.id!==nextJob.id),succeededJob]};
+      try {
+        await persistAggregate(updated);
+      } catch {
+        updateJob({...nextJob,status:'failed',errorCode:'STORAGE_FAILED',finishedAt:new Date().toISOString()});
+        setError('응답을 저장하지 못했습니다. 입력을 유지한 채 다시 시도할 수 있습니다.');
+        return;
+      }
+      setJob(succeededJob);
       aggregateRef.current = updated; onAggregateChange(updated);
+      pendingTurnRef.current = null;
       setDraft(''); setConfirmedUnknownJobId(null);
     } catch (cause) {
       if (controller.signal.aborted) {
@@ -90,12 +99,27 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
   async function submitTurn(text:string, kind:'text'|'choice'|'recommendation_choice'='text', responseTo?:ContextualResponse['responseTo']) {
     const current = aggregateRef.current;
     text = text.trim(); if (!text || busy || recovery.blocked) return;
-    const logicalRequestId = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const userMessage: ConversationMessage = { id:crypto.randomUUID(), threadId:current.thread.id, logicalRequestId, role:'user', kind:'text', content:text, createdAt:now };
-    const withUserMessage = { ...current, messages:[...current.messages,userMessage], project:{ ...current.project, updatedAt:now } };
+    let pending = pendingTurnRef.current;
+    if (!pending || pending.text !== text) {
+      const now = new Date().toISOString();
+      const logicalRequestId = crypto.randomUUID();
+      pending = {text,logicalRequestId,userMessage:{id:crypto.randomUUID(),threadId:current.thread.id,logicalRequestId,role:'user',kind:'text',content:text,createdAt:now}};
+      pendingTurnRef.current = pending;
+    }
+    const {logicalRequestId,userMessage} = pending;
+    const alreadyPersisted = current.messages.some((message)=>message.id===userMessage.id);
+    const withUserMessage = alreadyPersisted ? current : { ...current, messages:[...current.messages,userMessage], project:{ ...current.project, updatedAt:userMessage.createdAt } };
+    setBusy(true); setError(null);
+    try {
+      if (!alreadyPersisted) await persistAggregate(withUserMessage);
+    } catch {
+      setBusy(false);
+      setError('입력을 저장하지 못해 요청을 보내지 않았습니다. 입력은 유지됩니다.');
+      return;
+    }
     aggregateRef.current = withUserMessage; onAggregateChange(withUserMessage);
-    const context = compactConversationContext({messages:current.messages,summary:current.thread.summary,threshold:20});
+    const contextMessagesBeforeTurn = current.messages.filter((message)=>message.id!==userMessage.id);
+    const context = compactConversationContext({messages:contextMessagesBeforeTurn,summary:current.thread.summary,threshold:20});
     const contextMessages = context.compacted ? [{id:`summary-${projectId}`,role:'assistant' as const,kind:'text' as const,content:JSON.stringify(context.summary)},...context.originalMessages] : context.originalMessages.filter((message)=>message.role!=='system');
     const sourceExcerpts = selectSourceExcerpts({ projectId, query:[text].filter(Boolean).join('\n'), sources:current.sources });
     const payload = { projectSummary:{projectId,title:current.project.title,designRevision:current.project.designRevision ?? 0}, userTurn:{id:userMessage.id,kind,text,...(responseTo ? {responseTo} : {})}, recentMessages:contextMessages.map((message)=>({id:message.id,role:message.role,kind:message.kind==='question'?'question' as const:'text' as const,content:message.content,...('blocks' in message && message.blocks ? {blocks:message.blocks} : {})})), relevantDesignItems:current.designItems.filter((item)=>item.status==='confirmed').map(({id,type,key,title,description,attributes})=>({id,type,...(key?{key}:{}),title,description,attributes})), sources:sourceExcerpts };

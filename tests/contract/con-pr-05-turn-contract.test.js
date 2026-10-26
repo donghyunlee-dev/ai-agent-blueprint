@@ -75,3 +75,18 @@ test('contextual follow-up rejects model-assigned IDs, arbitrary actions, and ex
   assert.equal(validateTurnAnalyzeV3({ ...validPayload, followUp: { ...choice, prompt: '<script>alert(1)</script>' } }, { text: '안녕하세요.' }).valid, false);
   assert.equal(validateTurnAnalyzeV3({ ...validPayload, followUp: { ...choice, options: [...choice.options, choice.options[0]] } }, { text: '안녕하세요.' }).valid, false);
 });
+
+test('turn contract rejects executable copy nested in proposal and recommendation fields', () => {
+  const proposal = { operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: '안전한 제목', description: '<img src=x onerror=alert(1)>' }, rationale: '근거 있는 제안', evidence: [{ sourceType: 'message', sourceId: 'user-turn-1', excerpt: '안전한 근거' }], affectedItemIds: [] };
+  const nestedProposal = { ...validPayload, proposals: [{ ...proposal }] };
+  assert.equal(validateTurnAnalyzeV3(nestedProposal, { text: '예약 정책을 정리해 주세요.' }).valid, false);
+
+  const recommendations = Array.from({ length: 11 }, (_, index) => ({
+    title: `후보 ${index + 1}`, rationale: '현재 확인한 조건에 맞습니다.', tradeoffs: [], assumptions: [],
+    evidence: [{ sourceType: 'message', sourceId: 'user-turn-1' }], proposal: { ...proposal, after: { ...proposal.after, description: '안전한 설명' } },
+  }));
+  recommendations[4].evidence[0].excerpt = 'javascript:alert(1)';
+  const unsafeRecommendation = { ...validPayload, followUp: undefined, recommendations };
+  delete unsafeRecommendation.followUp;
+  assert.equal(validateTurnAnalyzeV3(unsafeRecommendation, { text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' }).valid, false);
+});

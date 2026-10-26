@@ -22,7 +22,7 @@ test.beforeEach(async({page})=>{
 
 test('free conversation, generated choice, eleven grounded candidates, approval and source navigation',async({page},testInfo)=>{
   const recommendationBlock={type:'recommendation_candidates',id:'recommendations-1',candidates:Array.from({length:11},(_,index)=>({
-    id:`candidate-${index+1}`,title:`회의실 예약안 ${index+1}`,rationale:'대화에서 확인한 예약 충돌을 줄입니다.',tradeoffs:['운영 기준을 정해야 합니다.'],assumptions:['회의실 정보가 최신 상태입니다.'],evidence:[{sourceType:'message',sourceId:'pending'}],
+    id:`candidate-${index+1}`,title:`회의실 예약안 ${index+1}`,rationale:'대화에서 확인한 예약 충돌을 줄입니다.',tradeoffs:['운영 기준을 정해야 합니다.'],assumptions:['회의실 정보가 최신 상태입니다.'],evidence:[{sourceType:'message',sourceId:'pending',excerpt:'회의실 예약 충돌을 줄이고 싶어요.'}],
     proposalDraft:{operation:'create',targetType:'design_item',after:{type:'requirement',title:`회의실 예약안 ${index+1}`,description:'회의실 예약 충돌을 사전에 확인합니다.'},rationale:'사용자가 선택한 추천안입니다.',evidence:[{sourceType:'message',sourceId:'pending'}],affectedItemIds:[]},
   }))};
   const requests:any[]=[];
@@ -30,6 +30,7 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
   let readyRequest:any;
   let requirementsGenerateCalls=0;
   let prdGenerateRequest:any;
+  let recommendationSourceTurnId='';
   await page.route('**/api/blueprint/turn',async(route)=>{
     const body=route.request().postDataJSON();requests.push(body);
     if(body.userTurn.kind==='text'&&body.userTurn.text.includes('예약 충돌을 줄이고 싶어요')){
@@ -41,6 +42,7 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
       return;
     }
     if(body.userTurn.kind==='text'&&body.userTurn.text.includes('추천해 주세요')){
+      recommendationSourceTurnId=body.userTurn.id;
       recommendationBlock.candidates.forEach((candidate)=>{candidate.evidence[0].sourceId=body.userTurn.id;candidate.proposalDraft.evidence[0].sourceId=body.userTurn.id;});
       await route.fulfill({status:200,json:{assistantMessage:'확인한 조건에 맞는 추천 후보입니다.',proposals:[],recommendationCandidates:recommendationBlock,referencedItemIds:[],referencedSourceIds:[]}});
       return;
@@ -103,6 +105,9 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
   await page.getByRole('button',{name:'AI로 답변 분석'}).click();
   await expect(page.getByRole('heading',{name:'대화에서 확인한 조건에 맞는 추천'})).toBeVisible();
   await expect(page.getByRole('button',{name:'이 추천 선택'})).toHaveCount(11);
+  await expect(page.locator('.recommendation-candidates li').first().getByText('회의실 예약 충돌을 줄이고 싶어요.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'대화 근거 보기'}).first().click();
+  await expect(page.locator(`#conversation-message-${recommendationSourceTurnId}`)).toBeFocused();
   await expect(page.locator('.ai-turn-cancel')).toBeHidden();
   await page.screenshot({path:`.pr-artifacts/CON-PR-05/${testInfo.project.name}-recommendation-11.png`,scale:'css'});
   await page.getByRole('button',{name:'이 추천 선택'}).first().click();
@@ -223,6 +228,7 @@ test('renders number, range and rank follow-ups as typed decision controls',asyn
   await page.getByRole('checkbox',{name:/충돌 방지/}).check();
   await page.getByRole('button',{name:'collision 순위 위로'}).click();
   await page.getByRole('button',{name:'답변 제출'}).last().click();
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:'정한 기준을 기록했습니다.'})).toBeVisible();
   expect(submissions[0].userTurn.text).toContain('예약 수용량');
   expect(submissions[1].userTurn.text).toBe('24');
   expect(submissions[2].userTurn.text).toBe('9–18');
@@ -260,4 +266,73 @@ test('insufficient recommendation context asks one contextual follow-up without 
   expect(response).not.toHaveProperty('recommendationCandidates');
   expect(response.followUp.prompt).toBe('어떤 점을 우선해서 비교할까요?');
   await page.screenshot({path:`.pr-artifacts/CON-PR-05/${testInfo.project.name}-insufficient-recommendation-context.png`,scale:'css'});
+});
+
+test('persists each turn before dispatch and before showing the assistant result, retaining input for retry',async({page})=>{
+  const requests:any[]=[];
+  const ownerKey=await deriveOwnerKey(identity);
+  const databaseName=databaseNameForOwner(ownerKey);
+  const userPersistedAtDispatch:boolean[]=[];
+  await page.route('**/api/blueprint/turn',async(route)=>{
+    const body=route.request().postDataJSON();
+    requests.push(body);
+    userPersistedAtDispatch.push(await page.evaluate(async({databaseName,projectId,userTurnId})=>{
+      const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+      const tx=db.transaction('projects');
+      const record=await new Promise<any>((resolve,reject)=>{const req=tx.objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+      await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+      return record.messages.some((message:any)=>message.id===userTurnId&&message.role==='user');
+    },{databaseName,projectId,userTurnId:body.userTurn.id}));
+    await route.fulfill({status:200,json:{assistantMessage:'저장된 응답입니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
+  });
+  await page.goto(`/blueprints/${projectId}`);
+  await page.evaluate(()=>{
+    const original=IDBObjectStore.prototype.put;
+    (window as any).__turnPersistenceFailures={user:true,assistant:true};
+    IDBObjectStore.prototype.put=function(value:any,...args:any[]){
+      const messages=value?.messages??[];
+      if(messages.some((message:any)=>message.role==='user'&&message.content==='예약 충돌을 줄이고 싶어요.')&&(window as any).__turnPersistenceFailures.user){
+        (window as any).__turnPersistenceFailures.user=false;
+        throw new DOMException('Injected user-turn save failure','QuotaExceededError');
+      }
+      if(messages.some((message:any)=>message.role==='assistant'&&message.content==='저장된 응답입니다.')&&(window as any).__turnPersistenceFailures.assistant){
+        (window as any).__turnPersistenceFailures.assistant=false;
+        throw new DOMException('Injected assistant-turn save failure','QuotaExceededError');
+      }
+      return original.call(this,value,...args);
+    };
+  });
+  const draft=page.getByRole('textbox',{name:'AI에 보낼 자유 답변'});
+  await draft.fill('예약 충돌을 줄이고 싶어요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  await expect(page.locator('.ai-turn-composer [role="alert"]')).toContainText('저장하지 못해 요청을 보내지 않았습니다');
+  expect(requests).toHaveLength(0);
+  await expect(draft).toHaveValue('예약 충돌을 줄이고 싶어요.');
+  await expect(page.locator('.workspace-first-message').getByText('예약 충돌을 줄이고 싶어요.',{exact:true})).toHaveCount(0);
+
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await expect(page.locator('.ai-turn-composer [role="alert"]')).toContainText('응답을 저장하지 못했습니다');
+  expect(requests).toHaveLength(1);
+  await expect(page.getByText('저장된 응답입니다.',{exact:true})).toHaveCount(0);
+  await expect(page.locator('.workspace-first-message').getByText('예약 충돌을 줄이고 싶어요.',{exact:true})).toBeVisible();
+  await expect(draft).toHaveValue('예약 충돌을 줄이고 싶어요.');
+
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await expect(page.getByText('저장된 응답입니다.',{exact:true})).toBeVisible();
+  expect(requests).toHaveLength(2);
+  expect(userPersistedAtDispatch).toEqual([true,true]);
+  expect(requests[1].logicalRequestId).toBe(requests[0].logicalRequestId);
+  expect(requests[1].userTurn.id).toBe(requests[0].userTurn.id);
+  expect(requests[1].attemptId).not.toBe(requests[0].attemptId);
+  await expect(draft).toHaveValue('');
+  await expect(page.locator('.workspace-first-message').getByText('예약 충돌을 줄이고 싶어요.',{exact:true})).toHaveCount(1);
+  const persisted=await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const tx=db.transaction('projects');
+    const record=await new Promise<any>((resolve,reject)=>{const req=tx.objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+    return record.messages.filter((message:any)=>message.content==='예약 충돌을 줄이고 싶어요.'||message.content==='저장된 응답입니다.').map((message:any)=>({role:message.role,content:message.content}));
+  },{databaseName,projectId});
+  expect(persisted).toEqual([{role:'user',content:'예약 충돌을 줄이고 싶어요.'},{role:'assistant',content:'저장된 응답입니다.'}]);
 });

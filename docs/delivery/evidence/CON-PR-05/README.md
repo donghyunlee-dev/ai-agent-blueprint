@@ -27,4 +27,4 @@ The primary visual reference is [`회의실 예약 서비스 UI 캔버스.png`](
 
 ## Comparison record
 
-The rendered hierarchy retains the approved conversation canvas: stage navigation above a conversation-first workspace, contextual cards inside the conversation, a fixed composer, and a right-side aggregate summary on desktop. Mobile keeps the conversation first and opens the same summary in a keyboard-accessible dialog. The independent QA report will record matched source/render anchor measurements and any material exceptions against the reference.
+The rendered hierarchy retains the approved conversation canvas: stage navigation above a conversation-first workspace, contextual cards inside the conversation, a fixed composer, and a right-side aggregate summary on desktop. Recommendation cards now include source excerpts and an accessible action to move to the cited conversation turn. Mobile keeps the conversation first and opens the same summary in a keyboard-accessible dialog. The independent QA report will record matched source/render anchor measurements and any material exceptions against the reference.

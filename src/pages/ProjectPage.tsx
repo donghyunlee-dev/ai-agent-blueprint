@@ -340,6 +340,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
   async function persistAggregateNow(snapshot: BlueprintAggregate) {
     if (!ownerKey || !projectId || snapshot.project.id !== projectId) throw new Error("PROJECT_CONTEXT_STALE");
+    await flushProposalAutosave();
     await repositoryFactory().save(ownerKey, snapshot);
   }
 
@@ -843,7 +844,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
             <div id={firstVisibleUserMessage ? `conversation-message-${firstVisibleUserMessage.id}` : undefined} tabIndex={firstVisibleUserMessage ? -1 : undefined} className="conversation-message-row conversation-message-row-user"><ConversationAvatar role="user" /><article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{firstVisibleUserMessage?.content ?? (compactedConversation.compacted ? "요약 아래에 최근 대화가 표시됩니다." : "아직 대화가 없습니다.")}</p></article>{firstVisibleUserMessage?.createdAt ? <time className="conversation-message-time" dateTime={firstVisibleUserMessage.createdAt}>{formatConversationTime(firstVisibleUserMessage.createdAt)}</time> : null}</div>
             {visibleConversationMessages.filter((message) => message.id !== firstVisibleUserMessage?.id).map((message) => <div id={`conversation-message-${message.id}`} tabIndex={-1} key={message.id} className={`conversation-message-row conversation-message-row-${message.role}`}>
               {message.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}
-              <article className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{message.blocks ? <DisplayBlocks blocks={message.blocks} questionCatalog={QUESTION_CATALOG} proposalIds={aggregate.proposals.map((proposal) => proposal.id)} messageId={message.id} onContextualSubmit={(response)=>void contextualSubmitRef.current?.(response)} onQuestionSubmit={(question,answer,mode)=>saveQuestionAnswer(question,answer,mode)} /> : <p>{message.content}</p>}</article>
+              <article className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{message.blocks ? <DisplayBlocks blocks={message.blocks} questionCatalog={QUESTION_CATALOG} proposalIds={aggregate.proposals.map((proposal) => proposal.id)} messages={aggregate.messages} messageId={message.id} onNavigateSource={navigateToSourceMessage} onContextualSubmit={(response)=>void contextualSubmitRef.current?.(response)} onQuestionSubmit={(question,answer,mode)=>saveQuestionAnswer(question,answer,mode)} /> : <p>{message.content}</p>}</article>
               {message.createdAt ? <time className="conversation-message-time" dateTime={message.createdAt}>{formatConversationTime(message.createdAt)}</time> : null}
             </div>)}
             {aggregate.generationJobs.filter((job) => job.status === "queued" || job.status === "running").map((job) => <GenerationJobStatus key={job.id} job={job} onCancel={cancelGenerationJob} />)}

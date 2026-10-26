@@ -10,6 +10,12 @@ const componentModes = Object.freeze({
 
 const explicitRecommendation = (text) => /(?:추천해\s*(?:줘|주세요|주실래요?|봐)|추천(?:안(?:을)?|을)?\s*(?:부탁(?:해요)?|해줘|해주세요|알려\s*줘|알려\s*주세요)|추천\s*부탁|추천(?:이)?\s*(?:필요해요?|필요합니다)|대안(?:을)?\s*추천해\s*(?:줘|주세요)|(?:please\s+)?(?:recommend|suggest)\s+(?:me|some|a|an|options|ideas|what|which)|(?:can|could)\s+you\s+(?:please\s+)?(?:recommend|suggest))/i.test(String(text ?? ''));
 const unsafeCopy = (text) => /<\/?[a-z][^>]*>|javascript:|data:text\/html/i.test(String(text ?? ''));
+const containsUnsafeCopy = (value) => {
+  if (typeof value === 'string') return unsafeCopy(value);
+  if (Array.isArray(value)) return value.some(containsUnsafeCopy);
+  if (value && typeof value === 'object') return Object.values(value).some(containsUnsafeCopy);
+  return false;
+};
 
 export function hasExplicitRecommendationRequest(text) {
   return explicitRecommendation(text);
@@ -41,7 +47,7 @@ export function validateTurnAnalyzeV3(payload, userTurn) {
     errors.push('insufficient recommendation context must ask a follow-up question');
   }
 
-  if (payload && Object.values(payload).some((value) => typeof value === 'string' && unsafeCopy(value))) errors.push('turn contains unsafe copy');
+  if (containsUnsafeCopy(payload)) errors.push('turn contains unsafe copy');
   return { valid: errors.length === 0, errors };
 }
 

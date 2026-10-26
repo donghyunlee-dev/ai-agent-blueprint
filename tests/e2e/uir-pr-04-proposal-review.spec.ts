@@ -37,7 +37,7 @@ test('renders actual proposal data and summary in the proposal stage with comple
   await expect(page.getByRole('heading', { name: '검토할 실제 제안' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '확정 내용' })).toBeVisible();
   await expect(page.locator('.proposal-stage-summary .conversation-summary-icon.is-confirmed')).toBeVisible();
-  await expect(page.getByText('확정된 실제 내용')).toBeVisible();
+  await expect(page.locator('.proposal-stage-summary').getByText('확정된 실제 내용')).toBeVisible();
   await expect(page.getByRole('heading', { name: '남은 검토' })).toBeVisible();
   await expect(page.locator('.proposal-stage-summary .conversation-summary-icon.is-pending')).toBeVisible();
   await expect(page.locator('.proposal-stage-back-icon')).toBeVisible();
