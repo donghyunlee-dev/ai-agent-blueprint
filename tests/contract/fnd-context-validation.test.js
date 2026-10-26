@@ -48,3 +48,34 @@ test('turn file citations accept sent excerpt IDs and reject canonical source ID
  assert.equal(validateReferences({proposals:[proposal('message-1')]},messageIdManifest,{designItems:[]}).valid,false);
  assert.equal(validateReferences({proposals:[proposal('canonical-source-1')]},manifest,{designItems:[]}).valid,false);
 });
+
+test('turn AI-owned nested proposal evidence preserves message and file source type pairing', () => {
+ const manifest={projectId:'p1',designRevision:1,designItemIds:[],sourceExcerptIds:['excerpt-1'],recentMessageIds:['user-1','assistant-1'],userMessageIds:['user-1'],summaryIds:[]};
+ const evidence=(sourceType,sourceId)=>[{sourceType,sourceId}];
+ const proposal=(items)=>({operation:'create',targetType:'design_item',rationale:'근거가 있는 초안',affectedItemIds:[],evidence:items});
+ const valid={
+  payload:{
+   proposals:[proposal([...evidence('message','user-1'),...evidence('file','excerpt-1')])],
+   recommendations:[{evidence:evidence('message','user-1'),proposal:proposal(evidence('file','excerpt-1'))}],
+   followUp:{options:[{value:'select',proposalDraft:proposal(evidence('message','user-1'))}]},
+  },
+ };
+ assert.equal(validateReferences(valid,manifest,{designItems:[]}).valid,true);
+
+ const nestedProposalMismatch=structuredClone(valid);
+ nestedProposalMismatch.payload.recommendations[0].proposal.evidence=evidence('message','excerpt-1');
+ assert.equal(validateReferences(nestedProposalMismatch,manifest,{designItems:[]}).valid,false);
+
+ const optionDraftMismatch=structuredClone(valid);
+ optionDraftMismatch.payload.followUp.options[0].proposalDraft.evidence=evidence('file','user-1');
+ assert.equal(validateReferences(optionDraftMismatch,manifest,{designItems:[]}).valid,false);
+
+ const turnProposalMismatch=structuredClone(valid);
+ turnProposalMismatch.payload.proposals[0].evidence=evidence('file','user-1');
+ assert.equal(validateReferences(turnProposalMismatch,manifest,{designItems:[]}).valid,false);
+
+ const legacyManifest={...manifest};
+ delete legacyManifest.userMessageIds;
+ const legacyOutput={proposals:[proposal(evidence('message','assistant-1'))]};
+ assert.equal(validateReferences(legacyOutput,legacyManifest,{designItems:[]}).valid,true);
+});
