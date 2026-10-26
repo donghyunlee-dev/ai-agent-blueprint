@@ -8,7 +8,7 @@ AI가 같은 대화 안에서도 질문, 설명, 추천, 복수 제안, 충돌 �
 
 각 task의 실제 System/Developer template 문구와 변수는 [AI Prompt Template 명세](15-ai-prompt-template-spec.md)를 따른다.
 
-> **현재 runtime:** 자유 대화는 `TURN_ANALYZE` prompt/schema `turn.analyze.v3` (`v3`)를 사용한다. `turn.analyze.v1`과 `turn.analyze.v2`는 registry에 과거 응답 형식으로 남아 있으며 새 turn에는 사용되지 않는다. 아래의 `TURN_ANALYZE` 계약과 [현재 prompt template](15-ai-prompt-template-spec.md#turn_analyze--turnanalyzev3)은 v3 runtime을 설명한다.
+> **현재 runtime:** 자유 대화는 `TURN_ANALYZE` prompt/schema `turn.analyze.v3` (`v3`)를 사용한다. `turn.analyze.v1`과 `turn.analyze.v2`는 registry에 과거 응답 형식으로 남아 있으며 새 turn에는 사용되지 않는다. 아래의 `TURN_ANALYZE` 계약과 [현재 prompt template](15-ai-prompt-template-spec.md#turn_analyze--turnanalyzev3-v3)은 v3 runtime을 설명한다.
 
 ## 현재 `TURN_ANALYZE` 계약 — `turn.analyze.v3` (`v3`)
 
