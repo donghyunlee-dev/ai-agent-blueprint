@@ -8,7 +8,7 @@ Base: `df54aafa654142f11348321754c749588a2fbf9a` (merged CON-PR-04, PR #63).
 | --- | --- |
 | `node --test tests/unit/ai/prompt-registry.test.js tests/unit/conversation-question-engine.test.js tests/unit/con-pr-03.test.js tests/unit/con-pr-05-*.test.js tests/unit/turn-lifecycle.test.js tests/unit/dsg-pr-01-proposals.test.js tests/unit/dsg-pr-03-readiness.test.js tests/unit/doc-pr-02-requirements-ready.test.js tests/contract/turn-api.test.js tests/contract/con-pr-05-*.test.js tests/contract/doc-pr-01-requirements-api.test.js tests/contract/doc-pr-02-prd-api.test.js tests/contract/doc-pr-02-ready-api.test.js tests/contract/fnd-ai-schema.test.js tests/contract/fnd-fixtures.test.js tests/contract/fnd-context-validation.test.js` | 97 passed, 0 failed |
 | `npm run test:golden` | 48/48 synthetic fixtures passed; no provider calls |
-| `npx playwright test tests/e2e/con-pr-05-conversation-flow.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-02-prd-readiness.spec.ts tests/e2e/uir-pr-04-proposal-review.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1 --reporter=line` | 21 passed, 0 failed, 1 tablet-only case skipped by its viewport guard |
+| `npx playwright test tests/e2e/con-pr-05-conversation-flow.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-02-prd-readiness.spec.ts tests/e2e/uir-pr-04-proposal-review.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1 --reporter=line` | Local: 21 passed, 0 failed, 1 tablet-only case skipped by its viewport guard. Protected Vercel Preview on implementation HEAD `f26b3fbc1293d04b44f657592edc31b34b3d9cec`: same result. |
 | `npm run build` | Passed; Vite emitted the existing >500 kB chunk-size warning |
 | `git diff --check` | Passed |
 
@@ -20,7 +20,7 @@ The contract validation recursively rejects unsafe markup, executable text, fenc
 
 `npm run test:unit` reported 349 passed and 1 failed. The failing test is `tests/unit/src-pr-01-source-upload-command.test.js` — “removes a source transactionally without replacing sibling records” — where `removeSourceAndReferences` reads `undefined.map`. The same targeted failure was reproduced on clean `main` at `df54aafa`; it is pre-existing and outside this PR's source/conversation changes.
 
-Agent Browser is unavailable in the current environment; Playwright Chromium was used for the complete desktop and mobile flow. Live provider and Google OAuth behavior remain unverified by this validation. The independent code review and QA remain pending for the final PR HEAD.
+Agent Browser is unavailable in the current environment; Playwright Chromium was used for the complete desktop and mobile flow. Live provider and Google OAuth behavior remain unverified by this validation. Independent code review and QA both passed on implementation/PR HEAD `f26b3fbc1293d04b44f657592edc31b34b3d9cec`; the PR review and QA are tracked in the PR body. The configured `Capture conversation UI evidence` GitHub check remains in progress while it captures the mapped UI states.
 
 ## Screenshot evidence
 

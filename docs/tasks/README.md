@@ -48,7 +48,7 @@
 | 36 | `UIR-PR-03F` 포커스 시 입력 배경 유지 | UI 후속 | merged (#60, `9b81e9f`) | [plan](UIR-PR-03F/plan.md) |
 | 37 | `UIR-PR-03G` 대화·요약 패널 외부 여백 보정 | UI 후속 | merged (#61) | [plan](UIR-PR-03G/plan.md) |
 | 38 | `CON-PR-04` 대화·결정 요약 계약 재정립 | 대화 계약 | merged (#63; base `df54aafa654142f11348321754c749588a2fbf9a`) | [plan](CON-PR-04/plan.md) |
-| 39 | `CON-PR-05` 대화 주도 발견·결정 패널 동기화 | 대화 구현 후속 | in_progress (base `df54aafa654142f11348321754c749588a2fbf9a`; self-validation passed, independent review/QA pending) | [plan](CON-PR-05/plan.md) · [tests](CON-PR-05/test-results.md) · [screenshots](../delivery/evidence/CON-PR-05/README.md) |
+| 39 | `CON-PR-05` 대화 주도 발견·결정 패널 동기화 | 대화 구현 후속 | ready_to_merge (implementation, self-validation, independent review/QA passed; configured UI-evidence check pending) | [plan](CON-PR-05/plan.md) · [tests](CON-PR-05/test-results.md) · [screenshots](../delivery/evidence/CON-PR-05/README.md) |
 
 상태 최신값은 `docs/delivery/development-pr-review-qa-workflow.md`와 `docs/delivery/traceability.md`가 원본이다. 이 표는 탐색 편의를 위한 것이며 실제 진행 상태는 두 원본 문서에서 갱신한다.
 

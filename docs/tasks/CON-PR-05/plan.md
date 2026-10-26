@@ -1,6 +1,6 @@
 # CON-PR-05 — 대화 주도 발견과 결정 요약 연결
 
-**Status: in_progress — 구현과 자체 검증 완료, 독립 코드 리뷰와 QA 대기.** 선행 계약 PR #63은 `main`의 `df54aafa654142f11348321754c749588a2fbf9a`에 병합됐다. 구현·테스트 결과는 [`test-results.md`](test-results.md)에, 최종 viewport 캡처는 [CON-PR-05 증거](../../delivery/evidence/CON-PR-05/README.md)에 기록했다. 본 계획은 사용자 대화 한 건이 AI 응답·맥락형 입력·pending 제안·명시적 승인·오른쪽 결정 요약까지 같은 저장 aggregate로 이어지는 vertical slice를 정의한다.
+**Status: ready_to_merge — implementation, self-validation, independent code review, and independent QA passed on PR HEAD `f26b3fbc1293d04b44f657592edc31b34b3d9cec`; one configured GitHub UI-evidence check is still running.** 선행 계약 PR #63은 `main`의 `df54aafa654142f11348321754c749588a2fbf9a`에 병합됐다. 구현·테스트 결과는 [`test-results.md`](test-results.md)에, 최종 viewport 캡처는 [CON-PR-05 증거](../../delivery/evidence/CON-PR-05/README.md)에 기록했다. 본 계획은 사용자 대화 한 건이 AI 응답·맥락형 입력·pending 제안·명시적 승인·오른쪽 결정 요약까지 같은 저장 aggregate로 이어지는 vertical slice를 정의한다.
 
 ## 사용자 결과
 
@@ -136,10 +136,10 @@ The route, schema/prompt registry, client renderer, persistence projection and r
 
 ## Done checklist
 
-- [ ] User freeform path is independent of `QUESTION_CATALOG`; dynamic component payload is schema/domain validated.
-- [ ] Explicit 11 recommendation path and insufficient-context follow-up are end-to-end connected.
-- [ ] Pending/confirmed boundary, same-revision summary, source navigation and refresh/retry contracts pass.
-- [ ] Existing consent, idempotency, cancellation, budget, auth and document readiness gates remain intact.
-- [ ] Focused unit/contract/eval/browser checks and build pass; test report records exact commands and counts.
-- [ ] Desktop/mobile final-HEAD screenshots and visual comparison artifacts are attached; independent review and QA record the exact same HEAD.
+- [x] User freeform path is independent of `QUESTION_CATALOG`; dynamic component payload is schema/domain validated.
+- [x] Explicit 11 recommendation path and insufficient-context follow-up are end-to-end connected.
+- [x] Pending/confirmed boundary, same-revision summary, source navigation and refresh/retry contracts pass.
+- [x] Existing consent, idempotency, cancellation, budget, auth and document readiness gates remain intact.
+- [x] Focused unit/contract/eval/browser checks and build pass; test report records exact commands and counts.
+- [x] Desktop/mobile final-HEAD screenshots and visual comparison artifacts are attached; independent review and QA record the same implementation HEAD `f26b3fbc1293d04b44f657592edc31b34b3d9cec`.
 - [ ] PR is merged only if user authorization is explicit; verify GitHub merge commit and `origin/main` before planning a dependent PR.
