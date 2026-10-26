@@ -51,10 +51,10 @@ PR 단위 목록과 검증 기준을 참고용으로 정리한다. 별도 실행
 | `planned` | 순서만 배치됨 | PR 단위표 등록 | 선행 의존성 확인 |
 | `ready` | 구현 가능 | 결정·선행 PR·수용 기준 확정 | 브랜치 생성 |
 | `in_progress` | 구현 중 | 최신 기본 브랜치에서 시작 | 자체 검증 완료 |
-| `code_review` | 독립 리뷰 중 | build·관련 테스트·self-check 통과 | 차단 finding 0건 |
-| `qa` | 동작 검증 중 | 코드 리뷰 통과 | QA 차단 finding 0건 |
-| `fix_required` | 수정 필요 | 리뷰 또는 QA 실패 | 한 번의 수정 pass 후 재검증 |
-| `ready_to_merge` | 리뷰·QA·필수 증거 및 CI 확인 완료 | PR 병합 가능 상태 확인 | 사용자 결정에 따라 병합 또는 보류 |
+| `code_review` | 필요 시 리뷰 중 | 요청된 리뷰 완료 | 적용할 finding 처리 |
+| `qa` | 필요 시 동작 검증 중 | 요청된 QA 완료 | 적용할 finding 처리 |
+| `fix_required` | 수정 필요 | 변경에 직접 관련된 finding 확인 | 수정 후 관련 검증 |
+| `ready_to_merge` | 변경에 필요한 검증 결과 확인 완료 | PR 병합 가능 상태 확인 | 사용자 결정에 따라 병합 또는 보류 |
 | `merged` | 기본 브랜치 반영 | GitHub에서 병합 확인 | 다음 PR `ready` 전환 |
 | `blocked` | 진행 불가 | 결정·환경·선행 산출물 누락 | 원인 해소 후 재계획 |
 

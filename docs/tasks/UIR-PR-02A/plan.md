@@ -14,14 +14,14 @@
 
 ## 단일 기준
 
-제품 동작·보안·접근성·반응형 계약을 우선하고 `docs/blueprint-design/README.md`의 매핑 이미지를 주 시안으로 삼는다. `docs/template/README.md`는 새 시안에 없는 상태만 보완한다. 실질적인 시각 차이의 **유일한 수치 기준**은 `docs/ui/07-visual-acceptance.md`의 「시안과 구현 화면의 직접 비교」에 둔다. Skill과 delivery 절차는 이 문서를 참조한다.
+제품 동작·보안·접근성·반응형 계약을 우선하고 `docs/blueprint-design/README.md`의 매핑 이미지를 주 시안으로 삼는다. `docs/template/README.md`는 새 시안에 없는 상태만 보완한다. 실질적인 시각 차이의 **유일한 수치 기준**은 `docs/ui/07-visual-acceptance.md`의 「시안과 구현 화면의 직접 비교」에 둔다. 관련 UI 검증 안내는 이 문서를 참조한다.
 
 ## 수용 기준
 
 - 같은 CSS viewport·비교 가능한 상태의 시안/렌더 쌍을 나란히 확인하도록 명시한다. 원본 이미지 비율이 다른 경우 왜곡 없이 좌표계를 맞추고 방법을 기록한다.
 - 기록에 시안 경로, route·상태, viewport, 검토 HEAD SHA, 캡처 artifact, 적용 가능한 주요 anchor의 px·% 위치·크기 차이가 포함된다.
 - 상위 제품·접근성·보안·반응형 계약상 필요한 예외와 비교 불가능한 상태는 근거·영향을 적는다. 글꼴 래스터링 차이만으로 실패 처리하지 않는다.
-- 설명되지 않은 실질 차이는 구현 자체 검증, 독립 코드 리뷰, 독립 QA를 통과하지 못하고 `ready_to_merge`를 차단한다.
+- 설명되지 않은 실질 차이는 UI 변경에 대한 검증 결과에 기록한다. 리뷰나 QA를 요청한 경우에는 finding으로 처리한다.
 - Vercel UI Preview 증거는 검토 HEAD와 배포 HEAD의 일치를 확인한다. Preview를 사용할 수 없으면 로컬 비교임을 밝힌다. 테스트 인증 mock을 실제 인증 검증으로 주장하지 않는다.
 - 문서 전용 이 PR에는 새 화면 캡처를 요구하지 않으며, 후속 UI PR에는 위 비교 계약을 적용한다.
 
@@ -32,10 +32,8 @@
 - `docs/superpowers/plans/2026-10-22-blueprint-ui-overhaul.md`
 - `docs/tasks/UIR-PR-02A/plan.md`
 
-## 자체 검증과 독립 gate
+## 검증 참고
 
-1. 네 절차 문서와 이 계획이 같은 시안 우선순위·차단 상태를 설명하고 수치 기준을 한 문서에서만 정의하는지 교차 검토한다.
-2. `git diff --check`와 `npm run docs:check:mermaid`를 실행한다. Puppeteer의 기본 Chrome 실행 파일이 없으면 설치된 Playwright headless shell을 `PUPPETEER_EXECUTABLE_PATH`로 지정한다.
-3. 독립 코드 리뷰는 파일 범위, 문서 간 모순, 수치 기준의 중복, 기존 비 UI PR 절차 회귀를 확인한다.
-4. 별도 QA는 이 문서만으로 후속 UI PR의 시안 선택→동일 조건 비교→차이 기록→gate 판정을 재현할 수 있는지 확인한다.
-5. 두 gate와 필요한 CI가 통과한 최신 HEAD를 `ready_to_merge`로 보고한다. 병합은 전체 PR lifecycle 승인 여부에 따른다.
+1. 관련 문서가 같은 시안 우선순위와 시각 차이 판정 기준을 참조하는지 확인한다.
+2. 문서 변경 시 `git diff --check`와 관련 문서 검사를 실행한다.
+3. 구현 변경의 리뷰·QA는 사용자가 요청했거나 변경 위험상 필요한 경우 진행한다. 병합은 사용자가 명시적으로 승인한 경우에만 진행한다.
