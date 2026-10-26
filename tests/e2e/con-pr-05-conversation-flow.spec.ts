@@ -336,3 +336,53 @@ test('persists each turn before dispatch and before showing the assistant result
   },{databaseName,projectId});
   expect(persisted).toEqual([{role:'user',content:'예약 충돌을 줄이고 싶어요.'},{role:'assistant',content:'저장된 응답입니다.'}]);
 });
+
+test('summary source navigation reveals an original message omitted by conversation compaction',async({page},testInfo)=>{
+  await mkdir('.pr-artifacts/CON-PR-05',{recursive:true});
+  const ownerKey=await deriveOwnerKey(identity);
+  const databaseName=databaseNameForOwner(ownerKey);
+  await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const tx=db.transaction('projects','readwrite');
+    const store=tx.objectStore('projects');
+    const record=await new Promise<any>((resolve,reject)=>{const req=store.get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const now=new Date().toISOString();
+    record.messages=Array.from({length:24},(_,index)=>({id:`source-turn-${index+1}`,threadId:'thread',role:index%2===0?'user':'assistant',kind:'text',content:index===0?'오래된 원본 대화 문장입니다.':`대화 ${index+1}`,createdAt:now}));
+    record.thread.summary={confirmedFacts:[{text:'예약 충돌을 줄이기로 했습니다.',sourceMessageIds:['source-turn-1']}],explicitUnknowns:[],rejectedDirections:[],unresolvedQuestions:[],sourceMessageIds:['source-turn-1']};
+    record.designItems=[{id:'confirmed-source-fact',projectId,type:'goal',title:'예약 충돌 감소',description:'회의실 예약 충돌을 줄입니다.',status:'confirmed',attributes:{},evidence:[{id:'source-evidence',sourceType:'message',sourceId:'source-turn-1',excerpt:'오래된 원본 대화 문장입니다.',createdAt:now}],acceptanceCriteria:[],relatedItemIds:[],createdAt:now,updatedAt:now}];
+    store.put(record);
+    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+  },{databaseName,projectId});
+  await page.goto(`/blueprints/${projectId}`);
+  await expect(page.locator('[id="conversation-message-source-turn-1"]')).toHaveCount(0);
+  const summary=testInfo.project.name==='mobile-chromium'?(await page.getByRole('button',{name:'요약 보기'}).click(),page.getByRole('dialog',{name:'요약'})):page.getByRole('complementary',{name:'요약'});
+  await expect(summary).toContainText('예약 충돌 감소');
+  await summary.getByRole('button',{name:'대화 보기'}).click();
+  await expect(page.locator('[id="conversation-message-source-turn-1"]')).toBeFocused();
+  await expect(page.locator('[id="conversation-message-source-turn-1"]')).toBeInViewport({ratio:0.8});
+  await expect(page.locator('[id="conversation-message-source-turn-1"]')).toContainText('오래된 원본 대화 문장입니다.');
+  await expect(page.locator('.conversation-source-reveal')).toContainText('접힌 대화에서 연 원본 메시지');
+  await expect(page.locator('.workspace-first-message')).toContainText('대화 15');
+  await page.screenshot({path:`.pr-artifacts/CON-PR-05/${testInfo.project.name}-compacted-source-revealed.png`,scale:'css'});
+});
+
+test('summary shows a non-actionable fallback when a source message is absent',async({page},testInfo)=>{
+  await mkdir('.pr-artifacts/CON-PR-05',{recursive:true});
+  const ownerKey=await deriveOwnerKey(identity);
+  const databaseName=databaseNameForOwner(ownerKey);
+  await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const tx=db.transaction('projects','readwrite');
+    const store=tx.objectStore('projects');
+    const record=await new Promise<any>((resolve,reject)=>{const req=store.get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const now=new Date().toISOString();
+    record.designItems=[{id:'orphaned-source-fact',projectId,type:'goal',title:'예약 충돌 감소',description:'회의실 예약 충돌을 줄입니다.',status:'confirmed',attributes:{},evidence:[{id:'orphaned-source-evidence',sourceType:'message',sourceId:'missing-turn-id',excerpt:'이전 대화 근거',createdAt:now}],acceptanceCriteria:[],relatedItemIds:[],createdAt:now,updatedAt:now}];
+    store.put(record);
+    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+  },{databaseName,projectId});
+  await page.goto(`/blueprints/${projectId}`);
+  const summary=testInfo.project.name==='mobile-chromium'?(await page.getByRole('button',{name:'요약 보기'}).click(),page.getByRole('dialog',{name:'요약'})):page.getByRole('complementary',{name:'요약'});
+  await expect(summary).toContainText('원본 대화를 찾을 수 없습니다.');
+  await expect(summary.getByRole('button',{name:'대화 보기'})).toHaveCount(0);
+  await page.screenshot({path:`.pr-artifacts/CON-PR-05/${testInfo.project.name}-missing-source-fallback.png`,scale:'css'});
+});

@@ -90,3 +90,22 @@ test('turn contract rejects executable copy nested in proposal and recommendatio
   delete unsafeRecommendation.followUp;
   assert.equal(validateTurnAnalyzeV3(unsafeRecommendation, { text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' }).valid, false);
 });
+
+test('turn contract rejects nested fenced and recognizable bare code without rejecting ordinary prose', () => {
+  const fencedProposal = { ...validPayload, proposals: [{ operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: '예약 정책', description: '```javascript\nalert(document.cookie)\n```' }, rationale: '예약 충돌을 줄이는 제안입니다.', evidence: [], affectedItemIds: [] }] };
+  assert.equal(validateTurnAnalyzeV3(fencedProposal, { text: '예약 정책을 정리해 주세요.' }).valid, false);
+
+  const recommendations = Array.from({ length: 11 }, (_, index) => ({
+    title: `후보 ${index + 1}`, rationale: '예약자가 쉽게 확인할 수 있는 운영 흐름입니다.', tradeoffs: [], assumptions: [],
+    evidence: [{ sourceType: 'message', sourceId: 'user-turn-1' }], proposal: { operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: `후보 ${index + 1}`, description: '예약 충돌을 줄이는 제안입니다.' }, rationale: '예약 흐름을 명확히 합니다.', evidence: [], affectedItemIds: [] },
+  }));
+  recommendations[3].proposal.after.description = "fetch('/api/secrets').then(response => response.text())";
+  const unsafeRecommendations = { ...validPayload, recommendations };
+  delete unsafeRecommendations.followUp;
+  assert.equal(validateTurnAnalyzeV3(unsafeRecommendations, { text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' }).valid, false);
+
+  recommendations[3].proposal.after.description = '예약 담당자가 충돌 여부를 확인할 수 있습니다.';
+  assert.equal(validateTurnAnalyzeV3(unsafeRecommendations, { text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' }).valid, true);
+  recommendations[3].proposal.after.description = 'Return to the booking page to review the remaining seats.';
+  assert.equal(validateTurnAnalyzeV3(unsafeRecommendations, { text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' }).valid, true);
+});

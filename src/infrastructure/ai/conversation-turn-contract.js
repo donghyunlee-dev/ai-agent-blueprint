@@ -9,7 +9,13 @@ const componentModes = Object.freeze({
 });
 
 const explicitRecommendation = (text) => /(?:추천해\s*(?:줘|주세요|주실래요?|봐)|추천(?:안(?:을)?|을)?\s*(?:부탁(?:해요)?|해줘|해주세요|알려\s*줘|알려\s*주세요)|추천\s*부탁|추천(?:이)?\s*(?:필요해요?|필요합니다)|대안(?:을)?\s*추천해\s*(?:줘|주세요)|(?:please\s+)?(?:recommend|suggest)\s+(?:me|some|a|an|options|ideas|what|which)|(?:can|could)\s+you\s+(?:please\s+)?(?:recommend|suggest))/i.test(String(text ?? ''));
-const unsafeCopy = (text) => /<\/?[a-z][^>]*>|javascript:|data:text\/html/i.test(String(text ?? ''));
+const unsafeCopy = (text) => {
+  const copy = String(text ?? '');
+  const containsMarkupOrExecutableUrl = /<\/?[a-z][^>]*>|javascript:|data:text\/html/i.test(copy);
+  const containsCodeFence = /(?:^|\n)\s*(?:```|~~~)/.test(copy);
+  const containsBareCode = /(?:^|\n)\s*(?:#!|(?:const|let|var)\s+[\w$]+\s*=|(?:async\s+)?function\s+[\w$]*\s*\(|return\s+[^.!?;\n]+;|import\s+(?:['"]|.*\sfrom\s+['"])|export\s+(?:default\s+)?(?:const|let|var|function|class)\b|(?:fetch|eval|alert|console\.(?:log|warn|error))\s*\(|(?:curl|wget)\s+\S+.*(?:\||&&|;)|(?:node|python|bash|sh)\s+-(?:e|c)\b|(?:npm|pnpm|yarn)\s+(?:install|add|exec|run)\b|(?:sudo\s+|rm\s+-rf\b))/im.test(copy);
+  return containsMarkupOrExecutableUrl || containsCodeFence || containsBareCode;
+};
 const containsUnsafeCopy = (value) => {
   if (typeof value === 'string') return unsafeCopy(value);
   if (Array.isArray(value)) return value.some(containsUnsafeCopy);

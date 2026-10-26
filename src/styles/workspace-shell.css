@@ -678,6 +678,10 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .summary-source-link { display: inline-flex; min-height: 30px; align-items: center; margin: 6px 0 0 8px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); color: var(--color-primary); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
 .summary-source-link:hover { border-color: var(--color-primary); background: var(--color-primary-soft); }
 .summary-source-link:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.summary-source-unavailable { display: inline-block; margin: 6px 0 0 8px; color: var(--color-text-muted); font-size: 12px; }
+.conversation-source-reveal { margin: 0 0 18px; padding: 12px; border: 1px solid var(--color-primary); border-radius: 12px; background: var(--color-primary-soft, #f1f6ff); }
+.conversation-source-reveal-label { margin: 0 0 10px; color: var(--color-primary); font-size: 12px; font-weight: 700; }
+.conversation-source-revealed-row:focus { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 .conversation-summary-mobile-trigger,.conversation-summary-mobile-close,.conversation-summary-mobile-backdrop { display: none; }
 @media (max-width: 767px) {
   .workspace-panels[data-stage="conversation"] .ai-turn-composer textarea { padding-inline: 10px; font-size: 13px; }

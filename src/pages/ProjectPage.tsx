@@ -102,6 +102,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading');
   const [saveState, setSaveState] = useState<ProjectSaveState>({ status: 'saved', savedAt: null });
   const [reopenedQuestionAnswerId, setReopenedQuestionAnswerId] = useState<string | null>(null);
+  const [revealedSourceMessageId, setRevealedSourceMessageId] = useState<string | null>(null);
+  const [sourceMessageFocusId, setSourceMessageFocusId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [conversationWidth, setConversationWidthState] = useState(() => getConversationWidth(projectId ?? "") ?? 360);
   const [mobileMode, setMobileMode] = useState<"conversation" | "work" | "review">("work");
@@ -171,6 +173,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     saverRef.current = null;
     setAggregate(null);
     aggregateRef.current = null;
+    setRevealedSourceMessageId(null);
+    setSourceMessageFocusId(null);
     setTitleDraft('');
     setTitleInvalid(false);
     setLoadStatus('loading');
@@ -593,6 +597,15 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   }
 
   useEffect(() => {
+    if (!sourceMessageFocusId) return;
+    const target = document.getElementById(`conversation-message-${sourceMessageFocusId}`);
+    if (!target) return;
+    target.scrollIntoView({ block: 'center', behavior: 'auto' });
+    target.focus({ preventScroll: true });
+    setSourceMessageFocusId(null);
+  }, [sourceMessageFocusId, revealedSourceMessageId, aggregate?.messages.length]);
+
+  useEffect(() => {
     const content = conversationContentRef.current;
     if (!content) return;
     const frame = window.requestAnimationFrame(() => { content.scrollTop = content.scrollHeight; });
@@ -614,14 +627,24 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   if (!aggregate) return <ProjectNotFoundPage />;
 
   const compactedConversation = compactConversationContext({ messages: aggregate.messages, summary: aggregate.thread.summary, threshold: 20 });
-  const visibleConversationMessages = compactedConversation.compacted ? compactedConversation.originalMessages : aggregate.messages;
+  const baseVisibleMessages = compactedConversation.compacted ? compactedConversation.originalMessages : aggregate.messages;
+  const revealedSourceMessage = compactedConversation.compacted && revealedSourceMessageId && !baseVisibleMessages.some((message) => message.id === revealedSourceMessageId)
+    ? aggregate.messages.find((message) => message.id === revealedSourceMessageId)
+    : undefined;
+  const visibleConversationMessages = baseVisibleMessages;
   const firstVisibleUserMessage = visibleConversationMessages.find((message) => message.role === "user");
   const visibleSummary = projectDecisionSummary(aggregate);
   const reopenedAnswer = aggregate.answers.find((answer) => answer.id === reopenedQuestionAnswerId);
   function navigateToSourceMessage(messageId:string) {
     const target = document.getElementById(`conversation-message-${messageId}`);
-    target?.scrollIntoView({block:'center',behavior:'smooth'});
-    target?.focus({preventScroll:true});
+    if (target) {
+      target.scrollIntoView({block:'center',behavior:'auto'});
+      target.focus({preventScroll:true});
+      return;
+    }
+    if (!aggregateRef.current?.messages.some((message) => message.id === messageId)) return;
+    setRevealedSourceMessageId(messageId);
+    setSourceMessageFocusId(messageId);
   }
   const designReadiness = computeDesignReadiness(aggregate);
   const currentProjectId = aggregate.project.id;
@@ -830,7 +853,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         {([["conversation", "대화"], ["work", documentTypeLabel(documentType ?? aggregate.project.activeDocumentType)], ["review", "검토"]] as const).map(([mode, label]) => <button key={mode} id={`workspace-mode-tab-${mode}`} type="button" role="tab" data-mode-tab={mode} aria-controls={`workspace-${mode}-panel`} aria-selected={mobileMode === mode} tabIndex={mobileMode === mode ? 0 : -1} onClick={() => selectMode(mode)}>{label}</button>)}
       </nav>
       <div className="workspace-panels" data-stage={currentStage} data-inspector-active={currentStage === "design" ? String(inspectorOpen) : undefined}>
-        <ConversationWorkspace summary={visibleSummary} onNavigateSource={navigateToSourceMessage}>
+        <ConversationWorkspace summary={visibleSummary} availableMessageIds={aggregate.messages.map((message) => message.id)} onNavigateSource={navigateToSourceMessage}>
         <section ref={conversationRef} id="workspace-conversation-panel" className="workspace-panel workspace-conversation" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-conversation" : undefined} aria-label={modeTabsVisible ? undefined : "대화"}>
           <header className="workspace-panel-heading"><h1>대화</h1><span>초기 아이디어</span></header>
           <div ref={conversationContentRef} className="workspace-conversation-content" role="region" aria-label="대화 기록" tabIndex={0} onKeyDown={(event) => {
@@ -841,6 +864,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
             else if (event.key === "Home") { event.preventDefault(); event.currentTarget.scrollTo({ top: 0 }); }
             else if (event.key === "End") { event.preventDefault(); event.currentTarget.scrollTo({ top: scrollHeight }); }
           }}>
+            {revealedSourceMessage ? <section className="conversation-source-reveal" aria-label="접힌 대화에서 연 원본 메시지"><p className="conversation-source-reveal-label" role="status">접힌 대화에서 연 원본 메시지</p><div id={`conversation-message-${revealedSourceMessage.id}`} tabIndex={-1} className={`conversation-message-row conversation-message-row-${revealedSourceMessage.role} conversation-source-revealed-row`}>{revealedSourceMessage.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}<article className={`workspace-message workspace-message-${revealedSourceMessage.role}`}><span className="workspace-message-label">{revealedSourceMessage.role === "assistant" ? "Agent" : revealedSourceMessage.role === "system" ? "작업 상태" : "나"}</span><p>{revealedSourceMessage.content}</p></article></div></section> : null}
             <div id={firstVisibleUserMessage ? `conversation-message-${firstVisibleUserMessage.id}` : undefined} tabIndex={firstVisibleUserMessage ? -1 : undefined} className="conversation-message-row conversation-message-row-user"><ConversationAvatar role="user" /><article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{firstVisibleUserMessage?.content ?? (compactedConversation.compacted ? "요약 아래에 최근 대화가 표시됩니다." : "아직 대화가 없습니다.")}</p></article>{firstVisibleUserMessage?.createdAt ? <time className="conversation-message-time" dateTime={firstVisibleUserMessage.createdAt}>{formatConversationTime(firstVisibleUserMessage.createdAt)}</time> : null}</div>
             {visibleConversationMessages.filter((message) => message.id !== firstVisibleUserMessage?.id).map((message) => <div id={`conversation-message-${message.id}`} tabIndex={-1} key={message.id} className={`conversation-message-row conversation-message-row-${message.role}`}>
               {message.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}
