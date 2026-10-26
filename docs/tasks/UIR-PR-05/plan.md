@@ -1,6 +1,5 @@
 # UIR-PR-05 설계 준비 화면 구현 계획
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
 **Goal:** 기존 설계 준비 계산과 Requirements gate를 유지하면서, 10개 원본 설계 영역을 시안의 5개 요약 카드와 10개 상세로 탐색할 수 있게 한다.
 

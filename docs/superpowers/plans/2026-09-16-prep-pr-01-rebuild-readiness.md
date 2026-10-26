@@ -1,6 +1,5 @@
 # PREP-PR-01 리빌드 착수 준비 정리 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 리빌드 착수 전 문서 감사에서 발견된 설정/문서 불일치를 정리하고, DOC-004·GDE-504 제품 결정을 확정·반영해 27개 PR 단위표의 blocked 항목을 해소한다.
 

@@ -18,7 +18,7 @@ Use `vercel --prod` for production deployment when following the documented Verc
 Keep new code simple and file-local: plain HTML, CSS, and vanilla JavaScript embedded in each page unless a shared pattern clearly justifies extraction. Prefer semantic HTML, lowercase file names, and hyphenated names for new pages. Match the existing style by keeping CSS variables near the top of each document and using consistent 2-space indentation in new edits. Avoid hardcoding secrets or environment-specific URLs.
 
 ## Testing Guidelines
-During the rebuild, add tests with each PRD phase instead of restoring the removed legacy suite. Before opening a PR, run `npm run build` and verify the changed flow on desktop and mobile. Add automated coverage for new domain rules and critical user journeys when those features are implemented.
+During the rebuild, add tests with each PRD phase instead of restoring the removed legacy suite. Run relevant tests and `npm run build` for application or build changes. For UI changes, verify the changed flow at the desktop and mobile sizes affected by the change.
 
 ## Commit & Pull Request Guidelines
 Current history uses short imperative messages such as `Initial commit` and `Add files via upload`. Continue with concise imperative commit subjects, but make them more descriptive, for example `Update survey progress copy`. PRs should summarize changed pages, note any deployment or config impact, link related issues, and attach screenshots for visible UI changes.
@@ -56,21 +56,3 @@ Keep secrets such as `OPENAI_API_KEY` in local environment files only, never in 
 - 현재 화면은 `docs/blueprint-design/` 시안의 정보 위계와 배치에 맞춰 local CSS로 구현하고, 반복 값만 앱 범위의 CSS custom properties로 묶는다.
 - 기존 프레임워크와 파일 구조를 유지하고 semantic HTML, 키보드 접근성과 반응형 동작을 구현한다.
 - 캡처 이미지를 제품 화면에 그대로 배경이나 합성물로 사용하지 않는다. 동작하는 인터페이스를 구현한다.
-
-## Codex Harness
-
-- Goal: Maintain repository-scoped Codex agent teams, skills, and reusable orchestration workflows.
-- Trigger: Use `$harness` when asked to configure, extend, audit, or synchronize a harness, custom-agent team, or multi-agent workflow for this repository.
-- Canonical paths: Store repository skills in `.agents/skills/` and Codex custom agents in `.codex/agents/` when a harness task requires them.
-- Authorization: Spawn subagents only when the user asks.
-
-### Harness Change History
-
-| Date | Change | Target | Reason |
-| --- | --- | --- | --- |
-| 2026-07-02 | Add Codex-native harness meta-skill and workflow references | `AGENTS.md`, `.agents/skills/harness/` | Define the repository-native agent harness |
-| 2026-07-02 | Add conversational Blueprint delivery team (retired 2026-10-25) | `.agents/skills/conversational-blueprint-workflow/`, `.codex/agents/` | Historical record of the former product redesign workflow |
-| 2026-10-13 | Add Codex PR development loop, stage agents, and guarded hooks (retired 2026-10-25) | `.agents/skills/pr-development-loop/`, `.codex/agents/`, `.codex/hooks.json` | Historical record of the former development and PR automation |
-| 2026-10-13 | Replace Agent Blueprint UI guidance with template screenshot references | `AGENTS.md`, product and delivery UI guidance, `docs/template/README.md` | Make repository screenshots the visual source of truth |
-| 2026-10-22 | Prioritize Blueprint redesign screenshots for current UI work | `AGENTS.md`, product and delivery UI guidance, `docs/blueprint-design/README.md` | Align implementation references with the approved redesign |
-| 2026-10-25 | Remove project development-to-PR automation | `.agents/skills/`, `.codex/agents/`, `.codex/hooks.json` | Reduce workflow overhead and automatic prompt context |

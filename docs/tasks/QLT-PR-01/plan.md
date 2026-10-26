@@ -112,7 +112,7 @@ Then 페이지 전체 수평 스크롤이 발생하지 않는다
 - Drawer/Modal 열림·닫힘 focus 상태 캡처
 - reduced-motion 설정에서의 전환 캡처
 
-## 코드 리뷰·QA 체크리스트
+## 필요 시 적용할 리뷰·QA 체크리스트
 
 - [ ] semantic controls와 관련 `docs/blueprint-design/` 주 시안·필요한 `docs/template/` 상태 fallback이 사용됐는지, 중복된 로컬 component 없이 접근성 계약을 만족하는지
 - [ ] 접근성 수정이 기존 확정 동작(다른 요구사항)을 깨지 않았는지
@@ -123,11 +123,10 @@ Then 페이지 전체 수평 스크롤이 발생하지 않는다
 
 - [ ] Requirements implemented
 - [ ] Acceptance criteria verified
-- [ ] 독립 코드 리뷰 pass
-- [ ] 독립 QA pass
+- [ ] 리뷰나 QA를 요청한 경우 결과를 기록하고 적용할 finding을 처리
 - [ ] 화면 변경 시 desktop/mobile 캡처 완료
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서
 
-- 이 폴더에 구현 중/후 `test-results.md`, `review-notes.md`, `qa-report.md` 등을 추가로 생성한다(지금은 생성하지 않음).
+- 필요한 경우에만 이 폴더에 테스트 결과, 리뷰 메모, QA 결과 등을 기록한다.
