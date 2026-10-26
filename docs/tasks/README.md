@@ -1,9 +1,9 @@
 # 개발 작업(Task) 계획 폴더
 
-이 디렉터리는 `docs/delivery/development-pr-review-qa-workflow.md`의 PR 단위표를 SDD(Spec/Structured-Development-Doc) 방식으로 개별 폴더화한 것이다. 각 폴더는 다음 규칙을 따른다.
+이 디렉터리는 PR 단위의 작업 계획과 실제 진행 기록을 보관한다. 작업 문서는 변경 범위와 수용 기준을 알려주는 참고 자료이며, 고정된 에이전트 절차를 요구하지 않는다.
 
-- `plan.md`는 실제 구현을 시작하기 전에 미리 작성한다. Overview, Background, Scope, 연결 근거(요구사항·결정·화면 ID), 선행 조건, 작업 단위별 구현 개요, 프로세스/상태 전이 mermaid, 데이터·API 영향, Acceptance Criteria(Happy/Failure/Boundary), 예상 변경 파일, 테스트 계획, UI 증거 계획, 코드 리뷰·QA 체크리스트, Done Checklist를 포함한다.
-- `test-results.md`, `review-notes.md`, `qa-report.md` 등은 실제 구현 시점에 같은 폴더에 추가로 생성한다(폴더/파일 구조를 미리 알 수 없으므로 지금은 만들지 않는다).
+- `plan.md`가 있으면 목표, 범위, 관련 계약과 수용 기준을 확인한다. 계획의 각 항목을 작업 성격에 맞춰 적용한다.
+- 테스트 결과, 리뷰 메모, QA 결과와 캡처는 필요하거나 요청된 경우 같은 폴더에 기록한다.
 - 폴더명은 PR 단위표의 PR unit ID와 동일하다.
 
 ## PR 단위 목록 (실행 순서)
@@ -55,7 +55,7 @@
 ## 진행 시 사용 순서
 
 1. 해당 PR의 `plan.md`와 연결 명세를 읽고 작업 범위에 맞게 구현과 검증을 진행한다. 변경된 business behavior는 테스트로 확인한다.
-2. 구현 중/후 같은 폴더에 `test-results.md`(테스트 실행 결과), `review-notes.md`(독립 코드 리뷰 finding과 조치), `qa-report.md`(독립 QA 결과와 필요한 경우에만 선택 캡처 링크)를 추가한다.
+2. 필요한 경우 실행 결과나 리뷰·QA 메모를 같은 폴더에 기록한다.
 3. PR이 `merged` 상태가 되면 이 표의 상태와 `docs/delivery/traceability.md`를 함께 갱신한다.
 
 ## GDE-PR-01 범위 메모

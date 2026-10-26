@@ -1,7 +1,5 @@
 # Agent Blueprint UI 대규모 개편 구현 계획
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** `docs/blueprint-design/`의 디자인 시안 8장을 현재 구현된 Agent Blueprint 기능에 적용하되, 시안에만 있는 기능은 추가하지 않고 당시 기존 제품 동작을 보존한다.
 
 > **대화 동작 후속:** 이 계획의 UIR-PR-03 대화 표현 작업은 당시 고정 `QUESTION_CATALOG` runtime을 보존했으며, 현재 화면이 다음 질문을 고정 catalog에서 선택하는 구현임을 기록한다. 사용자는 이를 목표 동작으로 승인하지 않았다. [CON-PR-04](../../tasks/CON-PR-04/plan.md)는 디자인 시안의 좌측 자유 대화·우측 결정 요약을 위해 product/process/UI/AI 계약을 재정립하고, 후속 [CON-PR-05 구현 설계](../../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr)는 context-derived content와 strict allowlisted renderer, 사용자 승인 기반 확정을 연결한다. 이 후속 unit은 CON-PR-04가 병합된 뒤 시작한다.
@@ -23,7 +21,7 @@
 - Requirements는 readiness, PRD는 ready Requirements로 gate한다.
 - semantic HTML, keyboard, visible focus, live region, focus return, reduced motion, 200% zoom, responsive content order를 유지한다.
 - UI framework, 외부 design system, dependency, route, API, storage schema, prompt, model을 추가하거나 바꾸지 않는다.
-- 각 PR은 직전 PR의 `merged` 확인 뒤 최신 `main`에서 시작하며 `$pr-development-loop`의 self-validation, 독립 review, 독립 QA를 통과해야 한다.
+- 각 PR은 직전 PR의 `merged` 확인 뒤 최신 `main`에서 시작한다. 변경 범위에 맞는 검증 결과를 PR 설명에 기록한다.
 - UI PR 증거는 final HEAD의 1440×900과 390×844 및 변경된 loading/empty/error/validation/overlay/completed 상태를 포함한다.
 
 ## 리뷰 중점
@@ -116,7 +114,7 @@
 - [ ] 직전 PR이 merged이고 local/origin `main` SHA가 같다.
 - [ ] requirement ID, 주/fallback 이미지, 파일, interface, acceptance, state evidence가 확정됐다.
 - [ ] secret/provider 없이 fixture로 상태에 도달한다.
-- [ ] worktree 충돌이 없고 implementer/reviewer/QA context가 분리됐다.
+- [ ] 작업 중 변경 파일의 소유권이 겹치지 않는지 확인한다.
 - [ ] 새 route/feature/data/asset 결정이 필요 없고 data migration 없이 revert할 수 있다.
 
 ## 포함/제외 범위
@@ -156,8 +154,8 @@ function buildReadinessPresentationGroups(readiness: DesignReadiness): Readiness
 - [ ] 7 filename, UIR-001~010, exclusions, 10→5 mapping, support flow, 5 viewport의 cross-link를 self-review한다.
 - [ ] Run `npm run docs:check:mermaid` and `git diff --check`; expected exit 0. 필요하면 설치된 Playwright headless shell을 `PUPPETEER_EXECUTABLE_PATH`로 지정한다.
 - [ ] self-validation 통과 뒤 `Align Blueprint UI redesign contracts`로 commit하고 branch를 push한 다음 PR을 생성하거나 갱신하며 exact base SHA와 head SHA를 기록한다.
-- [ ] 기록한 exact base/head diff를 독립 문서 reviewer가 검토한 뒤, 별도 QA가 같은 reviewed head에서 7개 시안과 계약을 대조한다. Browser screenshot은 요구하지 않는다.
-- [ ] finding이 있으면 수정 내용을 새 commit으로 만들고 push한 뒤 영향 문서 검증을 다시 실행하고 갱신된 exact base/head로 re-review와 re-QA를 순서대로 통과한다. Blocking finding 0건이면 `ready_to_merge`로 전환한다.
+- [ ] 변경 위험 또는 사용자 요청에 따라 필요한 코드 검토와 동작 QA를 수행하고 결과를 기록한다.
+- [ ] 필요한 경우 finding을 수정하고 영향받는 검증을 다시 실행한다.
 
 ### UIR-PR-02: 공통 지원 셸과 홈
 
@@ -173,8 +171,8 @@ function buildReadinessPresentationGroups(readiness: DesignReadiness): Readiness
 - [ ] 같은 Playwright 명령과 `npm run build`를 통과시킨다.
 - [ ] 1440×900/390×844의 shell, empty, attachment, recent, validation/error, limit overlay evidence를 남긴다.
 - [ ] self-validation과 evidence 완료 뒤 `Redesign the Blueprint shell and home`으로 commit·push하고 PR을 생성/갱신하며 exact base/head SHA를 기록한다.
-- [ ] 독립 reviewer가 exact base/head diff를 검토하고 별도 QA가 같은 reviewed head의 create/reopen/validation/dialog focus를 검증한다.
-- [ ] finding 수정은 새 commit·push 후 영향 검증, 갱신된 exact base/head re-review, 같은 head re-QA 순서로 처리한다. Blocking finding 0건이면 `ready_to_merge`다.
+- [ ] 변경 위험 또는 사용자 요청에 따라 필요한 코드 검토와 동작 QA를 수행하고 결과를 기록한다.
+- [ ] 필요한 경우 finding을 수정하고 영향받는 검증을 다시 실행한다.
 
 ### UIR-PR-02A: 시안 직접 비교 gate 문서 보완
 
@@ -195,7 +193,7 @@ PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝
 - [ ] 실제 preview 기준 네 가지 시각 차이를 재현하고 1440×900, 1672×941, 1897×905에서 경계·중심선을 기록한다.
 - [ ] textarea를 4행 이상으로 구현하고 기존 입력·첨부·생성 동작을 보존한다.
 - [ ] 최종 1672×941 전체 화면 픽셀 비교가 마스크 없이 95% 이상이며, 요구된 기하·텍스트·아이콘 검증도 통과한다.
-- [ ] 1440×900과 390×844 최종 HEAD 캡처, 구현자 자체 검증, 독립 코드 리뷰, 독립 QA를 통과하고 `ready_to_merge`로 대기한다.
+- [ ] 변경 위험 또는 사용자 요청에 따라 필요한 코드 검토와 동작 QA를 수행하고 결과를 기록한다.
 
 ### UIR-PR-03: 프로젝트 단계 frame과 대화
 
@@ -213,8 +211,8 @@ PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝
 - [ ] 같은 Playwright, `npm run test:unit`, `npm run build`를 통과시킨다.
 - [ ] desktop/mobile first question, long history, validation, generation/error, gate evidence를 남긴다.
 - [ ] self-validation과 evidence 완료 뒤 `Redesign the project stages and conversation`으로 commit·push하고 PR을 생성/갱신하며 exact base/head SHA를 기록한다.
-- [ ] 독립 reviewer가 exact base/head diff를 검토하고 별도 QA가 같은 reviewed head의 question/retry/keyboard/focus/scroll/responsive 흐름을 검증한다.
-- [ ] finding 수정은 새 commit·push 후 영향 검증, 갱신된 exact base/head re-review, 같은 head re-QA 순서로 처리한다. Blocking finding 0건이면 `ready_to_merge`다.
+- [ ] 변경 위험 또는 사용자 요청에 따라 필요한 코드 검토와 동작 QA를 수행하고 결과를 기록한다.
+- [ ] 필요한 경우 finding을 수정하고 영향받는 검증을 다시 실행한다.
 
 ### UIR-PR-04: 제안 검토
 
@@ -230,8 +228,8 @@ PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝
 - [ ] 같은 Playwright, `npm run test:unit`, `npm run build`를 통과시킨다.
 - [ ] desktop/mobile pending/edit/error/bulk/conflict/persistence/empty evidence를 남긴다.
 - [ ] self-validation과 evidence 완료 뒤 `Redesign proposal review`로 commit·push하고 PR을 생성/갱신하며 exact base/head SHA를 기록한다.
-- [ ] 독립 reviewer가 exact base/head diff와 command/transaction 연결을 검토하고 별도 QA가 같은 reviewed head의 single/bulk/conflict/failure/focus를 검증한다.
-- [ ] finding 수정은 새 commit·push 후 영향 검증, 갱신된 exact base/head re-review, 같은 head re-QA 순서로 처리한다. Blocking finding 0건이면 `ready_to_merge`다.
+- [ ] 변경 위험 또는 사용자 요청에 따라 필요한 코드 검토와 동작 QA를 수행하고 결과를 기록한다.
+- [ ] 필요한 경우 finding을 수정하고 영향받는 검증을 다시 실행한다.
 
 ### UIR-PR-05: 10개 준비 영역의 5개 카드 표현
 
@@ -246,8 +244,8 @@ PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝
 - [ ] 5 overview, 10 detail, blocker/empty/deferred/conflict/inspector/gate browser assertion을 추가한다.
 - [ ] DesignBoard를 조립하고 `npx playwright test tests/e2e/uir-pr-05-design-readiness.spec.ts tests/e2e/dsg-pr-03-design-readiness.spec.ts --project=chromium --workers=1`, `npm run build`를 순차 실행해 통과시킨다.
 - [ ] desktop/mobile readiness evidence와 self-validation 완료 뒤 `Redesign the Blueprint readiness view`로 commit·push하고 PR을 생성/갱신하며 exact base/head SHA를 기록한다.
-- [ ] 독립 reviewer가 exact base/head diff와 10-key coverage/gate 불변을 검토하고 별도 QA가 같은 reviewed head의 group→detail→blocker와 focus를 검증한다.
-- [ ] finding 수정은 새 commit·push 후 영향 검증, 갱신된 exact base/head re-review, 같은 head re-QA 순서로 처리한다. Blocking finding 0건이면 `ready_to_merge`다.
+- [ ] 변경 위험 또는 사용자 요청에 따라 필요한 코드 검토와 동작 QA를 수행하고 결과를 기록한다.
+- [ ] 필요한 경우 finding을 수정하고 영향받는 검증을 다시 실행한다.
 
 ### UIR-PR-06: Requirements·PRD와 지원 흐름
 
@@ -263,8 +261,8 @@ PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝
 - [ ] support flows를 secondary region에 유지하고 mobile/error/draft/secret/completion 계약을 보존한다.
 - [ ] 같은 Playwright, `npm run test:unit`, `npm run build`를 통과시킨다.
 - [ ] desktop/mobile document/support evidence와 self-validation 완료 뒤 `Redesign Blueprint documents and supported flows`로 commit·push하고 PR을 생성/갱신하며 exact base/head SHA를 기록한다.
-- [ ] 독립 reviewer가 exact base/head diff와 domain/API/storage/reachability를 검토하고 별도 QA가 같은 reviewed head의 document/source/export/guide/complete 흐름을 검증한다.
-- [ ] finding 수정은 새 commit·push 후 영향 검증, 갱신된 exact base/head re-review, 같은 head re-QA 순서로 처리한다. Blocking finding 0건이면 `ready_to_merge`다.
+- [ ] 변경 위험 또는 사용자 요청에 따라 필요한 코드 검토와 동작 QA를 수행하고 결과를 기록한다.
+- [ ] 필요한 경우 finding을 수정하고 영향받는 검증을 다시 실행한다.
 
 ### QLT-PR-01: 전체 반응형·접근성·상태 회귀
 
@@ -277,16 +275,16 @@ PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝
 - [ ] new suite로 결함을 재현하고 증거 있는 UI 결함만 수정한다.
 - [ ] Sequentially run `npm run test:unit`, `npm run test:golden`, `npm run test:e2e:ci`, `npm run build`; 모두 exit 0.
 - [ ] Run `npm run docs:check:mermaid` and `git diff --check`; exit 0.
-- [ ] final HEAD/fixture/viewport/state/action/path evidence matrix와 Agent Browser 또는 불가 증거를 기록한다.
+- [ ] 변경 범위에 필요한 화면·상태 검증 근거를 기록한다.
 - [ ] 전체 self-validation과 final evidence 완료 뒤 `Verify the Blueprint UI overhaul`로 commit·push하고 PR을 생성/갱신하며 exact base/head SHA를 기록한다.
-- [ ] 독립 reviewer가 exact base/head diff의 UIR coverage와 회귀를 검토하고 별도 QA가 같은 reviewed head의 전체 viewport/state/keyboard 흐름을 검증한다.
-- [ ] finding 수정은 새 commit·push 후 전체 영향 검증, 갱신된 exact base/head re-review, 같은 head re-QA 순서로 처리한다. Blocking finding 0건이면 `ready_to_merge`다.
+- [ ] 변경 위험 또는 사용자 요청에 따라 필요한 코드 검토와 동작 QA를 수행하고 결과를 기록한다.
+- [ ] 필요한 경우 finding을 수정하고 영향받는 검증을 다시 실행한다.
 
 ## 증거 matrix
 
-| PR | 필수 증거 |
+| PR | 적용할 증거 |
 | --- | --- |
-| UIR-PR-01 | browser screenshot 없음; 7장 mapping, Mermaid/diff, 독립 문서 review/QA |
+| UIR-PR-01 | browser screenshot 없음; 7장 mapping, Mermaid/diff 검증 |
 | UIR-PR-02 | shell/home/recent/validation/attachment/error/limit at 1440×900, 390×844 |
 | UIR-PR-02A | 문서 전용; 시안/렌더 비교 절차와 차단 gate의 문서 교차 검토, Mermaid/diff |
 | UIR-PR-03 | question/history/validation/generation/error/gated stage desktop/mobile |
@@ -295,16 +293,9 @@ PR #35의 홈 화면에서 주 콘텐츠 폭, 제목, composer, 최근 프로젝
 | UIR-PR-06 | Requirements/PRD/support의 affected states desktop/mobile |
 | QLT-PR-01 | final normal/state at 1440×900·390×844; transitions at 1280×800·1024×768·768×1024 |
 
-## 독립 review·QA gate
+## 선택적 review·QA
 
-1. implementer가 구현과 self-validation, 해당 evidence를 완료한다.
-2. implementer가 변경을 commit하고 branch를 push한다.
-3. coordinator가 PR을 생성하거나 갱신하고 requirement/reference/command/evidence와 exact base SHA·head SHA를 기록한다.
-4. 독립 reviewer가 기록된 exact base/head diff의 correctness, regression, scope, semantics, test를 검토한다.
-5. review 통과 뒤 별도 QA가 reviewer가 확인한 같은 head SHA의 문서 또는 behavior를 검증한다.
-6. review나 QA finding이 있으면 implementer가 수정 내용을 새 commit으로 만들고 push한 뒤 영향 검증을 다시 실행한다. PR의 head SHA와 evidence를 갱신하고 새 exact base/head diff로 re-review한 다음 같은 새 head에서 re-QA한다.
-7. 최신 head의 blocking finding 0건, required checks pass, evidence 일치 때만 `ready_to_merge`로 전환한다.
-8. 전체 lifecycle 승인 때만 merge하며 merged 확인 전 다음 PR을 시작하지 않는다.
+별도 review나 QA는 사용자가 요청했거나 변경 위험상 필요한 경우에 수행한다. 전용 agent 실행, 반복 절차, 전체 viewport/state 증거를 모든 PR에 요구하지 않는다.
 
 ## 위험과 rollback
 
@@ -322,10 +313,10 @@ storage schema/server contract 변경이 없으므로 PR 단위 일반 revert를
 
 ## 완료 기준
 
-- [ ] UIR-001~010이 automated assertion 또는 독립 문서/동작 QA 증거를 가진다.
-- [ ] UIR-PR-01~02, UIR-PR-02A, UIR-PR-03~06과 QLT-PR-01이 순서대로 review·QA·merge 확인됐다.
+- [ ] UIR-001~010의 적용 수용 기준이 자동 검사 또는 필요한 수동 검증으로 확인됐다.
+- [ ] 계획된 UI 작업의 완료 상태와 검증 근거가 최신화됐다.
 - [ ] 홈→대화→제안→설계→Requirements→PRD가 새 위계를 따르고 제외 기능이 없다.
 - [ ] 10개 readiness 영역이 5 group에 정확히 한 번 포함되고 gate가 기존 계산과 같다.
 - [ ] source/consistency/export/guide/completion/auth/storage/AI가 계속 접근 가능하고 통과한다.
-- [ ] final HEAD의 unit/golden/serial Playwright/build/Mermaid/diff와 required evidence가 통과한다.
+- [ ] final HEAD에서 변경 범위에 필요한 테스트, build, 브라우저 및 문서 검증을 수행했다.
 - [ ] 새 dependency/route/endpoint/storage/prompt/model/asset/sample/unsupported action이 없다.
