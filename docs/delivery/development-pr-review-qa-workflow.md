@@ -295,8 +295,8 @@ CON-PR-01~03은 해당 PR 당시 승인된 질문/catalog 동작을 구현한 �
 
 | PR unit | 선행 조건 | 결과 | 상태 |
 | --- | --- | --- | --- |
-| [`CON-PR-04`](../tasks/CON-PR-04/plan.md) 대화·결정 요약 계약 재정립 | PR #60 merged; docs-only unit | product/process/UI/AI 계약 및 CON-PR-05 구현 설계 정렬 | in_progress |
-| [`CON-PR-05`](../tasks/CON-PR-04/plan.md#candidate-implementation-design-for-the-next-unit-not-part-of-this-pr) 대화 주도 발견·결정 패널 동기화 | CON-PR-04 merged; technical DoR verified | freeform turn, context-derived choices, allowlisted renderer, proposal approval, same-revision summary, responsive error recovery | planned |
+| [`CON-PR-04`](../tasks/CON-PR-04/plan.md) 대화·결정 요약 계약 재정립 | PR #63 merged; docs-only unit | product/process/UI/AI 계약 및 CON-PR-05 구현 설계 정렬 | merged (#63) |
+| [`CON-PR-05`](../tasks/CON-PR-05/plan.md) 대화 주도 발견·결정 패널 동기화 | CON-PR-04 merged; technical DoR verified | freeform turn, context-derived choices, allowlisted renderer, proposal approval, same-revision summary, responsive error recovery | code_review (implementation gates passed on `f26b3fbc`; latest docs-only PR HEAD needs fresh review/QA and GitHub checks) |
 
 | 순서 | UIR PR unit | 선행 조건 | 상태 |
 | ---: | --- | --- | --- |

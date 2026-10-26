@@ -1,6 +1,6 @@
 # CON-PR-05 — 대화 주도 발견과 결정 요약 연결
 
-**Status: ready_to_merge — implementation, self-validation, independent code review, and independent QA passed on PR HEAD `f26b3fbc1293d04b44f657592edc31b34b3d9cec`; one configured GitHub UI-evidence check is still running.** 선행 계약 PR #63은 `main`의 `df54aafa654142f11348321754c749588a2fbf9a`에 병합됐다. 구현·테스트 결과는 [`test-results.md`](test-results.md)에, 최종 viewport 캡처는 [CON-PR-05 증거](../../delivery/evidence/CON-PR-05/README.md)에 기록했다. 본 계획은 사용자 대화 한 건이 AI 응답·맥락형 입력·pending 제안·명시적 승인·오른쪽 결정 요약까지 같은 저장 aggregate로 이어지는 vertical slice를 정의한다.
+**Status: code_review — implementation validation, review, and QA passed on implementation HEAD `f26b3fbc1293d04b44f657592edc31b34b3d9cec`; the latest docs-only PR update is being re-reviewed, and configured GitHub checks are pending.** 선행 계약 PR #63은 `main`의 `df54aafa654142f11348321754c749588a2fbf9a`에 병합됐다. 구현·테스트 결과는 [`test-results.md`](test-results.md)에, 최종 viewport 캡처는 [CON-PR-05 증거](../../delivery/evidence/CON-PR-05/README.md)에 기록했다. 본 계획은 사용자 대화 한 건이 AI 응답·맥락형 입력·pending 제안·명시적 승인·오른쪽 결정 요약까지 같은 저장 aggregate로 이어지는 vertical slice를 정의한다.
 
 ## 사용자 결과
 

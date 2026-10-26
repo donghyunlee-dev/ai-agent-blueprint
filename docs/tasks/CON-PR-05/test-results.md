@@ -20,7 +20,7 @@ The contract validation recursively rejects unsafe markup, executable text, fenc
 
 `npm run test:unit` reported 349 passed and 1 failed. The failing test is `tests/unit/src-pr-01-source-upload-command.test.js` — “removes a source transactionally without replacing sibling records” — where `removeSourceAndReferences` reads `undefined.map`. The same targeted failure was reproduced on clean `main` at `df54aafa`; it is pre-existing and outside this PR's source/conversation changes.
 
-Agent Browser is unavailable in the current environment; Playwright Chromium was used for the complete desktop and mobile flow. Live provider and Google OAuth behavior remain unverified by this validation. Independent code review and QA both passed on implementation/PR HEAD `f26b3fbc1293d04b44f657592edc31b34b3d9cec`; the PR review and QA are tracked in the PR body. The configured `Capture conversation UI evidence` GitHub check remains in progress while it captures the mapped UI states.
+Agent Browser is unavailable in the current environment; Playwright Chromium was used for the complete desktop and mobile flow. Live provider and Google OAuth behavior remain unverified by this validation. Independent code review and QA both passed on implementation HEAD `f26b3fbc1293d04b44f657592edc31b34b3d9cec`. A later documentation-only commit (`10add7c`) updated this report and the task status; that latest PR HEAD is awaiting a fresh review and QA. Configured GitHub checks are also pending on the latest PR HEAD.
 
 ## Screenshot evidence
 
