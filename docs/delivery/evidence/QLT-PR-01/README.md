@@ -1,6 +1,6 @@
 # QLT-PR-01 화면 증거
 
-결정적인 Playwright fixture로 생성했다. 인증은 test session route로 제공했고 Google 로그인·callback·logout은 실행하지 않았다.
+대부분의 캡처는 Vercel Preview SHA `c8cc94cf538312717e4188b15373234538ec815c`에서, 대화 화면 두 장은 모바일 요약 버튼 간격을 수정한 Preview SHA `cc7db6a658518266da28110caccade23d9f9a7f5`에서 캡처했다. 보호 접근은 각 Preview origin에만 전달한 단기 OIDC header를 사용했다. 화면은 실제 배포 UI이며 인증 session과 대화·문서 API는 deterministic Playwright fixture로 제공했다. Google 로그인·callback·logout은 실행하지 않았다. 기본 화면 이미지는 CSS viewport 크기 그대로 저장했다.
 
 | 화면·상태 | Viewport | 캡처 |
 | --- | ---: | --- |
