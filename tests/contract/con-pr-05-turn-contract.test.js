@@ -1,0 +1,77 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { getSchemaDefinition } from '../../src/infrastructure/ai/schema-registry.js';
+import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/index.js';
+import { validateTurnAnalyzeV3 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
+
+const envelope = (payload) => ({
+  task: 'TURN_ANALYZE', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 2,
+  payload, referencedItemIds: [], referencedSourceIds: [], warnings: [],
+});
+
+const choice = {
+  componentType: 'single_choice', topic: '예약 방식', prompt: '예약 방식을 어떻게 정할까요?',
+  options: [{ value: 'calendar', label: '일정 기반 예약' }, { value: 'approval', label: '승인 후 예약' }],
+  required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'],
+};
+
+const validPayload = {
+  assistantMessage: '예약 충돌을 줄이는 선택지를 살펴보겠습니다.',
+  proposals: [],
+  answerInterpretation: { additionalFacts: [], ambiguities: [] },
+  followUp: choice,
+};
+
+test('turn.analyze.v3 accepts a contextual follow-up without a catalog/server ID', () => {
+  const schema = getSchemaDefinition('turn.analyze.v3', 'v3');
+  assert.equal(validateSchema(schema, validPayload).valid, true);
+  assert.equal(validateTurnAnalyzeV3(validPayload, { text: '회의실 예약 충돌을 줄이고 싶어요.' }).valid, true);
+});
+
+test('turn request supports a freeform user turn without a questionId or answer object', () => {
+  const request = {
+    logicalRequestId: 'logical-1234567890123456', attemptId: 'attempt-1',
+    projectSummary: { projectId: 'p1', title: '회의실 예약', designRevision: 2 },
+    userTurn: { id: 'user-turn-1', kind: 'text', text: '예약 충돌을 줄이고 싶어요.' },
+    recentMessages: [], relevantDesignItems: [], sources: [],
+  };
+  assert.equal(validateSchema(schemas.http.turnRequest, request).valid, true);
+});
+
+test('turn.analyze.v3 requires exactly eleven distinct recommendation candidates', () => {
+  const recommendations = Array.from({ length: 11 }, (_, index) => ({
+    title: `후보 ${index + 1}`, rationale: '현재 확인한 예약 충돌 문제에 맞습니다.',
+    tradeoffs: ['운영 규칙이 필요합니다.'], assumptions: [], evidence: [{ sourceType: 'message', sourceId: 'user-turn-1' }],
+    proposal: { operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: `후보 ${index + 1}`, description: '예약 충돌을 줄입니다.' }, rationale: '현재 문제를 해결하기 위한 선택지입니다.', evidence: [{ sourceType: 'message', sourceId: 'user-turn-1' }], affectedItemIds: [] },
+  }));
+  const schema = getSchemaDefinition('turn.analyze.v3', 'v3');
+  const payload = { ...validPayload, followUp: undefined, recommendations };
+  delete payload.followUp;
+  assert.equal(validateSchema(schema, payload).valid, true);
+  assert.equal(validateSchema(schema, { ...payload, recommendations: recommendations.slice(0, 10) }).valid, false);
+  assert.equal(validateSchema(schema, { ...payload, recommendations: [...recommendations, recommendations[0]] }).valid, false);
+  assert.equal(validateTurnAnalyzeV3(payload, { text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' }).valid, true);
+  assert.equal(validateTurnAnalyzeV3(payload, { text: '회의실 예약 충돌을 줄이고 싶어요.' }).valid, false);
+  assert.equal(validateTurnAnalyzeV3({ ...validPayload, recommendations: undefined }, { text: '추천안을 알려 주세요.' }).valid, true);
+  assert.equal(validateTurnAnalyzeV3({ ...validPayload, followUp: undefined, recommendations: undefined }, { text: '추천안을 알려 주세요.' }).valid, false);
+  assert.equal(validateTurnAnalyzeV3({ ...validPayload, followUp: undefined, recommendations: undefined }, { text: '추천은 안 해도 돼요. 예약 정책만 정리해 주세요.' }).valid, true);
+  assert.equal(validateTurnAnalyzeV3({ ...payload, followUp: undefined }, { text: '추천은 안 해도 돼요. 예약 정책만 정리해 주세요.' }).valid, false);
+});
+
+test('an explicit recommendation request with insufficient context returns one follow-up and no candidates', () => {
+  const followUpOnly={assistantMessage:'추천을 준비하려면 먼저 기준을 확인할게요.',proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]},followUp:choice};
+  const result=validateTurnAnalyzeV3(followUpOnly,{text:'추천해 주세요.'});
+  assert.deepEqual(result,{valid:true,errors:[]});
+  assert.equal(Object.hasOwn(followUpOnly,'recommendations'),false);
+  assert.equal(followUpOnly.followUp.componentType,'single_choice');
+  assert.equal(validateTurnAnalyzeV3({...followUpOnly,followUp:undefined},{text:'추천해 주세요.'}).valid,false);
+});
+
+test('contextual follow-up rejects model-assigned IDs, arbitrary actions, and executable markup', () => {
+  const schema = getSchemaDefinition('turn.analyze.v3', 'v3');
+  for (const followUp of [{ ...choice, id: 'model-id' }, { ...choice, action: 'approve' }]) {
+    assert.equal(validateSchema(schema, { ...validPayload, followUp }).valid, false);
+  }
+  assert.equal(validateTurnAnalyzeV3({ ...validPayload, followUp: { ...choice, prompt: '<script>alert(1)</script>' } }, { text: '안녕하세요.' }).valid, false);
+  assert.equal(validateTurnAnalyzeV3({ ...validPayload, followUp: { ...choice, options: [...choice.options, choice.options[0]] } }, { text: '안녕하세요.' }).valid, false);
+});

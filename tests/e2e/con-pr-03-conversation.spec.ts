@@ -60,15 +60,20 @@ test('conversation renders prior summary, assistant message, and factual generat
 test('AI consent is saved before the first turn request and response is rendered', async ({ page }) => {
   let requestSawConsent = false;
   let turnPayload: any;
+  let selectedPayload: any;
+  let turnCalls = 0;
   await page.route('**/api/blueprint/turn', async (route) => {
-    turnPayload = route.request().postDataJSON();
+    const body = route.request().postDataJSON();
+    turnCalls += 1;
+    if (turnCalls === 1) turnPayload = body; else selectedPayload = body;
     const ownerKey = await deriveOwnerKey(identity);
     requestSawConsent = await page.evaluate(async ({databaseName, projectId}) => {
       const db = await new Promise<IDBDatabase>((resolve, reject) => { const req=indexedDB.open(databaseName,1); req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error); });
       const project = await new Promise<any>((resolve,reject)=>{const req=db.transaction('projects').objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result?.project);req.onerror=()=>reject(req.error);}); db.close();
       return project?.aiConsent?.consentVersion === '2026-10-v1' && Boolean(project?.aiConsent?.acceptedAt);
     }, {databaseName:databaseNameForOwner(ownerKey),projectId});
-    await route.fulfill({status:200,json:{assistantMessage:'답변의 핵심을 정리했습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
+    if (turnCalls === 1) await route.fulfill({status:200,json:{assistantMessage:'답변의 핵심을 정리했습니다.',proposals:[],followUp:{type:'question',id:'followup-1',topic:'예약 정책',prompt:'어떤 예약 기준이 필요할까요?',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement'],options:[{value:'capacity',label:'수용 인원 기준',proposalDraft:{operation:'create',targetType:'design_item',after:{type:'requirement',title:'수용 인원 기준',description:'회의실별 수용 인원을 예약 전에 확인합니다.'},rationale:'예약 충돌을 줄이기 위한 기준입니다.',evidence:[{sourceType:'message',sourceId:body.userTurn.id}],affectedItemIds:[]}}]},referencedItemIds:[],referencedSourceIds:[]}});
+    else await route.fulfill({status:200,json:{assistantMessage:'선택을 검토 제안으로 보관했습니다.',proposals:[{operation:'create',targetType:'design_item',after:{type:'requirement',title:'수용 인원 기준',description:'회의실별 수용 인원을 예약 전에 확인합니다.'},rationale:'예약 충돌을 줄이기 위한 기준입니다.',evidence:[{sourceType:'message',sourceId:body.userTurn.responseTo.messageId}],affectedItemIds:[]}],referencedItemIds:[],referencedSourceIds:[]}});
   });
   await page.goto(`/blueprints/${projectId}`);
   await page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' }).fill('회의실 예약 중복을 줄이고 싶습니다.');
@@ -77,17 +82,20 @@ test('AI consent is saved before the first turn request and response is rendered
   await page.getByRole('button', { name: '동의하고 계속' }).click();
   await expect(page.locator('.workspace-message-assistant').filter({hasText:'답변의 핵심을 정리했습니다.'})).toContainText('답변의 핵심을 정리했습니다.');
   expect(requestSawConsent).toBe(true);
-  expect(turnPayload.answer).toMatchObject({
-    questionId: 'problem',
-    answerMode: 'text',
-    action: 'answer',
-    customText: '회의실 예약 중복을 줄이고 싶습니다.',
-  });
+  expect(turnPayload.userTurn).toMatchObject({kind:'text',text:'회의실 예약 중복을 줄이고 싶습니다.'});
+  expect(turnPayload).not.toHaveProperty('answer');
+  expect(turnPayload).not.toHaveProperty('question');
   expect(turnPayload.recentMessages.some((message: {content:string}) => message.content === '회의실 예약 중복을 줄이고 싶습니다.')).toBe(false);
   const compactedSummary = JSON.parse(turnPayload.recentMessages[0].content);
   expect(compactedSummary.kind).toBe('structured_summary');
   expect(compactedSummary.sourceMessageIds).toContain('m1');
   expect(turnPayload.recentMessages.some((message: {id:string})=>message.id==='m1')).toBe(false);
+  await expect(page.getByRole('heading',{name:'어떤 예약 기준이 필요할까요?'})).toBeVisible();
+  await page.getByRole('radio',{name:/수용 인원 기준/}).check();
+  await page.getByRole('button',{name:'답변 제출'}).click();
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:'선택을 검토 제안으로 보관했습니다.'})).toBeVisible();
+  expect(selectedPayload.userTurn).toMatchObject({kind:'choice',responseTo:{messageId:expect.any(String),blockId:'followup-1',selectedValues:['capacity']}});
+  expect(selectedPayload.userTurn).not.toHaveProperty('questionId');
 });
 
 test('canceling first AI consent preserves draft and sends no request', async ({ page }) => {
@@ -100,6 +108,57 @@ test('canceling first AI consent preserves draft and sends no request', async ({
   await page.getByRole('button', { name: '취소', exact: true }).click();
   await expect(draft).toHaveValue('취소해도 남아야 하는 초안입니다.');
   expect(requests).toBe(0);
+});
+
+test('explicit recommendation renders eleven grounded options and selection remains pending until approval', async ({page}, testInfo) => {
+  let selectedPayload:any;
+  let originTurnId='';
+  let turnCalls=0;
+  const recommendationBlock={type:'recommendation_candidates',id:'recommendations-1',candidates:Array.from({length:11},(_,index)=>({
+    id:`candidate-${index+1}`,title:`예약 운영안 ${index+1}`,rationale:'대화에서 확인된 예약 충돌을 줄입니다.',tradeoffs:['운영 기준을 정해야 합니다.'],assumptions:['회의실 정보가 최신 상태입니다.'],evidence:[{sourceType:'message',sourceId:'user-turn'}],
+    proposalDraft:{operation:'create',targetType:'design_item',after:{type:'requirement',title:`예약 운영안 ${index+1}`,description:'회의실 예약 충돌을 사전에 확인합니다.'},rationale:'사용자가 선택한 추천안입니다.',evidence:[{sourceType:'message',sourceId:'user-turn'}],affectedItemIds:[]},
+  }))};
+  await page.route('**/api/blueprint/turn',async(route)=>{
+    const body=route.request().postDataJSON(); turnCalls++;
+    if(turnCalls===1){
+      originTurnId=body.userTurn.id;
+      recommendationBlock.candidates.forEach((candidate)=>candidate.proposalDraft.evidence[0].sourceId=body.userTurn.id);
+      recommendationBlock.candidates.forEach((candidate)=>candidate.evidence[0].sourceId=body.userTurn.id);
+      await route.fulfill({status:200,json:{assistantMessage:'확인된 예약 충돌에 맞는 11개 추천입니다.',proposals:[],recommendationCandidates:recommendationBlock,referencedItemIds:[],referencedSourceIds:[]}});
+    } else {
+      selectedPayload=body;
+      const sourceBlock=body.recentMessages.find((message:any)=>message.id===body.userTurn.responseTo.messageId).blocks.find((block:any)=>block.id===body.userTurn.responseTo.blockId);
+      const candidate=sourceBlock.candidates.find((item:any)=>item.id===body.userTurn.responseTo.choiceId);
+      await route.fulfill({status:200,json:{assistantMessage:'선택을 승인 대기 제안으로 저장했습니다.',proposals:[candidate.proposalDraft],referencedItemIds:[],referencedSourceIds:[]}});
+    }
+  });
+  await page.goto(`/blueprints/${projectId}`);
+  await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  await expect(page.getByRole('heading',{name:'대화에서 확인한 조건에 맞는 추천'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'이 추천 선택'})).toHaveCount(11);
+  await page.getByRole('button',{name:'이 추천 선택'}).first().click();
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:'선택을 승인 대기 제안으로 저장했습니다.'})).toBeVisible();
+  expect(selectedPayload.userTurn).toMatchObject({kind:'recommendation_choice',responseTo:{blockId:'recommendations-1',choiceId:'candidate-1'}});
+  const ownerKey=await deriveOwnerKey(identity);
+  const readProposalStatuses=()=>page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    const stored=await new Promise<any>((resolve,reject)=>{const request=db.transaction('projects').objectStore('projects').get(projectId);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});db.close();
+    return (stored?.proposals??[]).map((proposal:any)=>proposal.status);
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  await expect.poll(readProposalStatuses).toContain('pending');
+  expect(await readProposalStatuses()).not.toContain('accepted');
+  await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
+  await expect(page.getByRole('heading',{name:'제안 1개'})).toBeVisible();
+  await page.locator('[data-proposal-card]').getByRole('button',{name:'승인',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'검토할 제안이 없습니다'})).toBeVisible();
+  await expect.poll(readProposalStatuses).toContain('accepted');
+  await page.goto(`/blueprints/${projectId}`);
+  await expect(page.getByRole('complementary',{name:'요약'})).toContainText('예약 운영안 1');
+  await page.getByRole('complementary',{name:'요약'}).getByRole('button',{name:'대화 보기'}).click();
+  await expect(page.locator(`[id="conversation-message-${originTurnId}"]`)).toBeFocused();
+  await page.screenshot({path:`.pr-artifacts/CON-PR-05/recommendation-${testInfo.project.name}.png`,fullPage:false});
 });
 
 test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires current-state confirmation', async ({ page }) => {

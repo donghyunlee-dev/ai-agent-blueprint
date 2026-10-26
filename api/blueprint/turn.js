@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
 import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/index.js';
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
-import { validateReferences, validateResponseMetadata } from '../../src/infrastructure/ai/context-manifest.js';
+import { validateProposalTargets, validateReferences, validateResponseMetadata } from '../../src/infrastructure/ai/context-manifest.js';
+import { questionFromFollowUp, validateTurnAnalyzeV3 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 import { canRequestAi } from '../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricing.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
@@ -46,8 +47,8 @@ function prepareTurn(body, definition) {
     prompt: definition.systemTemplate,
     rules: definition.developerTemplate,
     projectSummary: body.projectSummary,
-    currentTarget: body.question || { questionId: body.answer.questionId },
-    userInput: body.answer,
+    currentTarget: body.userTurn.responseTo ?? null,
+    userInput: body.userTurn,
   };
   const textTokens = (value) => {
     const chars = [...String(value)];
@@ -55,7 +56,7 @@ function prepareTurn(body, definition) {
     return hangul + Math.ceil((chars.length - hangul) / 4);
   };
   const items = [
-    { type: 'current_target', id: body.answer.questionId, questionId: body.answer.questionId, text: JSON.stringify(body.question || { questionId: body.answer.questionId }) },
+    { type: 'current_target', id: body.userTurn.id, text: JSON.stringify(body.userTurn) },
     ...body.relevantDesignItems.map((item) => ({ type: 'confirmed_design', id: item.id, text: JSON.stringify(item) })),
     ...body.sources.map((source) => ({ type: 'source_excerpt', id: source.id, projectId: body.projectSummary.projectId, text: JSON.stringify(source) })),
     ...body.recentMessages.map((message) => ({ type: 'recent_message', id: message.id, projectId: body.projectSummary.projectId, text: JSON.stringify(message) })),
@@ -63,10 +64,10 @@ function prepareTurn(body, definition) {
   const selected = selectContext({ task: TASK, items, fixedTokens: textTokens(JSON.stringify(fixedContext)) + 256 });
   const byType = (type) => selected.items.filter((item) => item.type === type);
   const promptInput = {
-    currentTarget: body.question,
+    currentTarget: body.userTurn.responseTo ?? null,
     confirmedDesignItems: byType('confirmed_design').map(({ id }) => body.relevantDesignItems.find((item) => item.id === id)),
     conversationContext: byType('recent_message').map(({ id }) => body.recentMessages.find((message) => message.id === id)),
-    userInput: body.answer,
+    userInput: body.userTurn,
     sourceExcerpts: byType('source_excerpt').map(({ id }) => body.sources.find((source) => source.id === id)),
     designRevision: body.projectSummary.designRevision,
   };
@@ -125,11 +126,53 @@ function requestCancellation(req, res) {
   };
 }
 
-function resultFromOutput(output) {
+function selectedChoiceProposals(body) {
+  const responseTo = body.userTurn.responseTo;
+  if (!responseTo) return { valid: body.userTurn.kind === 'text', proposals: [] };
+  const message = body.recentMessages.find((item) => item.id === responseTo.messageId && item.role === 'assistant');
+  const block = message?.blocks?.find((item) => item.id === responseTo.blockId);
+  if (!block) return { valid: false, proposals: [] };
+  if (body.userTurn.kind === 'recommendation_choice') {
+    if (block.type !== 'recommendation_candidates' || !responseTo.choiceId) return { valid: false, proposals: [] };
+    const candidate = block.candidates.find((item) => item.id === responseTo.choiceId);
+    return candidate?.proposalDraft ? { valid: true, proposals: [candidate.proposalDraft] } : { valid: false, proposals: [] };
+  }
+  if (body.userTurn.kind !== 'choice' || block.type !== 'question') return { valid: false, proposals: [] };
+  const selectedValues = block.answerMode === 'rank' ? (responseTo.rankedValues ?? []) : (responseTo.selectedValues ?? []);
+  if (new Set(selectedValues).size !== selectedValues.length) return { valid: false, proposals: [] };
+  const allowed = new Set((block.options ?? []).map((option) => option.value));
+  if (selectedValues.some((value) => !allowed.has(value))) return { valid: false, proposals: [] };
+  if (['single', 'confirm'].includes(block.answerMode) && selectedValues.length !== 1) return { valid: false, proposals: [] };
+  if (block.answerMode === 'multiple' && selectedValues.length === 0) return { valid: false, proposals: [] };
+  if (block.answerMode === 'rank') {
+    const checkedValues = responseTo.selectedValues ?? [];
+    if (!selectedValues.length || new Set(checkedValues).size !== checkedValues.length || selectedValues.length !== checkedValues.length || selectedValues.some((value) => !checkedValues.includes(value))) return { valid: false, proposals: [] };
+  }
+  const selectedOptions = block.answerMode === 'rank'
+    ? selectedValues.map((value) => block.options.find((option) => option.value === value)).filter(Boolean)
+    : (block.options ?? []).filter((option) => selectedValues.includes(option.value));
+  const proposals = selectedOptions.filter((option) => option.proposalDraft).map((option) => option.proposalDraft);
+  return { valid: true, proposals };
+}
+
+function proposalsInChoices(payload) {
+  const optionProposals = (payload?.followUp?.options ?? []).map((option) => option.proposalDraft).filter(Boolean);
+  const recommendationProposals = (payload?.recommendations ?? []).map((item) => item.proposal);
+  return [...optionProposals, ...recommendationProposals];
+}
+
+function resultFromOutput(output, selectedProposals) {
   const payload = output.payload;
+  const recommendationBlock = payload.recommendations?.length ? {
+    type: 'recommendation_candidates',
+    id: crypto.randomUUID(),
+    candidates: payload.recommendations.map(({ proposal, ...candidate }) => ({ id: crypto.randomUUID(), ...candidate, proposalDraft: proposal })),
+  } : undefined;
   return {
-    assistantMessage: payload.blocks.map((block) => block.content).join('\n').trim(),
-    proposals: payload.proposals,
+    assistantMessage: payload.assistantMessage.trim(),
+    proposals: [...payload.proposals, ...selectedProposals],
+    ...(payload.followUp ? { followUp: questionFromFollowUp(payload.followUp, crypto.randomUUID()) } : {}),
+    ...(recommendationBlock ? { recommendationCandidates: recommendationBlock } : {}),
     referencedItemIds: output.referencedItemIds,
     referencedSourceIds: output.referencedSourceIds,
   };
@@ -145,7 +188,8 @@ export default async function handler(req, res, deps = {}) {
   if (!validIds(body) || Buffer.byteLength(JSON.stringify(body || {}), 'utf8') > MAX_BODY_BYTES) return fail(res, 400, 'INVALID_REQUEST');
   const validation = validateSchema(schemas.http.turnRequest, body);
   if (!validation.valid) return fail(res, 400, 'INVALID_REQUEST');
-  if (body.question && body.question.id !== body.answer.questionId) return fail(res, 400, 'INVALID_REQUEST');
+  const selected = selectedChoiceProposals(body);
+  if (!selected.valid) return fail(res, 400, 'INVALID_REQUEST');
 
   const definition = getPromptDefinition(TASK);
   const prepared = prepareTurn(body, definition);
@@ -179,8 +223,7 @@ export default async function handler(req, res, deps = {}) {
     const manifest = {
       designItemIds: body.relevantDesignItems.map((item) => item.id),
       sourceExcerptIds: prepared.promptInput.sourceExcerpts.map((source) => source.id),
-      recentMessageIds: body.recentMessages.map((message) => message.id),
-      currentQuestionId: body.question?.id || body.answer.questionId,
+      recentMessageIds: [...body.recentMessages.map((message) => message.id), body.userTurn.id],
     };
     const targetContext = { designItems: body.relevantDesignItems.map(({ id, type }) => ({ id, type })) };
     const promptInput = prepared.promptInput;
@@ -221,7 +264,10 @@ export default async function handler(req, res, deps = {}) {
           designRevision: body.projectSummary.designRevision,
         });
         const references = validateReferences(output, manifest, targetContext);
-        validationError = !schemaResult.valid ? schemaResult.errors : !metadataResult.valid ? metadataResult.errors : !references.valid ? references.errors : null;
+        const domainResult = validateTurnAnalyzeV3(output.payload, body.userTurn);
+        const choiceTargets = validateProposalTargets(proposalsInChoices(output.payload), targetContext);
+        validationError = !schemaResult.valid ? schemaResult.errors : !metadataResult.valid ? metadataResult.errors : !references.valid ? references.errors : !domainResult.valid ? domainResult.errors : !choiceTargets.valid ? choiceTargets.errors : null;
+        if (validationError && process.env.DEBUG_CON_PR05) console.error(JSON.stringify({ schemaResult, metadataResult, references, domainResult, choiceTargets }));
         if (!validationError) break;
       }
       if (validationError) {
@@ -249,9 +295,17 @@ export default async function handler(req, res, deps = {}) {
       cancellation.cleanup();
     }
 
-    const result = resultFromOutput(output);
+    const selectedReferences = validateReferences({ proposals: selected.proposals }, manifest, targetContext);
+    const selectedTargets = validateProposalTargets(selected.proposals, targetContext);
+    if (!selectedReferences.valid || !selectedTargets.valid) {
+      if (process.env.DEBUG_CON_PR05) console.error(JSON.stringify({ selectedReferences, selectedTargets }));
+      if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
+      return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
+    }
+    const result = resultFromOutput(output, selected.proposals);
     const responseValidation = validateSchema(schemas.http.turnResponse, result);
     if (!responseValidation.valid || !result.assistantMessage) {
+      if (process.env.DEBUG_CON_PR05) console.error(JSON.stringify({ responseValidation }));
       if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
       await circuitSuccess(store, circuitKey);
       return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });

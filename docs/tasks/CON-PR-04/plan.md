@@ -1,6 +1,6 @@
 # CON-PR-04 — 대화형 설계·결정 요약 계약 재정립
 
-**Status: ready for the documentation PR.** This planning artifact records the documentation unit and implementation design. The resolved recommendation-count contract is below. The follow-on implementation unit remains gated on this documentation PR being merged and its technical DoR being verified.
+**Status: merged (PR #63, 2026-10-25).** This planning artifact records the documentation unit and the implementation design that was refined into [CON-PR-05](../CON-PR-05/plan.md). The follow-on unit is now in progress from the merged documentation contract.
 
 ## Overview
 

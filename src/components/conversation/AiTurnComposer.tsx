@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BlueprintAggregate, ChangeProposal, ConversationMessage, DisplayBlock, GenerationJob, QuestionSpec } from '../../domain/blueprint/types.js';
+import type { BlueprintAggregate, ChangeProposal, ConversationMessage, DisplayBlock, GenerationJob } from '../../domain/blueprint/types.js';
 import { fetchBlueprintApi } from '../../features/auth/sessionFetch.js';
 import { prepareDisplayBlocks } from '../../features/conversation/block-renderer.js';
 import { compactConversationContext } from '../../features/conversation/context-compaction-view.js';
@@ -7,27 +7,20 @@ import { getUnknownRequestRecovery } from '../../features/conversation/generatio
 import { aiModelRegistry, promptRegistry } from '../../infrastructure/ai/model-registry.js';
 import { AiConsentGate } from './AiConsentGate.js';
 import type { MutableRefObject } from 'react';
-import type { CatalogQuestion } from '../../features/conversation/questionEngine.js';
+import type { ContextualResponse } from './ContextualQuestionCard.js';
 import { normalizeProposals } from '../../features/proposals/normalize-proposals.js';
 import { selectSourceExcerpts } from '../../features/sources/source-excerpt-selection.js';
 
-type QuestionAnswerDraft = { action:'answer'|'unknown'|'recommend'|'defer'|'skip'; selectedValues:string[]; customText:string; numberValue?:number; rangeValue?:{start:number;end:number}; rankedValues?:string[] };
 type AiTurnComposerProps = {
   aggregate: BlueprintAggregate;
   projectId: string;
-  question?: QuestionSpec | null;
   onAggregateChange: (aggregate: BlueprintAggregate) => void;
   persistAggregate: (aggregate: BlueprintAggregate) => Promise<void>;
   activeTurnCancellationRef: MutableRefObject<{jobId:string;abort:()=>void}|null>;
-  onQuestionSubmit: (question:CatalogQuestion, answer:QuestionAnswerDraft, mode:CatalogQuestion['answerMode'])=>void;
+  contextualSubmitRef?: MutableRefObject<((response:ContextualResponse)=>Promise<void>)|null>;
 };
 
-function requestQuestion(question?: QuestionSpec) {
-  if (!question) return undefined;
-  return { id: question.id, topic: question.topic, prompt: question.prompt, ...(question.help ? {help: question.help} : {}), answerMode: question.answerMode, required: question.required, allowCustomAnswer: question.allowCustomAnswer, allowUnknown: question.allowUnknown, allowDefer: question.allowDefer, targetItemTypes: question.targetItemTypes, ...(question.options ? {options: question.options.map(({value,label,description}) => ({value,label,...(description ? {description} : {})}))} : {}) };
-}
-
-export function AiTurnComposer({ aggregate, projectId, question, onAggregateChange, persistAggregate, activeTurnCancellationRef, onQuestionSubmit }: AiTurnComposerProps) {
+export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persistAggregate, activeTurnCancellationRef, contextualSubmitRef }: AiTurnComposerProps) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string|null>(null);
@@ -70,11 +63,17 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
       const normalized = normalizeProposals({ projectId, logicalRequestId, proposals: Array.isArray(data.proposals) ? data.proposals : [], existingProposals: latest.proposals, designItems: latest.designItems, sections: latest.sections, messages: latest.messages, sources: latest.sources.filter((source) => source.extractionStatus === 'ready'), sourceExcerpts, createdAt: new Date().toISOString() });
       const proposals = normalized.proposals as ChangeProposal[];
       const ids = proposals.map((proposal) => proposal.id);
-      const nextBlocks: DisplayBlock[] = [{type:'assistant_text',content:data.assistantMessage}, ...(ids.length ? [{type:'proposal_summary' as const,proposalIds:ids}] : [])];
+      const nextBlocks: DisplayBlock[] = [
+        {type:'assistant_text',content:data.assistantMessage},
+        ...(data.followUp ? [data.followUp as DisplayBlock] : []),
+        ...(data.recommendationCandidates ? [data.recommendationCandidates as DisplayBlock] : []),
+        ...(ids.length ? [{type:'proposal_summary' as const,proposalIds:ids}] : []),
+      ];
       const valid = prepareDisplayBlocks(nextBlocks, { proposalIds: ids });
       if (!valid.valid) throw new Error('AI_INVALID_OUTPUT');
       const message: ConversationMessage = { id:crypto.randomUUID(), threadId:latest.thread.id, logicalRequestId, role:'assistant',kind:'text',content:data.assistantMessage,blocks:nextBlocks,createdAt:new Date().toISOString() };
       const succeededJob: GenerationJob = {...nextJob,status:'succeeded',finishedAt:new Date().toISOString()};
+      setJob(succeededJob);
       const updated: BlueprintAggregate = {...latest,messages:[...latest.messages,message],proposals:[...latest.proposals,...proposals],generationJobs:[...latest.generationJobs.filter((item)=>item.id!==nextJob.id),succeededJob]};
       aggregateRef.current = updated; onAggregateChange(updated);
       setDraft(''); setConfirmedUnknownJobId(null);
@@ -88,9 +87,9 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
       }
     } finally { controllerRef.current = null; if (activeTurnCancellationRef.current?.jobId === nextJob.id) activeTurnCancellationRef.current = null; setBusy(false); }
   }
-  async function sendDraft() {
+  async function submitTurn(text:string, kind:'text'|'choice'|'recommendation_choice'='text', responseTo?:ContextualResponse['responseTo']) {
     const current = aggregateRef.current;
-    const text = draft.trim(); if (!text || busy || recovery.blocked) return;
+    text = text.trim(); if (!text || busy || recovery.blocked) return;
     const logicalRequestId = crypto.randomUUID();
     const now = new Date().toISOString();
     const userMessage: ConversationMessage = { id:crypto.randomUUID(), threadId:current.thread.id, logicalRequestId, role:'user', kind:'text', content:text, createdAt:now };
@@ -98,10 +97,15 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
     aggregateRef.current = withUserMessage; onAggregateChange(withUserMessage);
     const context = compactConversationContext({messages:current.messages,summary:current.thread.summary,threshold:20});
     const contextMessages = context.compacted ? [{id:`summary-${projectId}`,role:'assistant' as const,kind:'text' as const,content:JSON.stringify(context.summary)},...context.originalMessages] : context.originalMessages.filter((message)=>message.role!=='system');
-    const sourceExcerpts = selectSourceExcerpts({ projectId, query:[question?.prompt, question?.help, text].filter(Boolean).join('\n'), sources:current.sources });
-    const payload = { projectSummary:{projectId,title:current.project.title,designRevision:current.project.designRevision ?? 0}, ...(question ? {question:requestQuestion(question)} : {}), answer:{questionId:question?.id ?? `free_${projectId}`,answerMode:'text',action:'answer',customText:text}, recentMessages:contextMessages.map(({id,role,kind,content})=>({id,role,kind:kind==='question'?'question':'text',content})), relevantDesignItems:current.designItems.filter((item)=>item.status==='confirmed').map(({id,type,key,title,description,attributes})=>({id,type,...(key?{key}:{}),title,description,attributes})), sources:sourceExcerpts };
+    const sourceExcerpts = selectSourceExcerpts({ projectId, query:[text].filter(Boolean).join('\n'), sources:current.sources });
+    const payload = { projectSummary:{projectId,title:current.project.title,designRevision:current.project.designRevision ?? 0}, userTurn:{id:userMessage.id,kind,text,...(responseTo ? {responseTo} : {})}, recentMessages:contextMessages.map((message)=>({id:message.id,role:message.role,kind:message.kind==='question'?'question' as const:'text' as const,content:message.content,...('blocks' in message && message.blocks ? {blocks:message.blocks} : {})})), relevantDesignItems:current.designItems.filter((item)=>item.status==='confirmed').map(({id,type,key,title,description,attributes})=>({id,type,...(key?{key}:{}),title,description,attributes})), sources:sourceExcerpts };
     await send(payload,logicalRequestId,crypto.randomUUID(),sourceExcerpts);
   }
+  async function sendDraft() { await submitTurn(draft); }
+  useEffect(() => {
+    if (contextualSubmitRef) contextualSubmitRef.current = (response) => submitTurn(response.text,response.kind,response.responseTo);
+    return () => { if (contextualSubmitRef) contextualSubmitRef.current = null; };
+  });
   async function saveConsent(value: {acceptedAt:string;consentVersion:string}) {
     const current = aggregateRef.current;
     const updated = {...current,project:{...current.project,aiConsent:value,updatedAt:new Date().toISOString()}};
@@ -117,7 +121,7 @@ export function AiTurnComposer({ aggregate, projectId, question, onAggregateChan
     <span className="ai-composer-decoration ai-composer-microphone" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0 0 14 0m-7 7v3m-4 0h8" /></svg></span>
     {unknownJob ? <div className="ai-unknown-recovery" role="alert"><p>요청 결과를 확인할 수 없습니다. 서버에는 결과 조회 API가 없으며, unknown 요청 ID는 24시간 tombstone으로 보호됩니다.</p>{recovery.expired ? <label><input type="checkbox" checked={confirmedUnknownJobId===unknownJob.id} onChange={(event)=>setConfirmedUnknownJobId(event.target.checked?unknownJob.id:null)} />현재 프로젝트 상태를 직접 확인했고, 결과가 반영되지 않은 것을 확인했습니다.</label> : <p>새 요청은 {new Date(recovery.expiresAt ?? 0).toLocaleString()} 이후에만 만들 수 있습니다. 초안은 유지됩니다.</p>}</div> : null}
     {error ? <p role="alert">{error}</p> : null}
-    {job?.status==='running' ? <button type="button" onClick={()=>controllerRef.current?.abort()}>AI 요청 취소</button> : null}
+    {job?.status==='running' ? <button className="ai-turn-cancel" type="button" onClick={()=>controllerRef.current?.abort()}>AI 요청 취소</button> : null}
     <AiConsentGate consent={aggregate.project.aiConsent} persistConsent={saveConsent} send={sendDraft}>{({run,busy:gateBusy}) => <button type="button" aria-label={busy?'분석 중…':'AI로 답변 분석'} disabled={busy||gateBusy||!draft.trim()||recovery.blocked} onClick={()=>void run()}>{busy?'…':'→'}</button>}</AiConsentGate>
   </section>;
 }
