@@ -8,11 +8,12 @@ import type { BlueprintAggregate } from "../../../src/domain/blueprint/types.js"
 import type { ProjectRepository } from "../../../src/infrastructure/storage/indexeddb-project-repository.js";
 import "../../../src/styles/globals.css";
 
-declare global { interface Window { rejectRetry?: () => void } }
+declare global { interface Window { rejectRetry?: () => void; releaseRetry?: () => void } }
 
 const issuer = "https://accounts.google.com";
 const ownerA = await deriveOwnerKey({ issuer, subject: "retry-owner-a" });
 const ownerB = await deriveOwnerKey({ issuer, subject: "retry-owner-b" });
+const mode = new URLSearchParams(window.location.search).get("mode");
 let ownerASaves = 0;
 
 function aggregate(ownerKey: string, title: string): BlueprintAggregate {
@@ -32,13 +33,26 @@ const aggregates = new Map([[ownerA, aggregate(ownerA, "A 소유자 프로젝트
 const repository: ProjectRepository = {
   list: async () => [],
   get: async (ownerKey, projectId) => projectId === "retry-project" ? structuredClone(aggregates.get(ownerKey) ?? null) : null,
-  save: async (ownerKey) => {
+  save: async (ownerKey, snapshot) => {
     if (ownerKey === ownerA) {
       ownerASaves += 1;
       document.body.dataset.aSaves = String(ownerASaves);
+      if (mode === "delayed-autosave") {
+        if (ownerASaves === 2) await new Promise<void>((resolve) => { window.releaseRetry = resolve; });
+        aggregates.set(ownerKey, structuredClone(snapshot));
+        document.body.dataset.savedTitle = snapshot.project.title;
+        return;
+      }
       if (ownerASaves === 1) throw new Error("INITIAL_SAVE_FAILURE");
       if (ownerASaves === 2) await new Promise<void>((_, reject) => { window.rejectRetry = () => reject(new Error("STALE_RETRY_FAILURE")); });
     }
+  },
+  transact: async (ownerKey, projectId, mutate) => {
+    const current = aggregates.get(ownerKey);
+    if (!current || current.project.id !== projectId) return { status: "unchanged" };
+    const result = mutate(structuredClone(current));
+    if (result.aggregate) aggregates.set(ownerKey, structuredClone(result.aggregate));
+    return { ...result, aggregate: structuredClone(result.aggregate ?? current) };
   },
   delete: async () => {},
   migrate: async () => {},

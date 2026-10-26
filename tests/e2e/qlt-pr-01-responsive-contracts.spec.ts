@@ -186,6 +186,22 @@ test('contextual question options adapt to conversation width without horizontal
   }
 });
 
+test('conversation remains usable at a 200% zoom-equivalent CSS viewport', async ({ page }) => {
+  await seedConversation(page);
+  const viewport = { width: 720, height: 450 };
+  await page.setViewportSize(viewport);
+
+  const composer = page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' });
+  await expect(composer).toBeVisible();
+  await composer.focus();
+  await expect(composer).toBeFocused();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+  expect(await page.evaluate(() => document.body.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+
+  await mkdir(artifactDirectory, { recursive: true });
+  await page.screenshot({ path: `${artifactDirectory}/zoom-200-equivalent-720x450.png`, fullPage: true, scale: 'css' });
+});
+
 test('conversation summary can be opened and closed at tablet widths', async ({ page }) => {
   await seedConversation(page);
   await page.goto(`/blueprints/${projectId}`);

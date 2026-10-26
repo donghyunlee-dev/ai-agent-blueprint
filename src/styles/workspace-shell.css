@@ -61,7 +61,7 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .proposal-review-heading h2 { margin: 3px 0 0; color: var(--color-text-strong); font-size: 20px; }
 .proposal-review-heading > p,.proposal-review-rationale,.proposal-evidence p { color: var(--color-text-muted); font-size: 13px; line-height: 1.55; }
 .proposal-review-list { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
-.proposal-review-item { padding: 20px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); box-shadow: var(--shadow-sm); outline-color: var(--color-brand); }
+.proposal-review-item { padding: 20px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); box-shadow: var(--shadow-sm); outline-color: var(--color-primary); }
 .proposal-review-card-heading { display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 12px; }
 .proposal-review-card-heading span:last-child { color: var(--color-warning-text, #775600); }
 .proposal-review-item h3 { margin: 16px 0 6px; color: var(--color-text-strong); font-size: 16px; }
@@ -75,7 +75,7 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .proposal-evidence p { margin: 6px 0 0; }
 .proposal-review-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .proposal-review-actions button { min-height: 38px; padding: 7px 12px; border: 1px solid var(--color-border); border-radius: 7px; background: var(--color-surface); color: var(--color-text-body); font: inherit; cursor: pointer; }
-.proposal-review-actions button:last-child { border-color: var(--color-brand); background: var(--color-brand); color: var(--color-on-brand, white); }
+.proposal-review-actions button:last-child { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
 .proposal-review-actions button:disabled { opacity: .6; cursor: wait; }
 .proposal-edit-form { display: grid; gap: 12px; margin-top: 14px; }
 .proposal-edit-form label { display: grid; gap: 5px; color: var(--color-text-muted); font-size: 12px; }
@@ -174,7 +174,7 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-shell > .blueprint-stage-nav { display: flex; min-width: 0; align-items: center; gap: 16px; padding: 0 32px; border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
 .blueprint-stage-nav ol { display: flex; width: min(1000px, 100%); align-items: center; gap: 0; margin: 0; padding: 0; list-style: none; }
 .blueprint-stage { position: relative; display: flex; min-width: 0; flex: 1; align-items: center; }
-.blueprint-stage > a,.blueprint-stage-locked { position: relative; z-index: 1; display: inline-flex; min-height: 48px; align-items: center; gap: 12px; padding: 0 12px; color: var(--color-text-muted); font-size: 14px; font-weight: 650; text-decoration: none; white-space: nowrap; }
+.blueprint-stage > a,.blueprint-stage-locked { position: relative; z-index: 1; display: inline-flex; min-height: 48px; align-items: center; gap: 12px; padding: 0 12px; color: var(--color-text-body); font-size: 14px; font-weight: 650; text-decoration: none; white-space: nowrap; }
 .blueprint-stage > a[aria-current="step"] { color: var(--color-primary); }
 .blueprint-stage-number { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border: 1px solid var(--color-border-strong); border-radius: 50%; background: var(--color-surface); color: var(--color-text-muted); font-size: 14px; }
 .blueprint-stage > a[aria-current="step"] .blueprint-stage-number { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-on-primary, white); }
@@ -464,7 +464,7 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .conversation-avatar svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
   .conversation-avatar-assistant { color: #594cf4; }
   .conversation-avatar-assistant svg { fill: currentColor; stroke: none; }
-  .conversation-message-time { flex: none; margin-top: 78px; color: #8b9fbe; font-size: 14px; white-space: nowrap; }
+  .conversation-message-time { flex: none; margin-top: 78px; color: var(--color-text-body); font-size: 14px; white-space: nowrap; }
   .conversation-message-row-user .conversation-message-time { margin-top: 80px; margin-left: -4px; }
   .workspace-title-wrap { position: relative; }
   .workspace-title-icon { position: absolute; top: 50%; left: -48px; display: grid; width: 60px; height: 60px; transform: translateY(-50%); place-items: center; border-radius: 16px; background: #f1edff; color: #812bff; }
@@ -594,12 +594,12 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .conversation-stage-inspector .conversation-summary-group li { color: #344b73; font-size: 16px; line-height: 24px; }
   .conversation-stage-inspector .conversation-summary { color: #102957; }
   .conversation-stage-inspector .conversation-summary .conversation-summary-group h3 { color: #102957; font-size: 18px; }
-  .blueprint-stage > a,.blueprint-stage-locked { color: #687da3; font-size: 14px; font-weight: 650; }
-  .blueprint-stage-number { border-color: #d6e1f3; color: #7185a9; }
+  .blueprint-stage > a,.blueprint-stage-locked { color: var(--color-text-body); font-size: 14px; font-weight: 650; }
+  .blueprint-stage-number { border-color: #d6e1f3; color: var(--color-text-body); }
   .blueprint-stage-locked { opacity: 1; }
   .blueprint-stage-connector { background: #d5e1f2; }
   .blueprint-stage > a,.blueprint-stage-locked,.blueprint-stage-connector { transform: translateY(-7px); }
-  .blueprint-stage > a[aria-current="step"] { color: #0876ff; }
+  .blueprint-stage > a[aria-current="step"] { color: var(--color-primary); }
   .workspace-panels[data-stage="conversation"] .ai-composer-decoration { display: grid; width: 58px; height: 58px; flex: none; place-items: center; border: 1px solid #e4edfb; border-radius: 50%; color: #1677e8; }
   .workspace-panels[data-stage="conversation"] .ai-composer-decoration svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
   .workspace-panels[data-stage="conversation"] .ai-composer-microphone { width: 56px; height: 56px; }

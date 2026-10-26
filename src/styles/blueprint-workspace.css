@@ -139,7 +139,7 @@
 .document-section-overview-icon { display:grid; width:2.75rem; height:2.75rem; place-items:center; border-radius:.7rem; background:var(--color-primary-soft); color:var(--color-primary); font-size:1.35rem; }
 .document-section-overview-heading { min-width:0; }
 .document-section-overview-card .workspace-eyebrow { display:flex; align-items:center; gap:.45rem; margin:0 0 .35rem; font-size:.72rem; }
-.document-section-overview-status { display:inline-flex; align-items:center; min-height:1.25rem; padding:.1rem .45rem; border-radius:999px; background:#e9f7f0; color:#16835d; font-weight:700; }
+.document-section-overview-status { display:inline-flex; align-items:center; min-height:1.25rem; padding:.1rem .45rem; border-radius:999px; background:#e9f7f0; color:#116b4a; font-weight:700; }
 .document-section-overview-status.is-stale { background:#fff3df; color:#a95700; }
 .document-section-overview-status.is-conflict { background:#ffe9ec; color:#bd3046; }
 .document-section-overview-card h3 { margin:0 0 .3rem; color:var(--color-text-strong); font-size:.95rem; }

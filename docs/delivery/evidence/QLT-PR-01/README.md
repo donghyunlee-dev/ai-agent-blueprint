@@ -4,6 +4,18 @@
 
 | 화면·상태 | Viewport | 캡처 |
 | --- | ---: | --- |
+| 홈·시작 입력 | 390×844 | [PNG](./home-390x844.png) |
+| 홈·시작 입력 | 1440×900 | [PNG](./home-1440x900.png) |
+| 대화·대화형 추천 | 390×844 | [PNG](./conversation-390x844.png) |
+| 대화·대화형 추천 | 1440×900 | [PNG](./conversation-1440x900.png) |
+| 설계·근거 | 390×844 | [PNG](./design-390x844.png) |
+| 설계·근거 | 1440×900 | [PNG](./design-1440x900.png) |
+| 제안 검토 | 390×844 | [PNG](./proposal-390x844.png) |
+| 제안 검토 | 1440×900 | [PNG](./proposal-1440x900.png) |
+| 요구사항 명세 | 390×844 | [PNG](./requirements-390x844.png) |
+| 요구사항 명세 | 1440×900 | [PNG](./requirements-1440x900.png) |
+| PRD | 390×844 | [PNG](./prd-390x844.png) |
+| PRD | 1440×900 | [PNG](./prd-1440x900.png) |
 | 대화·질문 옵션 | 390×844 | [PNG](./conversation-options-390x844.png) |
 | 대화·질문 옵션 | 1024×768 | [PNG](./conversation-options-1024x768.png) |
 | 대화·질문 옵션 | 1440×900 | [PNG](./conversation-options-1440x900.png) |

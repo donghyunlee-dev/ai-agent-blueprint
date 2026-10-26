@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { BlueprintAggregate, DocumentSection, GeneratedDocument } from '../../domain/blueprint/types.js';
 import { previewDirectDocumentEdit } from '../../features/documents/document-edit-transaction.js';
 
@@ -6,6 +6,15 @@ type Edit = { documentId:string; sectionId:string; baseVersion:number; baseDesig
 type LatestDocument = {title:string;markdown:string;version:number;designRevision:number};
 type SaveResult = { status:'updated' } | { status:'conflict'; latest:LatestDocument; draft:{title:string;markdown:string} };
 type Props = { aggregate:BlueprintAggregate; document:GeneratedDocument; section:DocumentSection; displayTitle?:string; onSave:(edit:Edit)=>Promise<SaveResult> };
+
+function containDialogTab(event:KeyboardEvent<HTMLDialogElement>) {
+  if(event.key!=='Tab')return;
+  const controls=[...event.currentTarget.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter((element)=>element.getClientRects().length>0);
+  if(!controls.length)return;
+  const activeElement=event.currentTarget.ownerDocument.activeElement;
+  if(event.shiftKey&&activeElement===controls[0]){event.preventDefault();controls.at(-1)?.focus();}
+  else if(!event.shiftKey&&activeElement===controls.at(-1)){event.preventDefault();controls[0]?.focus();}
+}
 
 export function DocumentSectionEditor({aggregate,document,section,displayTitle=section.title,onSave}:Props) {
   const [editing,setEditing]=useState(false);
@@ -48,8 +57,8 @@ export function DocumentSectionEditor({aggregate,document,section,displayTitle=s
       <div className="document-direct-editor-actions"><button type="button" onClick={cancelEditing}>취소</button><button ref={previewTrigger} type="button" className="design-requirements-action is-primary" disabled={!title.trim()||!editBase||title===displayTitle&&markdown===section.markdown} onClick={()=>{setExcluded([]);setConflict(null);setError(null);setPreviewOpen(true);}}>영향 확인 후 저장</button></div>
       {error&&!previewOpen?<p role="alert">{error}</p>:null}
     </section>:null}
-    <dialog ref={discardDialog} className="document-impact-dialog" aria-labelledby={`discard-edit-${section.id}`} onCancel={(event)=>{event.preventDefault();discardDialog.current?.close();setDiscardOpen(false);}}><h3 id={`discard-edit-${section.id}`}>편집 내용을 취소할까요?</h3><p>저장하지 않은 제목과 문서 내용이 사라집니다.</p><footer><button type="button" onClick={()=>{discardDialog.current?.close();setDiscardOpen(false);}}>계속 편집</button><button type="button" onClick={discardChanges}>입력 삭제</button></footer></dialog>
-    <dialog ref={dialog} className="document-impact-dialog" aria-labelledby={`direct-edit-preview-${section.id}`} onCancel={(event)=>{event.preventDefault();closePreview();}} onClose={()=>{if(previewOpen){setPreviewOpen(false);(editing?previewTrigger:editTrigger).current?.focus();}}}>
+    <dialog ref={discardDialog} className="document-impact-dialog" aria-labelledby={`discard-edit-${section.id}`} onKeyDown={containDialogTab} onCancel={(event)=>{event.preventDefault();discardDialog.current?.close();setDiscardOpen(false);}}><h3 id={`discard-edit-${section.id}`}>편집 내용을 취소할까요?</h3><p>저장하지 않은 제목과 문서 내용이 사라집니다.</p><footer><button type="button" onClick={()=>{discardDialog.current?.close();setDiscardOpen(false);}}>계속 편집</button><button type="button" onClick={discardChanges}>입력 삭제</button></footer></dialog>
+    <dialog ref={dialog} className="document-impact-dialog" aria-labelledby={`direct-edit-preview-${section.id}`} onKeyDown={containDialogTab} onCancel={(event)=>{event.preventDefault();closePreview();}} onClose={()=>{if(previewOpen){setPreviewOpen(false);(editing?previewTrigger:editTrigger).current?.focus();}}}>
       <h3 id={`direct-edit-preview-${section.id}`}>문서 변경 영향 확인</h3>
       <p>확인 후 선택한 설계 항목과 문서 편집 내용이 한 번에 저장됩니다. 제외한 항목과 연결 문서는 변경하지 않습니다.</p>
       <div className="document-edit-diff"><div><strong>저장된 본문</strong><p>{section.markdown||'내용 없음'}</p></div><div><strong>편집한 본문</strong><p>{markdown||'내용 없음'}</p></div></div>

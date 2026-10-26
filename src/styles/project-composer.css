@@ -40,7 +40,7 @@
 .project-selected-files li span,.project-selected-files li small { color: #5f7398; }
 .project-selected-files li [role="alert"] { color: #b42318; }
 .project-create-error { margin: 12px 0 0; padding: 10px 12px; border: 1px solid #fecaca; border-radius: 10px; background: #fff7f7; font-size: 13px; }
-.project-pending-status { margin: 10px 0 0; color: #0876ff; font-size: 13px; }
+.project-pending-status { margin: 10px 0 0; color: var(--color-primary); font-size: 13px; }
 .project-save-failed { margin: 10px 0 0; color: #a1261e; font-size: 13px; font-weight: 700; }
 .project-composer-shortcut { margin: 7px 0 0; color: #5f7398; font-size: 10px; line-height: 1.35; }
 @media (max-width: 1200px) {

@@ -834,6 +834,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         </div>
         <button className="workspace-export" type="button" disabled title="내보내기는 다음 단계에서 제공됩니다">내보내기</button>
       </header>
+      {currentStage === "conversation" ? <h1 className="workspace-sr-only">대화</h1> : currentStage === "proposal" ? <h1 className="workspace-sr-only">제안 검토</h1> : null}
       {documentType === 'requirements' ? <RequirementsPageHeader aggregate={aggregate} document={requirementsDocument} sections={requirementsSections} /> : null}
       <BlueprintStageNav projectId={aggregate.project.id} current={currentStage} requirementsReady={designReadiness.canGenerateRequirements} prdReady={prdReady} />
       <span className="workspace-sr-only">{aggregate.project.title}</span>
