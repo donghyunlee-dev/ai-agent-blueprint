@@ -33,9 +33,19 @@ export function validateReferences(response, manifest, targetContext) {
  };
  visit(response);
  const sentExcerptIds=new Set(manifest.sourceExcerptIds ?? []);
+ const userMessageIds=new Set(manifest.userMessageIds ?? []);
  for (const [proposalIndex, proposal] of (response.proposals ?? []).entries()) {
   for (const [evidenceIndex, evidence] of (proposal.evidence ?? []).entries()) {
    if (evidence?.sourceType==='file'&&!sentExcerptIds.has(evidence.sourceId)) errors.push(`$.proposals[${proposalIndex}].evidence[${evidenceIndex}].sourceId: unknown request excerpt ${evidence.sourceId}`);
+  }
+ }
+ const recommendations=response.payload?.recommendations ?? response.recommendations ?? [];
+ for (const [candidateIndex, candidate] of recommendations.entries()) {
+  for (const [evidenceIndex, evidence] of (candidate.evidence ?? []).entries()) {
+   const path=`$.payload.recommendations[${candidateIndex}].evidence[${evidenceIndex}]`;
+   if (evidence?.sourceType==='message'&&!userMessageIds.has(evidence.sourceId)) errors.push(`${path}: message evidence must reference a user-authored message ${evidence?.sourceId ?? ''}`);
+   else if (evidence?.sourceType==='file'&&!sentExcerptIds.has(evidence.sourceId)) errors.push(`${path}: file evidence must reference a request excerpt ${evidence?.sourceId ?? ''}`);
+   else if (!['message','file'].includes(evidence?.sourceType)) errors.push(`${path}: unsupported recommendation evidence type ${evidence?.sourceType ?? ''}`);
   }
  }
  errors.push(...validateProposalTargets(response.proposals ?? [],targetContext).errors);

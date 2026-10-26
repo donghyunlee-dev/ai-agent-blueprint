@@ -155,6 +155,59 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
   assert.equal(selectedRes.body.proposals[0].status, undefined);
 });
 
+test('recommendation evidence accepts only user-authored messages or request excerpt IDs', async () => {
+  const source = { id: 'request-excerpt-1', sourceId: 'canonical-file-1', text: '예약은 30일 전에 취소할 수 있습니다.' };
+  const candidate = (index, evidence) => ({
+    title: `대안 ${index + 1}`, rationale: '확인한 조건에 맞는 선택지입니다.', tradeoffs: [], assumptions: [], evidence,
+    proposal: { operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: `대안 ${index + 1}`, description: '예약 충돌을 줄입니다.' }, rationale: '선택을 위한 초안입니다.', evidence: [{ sourceType: 'message', sourceId: 'current-user' }], affectedItemIds: [] },
+  });
+  const requestBody = {
+    ...body,
+    logicalRequestId: 'logical-evidence-123456',
+    userTurn: { id: 'current-user', kind: 'text', text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' },
+    recentMessages: [
+      { id: 'prior-user', role: 'user', kind: 'text', content: '예약 충돌을 줄이고 싶어요.' },
+      { id: 'prior-assistant', role: 'assistant', kind: 'text', content: '무엇을 우선할까요?' },
+    ],
+    sources: [source],
+  };
+  const outputFor = (evidenceFor) => ({ ...output, payload: { ...output.payload, recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) } });
+
+  const assistantEvidence = response();
+  let assistantCalls = 0;
+  await handler(request(requestBody), assistantEvidence, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async () => { assistantCalls += 1; return outputFor(() => [{ sourceType: 'message', sourceId: 'prior-assistant' }]); },
+  });
+  assert.equal(assistantEvidence.statusCode, 502);
+  assert.equal(assistantEvidence.body.error, 'AI_INVALID_OUTPUT');
+  assert.equal(assistantCalls, 2);
+
+  for (const mismatchedEvidence of [
+    [{ sourceType: 'file', sourceId: 'prior-user' }],
+    [{ sourceType: 'message', sourceId: 'request-excerpt-1' }],
+  ]) {
+    const mismatch = response();
+    await handler(request({ ...requestBody, logicalRequestId: `logical-mismatch-${mismatchedEvidence[0].sourceType}-123` }), mismatch, {
+      store: createMemoryAuthStore(),
+      requestStructuredOutput: async () => outputFor(() => mismatchedEvidence),
+    });
+    assert.equal(mismatch.statusCode, 502);
+    assert.equal(mismatch.body.error, 'AI_INVALID_OUTPUT');
+  }
+
+  const groundedEvidence = response();
+  await handler(request({ ...requestBody, logicalRequestId: 'logical-evidence-valid-123' }), groundedEvidence, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async () => outputFor(() => [
+      { sourceType: 'message', sourceId: 'prior-user' },
+      { sourceType: 'file', sourceId: 'request-excerpt-1' },
+    ]),
+  });
+  assert.equal(groundedEvidence.statusCode, 200, JSON.stringify(groundedEvidence.body));
+  assert.equal(groundedEvidence.body.recommendationCandidates.candidates.length, 11);
+});
+
 test('turn endpoint rejects a card choice that is not in the referenced contextual message', async () => {
   let calls = 0;
   const res = response();

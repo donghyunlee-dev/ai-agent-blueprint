@@ -224,6 +224,7 @@ export default async function handler(req, res, deps = {}) {
       designItemIds: body.relevantDesignItems.map((item) => item.id),
       sourceExcerptIds: prepared.promptInput.sourceExcerpts.map((source) => source.id),
       recentMessageIds: [...body.recentMessages.map((message) => message.id), body.userTurn.id],
+      userMessageIds: [...body.recentMessages.filter((message) => message.role === 'user').map((message) => message.id), body.userTurn.id],
     };
     const targetContext = { designItems: body.relevantDesignItems.map(({ id, type }) => ({ id, type })) };
     const promptInput = prepared.promptInput;
