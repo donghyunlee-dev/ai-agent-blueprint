@@ -108,6 +108,27 @@ async function downloadText(download: Download) {
   return text;
 }
 
+async function authorizeProtectedPreview(page: Page) {
+  const previewUrl = process.env.PLAYWRIGHT_PREVIEW_URL;
+  if (!previewUrl) return;
+  const parsedUrl = new URL(previewUrl);
+  if (parsedUrl.protocol !== 'https:' || parsedUrl.port || parsedUrl.username || parsedUrl.password || parsedUrl.pathname !== '/' || parsedUrl.search || parsedUrl.hash || !/^windsoft-agent-blueprint-[a-z0-9-]+\.vercel\.app$/.test(parsedUrl.hostname)) {
+    throw new Error('PLAYWRIGHT_PREVIEW_URL_MUST_BE_A_WINDSOFT_PREVIEW_DEPLOYMENT');
+  }
+  const token = process.env.VERCEL_OIDC_TOKEN;
+  if (!token) throw new Error('VERCEL_OIDC_TOKEN_REQUIRED_FOR_PREVIEW');
+  const previewOrigin = parsedUrl.origin;
+  await page.route('**/*', async (route) => {
+    if (new URL(route.request().url()).origin !== previewOrigin) {
+      await route.continue();
+      return;
+    }
+    await route.continue({
+      headers: { ...route.request().headers(), 'x-vercel-trusted-oidc-idp-token': token },
+    });
+  });
+}
+
 test('keyboard-only project creation through PRD download without Google OAuth', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   const authRequests: string[] = [];
@@ -115,6 +136,7 @@ test('keyboard-only project creation through PRD download without Google OAuth',
     const url = new URL(request.url());
     if (url.hostname === 'accounts.google.com' || /^\/api\/auth\/(?:google\/(?:start|callback)|logout)$/.test(url.pathname)) authRequests.push(request.url());
   });
+  await authorizeProtectedPreview(page);
   await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: { authenticated: true, user: identity } }));
   await page.goto('/');
   await assertMainAndNamedFields(page);
@@ -128,6 +150,21 @@ test('keyboard-only project creation through PRD download without Google OAuth',
   await activateByKeyboard(page, page.getByRole('button', { name: 'Blueprint 시작' }));
   await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]+$/i);
   await assertMainAndNamedFields(page);
+  if (testInfo.project.name === 'mobile-chromium') {
+    const summaryTrigger = page.getByRole('button', { name: '요약 보기' });
+    const firstTimestamp = page.locator('.conversation-message-row-user .conversation-message-time').first();
+    await expect(summaryTrigger).toBeVisible();
+    await expect(firstTimestamp).toBeVisible();
+    const triggerBox = await summaryTrigger.boundingBox();
+    const timestampBox = await firstTimestamp.boundingBox();
+    expect(triggerBox).not.toBeNull();
+    expect(timestampBox).not.toBeNull();
+    const overlaps = triggerBox!.x < timestampBox!.x + timestampBox!.width
+      && triggerBox!.x + triggerBox!.width > timestampBox!.x
+      && triggerBox!.y < timestampBox!.y + timestampBox!.height
+      && triggerBox!.y + triggerBox!.height > timestampBox!.y;
+    expect(overlaps, 'mobile summary trigger must not cover the first message timestamp').toBe(false);
+  }
   await expectTextContrast(page, 'conversation');
 
   const projectId = new URL(page.url()).pathname.split('/').at(-1)!;
