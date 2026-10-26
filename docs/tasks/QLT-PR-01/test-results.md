@@ -5,8 +5,8 @@
 | 범위 | 실행 | 결과 |
 | --- | --- | --- |
 | Unit/contract | `npm run test:unit` | 356 passed, 0 failed |
-| Desktop Chromium | `npx playwright test tests/e2e/qlt-pr-01-responsive-contracts.spec.ts tests/e2e/uir-pr-04-proposal-review.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-04-direct-edit-impact.spec.ts tests/e2e/uir-pr-03-stage-conversation.spec.ts --project=desktop-chromium --workers=1` | 13 passed |
-| Mobile Chromium | 위 테스트 목록으로 `--project=mobile-chromium --workers=1` | 8 passed, 5 desktop-only skips |
+| Desktop Chromium | `npx playwright test tests/e2e/qlt-pr-01-responsive-contracts.spec.ts tests/e2e/uir-pr-04-proposal-review.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-04-direct-edit-impact.spec.ts tests/e2e/uir-pr-03-stage-conversation.spec.ts --project=desktop-chromium --workers=1` | 14 passed (includes new tablet summary Drawer coverage) |
+| Mobile Chromium | 위 테스트 목록으로 `--project=mobile-chromium --workers=1` | 9 passed, 5 desktop-only skips |
 | Screenshot capture | `npx playwright test tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/uir-pr-04-proposal-review.spec.ts --workers=1` | 8 passed, 2 desktop-only skips; 캡처 생성 확인 |
 | Build | `npm run build` | Passed. Vite reports the existing 500 kB chunk warning; JS entry is 527.60 kB and PDF worker is 1,232.30 kB before gzip. |
 | Whitespace | `git diff --check` | Passed |
@@ -23,6 +23,7 @@
 | 대화 legacy 회귀 묶음 (desktop Chromium) | `npx playwright test tests/e2e/con-pr-03-conversation.spec.ts --project=desktop-chromium --workers=1` | 7 passed, 2 failed. 두 실패는 현재 대화 계약과 다른 오래된 fixture 기대다: 요약 패널에 `thread.summary`를 직접 렌더링한다고 가정하고, 고정 카탈로그 질문 문구·옵션을 기대한다. 이 범위는 현행 계약으로 갱신할 후속 테스트 정리 대상이다. |
 | 전체 대화형 흐름 (desktop Chromium) | `npx playwright test tests/e2e/con-pr-05-conversation-flow.spec.ts --project=desktop-chromium --workers=1` | 6 passed. 자유 대화, contextual follow-up, 11개 런타임 후보, 명시적 제안 승인, Requirements/PRD 생성 경로를 포함한다. |
 | 전체 대화형 흐름 (mobile Chromium) | 같은 명령의 `--project=mobile-chromium` | 6 passed. |
+| 태블릿 대화 요약 (desktop Chromium) | `npx playwright test tests/e2e/qlt-pr-01-responsive-contracts.spec.ts --project=desktop-chromium --workers=1 --grep 'summary can be opened'` | 수정 전 768px 요약 trigger 부재로 실패, 수정 후 1 passed. 768, 1023, 1024, 1279px 열림·닫힘·focus 복귀를 확인하고 각 열린 상태를 캡처했다. |
 
 Unknown 결과는 기존 logical request의 재시도를 허용하지 않으므로, `AI_REQUEST_UNKNOWN` 저장 시 대기 turn을 해제한다. 24시간 만료 뒤 상태를 확인한 새 전송은 새 logical request와 사용자 메시지를 만든다. 확인용 E2E는 세 번의 요청 ID가 각각 달라지는 것을 검사한다.
 

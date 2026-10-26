@@ -185,3 +185,26 @@ test('contextual question options adapt to conversation width without horizontal
     await page.screenshot({ path: `${artifactDirectory}/conversation-options-${viewport.width}x${viewport.height}.png`, scale: 'css' });
   }
 });
+
+test('conversation summary can be opened and closed at tablet widths', async ({ page }) => {
+  await seedConversation(page);
+  await page.goto(`/blueprints/${projectId}`);
+  await mkdir(artifactDirectory, { recursive: true });
+  const trigger = page.getByRole('button', { name: '요약 보기' });
+  const close = page.locator('.conversation-summary-mobile-close');
+
+  for (const viewport of [
+    { width: 768, height: 1024 },
+    { width: 1023, height: 768 },
+    { width: 1024, height: 768 },
+    { width: 1279, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(trigger, `${viewport.width}px summary trigger`).toBeVisible();
+    await trigger.click();
+    await expect(page.getByRole('dialog', { name: '요약' })).toBeVisible();
+    await page.screenshot({ path: `${artifactDirectory}/conversation-summary-${viewport.width}x${viewport.height}-open.png`, scale: 'css' });
+    await close.click();
+    await expect(trigger).toBeFocused();
+  }
+});

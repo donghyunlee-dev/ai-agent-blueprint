@@ -7,6 +7,10 @@
 | 대화·질문 옵션 | 390×844 | [PNG](./conversation-options-390x844.png) |
 | 대화·질문 옵션 | 1024×768 | [PNG](./conversation-options-1024x768.png) |
 | 대화·질문 옵션 | 1440×900 | [PNG](./conversation-options-1440x900.png) |
+| 대화 요약 Drawer·열림 | 768×1024 | [PNG](./conversation-summary-768x1024-open.png) |
+| 대화 요약 Drawer·열림 | 1023×768 | [PNG](./conversation-summary-1023x768-open.png) |
+| 대화 요약 Drawer·열림 | 1024×768 | [PNG](./conversation-summary-1024x768-open.png) |
+| 대화 요약 Drawer·열림 | 1279×800 | [PNG](./conversation-summary-1279x800-open.png) |
 | 제안 검토·제안 1개 대기 | 390×844 | [PNG](./proposal-review-390x844.png) |
 | 제안 검토·제안 1개 대기 | 1024×1024 | [PNG](./proposal-review-1024x1024.png) |
 | 제안 검토·제안 1개 대기 | 1440×900 | [PNG](./proposal-review-1440x900.png) |

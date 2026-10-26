@@ -135,6 +135,7 @@ Then 페이지 전체 수평 스크롤이 발생하지 않는다
 
 - 각 적용 화면의 1440×900·390×844 캡처, 1280×800·1024×768·768×1024 viewport 전환 증거; 360×800·320px 경계는 가로 overflow를 확인
 - Drawer/Modal 열림·닫힘 focus 상태 캡처
+- 대화 요약은 768–1279px에서도 명시적 control로 열 수 있고 닫은 뒤 trigger로 focus가 돌아오는지 768×1024, 1023×768, 1024×768, 1279×800에서 확인
 - reduced-motion 설정에서의 전환 캡처
 - Requirements/PRD의 정상·잠금·오류 상태, 대화의 질문·proposal gate, 모바일 composer 및 200% zoom 증거
 - 변경 화면은 [현재 주 시안](../../blueprint-design/README.md)과 동일 viewport/state의 렌더 anchor `x/y/width/height`를 기록한다. 전체 캔버스 점수는 필요 시 진단값으로 남기되 기준 판정은 `docs/ui/07-visual-acceptance.md`를 따른다.
