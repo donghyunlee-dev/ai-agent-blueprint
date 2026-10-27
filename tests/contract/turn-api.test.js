@@ -26,12 +26,10 @@ test('turn endpoint requires a valid session before any provider or store side e
   assert.equal(storeCalls, 0);
 });
 
-test('debug validation logging never writes model-returned reference IDs', async () => {
+test('TURN validation logs only a fixed stage and attempt count', async () => {
   const canary = 'private-user-text-should-never-enter-server-logs';
-  const priorDebug = process.env.DEBUG_CON_PR05;
   const priorConsoleError = console.error;
   const logged = [];
-  process.env.DEBUG_CON_PR05 = '1';
   console.error = (...values) => logged.push(values);
   try {
     const invalidOutput = { ...output, referencedSourceIds: [canary] };
@@ -50,8 +48,6 @@ test('debug validation logging never writes model-returned reference IDs', async
     assert.equal(res.body.error, 'AI_INVALID_OUTPUT');
   } finally {
     console.error = priorConsoleError;
-    if (priorDebug === undefined) delete process.env.DEBUG_CON_PR05;
-    else process.env.DEBUG_CON_PR05 = priorDebug;
   }
   assert.deepEqual(logged, [['TURN_RESPONSE_VALIDATION_FAILED', { stage: 'references', attempts: 2 }]]);
   assert.doesNotMatch(JSON.stringify(logged), new RegExp(canary));
@@ -167,7 +163,7 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
     proposal: { operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: `대안 ${index + 1}`, description: '예약 충돌을 줄입니다.' }, rationale: '명시적 추천 요청에 대한 선택지입니다.', evidence: [{ sourceType: 'message', sourceId: 'm1' }], affectedItemIds: [] },
   });
   const recommendationOutput = { ...output, payload: { ...output.payload, recommendations: Array.from({ length: 11 }, (_, index) => makeCandidate(index)) } };
-  const recommendationRequest = { ...body, logicalRequestId: 'logical-recommend-12345', userTurn: { id: 'm1', kind: 'text', text: '추천해 주세요.' } };
+  const recommendationRequest = { ...body, logicalRequestId: 'logical-recommend-12345', userTurn: { id: 'm1', kind: 'text', text: '제가 설명한 회의실 예약 서비스와 운영 목표에 맞춰 비교하고 선택할 수 있는 11개 추천안을 보여주세요.' } };
   const recommendationRes = response();
   await handler(request(recommendationRequest), recommendationRes, { store: createMemoryAuthStore(), requestStructuredOutput: async () => recommendationOutput });
   assert.equal(recommendationRes.statusCode, 200);

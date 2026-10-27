@@ -51,6 +51,7 @@ test('turn.analyze.v3 requires exactly eleven distinct recommendation candidates
   assert.equal(validateSchema(schema, { ...payload, recommendations: recommendations.slice(0, 10) }).valid, false);
   assert.equal(validateSchema(schema, { ...payload, recommendations: [...recommendations, recommendations[0]] }).valid, false);
   assert.equal(validateTurnAnalyzeV3(payload, { text: '추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.' }).valid, true);
+  assert.equal(validateTurnAnalyzeV3(payload, { text: '제가 설명한 운영 목표에 맞춰 비교할 수 있는 11개 추천안을 보여주세요.' }).valid, true);
   assert.equal(validateTurnAnalyzeV3(payload, { text: '회의실 예약 충돌을 줄이고 싶어요.' }).valid, false);
   assert.equal(validateTurnAnalyzeV3({ ...validPayload, recommendations: undefined }, { text: '추천안을 알려 주세요.' }).valid, true);
   assert.equal(validateTurnAnalyzeV3({ ...validPayload, followUp: undefined, recommendations: undefined }, { text: '추천안을 알려 주세요.' }).valid, false);
