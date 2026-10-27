@@ -61,7 +61,7 @@ function extractOutputText(payload) {
   return values.join("\n");
 }
 
-export async function requestStructuredOutput({ name, schema, messages, signal, reasoningEffort, model }) {
+export async function requestStructuredOutput({ name, schema, messages, signal, reasoningEffort, model, timeoutMs = 45_000 }) {
   const { apiKey, model: defaultModel } = getOpenAiConfig();
   const allowedModels = new Set(Object.values(aiModelRegistry.profiles).map((profile) => profile.model));
   if (model && !allowedModels.has(model)) {
@@ -81,7 +81,11 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
   const abort = () => controller.abort(signal?.reason);
   if (signal?.aborted) abort();
   else signal?.addEventListener("abort", abort, { once: true });
-  const timeout = setTimeout(() => controller.abort(), 45_000);
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -122,6 +126,9 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
       error.code = "AI_INVALID_OUTPUT";
       throw error;
     }
+  } catch (error) {
+    if (timedOut) console.error("OPENAI_REQUEST_TIMED_OUT", { operation: name, model: resolvedModel, timeoutMs });
+    throw error;
   } finally {
     clearTimeout(timeout);
     signal?.removeEventListener("abort", abort);

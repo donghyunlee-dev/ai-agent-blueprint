@@ -97,6 +97,42 @@ test('preserves optional fields and arbitrary proposal snapshots across the stri
 });
 
 
+test('uses the caller-configured provider timeout for long conversational turns', async (t) => {
+  const keys = ['OPENAI_API_KEY', 'AI_MODEL_LIGHT', 'AI_MODEL_DEFAULT', 'AI_MODEL_FINAL'];
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  const originalFetch = globalThis.fetch;
+  const originalConsoleError = console.error;
+  const originalSetTimeout = globalThis.setTimeout;
+  let observedTimeout;
+  const logged = [];
+  t.after(() => {
+    for (const key of keys) { if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key]; }
+    globalThis.fetch = originalFetch;
+    console.error = originalConsoleError;
+    globalThis.setTimeout = originalSetTimeout;
+  });
+  process.env.OPENAI_API_KEY = 'test-stub-key'; process.env.AI_MODEL_LIGHT = 'gpt-5.6-luna'; process.env.AI_MODEL_DEFAULT = 'gpt-5-mini'; process.env.AI_MODEL_FINAL = 'gpt-5.6-terra';
+  console.error = (...values) => logged.push(values);
+  globalThis.setTimeout = (callback, delay, ...args) => {
+    observedTimeout = delay;
+    return originalSetTimeout(callback, 0, ...args);
+  };
+  globalThis.fetch = async (_url, init) => new Promise((_resolve, reject) => {
+    init.signal.addEventListener('abort', () => {
+      const error = new Error('request aborted');
+      error.name = 'AbortError';
+      reject(error);
+    }, { once: true });
+  });
+
+  await assert.rejects(
+    requestStructuredOutput({ name: 'turn_analyze', schema: { type: 'object', properties: {}, required: [], additionalProperties: false }, messages: [], timeoutMs: 120_000 }),
+    (error) => error.name === 'AbortError',
+  );
+  assert.equal(observedTimeout, 120_000);
+  assert.deepEqual(logged, [['OPENAI_REQUEST_TIMED_OUT', { operation: 'turn_analyze', model: 'gpt-5-mini', timeoutMs: 120_000 }]]);
+});
+
 test('logs provider rejection status and request ID without logging request or response content',async(t)=>{
   const keys=['OPENAI_API_KEY','AI_MODEL_LIGHT','AI_MODEL_DEFAULT','AI_MODEL_FINAL'];
   const previous=Object.fromEntries(keys.map((key)=>[key,process.env[key]]));
