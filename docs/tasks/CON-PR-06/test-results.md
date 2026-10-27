@@ -6,7 +6,7 @@
 | --- | --- |
 | TDD RED — 관계가 없는 기존 설계 상세에서 관계 편집 UI가 없음 | 실패 확인 후 구현 |
 | `node --test tests/unit/con-pr-06-decision-relationship.test.js tests/unit/con-pr-06-decision-diagram.test.js tests/unit/con-pr-05-decision-summary.test.js` | 10/10 통과 |
-| `npx playwright test tests/e2e/con-pr-06-decision-diagram.spec.ts tests/e2e/dsg-pr-03-design-readiness.spec.ts --workers=1 --reporter=line` | 데스크톱·모바일 8/8 통과 |
+| `CON_PR_06_CAPTURE=1 npx playwright test tests/e2e/con-pr-06-decision-diagram.spec.ts tests/e2e/dsg-pr-03-design-readiness.spec.ts --workers=1 --reporter=line` | 데스크톱 1440×900·모바일 390×844 실제 viewport에서 8/8 통과; 캡처는 `.pr-artifacts/CON-PR-06/decision-diagram-{desktop,mobile}-chromium.png` |
 | `npm run test:unit` | 364/364 통과 |
 | `npm run build` | 통과. 기존 500 kB 초과 chunk 경고가 출력됨 |
 | `git diff --check` | 통과 |

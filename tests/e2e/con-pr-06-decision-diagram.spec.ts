@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
+import path from 'node:path';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
 
@@ -36,11 +38,9 @@ test.beforeEach(async ({ page }) => {
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId });
 });
 
-test('a user can explicitly connect confirmed decisions and navigate from the diagram to a compacted source', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/blueprints/${projectId}`);
+test('a user can explicitly connect confirmed decisions and navigate from the diagram to a compacted source', async ({ page }, testInfo) => {
+  await page.goto(`/blueprints/${projectId}/design`);
   await expect(page.getByRole('button', { name: '도식 보기' })).toHaveCount(0);
-  await page.getByRole('link', { name: /^3 설계$/ }).click();
   await page.locator('[data-design-item-id="decision-a"]').click();
   const inspector = page.locator('.workspace-inspector-content');
   await expect(inspector).toContainText('관련 확정 결정');
@@ -57,15 +57,31 @@ test('a user can explicitly connect confirmed decisions and navigate from the di
   }, { databaseName: databaseNameForOwner(ownerKey), projectId });
   expect(storedRelations).toEqual({ relations: [['decision-b'], ['decision-a']], designRevision: 1 });
 
-  await page.getByRole('link', { name: '대화' }).click();
-  const summary = page.getByRole('complementary', { name: '요약' });
+  await page.goto(`/blueprints/${projectId}`);
+  const isMobile = (page.viewportSize()?.width ?? 1440) < 1024;
+  if (isMobile) await page.getByRole('button', { name: '요약 보기' }).click();
+  const summary = isMobile ? page.getByRole('dialog', { name: '요약' }) : page.getByRole('complementary', { name: '요약' });
   await expect(summary.getByRole('button', { name: '목록 보기' })).toHaveAttribute('aria-pressed', 'true');
   await expect(summary.getByRole('button', { name: '도식 보기' })).toBeVisible();
   await summary.getByRole('button', { name: '도식 보기' }).click();
   const diagram = summary.getByRole('list', { name: '확정 결정 도식' });
+  await expect(diagram).toBeVisible();
+  expect(await diagram.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(diagram.getByRole('listitem')).toHaveCount(2);
   await expect(diagram).toContainText('예약 시간 확인');
-  await expect(summary.getByRole('list', { name: '결정 관계' })).toContainText('관련 결정');
+  const relationships = summary.getByRole('list', { name: '결정 관계' });
+  await expect(relationships).toContainText('관련 결정');
+  expect(await relationships.locator('li > span').first().evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(100);
+  if (!isMobile) {
+    const summaryLeft = await summary.evaluate((element) => element.getBoundingClientRect().left);
+    const composerRight = await page.locator('.ai-turn-composer').evaluate((element) => element.getBoundingClientRect().right);
+    expect(composerRight).toBeLessThanOrEqual(summaryLeft);
+  }
+  if (process.env.CON_PR_06_CAPTURE === '1') {
+    const evidenceDirectory = path.resolve('.pr-artifacts/CON-PR-06');
+    await mkdir(evidenceDirectory, { recursive: true });
+    await page.screenshot({ path: path.join(evidenceDirectory, `decision-diagram-${testInfo.project.name}.png`), fullPage: false, scale: 'css' });
+  }
   await diagram.getByRole('button', { name: '대화 보기: 회의실 이용자' }).click();
   await expect(page.getByRole('region', { name: '접힌 대화에서 연 원본 메시지' })).toContainText('회의실 이용자는 예약 가능 시간을 확인합니다.');
 });
