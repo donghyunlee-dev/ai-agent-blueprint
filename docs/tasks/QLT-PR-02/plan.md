@@ -160,8 +160,8 @@ Then A의 프로젝트가 하나도 노출되지 않는다
 - [x] Acceptance criteria verified (deterministic browser/API fixtures)
 - [x] 기존 구현과 후속 CSS·브라우저 수정 독립 검토 통과 (세부 결과: `review-notes.md`)
 - [x] 로컬 CI와 deterministic desktop/mobile QA 통과
-- [ ] 최종 변경 desktop/mobile Preview 캡처 검토
-- [ ] PR Preview 검증 완료
+- [x] desktop/mobile Preview 캡처 검토 — deployment of code SHA `048e76b`; `qa-report.md`
+- [x] PR Preview 검증 완료 — deployment of code SHA `048e76b`; `qa-report.md`
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서

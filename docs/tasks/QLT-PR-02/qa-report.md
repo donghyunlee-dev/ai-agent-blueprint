@@ -13,15 +13,16 @@ Local QA result: **pass** on the merged-main worktree after the summary-scroll c
 | Auth, budget, source-evidence, and secret boundaries | Contract/unit tests and built-bundle scanner | Pass |
 | Responsive rendered states and long-summary clearance | Desktop/mobile Playwright; long summary scrolled to its end stays at least 12px above the composer | Pass locally |
 | Live provider behavior | `OPENAI_API_KEY` is unset | Not verified |
-| Deployed Preview keyboard journey | Commit `1a37d6f7846112989f10728537571fc4a81d33b8`; desktop and mobile | Pass through PRD Markdown download |
-| Deployed Preview full desktop viewport matrix | Repeated route loads across five viewport sizes | Timed out after the user journey; equivalent screenshot workflows pass in GitHub CI |
+| Deployed Preview keyboard journey | Deployment of code SHA `048e76b1c5e367fb701839da2b1dfb4183529da4`; desktop and mobile | Pass through PRD Markdown download (2/2, 9.3 minutes) |
+| Deployed Preview full desktop viewport matrix | Repeated route loads across five viewport sizes | Earlier full run timed out after the user journey; focused desktop/mobile journeys pass, and all three visual evidence workflows pass on code SHA `048e76b` |
 
 ## Deployed Preview
 
-- Immutable Preview URL: <https://windsoft-agent-blueprint-r1tq825ax.vercel.app>
-- Deployed commit: `1a37d6f7846112989f10728537571fc4a81d33b8` (`codex/qlt-pr-02-audit`); Vercel reports `READY`.
-- Desktop and mobile keyboard journeys pass through project creation, eleven recommendations, explicit proposal approval, Requirements confirmation, PRD generation, and Markdown download. Browser auth, AI, and document APIs use deterministic fixtures; Google login is excluded. This verifies deployed UI behavior, not live provider calls or production data persistence.
-- The desktop journey also writes a PRD screenshot at both primary widths. The post-journey 30-case route/viewport reload matrix exceeded 360 seconds on Preview; it is excluded from the focused Preview copy because the current SHA's GitHub screenshot workflows already pass.
+- Immutable Preview URL: <https://windsoft-agent-blueprint-p09o7292q.vercel.app>
+- Deployed code SHA: `048e76b1c5e367fb701839da2b1dfb4183529da4` (`codex/qlt-pr-02-audit`); Vercel reported `READY`.
+- Desktop and mobile keyboard journeys passed on this deployment through project creation, eleven context-generated recommendations, explicit proposal approval, Requirements confirmation, PRD generation, and Markdown download. The focused browser run passed 2/2 in 9.3 minutes. Browser auth, AI, and document APIs use deterministic fixtures; Google login is excluded. This verifies deployed UI behavior, not live provider calls or production data persistence.
+- Desktop and mobile PRD screenshots were captured and inspected at `.pr-artifacts/QLT-PR-01/keyboard-prd-desktop-chromium.png` and `keyboard-prd-mobile-chromium.png`. An earlier full desktop run exceeded 360 seconds only in the additional repeated route/viewport matrix after the user journey; the focused exact-head journey passed.
+- The application code is unchanged from `1a37d6f7846112989f10728537571fc4a81d33b8`; `048e76b` adds keyboard-flow evidence. This report update is documentation-only. GitHub visual evidence workflows for home, conversation, and proposal review passed on `048e76b`.
 
 ## Preview checks
 
