@@ -32,7 +32,7 @@ test('debug validation logging never writes model-returned reference IDs', async
   const priorConsoleError = console.error;
   const logged = [];
   process.env.DEBUG_CON_PR05 = '1';
-  console.error = (...values) => logged.push(values.join(' '));
+  console.error = (...values) => logged.push(values);
   try {
     const invalidOutput = { ...output, referencedSourceIds: [canary] };
     const requestBody = {
@@ -53,9 +53,9 @@ test('debug validation logging never writes model-returned reference IDs', async
     if (priorDebug === undefined) delete process.env.DEBUG_CON_PR05;
     else process.env.DEBUG_CON_PR05 = priorDebug;
   }
-  assert.deepEqual(logged, ['TURN_RESPONSE_VALIDATION_FAILED', 'TURN_RESPONSE_VALIDATION_FAILED']);
-  assert.doesNotMatch(logged.join('\n'), new RegExp(canary));
-  assert.doesNotMatch(logged.join('\n'), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
+  assert.deepEqual(logged, [['TURN_RESPONSE_VALIDATION_FAILED', { stage: 'references', attempts: 2 }]]);
+  assert.doesNotMatch(JSON.stringify(logged), new RegExp(canary));
+  assert.doesNotMatch(JSON.stringify(logged), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
 });
 
 test('turn endpoint records an already-aborted client request as cancelled without provider work', async () => {
