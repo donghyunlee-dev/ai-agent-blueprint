@@ -44,7 +44,7 @@ flowchart LR
 | 제안 승인·수정·거절·충돌 처리 | 사용자 행동 + 도메인 command | 사용자의 명시적 행동만 확정 설계를 변경한다. |
 | 우측 결정 요약 | aggregate projection | 저장된 aggregate의 단일 revision에서 계산한다. thread summary만을 원본으로 사용하지 않는다. |
 | readiness·다음 단계·문서 ready 판단 | 코드 | AI 응답으로 상태나 gate를 변경하지 않는다. |
-| 도식 요약 | 애플리케이션의 읽기 전용 projection | 확정 데이터와 출처에서만 만든다. 같은 내용을 텍스트 목록으로도 제공한다. |
+| 도식 요약 | 애플리케이션의 읽기 전용 projection | 사용자가 설계 항목 상세에서 명시적으로 연결한 확정 결정 관계와 출처에서만 만든다. 연결·해제는 양쪽 `relatedItemIds`와 설계 revision을 한 transaction에서 저장한다. AI는 관계를 추론하지 않는다. 같은 내용을 텍스트 목록으로도 제공한다. |
 
 AI는 자체 제안을 승인하거나, 사용자 의도를 대신 확정하거나, readiness·충돌 해결·문서 ready 상태를 정하지 않는다. 인증, 프로젝트별 AI 동의, 예산, 취소, idempotency, 요청 복구와 서버 권한은 기존 정책을 따른다.
 

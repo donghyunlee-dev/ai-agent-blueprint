@@ -4,7 +4,10 @@ export type ModelProfile = 'LIGHT'|'DEFAULT'|'FINAL';
 export type DocumentType = 'requirements'|'prd'|'setup_guide';
 export interface BlueprintProject { id:string; ownerKey:string; schemaVersion:number; title:string; status:'active'|'ready'|'completed'|'archived'; activeDocumentType:DocumentType|'design'; activeThreadId:string; processState:BlueprintProcessState; readiness:ReadinessSummary; designRevision?:number; createdAt:string; updatedAt:string; lastOpenedAt:string; aiConsent?:{acceptedAt:string;consentVersion:string} }
 export interface ConversationThread { id:string; projectId:string; title:string; status:'active'|'closed'; summary?:ConversationSummary; createdAt:string; updatedAt:string }
-export interface ConversationSummary { confirmedFacts:SummaryFact[]; explicitUnknowns:SummaryFact[]; rejectedDirections:SummaryFact[]; unresolvedQuestions:SummaryFact[]; sourceMessageIds:string[] }
+export interface ConversationSummary { confirmedFacts:SummaryFact[]; explicitUnknowns:SummaryFact[]; rejectedDirections:SummaryFact[]; unresolvedQuestions:SummaryFact[]; sourceMessageIds:string[]; diagram?:DecisionDiagram }
+export interface DecisionDiagram { nodes:DecisionDiagramNode[]; edges:DecisionDiagramEdge[] }
+export interface DecisionDiagramNode { id:string; title:string; sourceMessageIds:string[] }
+export interface DecisionDiagramEdge { source:string; target:string }
 export interface SummaryFact { text:string; sourceMessageIds:string[] }
 export interface ConversationMessage { id:string; threadId:string; logicalRequestId?:string; attemptId?:string; role:'user'|'assistant'|'system'; kind:'text'|'question'|'job_status'|'error'; content:string; question?:QuestionSpec; blocks?:DisplayBlock[]; sourceIds?:string[]; createdAt:string }
 export interface QuestionSpec { id:string; topic:string; prompt:string; help?:string; answerMode:'single'|'multiple'|'text'|'number'|'range'|'rank'|'confirm'; required:boolean; allowCustomAnswer:boolean; allowUnknown:boolean; allowDefer:boolean; targetItemTypes:DesignItemType[]; options?:QuestionOption[] }

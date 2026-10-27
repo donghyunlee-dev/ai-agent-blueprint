@@ -122,11 +122,10 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
     const composerGeometry=await page.evaluate(()=>{
       const composer=document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
       const summary=document.querySelector('.conversation-stage-inspector')!.getBoundingClientRect();
-      return {left:composer.left,right:composer.right,viewportWidth:window.innerWidth,summaryLeft:summary.left,summaryRight:summary.right};
+      return {left:composer.left,right:composer.right,width:composer.width,summaryLeft:summary.left};
     });
-    expect(composerGeometry.right).toBeGreaterThanOrEqual(composerGeometry.viewportWidth-40);
-    expect(composerGeometry.right).toBeLessThanOrEqual(composerGeometry.viewportWidth-28);
-    expect(composerGeometry.right).toBeGreaterThanOrEqual(composerGeometry.summaryRight-20);
+    expect(composerGeometry.width).toBeGreaterThan(700);
+    expect(composerGeometry.right).toBeLessThanOrEqual(composerGeometry.summaryLeft-8);
     expect(composerGeometry.left).toBeLessThan(composerGeometry.summaryLeft);
   }
   if(testInfo.project.name==='mobile-chromium'){

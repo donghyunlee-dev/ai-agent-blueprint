@@ -27,6 +27,7 @@ import { bulkApproveProposals, bulkRejectProposals, classifyProposalConflicts, p
 import { DesignBoard } from "../features/design/DesignBoard.js";
 import { ProposalReviewPanel } from "../components/proposals/ProposalReviewPanel.js";
 import { computeDesignReadiness } from "../features/design/readiness.js";
+import { setDecisionRelationship } from "../features/design/decision-relationships.js";
 import { RequirementsDocument, RequirementsPageHeader } from "../components/blueprint/RequirementsDocument.js";
 import { PrdDocument } from "../components/blueprint/PrdDocument.js";
 import { SetupGuideDocument } from "../components/blueprint/SetupGuideDocument.js";
@@ -109,6 +110,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [mobileMode, setMobileMode] = useState<"conversation" | "work" | "review">(() => location.hash === "#conversation" ? "conversation" : "work");
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [selectedDesignItemId, setSelectedDesignItemId] = useState<string | null>(null);
+  const [relationshipBusyId, setRelationshipBusyId] = useState<string | null>(null);
+  const [relationshipMessage, setRelationshipMessage] = useState('');
   const [inspectorOverlay, setInspectorOverlay] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches);
   const [modeTabsVisible, setModeTabsVisible] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches);
   const [mobileLayout, setMobileLayout] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
@@ -390,6 +393,30 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       }
     }
     throw new Error("STORAGE_SAVE_DID_NOT_SETTLE");
+  }
+
+  async function changeDecisionRelationship(targetId: string, linked: boolean) {
+    const sourceId = selectedDesignItemId;
+    if (!ownerKey || !projectId || !sourceId || relationshipBusyId) return;
+    setRelationshipBusyId(targetId);
+    setRelationshipMessage('');
+    try {
+      await flushProposalAutosave();
+      const result = await repositoryFactory().transact(ownerKey, projectId, (latest) =>
+        setDecisionRelationship(latest, sourceId, targetId, linked, new Date().toISOString()));
+      if (result.status === 'updated' && result.aggregate) {
+        applyCommittedAggregate(result.aggregate);
+        setRelationshipMessage('관련 결정 관계를 저장했습니다.');
+      } else if (result.status === 'unchanged') {
+        setRelationshipMessage('이미 저장된 관계입니다.');
+      } else {
+        setRelationshipMessage('확정 상태가 바뀌어 관계를 저장하지 않았습니다. 최신 상태를 확인해 주세요.');
+      }
+    } catch {
+      setRelationshipMessage('관계를 저장하지 못했습니다. 기존 설계는 유지됐습니다. 다시 시도해 주세요.');
+    } finally {
+      setRelationshipBusyId(null);
+    }
   }
 
   async function saveDirectDocumentEdit(edit:{documentId:string;sectionId:string;baseVersion:number;baseDesignRevision:number;title:string;markdown:string;excludedImpactIds:string[]}) {
@@ -956,7 +983,17 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
             <p className="workspace-readiness-label">설계 항목 · {designReadiness.blockers.some((blocker) => blocker.key === "conflicts" && blocker.itemIds.includes(selectedDesignItem.id)) ? "충돌" : selectedDesignItem.status === "confirmed" ? "확정" : selectedDesignItem.status === "review_required" ? "재검토 필요" : selectedDesignItem.status === "not_applicable" ? "해당 없음" : selectedDesignItem.status === "deferred" ? "미정 · 오픈 이슈" : "제안 검토"}</p>
             <h3>{selectedDesignItem.title}</h3><p>{selectedDesignItem.description || "설명 없음"}</p>
             <section className="design-inspector-block"><h4>근거</h4>{selectedDesignItem.evidence.length ? selectedDesignItem.evidence.map((evidence) => <EvidencePreview key={evidence.id} evidence={evidence} sources={aggregate.sources} />) : <p>연결된 근거가 없습니다.</p>}</section>
-            <section className="design-inspector-block"><h4>관련 항목</h4>{selectedDesignItem.relatedItemIds.length ? <ul>{selectedDesignItem.relatedItemIds.map((id) => <li key={id}>{aggregate.designItems.find((item) => item.id === id)?.title ?? id}</li>)}</ul> : <p>연결된 항목이 없습니다.</p>}</section>
+            <section className="design-inspector-block"><h4>관련 항목</h4>{selectedDesignItem.relatedItemIds.length ? <ul>{selectedDesignItem.relatedItemIds.map((id) => <li key={id}>{aggregate.designItems.find((item) => item.id === id)?.title ?? id}</li>)}</ul> : <p>연결된 항목이 없습니다.</p>}
+              {selectedDesignItem.status === 'confirmed' ? <div className="design-relationship-editor" aria-label="확정 결정 관계 관리">
+                <h5>관련 확정 결정</h5>
+                {aggregate.designItems.filter((item) => !item.archivedAt && item.status === 'confirmed' && item.id !== selectedDesignItem.id).length ? aggregate.designItems.filter((item) => !item.archivedAt && item.status === 'confirmed' && item.id !== selectedDesignItem.id).map((item) => {
+                  const linked = selectedDesignItem.relatedItemIds.includes(item.id) && item.relatedItemIds.includes(selectedDesignItem.id);
+                  return <div className="design-relationship-row" key={item.id}><span>{item.title}</span><button type="button" aria-label={`${item.title} 관계 ${linked ? '해제' : '연결'}`} aria-pressed={linked} disabled={relationshipBusyId !== null} onClick={() => void changeDecisionRelationship(item.id, !linked)}>{relationshipBusyId === item.id ? '저장 중' : linked ? '관계 해제' : '관계 연결'}</button></div>;
+                }) : <p>연결할 다른 확정 결정이 없습니다.</p>}
+                <p className="design-relationship-help">양쪽 결정에 관계를 명시적으로 저장합니다. 저장된 관계만 대화 도식에 표시됩니다.</p>
+                {relationshipMessage ? <p className="design-relationship-status" role="status">{relationshipMessage}</p> : null}
+              </div> : null}
+            </section>
             {selectedDesignItem.acceptanceCriteria.length ? <section className="design-inspector-block"><h4>수용 기준</h4><ul>{selectedDesignItem.acceptanceCriteria.map((criterion) => <li key={criterion.id}>{criterion.text} · {criterion.status === "confirmed" ? "확정" : "재검토 필요"}{criterion.evidence.length ? <div className="design-criterion-evidence" aria-label={`${criterion.text} 근거`}>{criterion.evidence.map((evidence) => <EvidencePreview key={evidence.id} evidence={evidence} sources={aggregate.sources} />)}</div> : null}</li>)}</ul></section> : null}
           </div> : <><p className="workspace-readiness-label">진행 상태</p><p className="workspace-readiness-value">{readinessLabel(aggregate.project.readiness.state)}</p><p>확인할 제안 {aggregate.project.readiness.pendingProposalCount}개 · 충돌 {aggregate.project.readiness.conflictCount}개</p><div className="workspace-inspector-next"><strong>다음 단계</strong><p>아이디어를 대화에서 구체화한 뒤 문서 작업을 이어가세요.</p></div></>}
           <button type="button" onClick={closeInspector}>닫기</button></div>
