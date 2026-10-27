@@ -13,9 +13,9 @@
 
 ## 배포 Preview 확인
 
-- Tested code HEAD: `3dd6244a3da9d6de043de84313ab6bc878900010`.
-- Protected Vercel Preview: https://windsoft-agent-blueprint-5icuh0ryj.vercel.app.
-- `CON_PR_06_CAPTURE=1 vercel env run --project windsoft-agent-blueprint --scope donghyunlees-projects-e43b52b1 -- npx playwright test --config=playwright.preview.config.ts tests/e2e/con-pr-06-decision-diagram.spec.ts --workers=1 --reporter=line`: 4/4 passed, covering desktop 1440×900 and mobile 390×844 against the deployed Preview.
+- Tested code HEAD: `3580729ac09b21b053590b9b571020a4fbfc0d2a`.
+- Protected Vercel Preview: https://windsoft-agent-blueprint-9ioxdp79q.vercel.app.
+- `vercel env run --project windsoft-agent-blueprint --scope donghyunlees-projects-e43b52b1 -- npx playwright test --config=playwright.preview.config.ts tests/e2e/con-pr-05-conversation-flow.spec.ts tests/e2e/con-pr-06-decision-diagram.spec.ts tests/e2e/dsg-pr-03-design-readiness.spec.ts --workers=1 --reporter=line`: 20/20 passed, covering desktop 1440×900 and mobile 390×844 against the deployed Preview. This includes the corrected non-overlap geometry regression check.
 - Captures and state notes: [Preview evidence](../../delivery/evidence/CON-PR-06/README.md).
 
 브라우저 흐름은 설계 상세에서 확정 결정 관계를 저장하고, 양쪽 `relatedItemIds` 및 revision이 갱신되는지 확인한다. 대화로 이동해 텍스트 기본 보기, 도식 전환, 관계 표현, 압축된 원본 메시지 탐색을 검증한다. 관계가 없을 때 모바일 요약은 텍스트로 남고 도식 전환은 노출되지 않는다.
