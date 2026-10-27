@@ -34,6 +34,21 @@ test('unknown provider outcome is tombstoned and never retried with the same log
   assert.equal((await claimTurn(store, key, 'fingerprint', 'attempt-2')).kind, 'unknown');
 });
 
+test('provider timeout tombstone can be recorded after both allowed provider attempts', async () => {
+  let now = 1000;
+  const store = createMemoryAuthStore({ now: () => now });
+  const key = turnKey('owner', 'project', 'logical');
+  await claimTurn(store, key, 'fingerprint', 'attempt-1');
+  await finishTurn(store, key, { status: 'running', attemptId: 'attempt-1' });
+
+  now += 240_001;
+
+  assert.equal(await finishTurn(store, key, {
+    status: 'unknown', attemptId: 'attempt-1', errorCode: 'AI_REQUEST_UNKNOWN',
+  }), true);
+  assert.equal((await claimTurn(store, key, 'fingerprint', 'attempt-2')).kind, 'unknown');
+});
+
 test('parallel claims admit one attempt and unrelated owner or project namespaces remain isolated', async () => {
   const store = createMemoryAuthStore();
   const key = turnKey('owner', 'project', 'logical');
