@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
-export const TURN_CLAIM_TTL_SECONDS = 120;
+// Keep the claim beyond both 120-second provider attempts and finalization.
+export const TURN_CLAIM_TTL_SECONDS = 360;
 export const TURN_RESULT_TTL_SECONDS = 24 * 60 * 60;
 
 function hmac(value) {
