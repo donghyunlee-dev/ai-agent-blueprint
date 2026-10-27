@@ -15,11 +15,19 @@ Independent QA result: **pass** on the final working-tree diff. The local accept
 | Live provider behavior | `OPENAI_API_KEY` is unset | Not verified |
 | Deployed Preview behavior | PR Preview does not exist yet | Pending |
 
-The browser evidence uses local production Preview, not a deployed Vercel Preview. Review the deployed commit separately after opening a PR.
+## Deployed Preview
+
+- Deployment: `https://windsoft-agent-blueprint-87vgwl6w1.vercel.app`
+- Deployed SHA: `1c11b04c45030619547747650004d13b37dd2f57` (matches PR #67 head).
+- Deployment state: Vercel `READY`.
+- Browser check on the deployed Preview: **4/4 passed** across desktop and mobile Chromium. The checks cover selected-file project creation into the conversation route and the freeform → contextual choice → eleven grounded recommendations → source navigation / pending approval journey.
+- Rendered desktop and mobile recommendation states were captured and inspected from this Preview.
+- The browser session and AI/document API responses use deterministic Playwright fixtures. This confirms deployed frontend assets and responsive UI, not live provider calls or production data persistence.
 
 ## Preview checks
 
-- [ ] Verify Preview URL and deployed commit SHA.
-- [ ] Reproduce idea and source-file creation through conversation, recommendation approval, Requirements, and PRD in the browser.
-- [ ] Capture the relevant desktop and mobile rendered states.
-- [ ] Report provider/live-AI coverage separately from deterministic fixture evidence.
+- [x] Verify Preview URL and deployed commit SHA.
+- [x] Reproduce project start and the central conversation/recommendation flow on the deployed Preview with deterministic API fixtures.
+- [x] Capture and inspect desktop and mobile rendered states.
+- [x] Report provider/live-AI coverage separately from deterministic fixture evidence.
+- [ ] Run live provider and authenticated production-data verification when credentials and an approved account are available.
