@@ -283,8 +283,11 @@ export default async function handler(req, res, deps = {}) {
     };
     let output;
     let validationError;
+    let validationFailureStage;
+    let validationAttempts = 0;
     try {
       for (let retry = 0; retry <= 1; retry += 1) {
+        validationAttempts = retry + 1;
         if (cancellation.signal.aborted) return finishCancellation();
         try {
           output = await (deps.requestStructuredOutput || requestStructuredOutput)({
@@ -297,6 +300,7 @@ export default async function handler(req, res, deps = {}) {
         } catch (error) {
           if (error?.code === 'AI_INVALID_OUTPUT' || error instanceof SyntaxError) {
             validationError = ['provider returned invalid JSON'];
+            validationFailureStage = 'provider_output';
             continue;
           }
           throw error;
@@ -310,11 +314,19 @@ export default async function handler(req, res, deps = {}) {
         const references = validateReferences(output, manifest, targetContext);
         const domainResult = validateTurnAnalyzeV3(output.payload, body.userTurn);
         const choiceTargets = validateProposalTargets(proposalsInChoices(output.payload), targetContext);
-        validationError = !schemaResult.valid ? schemaResult.errors : !metadataResult.valid ? metadataResult.errors : !references.valid ? references.errors : !domainResult.valid ? domainResult.errors : !choiceTargets.valid ? choiceTargets.errors : null;
-        if (validationError && process.env.DEBUG_CON_PR05) console.error('TURN_RESPONSE_VALIDATION_FAILED');
+        const failedValidation = [
+          ['schema', schemaResult],
+          ['metadata', metadataResult],
+          ['references', references],
+          ['domain', domainResult],
+          ['proposal_targets', choiceTargets],
+        ].find(([, result]) => !result.valid);
+        validationError = failedValidation?.[1].errors ?? null;
+        validationFailureStage = failedValidation?.[0] ?? undefined;
         if (!validationError) break;
       }
       if (validationError) {
+        console.error('TURN_RESPONSE_VALIDATION_FAILED', { stage: validationFailureStage, attempts: validationAttempts });
         if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
         await circuitSuccess(store, circuitKey);
         return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
