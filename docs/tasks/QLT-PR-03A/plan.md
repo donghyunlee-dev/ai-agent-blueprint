@@ -1,5 +1,7 @@
 # QLT-PR-03A — 기술 출시 준비 Implementation Plan
 
+**Status:** merged in [PR #69](https://github.com/donghyunlee-dev/ai-agent-blueprint/pull/69), merge commit `fa5140a27905ad0611d71a903439dcd4b8f22984`.
+
 **Goal:** 실제 사용자 관찰과 최종 출시 판정을 보류한 채, 현재 서비스와 일치하지 않는 설치·배포 정보와 사용하지 않는 이전 구현을 정리하고 기술 증거를 연결한다.
 
 **Architecture:** QLT-PR-01/02의 검증 결과와 기존 `/survey`, `/prd` 404 검증을 재사용한다. `src/main.tsx`에서 도달할 수 없고 앱·테스트에서 참조되지 않는 이전 화면/기능만 제거하며, PRD 세션 정리에 사용하는 `src/features/prd/contextStorage.ts`와 현재 공유 타입·API 계약은 보존한다. 사람 대상 사용성 결과와 최종 출시 승인은 QLT-PR-03에 남긴다.

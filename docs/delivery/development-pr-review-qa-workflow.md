@@ -125,7 +125,7 @@ flowchart TD
 | 27 | `GDE-PR-01` 설정 가이드 | GDE-504 | SETUP_GUIDE_DRAFT registry/prompt/schema와 golden eval, 근거 있는 가이드 생성·승인 gate | merged (#29) |
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | QLT-601~603 | 지정 viewport와 키보드·성능 gate | merged (#66) |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | QLT-604, 605, 608 | 전체 프로세스와 보안·모델 회귀 통과 | merged (#67; `9dea685`) |
-| 30 | `QLT-PR-03A` 기술 출시 준비 | QLT-607 | legacy reference audit, retired route 404, README/environment/deployment docs, evidence-linked technical checklist | in_progress |
+| 30 | `QLT-PR-03A` 기술 출시 준비 | QLT-607 | legacy reference audit, retired route 404, README/environment/deployment docs, evidence-linked technical checklist | merged (#69; `fa5140a`) |
 | 31 | `QLT-PR-03` 사용자 검증·최종 출시 판정 | QLT-606 | participant sessions, PRD metric review, P0 decision and final release checklist | planned (participant readiness required) |
 | 31 | `AUTH-PR-04` ideon 로그인 화면 시안 개편 | AUTH-001, UI-AUTH-001, UIR-010 | ideon 로그인 시각 개편, Google 단일 로그인과 인증 상태 보존 | merged (#43) |
 | 32 | `AUTH-PR-05` 로그인 redirect 토스트와 Vercel SPA 경로 fallback | AUTH-001, UI-AUTH-001, UIR-010; `AUTH-REDIR-001`, `DEP-SPA-001` | 일시적인 redirect 상태 토스트와 `/login?returnTo=%2F` 직접 새로고침, API·정적 파일 경로 보존 | merged (#46) |

@@ -14,6 +14,7 @@
 | QLT-PR-02 통합 경로·계약·AI 회귀 | 확인됨(기록된 실행 기준) | [테스트 결과](../../../tasks/QLT-PR-02/test-results.md), [QA 보고서](../../../tasks/QLT-PR-02/qa-report.md). 단위/계약, synthetic golden, desktop/mobile browser 결과는 fixture 범위이며 live provider와 실제 Google 로그인은 제외됐습니다. |
 | QLT-PR-01 구현 PR | 병합됨 | [PR #66](https://github.com/donghyunlee-dev/ai-agent-blueprint/pull/66) |
 | QLT-PR-02 구현 PR | 병합됨 | [PR #67](https://github.com/donghyunlee-dev/ai-agent-blueprint/pull/67) |
+| QLT-PR-03A 기술 준비 | 병합됨 | [PR #69](https://github.com/donghyunlee-dev/ai-agent-blueprint/pull/69), merge commit `fa5140a27905ad0611d71a903439dcd4b8f22984`. |
 | QLT-PR-03A candidate Preview 브라우저 흐름 | 확인됨(fixture 범위) | PR #69 commit `2bcb28c` Preview에서 desktop/mobile 2/2 통과. [테스트 결과](../../../tasks/QLT-PR-03A/test-results.md). AI/document API는 deterministic fixture이며 live provider 검증은 아닙니다. |
 | 현재 main Production 배포 식별 | 배포 정보 기록됨 | SHA [`9dea685145d76ca3ebe4c12ad2b3721d549c9256`](https://github.com/donghyunlee-dev/ai-agent-blueprint/commit/9dea685145d76ca3ebe4c12ad2b3721d549c9256), [Production URL](https://windsoft-agent-blueprint-itj1ns4s1.vercel.app). 이 항목은 배포 식별 정보를 연결하며, Production에서 live AI나 실제 사용자 전체 흐름을 검증했다는 뜻은 아닙니다. |
 | 이전 경로 `/survey`, `/prd` | 공통 404로 확인됨(기존 검증) | [FND-PR-01 테스트 결과](../../../tasks/FND-PR-01/test-results.md), [QA 보고서](../../../tasks/FND-PR-01/qa-report.md), [404 화면 증거](../FND-PR-01/README.md). 두 경로는 자동 redirect되지 않고 공통 404를 표시합니다. |
