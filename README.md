@@ -1,26 +1,24 @@
 # Agent Blueprint
 
-사용자는 Google 로그인 후 AI와 연속 대화하며 제품 결정을 구조화하고 요구사항명세서와 PRD를 만드는 React 애플리케이션이다. 현재는 리빌드 명세를 확정하고 단계별 구현을 준비하는 상태다.
+Agent Blueprint는 사용자가 AI와 자유롭게 대화하고, 제안을 직접 검토·승인해 제품 설계를 확정한 뒤 **요구사항 명세**와 PRD를 같은 설계에서 만드는 React 애플리케이션입니다. 대화와 확정 내용은 작업 공간의 좌·우 패널에 연결되며, 설계는 요약과 도식으로 확인할 수 있습니다.
 
-## 문서
+## 현재 제품 흐름
 
-제품 정의, 요구사항, 데이터, 아키텍처, UI와 개발 순서는 [문서 인덱스](docs/README.md)에서 확인한다. 사용자에게 제공하는 설치·연동 가이드 원본은 `docs/guide/`에 유지한다.
+1. 아이디어 또는 참고 자료로 프로젝트를 시작합니다.
+2. AI가 대화 맥락을 바탕으로 질문·설명·제안을 만들고, 사용자는 제안별로 승인·수정·거절합니다. 사용자가 추천을 요청하고 맥락이 충분하면 근거 있는 11개 후보를 제공하며, 선택은 제안 검토 단계에서 확정합니다. AI 응답만으로 설계가 확정되지는 않습니다.
+3. 확정 설계와 남은 결정을 확인하고 readiness 조건을 검토합니다.
+4. 사용자가 별도 **요구사항 명세** 단계에서 생성을 요청합니다. 생성 결과를 검토하고 준비 완료를 확인해야 PRD 생성이 열립니다.
+5. 같은 설계 revision을 바탕으로 PRD를 생성·검토하고 Markdown으로 내보냅니다.
 
-## 기술 기준
+대화·제안 승인·도식·문서 생성의 동작 계약은 [대화 프로세스](docs/product/04-conversation-process.md), [제안·준비도 프로세스](docs/process/04-proposal-and-readiness.md), [문서 생성 프로세스](docs/process/05-document-generation.md)에 있습니다. 제품 문서는 [문서 인덱스](docs/README.md)에서 확인할 수 있습니다.
 
-- React 18.3.1
-- TypeScript
-- Vite
-- Visual references in `docs/template/`
-- Google OAuth/OIDC와 서버 세션
+## 기술 기준과 화면 설계
 
-UI를 구현하기 전에 `docs/template/README.md`에서 관련 화면 캡처를 확인한다. 새 화면은 semantic HTML과 Blueprint 소유 CSS로 구현하고, 기존 UI package imports는 foundation UI migration 단계에서 함께 제거한다. 세부 기준은 [UI 참고 이미지 통합 명세](docs/product/09-ui-reference-integration.md)를 따른다.
-
-현재 prototype에는 기존 외부 UI library import가 남아 있다. 새 화면은 이를 사용하지 않으며 `FND-PR-01`에서 관련 import와 package 설정을 함께 제거한다.
-
-인증 구현 전에 Google Cloud OAuth client와 환경별 callback URI를 준비하고 [Google 로그인 인증 설계](docs/product/11-google-oauth-authentication.md)를 따른다. Google OAuth client secret과 Blueprint session secret은 서버 환경에만 둔다.
-
-AI 구현은 [AI 오케스트레이션](docs/product/12-ai-orchestration-and-model-policy.md), [프롬프트·응답 계약](docs/product/13-prompt-and-response-contracts.md), [호출 예산·평가·운영](docs/product/14-ai-budget-evaluation-and-operations.md), [Prompt Template](docs/product/15-ai-prompt-template-spec.md)을 따른다. MVP는 Luna 보조 처리, GPT-5 Mini 기본 처리, 최종 PRD의 Terra 처리만 사용하며 일반 프로젝트의 API 비용 hard 상한은 $0.60이다.
+- React 18.3.1, TypeScript, Vite
+- Vercel Serverless Functions의 API와 Google OAuth/OIDC 인증
+- 사용자별 프로젝트 데이터는 브라우저 IndexedDB에 저장
+- 주 시각 기준은 [현재 Blueprint 시안](docs/blueprint-design/README.md)입니다. 시안에 없는 상태에 한해 [template 캡처](docs/template/README.md)를 보조 자료로 사용합니다.
+- 화면과 API 동작 계약은 제품·프로세스 문서가 정의합니다. 시안 이미지를 제품 화면의 배경으로 사용하지 않습니다.
 
 ## 로컬 실행
 
@@ -29,10 +27,14 @@ npm install
 npm run dev
 ```
 
-프로덕션 빌드 확인:
+프로덕션 빌드:
 
 ```bash
 npm run build
 ```
 
-OpenAI API 키, Google OAuth client secret, Blueprint session secret과 환경별 설정은 `.env.local`에만 저장하고 Git에 커밋하지 않는다.
+배포 및 환경 설정은 [배포 가이드](docs/guide/deploy-guide.md)를 따릅니다. 비밀값은 무시 처리된 `.env.local` 또는 Vercel 환경 설정에만 두고 저장소에 커밋하지 않습니다.
+
+## 출시 증거와 남은 확인
+
+검증 결과와 아직 완료되지 않은 실사용 gate는 [QLT-PR-03A 기술 출시 체크리스트](docs/delivery/evidence/QLT-PR-03A/release-checklist.md)에 정리합니다. 자동화 fixture 통과는 실계정 로그인, 실제 AI provider 품질 또는 실제 참여자 사용성 검증을 대신하지 않습니다.

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const previewUrl = process.env.PLAYWRIGHT_PREVIEW_URL;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
@@ -8,11 +10,11 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
   use: {
-    baseURL: "http://localhost:4173",
+    baseURL: previewUrl || "http://localhost:4173",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
-  webServer: {
+  webServer: previewUrl ? undefined : {
     command: "npm run build && npm run preview -- --port 4173",
     url: "http://localhost:4173",
     reuseExistingServer: !process.env.CI,

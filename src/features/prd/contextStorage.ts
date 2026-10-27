@@ -1,4 +1,36 @@
-import type { PrdGenerationContext } from "./types";
+interface PrdGenerationContext {
+  formData: {
+    serviceName: string;
+    serviceDesc: string;
+    features: string[];
+    env: string;
+    users: string;
+    os: string;
+    db: string;
+    dbExist: string;
+    dbType: string;
+    auth: string;
+    authTypes: string[];
+    notif: string;
+    notifChannels: string[];
+    automation: string[];
+    aiAgent: string;
+    tools: string[];
+    git: string;
+    deploy: string;
+    security: string[];
+    test: string;
+    timeline: string;
+    devExist: string;
+    extraNote: string;
+  };
+  recommendation: {
+    title: string;
+    summary: string;
+    reportMarkdown: string;
+    guideDocs: string[];
+  };
+}
 
 const STORAGE_KEY = "windsoft-agent-blueprint:prd-context";
 const LEGACY_STORAGE_KEY = "sfood-agent-blueprint:prd-context";
