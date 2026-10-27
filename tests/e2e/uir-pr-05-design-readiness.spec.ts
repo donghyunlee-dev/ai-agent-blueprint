@@ -155,10 +155,11 @@ test('shows five ordered summary groups, preserves ten areas, and filters to sou
   await page.goto(`/blueprints/${projectId}/requirements`);
   await expect(page).toHaveURL(new RegExp(`/blueprints/${projectId}/requirements$`));
   await expect(page.locator('.requirements-document')).toBeVisible();
+  await page.getByText('자료와 정합성 지원', { exact: true }).click();
   await expect(page.locator('.source-row').filter({ hasText: 'readiness-source.txt' })).toBeVisible();
-  const sourcePanelPrecedesRequirements = await page.locator('.source-documents').evaluate((sourcePanel) => {
+  const sourcePanelFollowsRequirements = await page.locator('.source-documents').evaluate((sourcePanel) => {
     const requirements = document.querySelector('.requirements-document');
-    return Boolean(requirements && (sourcePanel.compareDocumentPosition(requirements) & Node.DOCUMENT_POSITION_FOLLOWING));
+    return Boolean(requirements && (requirements.compareDocumentPosition(sourcePanel) & Node.DOCUMENT_POSITION_FOLLOWING));
   });
-  expect(sourcePanelPrecedesRequirements).toBe(true);
+  expect(sourcePanelFollowsRequirements).toBe(true);
 });

@@ -106,11 +106,11 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const [sourceMessageFocusId, setSourceMessageFocusId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [conversationWidth, setConversationWidthState] = useState(() => getConversationWidth(projectId ?? "") ?? 360);
-  const [mobileMode, setMobileMode] = useState<"conversation" | "work" | "review">("work");
+  const [mobileMode, setMobileMode] = useState<"conversation" | "work" | "review">(() => location.hash === "#conversation" ? "conversation" : "work");
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [selectedDesignItemId, setSelectedDesignItemId] = useState<string | null>(null);
   const [inspectorOverlay, setInspectorOverlay] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches);
-  const modeTabsVisible = false;
+  const [modeTabsVisible, setModeTabsVisible] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches);
   const [mobileLayout, setMobileLayout] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
   const [proposalBusyId, setProposalBusyId] = useState<string | null>(null);
   const [proposalError, setProposalError] = useState<string | null>(null);
@@ -141,8 +141,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const activeTurnCancellationRef = useRef<{ jobId:string; abort:()=>void } | null>(null);
   const contextualSubmitRef = useRef<((response:ContextualResponse)=>Promise<void>)|null>(null);
   const saverRef = useRef<ProjectSaver | null>(null);
-  const conversationRef = useRef<HTMLElement | null>(null);
   const conversationContentRef = useRef<HTMLDivElement | null>(null);
+  const conversationWasAtBottomRef = useRef(true);
   const inspectorPanelRef = useRef<HTMLElement | null>(null);
   const inspectorTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inspectorCloseRef = useRef<HTMLButtonElement | null>(null);
@@ -245,17 +245,25 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 1279px)");
     const mobileQuery = window.matchMedia("(max-width: 767px)");
+    const modeTabsQuery = window.matchMedia("(max-width: 1023px)");
     const update = () => setInspectorOverlay(query.matches);
     const updateMobile = () => setMobileLayout(mobileQuery.matches);
+    const updateModeTabs = () => setModeTabsVisible(modeTabsQuery.matches);
     update();
     updateMobile();
+    updateModeTabs();
     query.addEventListener("change", update);
     mobileQuery.addEventListener("change", updateMobile);
-    return () => { query.removeEventListener("change", update); mobileQuery.removeEventListener("change", updateMobile); };
+    modeTabsQuery.addEventListener("change", updateModeTabs);
+    return () => { query.removeEventListener("change", update); mobileQuery.removeEventListener("change", updateMobile); modeTabsQuery.removeEventListener("change", updateModeTabs); };
   }, []);
 
   useEffect(() => {
     if (!aggregate || loadStatus !== "ready") return;
+    if (!documentType && location.hash !== "#conversation") {
+      navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/${aggregate.project.activeDocumentType}`, { replace: true });
+      return;
+    }
     if (documentType === "requirements" && !computeDesignReadiness(aggregate).canGenerateRequirements) {
       navigate(`/blueprints/${encodeURIComponent(aggregate.project.id)}/design`, { replace: true });
       return;
@@ -268,19 +276,30 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       setAggregate(updated);
       saverRef.current?.schedule(updated);
     }
-  }, [aggregate, documentType, loadStatus, navigate]);
+  }, [aggregate, documentType, loadStatus, location.hash, navigate]);
 
   useEffect(() => {
-    const panel = conversationRef.current;
+    setMobileMode(location.hash === "#conversation" ? "conversation" : "work");
+    setInspectorOpen(false);
+  }, [location.hash, location.pathname]);
+
+  useEffect(() => {
+    const panel = conversationContentRef.current;
     if (!panel || !projectId || loadStatus !== "ready" || panel.clientHeight === 0) return;
     const frame = window.requestAnimationFrame(() => {
       const saved = getConversationScrollTop(projectId);
-      if (saved !== null) panel.scrollTop = clampScrollOffset(saved, panel.scrollHeight, panel.clientHeight);
+      if (saved !== null) {
+        panel.scrollTop = clampScrollOffset(saved, panel.scrollHeight, panel.clientHeight);
+        conversationWasAtBottomRef.current = panel.scrollHeight - panel.clientHeight - panel.scrollTop <= 32;
+      }
     });
-    const persist = () => { setConversationScrollTop(projectId, panel.scrollTop); };
+    const persist = () => {
+      setConversationScrollTop(projectId, panel.scrollTop);
+      conversationWasAtBottomRef.current = panel.scrollHeight - panel.clientHeight - panel.scrollTop <= 32;
+    };
     panel.addEventListener("scroll", persist, { passive: true });
     return () => { window.cancelAnimationFrame(frame); panel.removeEventListener("scroll", persist); };
-  }, [loadStatus, mobileMode, projectId]);
+  }, [documentType, loadStatus, location.hash, mobileLayout, mobileMode, projectId]);
 
   useEffect(() => {
     const inlineReview = mobileLayout && mobileMode === "review";
@@ -608,7 +627,9 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   useEffect(() => {
     const content = conversationContentRef.current;
     if (!content) return;
-    const frame = window.requestAnimationFrame(() => { content.scrollTop = content.scrollHeight; });
+    const frame = window.requestAnimationFrame(() => {
+      if (conversationWasAtBottomRef.current) content.scrollTop = content.scrollHeight;
+    });
     return () => window.cancelAnimationFrame(frame);
   }, [aggregate?.messages.length]);
 
@@ -663,7 +684,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
   function continueDeciding() {
     selectMode("conversation");
-    window.requestAnimationFrame(() => conversationRef.current?.focus());
+    window.requestAnimationFrame(() => conversationContentRef.current?.focus());
   }
 
   function openRequirements() {
@@ -855,7 +876,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       </nav>
       <div className="workspace-panels" data-stage={currentStage} data-inspector-active={currentStage === "design" ? String(inspectorOpen) : undefined}>
         <ConversationWorkspace summary={visibleSummary} availableMessageIds={aggregate.messages.map((message) => message.id)} onNavigateSource={navigateToSourceMessage}>
-        <section ref={conversationRef} id="workspace-conversation-panel" className="workspace-panel workspace-conversation" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-conversation" : undefined} aria-label={modeTabsVisible ? undefined : "대화"}>
+        <section id="workspace-conversation-panel" className="workspace-panel workspace-conversation" role={modeTabsVisible ? "tabpanel" : "region"} aria-labelledby={modeTabsVisible ? "workspace-mode-tab-conversation" : undefined} aria-label={modeTabsVisible ? undefined : "대화"}>
           <header className="workspace-panel-heading"><h1>대화</h1><span>초기 아이디어</span></header>
           <div ref={conversationContentRef} className="workspace-conversation-content" role="region" aria-label="대화 기록" tabIndex={0} onKeyDown={(event) => {
             if (event.target !== event.currentTarget) return;

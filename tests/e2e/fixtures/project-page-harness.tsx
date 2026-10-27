@@ -14,6 +14,7 @@ const issuer = "https://accounts.google.com";
 const ownerA = await deriveOwnerKey({ issuer, subject: "retry-owner-a" });
 const ownerB = await deriveOwnerKey({ issuer, subject: "retry-owner-b" });
 const mode = new URLSearchParams(window.location.search).get("mode");
+let readFailuresRemaining = mode === "read-error" ? 1 : 0;
 let ownerASaves = 0;
 
 function aggregate(ownerKey: string, title: string): BlueprintAggregate {
@@ -32,7 +33,10 @@ function aggregate(ownerKey: string, title: string): BlueprintAggregate {
 const aggregates = new Map([[ownerA, aggregate(ownerA, "A 소유자 프로젝트")], [ownerB, aggregate(ownerB, "B 소유자 프로젝트")]]);
 const repository: ProjectRepository = {
   list: async () => [],
-  get: async (ownerKey, projectId) => projectId === "retry-project" ? structuredClone(aggregates.get(ownerKey) ?? null) : null,
+  get: async (ownerKey, projectId) => {
+    if (readFailuresRemaining > 0) { readFailuresRemaining -= 1; throw new Error("TEST_READ_FAILURE"); }
+    return projectId === "retry-project" ? structuredClone(aggregates.get(ownerKey) ?? null) : null;
+  },
   save: async (ownerKey, snapshot) => {
     if (ownerKey === ownerA) {
       ownerASaves += 1;
@@ -64,6 +68,7 @@ createRoot(document.getElementById("root")!).render(
     <MemoryRouter initialEntries={["/blueprints/retry-project"]}>
       <Routes>
         <Route path="/blueprints/:projectId" element={<ProjectPage repositoryFactory={repositoryFactory} />} />
+        <Route path="/blueprints/:projectId/:documentType" element={<ProjectPage repositoryFactory={repositoryFactory} />} />
       </Routes>
     </MemoryRouter>
   </AuthProvider>,

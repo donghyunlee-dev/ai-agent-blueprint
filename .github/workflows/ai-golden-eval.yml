@@ -1,4 +1,4 @@
-name: AI synthetic golden eval
+name: Application quality and AI synthetic golden eval
 
 on:
   pull_request:
@@ -17,4 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm run test:golden
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ci
+      - run: npm audit --omit=dev

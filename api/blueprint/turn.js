@@ -126,6 +126,30 @@ function requestCancellation(req, res) {
   };
 }
 
+function bindFileEvidenceToRequest(proposal, excerpts) {
+  let valid = true;
+  const evidence = proposal.evidence.map((reference) => {
+    if (reference.sourceType !== 'file') return reference;
+    const excerpt = excerpts.find((item) => item.sourceId === reference.sourceId
+      && (!reference.excerpt || item.text.includes(reference.excerpt)));
+    if (!excerpt) {
+      valid = false;
+      return reference;
+    }
+    return { ...reference, sourceId: excerpt.id, ...(excerpt.location ? { location: excerpt.location } : {}) };
+  });
+  return { valid, proposal: { ...proposal, evidence } };
+}
+
+function persistFileEvidence(evidence, excerpts) {
+  const excerptById = new Map(excerpts.map((excerpt) => [excerpt.id, excerpt]));
+  return evidence.map((reference) => {
+    if (reference.sourceType !== 'file') return reference;
+    const excerpt = excerptById.get(reference.sourceId);
+    return excerpt ? { ...reference, sourceId: excerpt.sourceId, ...(excerpt.location ? { location: excerpt.location } : {}) } : reference;
+  });
+}
+
 function selectedChoiceProposals(body) {
   const responseTo = body.userTurn.responseTo;
   if (!responseTo) return { valid: body.userTurn.kind === 'text', proposals: [] };
@@ -135,7 +159,9 @@ function selectedChoiceProposals(body) {
   if (body.userTurn.kind === 'recommendation_choice') {
     if (block.type !== 'recommendation_candidates' || !responseTo.choiceId) return { valid: false, proposals: [] };
     const candidate = block.candidates.find((item) => item.id === responseTo.choiceId);
-    return candidate?.proposalDraft ? { valid: true, proposals: [candidate.proposalDraft] } : { valid: false, proposals: [] };
+    if (!candidate?.proposalDraft) return { valid: false, proposals: [] };
+    const rebound = bindFileEvidenceToRequest(candidate.proposalDraft, body.sources);
+    return { valid: rebound.valid, proposals: rebound.valid ? [rebound.proposal] : [] };
   }
   if (body.userTurn.kind !== 'choice' || block.type !== 'question') return { valid: false, proposals: [] };
   const selectedValues = block.answerMode === 'rank' ? (responseTo.rankedValues ?? []) : (responseTo.selectedValues ?? []);
@@ -151,7 +177,12 @@ function selectedChoiceProposals(body) {
   const selectedOptions = block.answerMode === 'rank'
     ? selectedValues.map((value) => block.options.find((option) => option.value === value)).filter(Boolean)
     : (block.options ?? []).filter((option) => selectedValues.includes(option.value));
-  const proposals = selectedOptions.filter((option) => option.proposalDraft).map((option) => option.proposalDraft);
+  const proposals = [];
+  for (const option of selectedOptions.filter((item) => item.proposalDraft)) {
+    const rebound = bindFileEvidenceToRequest(option.proposalDraft, body.sources);
+    if (!rebound.valid) return { valid: false, proposals: [] };
+    proposals.push(rebound.proposal);
+  }
   return { valid: true, proposals };
 }
 
@@ -161,17 +192,28 @@ function proposalsInChoices(payload) {
   return [...optionProposals, ...recommendationProposals];
 }
 
-function resultFromOutput(output, selectedProposals) {
+function resultFromOutput(output, selectedProposals, sourceExcerpts) {
   const payload = output.payload;
   const recommendationBlock = payload.recommendations?.length ? {
     type: 'recommendation_candidates',
     id: crypto.randomUUID(),
-    candidates: payload.recommendations.map(({ proposal, ...candidate }) => ({ id: crypto.randomUUID(), ...candidate, proposalDraft: proposal })),
+    candidates: payload.recommendations.map(({ proposal, ...candidate }) => ({
+      id: crypto.randomUUID(),
+      ...candidate,
+      evidence: persistFileEvidence(candidate.evidence, sourceExcerpts),
+      proposalDraft: { ...proposal, evidence: persistFileEvidence(proposal.evidence, sourceExcerpts) },
+    })),
+  } : undefined;
+  const followUp = payload.followUp ? {
+    ...payload.followUp,
+    options: payload.followUp.options?.map((option) => option.proposalDraft
+      ? { ...option, proposalDraft: { ...option.proposalDraft, evidence: persistFileEvidence(option.proposalDraft.evidence, sourceExcerpts) } }
+      : option),
   } : undefined;
   return {
     assistantMessage: payload.assistantMessage.trim(),
     proposals: [...payload.proposals, ...selectedProposals],
-    ...(payload.followUp ? { followUp: questionFromFollowUp(payload.followUp, crypto.randomUUID()) } : {}),
+    ...(followUp ? { followUp: questionFromFollowUp(followUp, crypto.randomUUID()) } : {}),
     ...(recommendationBlock ? { recommendationCandidates: recommendationBlock } : {}),
     referencedItemIds: output.referencedItemIds,
     referencedSourceIds: output.referencedSourceIds,
@@ -268,7 +310,7 @@ export default async function handler(req, res, deps = {}) {
         const domainResult = validateTurnAnalyzeV3(output.payload, body.userTurn);
         const choiceTargets = validateProposalTargets(proposalsInChoices(output.payload), targetContext);
         validationError = !schemaResult.valid ? schemaResult.errors : !metadataResult.valid ? metadataResult.errors : !references.valid ? references.errors : !domainResult.valid ? domainResult.errors : !choiceTargets.valid ? choiceTargets.errors : null;
-        if (validationError && process.env.DEBUG_CON_PR05) console.error(JSON.stringify({ schemaResult, metadataResult, references, domainResult, choiceTargets }));
+        if (validationError && process.env.DEBUG_CON_PR05) console.error('TURN_RESPONSE_VALIDATION_FAILED');
         if (!validationError) break;
       }
       if (validationError) {
@@ -299,14 +341,14 @@ export default async function handler(req, res, deps = {}) {
     const selectedReferences = validateReferences({ proposals: selected.proposals }, manifest, targetContext);
     const selectedTargets = validateProposalTargets(selected.proposals, targetContext);
     if (!selectedReferences.valid || !selectedTargets.valid) {
-      if (process.env.DEBUG_CON_PR05) console.error(JSON.stringify({ selectedReferences, selectedTargets }));
+      if (process.env.DEBUG_CON_PR05) console.error('TURN_SELECTED_OUTPUT_VALIDATION_FAILED');
       if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
       return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
     }
-    const result = resultFromOutput(output, selected.proposals);
+    const result = resultFromOutput(output, selected.proposals, body.sources);
     const responseValidation = validateSchema(schemas.http.turnResponse, result);
     if (!responseValidation.valid || !result.assistantMessage) {
-      if (process.env.DEBUG_CON_PR05) console.error(JSON.stringify({ responseValidation }));
+      if (process.env.DEBUG_CON_PR05) console.error('TURN_HTTP_RESPONSE_SCHEMA_INVALID');
       if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
       await circuitSuccess(store, circuitKey);
       return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });

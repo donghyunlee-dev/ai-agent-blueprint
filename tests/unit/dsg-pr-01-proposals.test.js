@@ -64,6 +64,16 @@ test('edit-and-approve rejects empty values without changing a pending proposal'
   assert.equal(result.status,'invalid_value'); assert.deepEqual(state,before);
 });
 
+test('editing a design proposal preserves unedited fields from the proposed value', async () => {
+  const state = aggregate(proposal({ after: { type:'constraint', title:'취소 정책', description:'초안 설명', priority:'high' } }));
+  const result = await editAndApproveProposal({ ownerKey:'owner', projectId:'project', proposalId:'p1', editedValue:{ title:'확정된 취소 정책', description:'변경된 설명' }, repository:repository(state), now:()=>now, idFactory:()=> 'i2' });
+  assert.equal(result.status, 'applied');
+  assert.equal(state.designItems[0].type, 'constraint');
+  assert.equal(state.designItems[0].priority, 'high');
+  assert.equal(state.designItems[0].title, '확정된 취소 정책');
+  assert.equal(state.designItems[0].description, '변경된 설명');
+});
+
 test('delete approval archives the target and transaction failure preserves source state', async () => {
   const state = aggregate(proposal({operation:'delete',targetId:'i1',before:{title:'운영자'},after:undefined}),[item]);
   const repo = repository(state);

@@ -18,7 +18,10 @@ test('home uses the supported dashboard shell and keeps start controls usable', 
   await expect(page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '프로젝트' })).toHaveAttribute('href', '/#recent-projects');
   await expect(page.getByRole('heading', { name: '어떤 서비스를 만들고 싶으세요?' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '최근 프로젝트' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '아직 프로젝트가 없습니다' })).toBeVisible();
+  const recentProjects = page.getByRole('list', { name: '최근 프로젝트 목록' });
+  await expect(recentProjects.locator('.home-recent-card[aria-disabled="true"]')).toHaveCount(3);
+  await expect(recentProjects.getByRole('link')).toHaveCount(0);
+  await expect(recentProjects.getByRole('button', { name: '프로젝트 추가' })).toBeVisible();
   await expect(page.getByRole('link', { name: '템플릿' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: '지식 라이브러리' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: '설정' })).toHaveCount(0);
@@ -31,7 +34,7 @@ test('home uses the supported dashboard shell and keeps start controls usable', 
   await idea.blur();
   await expect(page.getByRole('alert')).toContainText('아이디어를 입력해 주세요.');
   await page.screenshot({ path: path.join(evidence, `home-validation-${testInfo.project.name}.png`), fullPage: true, scale: 'css' });
-  await page.getByRole('button', { name: '고객 문의 자동 분류' }).click();
+  await page.getByRole('button', { name: '챗 서비스' }).click();
   await expect(idea).toHaveValue(/고객 문의/);
   await expect(submit).toBeEnabled();
   const chooserPromise = page.waitForEvent('filechooser');
@@ -47,7 +50,7 @@ test('new project appears in recent cards and reopens inside one shell', async (
   await page.goto('/');
   await page.getByRole('textbox', { name: '만들고 싶은 제품이나 해결할 문제' }).fill('새로운 회의실 예약 서비스를 만들고 싶어요.');
   await page.getByRole('button', { name: 'Blueprint 시작' }).click();
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}#conversation$/i);
   await expect(page.getByRole('navigation', { name: '주요 메뉴' })).toHaveCount(1);
   await expect(page.getByRole('button', { name: '사용자 메뉴' })).toHaveCount(1);
   await expect(page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '프로젝트' })).not.toHaveAttribute('aria-current', 'page');
@@ -60,5 +63,6 @@ test('new project appears in recent cards and reopens inside one shell', async (
   await expect(page.getByRole('list', { name: '최근 프로젝트 목록' })).toContainText('새로운 회의실 예약 서비스');
   await page.screenshot({ path: path.join(evidence, `home-recent-${testInfo.project.name}.png`), fullPage: true, scale: 'css' });
   await page.getByRole('list', { name: '최근 프로젝트 목록' }).getByRole('link').first().click();
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}\/design$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]{36}$/i);
+  await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue('새로운 회의실 예약 서비스를 만들고 싶어요.');
 });

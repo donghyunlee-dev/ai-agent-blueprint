@@ -37,8 +37,8 @@
 | 25 | `DEC-PR-01` 자료 수정·설정 가이드 완료 정책 | 5단계 | merged (PR #27; merge `1ee6ff4f879389cefce1892b2cba5b8037c4ba39`) | [plan](DEC-PR-01/plan.md) · [tests](DEC-PR-01/test-results.md) · [review](DEC-PR-01/review-notes.md) · [QA](DEC-PR-01/qa-report.md) |
 | 26 | `SRC-PR-03` 추출 결과 다운로드 | 5단계 | merged (PR #28; merge `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`) | [plan](SRC-PR-03/plan.md) · [tests](SRC-PR-03/test-results.md) · [review](SRC-PR-03/review-notes.md) · [QA](SRC-PR-03/qa-report.md) |
 | 27 | `GDE-PR-01` 설정 가이드 | 5단계 | merged (#29) | [plan](GDE-PR-01/plan.md), [review notes](GDE-PR-01/review-notes.md) |
-| 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | in_progress | [plan](QLT-PR-01/plan.md) |
-| 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | planned | [plan](QLT-PR-02/plan.md) |
+| 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | merged (#66; merge `649133e22b3f3862295c1c2307fbd1b7cced58d6`) | [plan](QLT-PR-01/plan.md) |
+| 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | in_progress | [plan](QLT-PR-02/plan.md) |
 | 30 | `QLT-PR-03` 사용자 검증·출시 정리 | 6단계 | planned | [plan](QLT-PR-03/plan.md) |
 | 31 | `AUTH-PR-04` ideon 로그인 화면 시안 개편 | UI 개선 | merged (#43) | [plan](AUTH-PR-04/plan.md) |
 | 32 | `AUTH-PR-05` 로그인 redirect 토스트와 Vercel SPA 경로 fallback | UI·배포 설정 | merged (#46) | [plan](AUTH-PR-05/plan.md) |

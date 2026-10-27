@@ -20,9 +20,28 @@ test.beforeEach(async({page})=>{
   },{databaseName:databaseNameForOwner(ownerKey),ownerKey,projectId});
 });
 
+test('contextual help continues as a freeform conversation without a fixed question catalog',async({page})=>{
+  let submitted:any;
+  await page.route('**/api/blueprint/turn',async(route)=>{
+    submitted=route.request().postDataJSON();
+    await route.fulfill({status:200,json:{assistantMessage:'제품 목표는 사용자가 해결하려는 문제와 기대하는 결과를 간단히 설명하는 내용입니다. 성공 기준은 그 결과가 실제로 나아졌는지 확인하는 방법입니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
+  });
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  const composer=page.getByRole('textbox',{name:'AI에 보낼 자유 답변'});
+  await composer.fill('잘 모르겠어요. 제품 목표와 성공 기준을 쉽게 설명해 주세요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:'제품 목표는 사용자가 해결하려는 문제'})).toBeVisible();
+  expect(submitted.userTurn).toMatchObject({kind:'text',text:'잘 모르겠어요. 제품 목표와 성공 기준을 쉽게 설명해 주세요.'});
+  expect(submitted.userTurn).not.toHaveProperty('questionId');
+  expect(submitted).not.toHaveProperty('answer');
+});
+
 test('free conversation, generated choice, eleven grounded candidates, approval and source navigation',async({page},testInfo)=>{
+  const sourceQuote='예약 취소는 시작 두 시간 전까지 가능합니다.';
+  let reservationSourceId:string|undefined;
   const recommendationBlock={type:'recommendation_candidates',id:'recommendations-1',candidates:Array.from({length:11},(_,index)=>({
-    id:`candidate-${index+1}`,title:`회의실 예약안 ${index+1}`,rationale:'대화에서 확인한 예약 충돌을 줄입니다.',tradeoffs:['운영 기준을 정해야 합니다.'],assumptions:['회의실 정보가 최신 상태입니다.'],evidence:[{sourceType:'message',sourceId:'pending',excerpt:'회의실 예약 충돌을 줄이고 싶어요.'}],
+    id:`candidate-${index+1}`,title:`옵션 ${index+1}`,rationale:'대화에서 확인한 예약 충돌을 줄입니다.',tradeoffs:['운영 기준을 정해야 합니다.'],assumptions:['회의실 정보가 최신 상태입니다.'],evidence:[{sourceType:'message',sourceId:'pending',excerpt:'회의실 예약 충돌을 줄이고 싶어요.'}],
     proposalDraft:{operation:'create',targetType:'design_item',after:{type:'requirement',title:`회의실 예약안 ${index+1}`,description:'회의실 예약 충돌을 사전에 확인합니다.'},rationale:'사용자가 선택한 추천안입니다.',evidence:[{sourceType:'message',sourceId:'pending'}],affectedItemIds:[]},
   }))};
   const requests:any[]=[];
@@ -34,6 +53,7 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
   await page.route('**/api/blueprint/turn',async(route)=>{
     const body=route.request().postDataJSON();requests.push(body);
     if(body.userTurn.kind==='text'&&body.userTurn.text.includes('예약 충돌을 줄이고 싶어요')){
+      reservationSourceId=body.sources.find((source:any)=>source.text.includes(sourceQuote))?.sourceId;
       await route.fulfill({status:200,json:{assistantMessage:'먼저 예약 기준을 좁혀 보겠습니다.',proposals:[],followUp:{type:'question',id:'dynamic-followup',topic:'예약 정책',prompt:'어떤 예약 기준이 필요할까요?',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement'],options:[{value:'capacity',label:'수용 인원 기준',description:'예약 시 정원을 확인합니다.'},{value:'approval',label:'담당자 승인 기준'}]},referencedItemIds:[],referencedSourceIds:[]}});
       return;
     }
@@ -43,6 +63,13 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
     }
     if(body.userTurn.kind==='text'&&body.userTurn.text.includes('추천해 주세요')){
       recommendationSourceTurnId=body.userTurn.id;
+      const fileSource=body.sources.find((source:any)=>source.sourceId===reservationSourceId);
+      if(fileSource){
+        recommendationBlock.candidates.forEach((candidate)=>{
+          candidate.evidence.push({sourceType:'file',sourceId:fileSource.sourceId,excerpt:sourceQuote,location:fileSource.location});
+          candidate.proposalDraft.evidence.push({sourceType:'file',sourceId:fileSource.sourceId,excerpt:sourceQuote,location:fileSource.location});
+        });
+      }
       recommendationBlock.candidates.forEach((candidate)=>{candidate.evidence[0].sourceId=body.userTurn.id;candidate.proposalDraft.evidence[0].sourceId=body.userTurn.id;});
       await route.fulfill({status:200,json:{assistantMessage:'확인한 조건에 맞는 추천 후보입니다.',proposals:[],recommendationCandidates:recommendationBlock,referencedItemIds:[],referencedSourceIds:[]}});
       return;
@@ -50,7 +77,12 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
     const selected=body.userTurn.responseTo;
     const source=body.recentMessages.find((message:any)=>message.id===selected.messageId).blocks.find((block:any)=>block.id===selected.blockId);
     const candidate=source.candidates.find((item:any)=>item.id===selected.choiceId);
-    await route.fulfill({status:200,json:{assistantMessage:'선택한 추천을 승인 대기 제안으로 보관했습니다.',proposals:[candidate.proposalDraft],referencedItemIds:[],referencedSourceIds:[]}});
+    const proposal={...candidate.proposalDraft,evidence:candidate.proposalDraft.evidence.map((reference:any)=>{
+      if(reference.sourceType!=='file')return reference;
+      const excerpt=body.sources.find((item:any)=>item.sourceId===reference.sourceId&&(!reference.excerpt||item.text.includes(reference.excerpt)));
+      return excerpt?{...reference,sourceId:excerpt.id,location:excerpt.location}:reference;
+    })};
+    await route.fulfill({status:200,json:{assistantMessage:'선택한 추천을 승인 대기 제안으로 보관했습니다.',proposals:[proposal],referencedItemIds:[],referencedSourceIds:[]}});
   });
   const now=new Date().toISOString();
   const requirementKeys=['overview','functional','non_functional','data','integration','permissions','exceptions','deployment','operations','exclusions','open_issues'];
@@ -72,7 +104,11 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
     await route.fulfill({status:200,json:{document:{id:documentId,projectId,type:'prd',title:'회의실 예약 PRD',status:'review_required',designRevision:body.designRevision,version:1,sectionIds:sections.map((section)=>section.id),createdAt:now,updatedAt:now},sections,job:{id:'prd-job',projectId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,type:'PRD_DRAFT',promptVersion:'v1',schemaVersion:'v1',modelProfile:'FINAL',resolvedModel:'gpt-5.6-terra',reasoningEffort:'low',designRevision:body.designRevision,status:'succeeded',targetIds:[documentId],startedAt:now,finishedAt:now}}});
   });
 
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}/design`);
+  await page.getByLabel('참고 파일 추가').setInputFiles({name:'reservation-policy.md',mimeType:'text/markdown',buffer:Buffer.from(sourceQuote)});
+  await expect(page.locator('.source-status-ready')).toHaveCount(1);
+  await expect(page.getByText('reservation-policy.md')).toBeVisible();
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await expect(page.getByRole('complementary',{name:'요약'})).toContainText('아직 확정된 내용이 없습니다.');
   const composer=page.getByRole('textbox',{name:'AI에 보낼 자유 답변'});
   await composer.fill('회의실 예약 충돌을 줄이고 싶어요.');
@@ -109,6 +145,7 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
   await page.keyboard.press('Enter');
   await expect(page.locator('.workspace-message-assistant').filter({hasText:'선택 내용을 반영해 이어가겠습니다.'})).toBeVisible();
   expect(requests[0].userTurn).toMatchObject({kind:'text',text:'회의실 예약 충돌을 줄이고 싶어요.'});
+  expect(requests[0].sources.some((source:any)=>source.sourceId===reservationSourceId&&source.text.includes(sourceQuote))).toBe(true);
   expect(requests[0]).not.toHaveProperty('answer');
   expect(requests[1].userTurn).toMatchObject({kind:'choice',responseTo:{blockId:'dynamic-followup',selectedValues:['capacity']}});
 
@@ -123,6 +160,8 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
   await page.screenshot({path:`.pr-artifacts/CON-PR-05/${testInfo.project.name}-recommendation-11.png`,scale:'css'});
   await page.getByRole('button',{name:'이 추천 선택'}).first().click();
   await expect(page.locator('.workspace-message-assistant').filter({hasText:'선택한 추천을 승인 대기 제안으로 보관했습니다.'})).toBeVisible();
+  expect(requests[3].userTurn.text).not.toMatch(/예약|취소/);
+  expect(requests[3].sources.some((source:any)=>source.sourceId===reservationSourceId&&source.text.includes(sourceQuote))).toBe(true);
   await expect(page.locator('.ai-turn-cancel')).toBeHidden();
   const ownerKey=await deriveOwnerKey(identity);
   const readProposalStatuses=()=>page.evaluate(async({databaseName,projectId})=>{
@@ -135,22 +174,45 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
 
   await page.goto(`/blueprints/${projectId}/design#proposal-review-title`);
   await expect(page.getByRole('heading',{name:'제안 1개'})).toBeVisible();
-  await page.locator('[data-proposal-card]').getByRole('button',{name:'승인',exact:true}).click();
+  const selectedProposal=page.locator('[data-proposal-card]');
+  await selectedProposal.getByRole('button',{name:'수정 후 승인'}).click();
+  await selectedProposal.getByRole('textbox',{name:'제목'}).fill('확정된 취소 정책');
+  await selectedProposal.getByRole('textbox',{name:'설명'}).fill(sourceQuote);
+  await selectedProposal.getByRole('button',{name:'수정값 승인'}).click();
   await expect(page.getByRole('heading',{name:'검토할 제안이 없습니다'})).toBeVisible();
-  await expect.poll(readProposalStatuses).toContain('accepted');
-  await page.goto(`/blueprints/${projectId}`);
-  await expect(page.getByRole('complementary',{name:'요약'})).toContainText('회의실 예약안 1');
+  await expect.poll(readProposalStatuses).toContain('edited_and_accepted');
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  await expect(page.getByRole('complementary',{name:'요약'})).toContainText('확정된 취소 정책');
   await page.screenshot({path:`.pr-artifacts/CON-PR-05/${testInfo.project.name}-confirmed-summary.png`,scale:'css'});
   const selectedTurnId=requests[2].userTurn.id;
   await page.getByRole('complementary',{name:'요약'}).getByRole('button',{name:'대화 보기'}).click();
   await expect(page.locator(`[id="conversation-message-${selectedTurnId}"]`)).toBeFocused();
   await page.reload();
-  await expect(page.getByRole('complementary',{name:'요약'})).toContainText('회의실 예약안 1');
+  await expect(page.getByRole('complementary',{name:'요약'})).toContainText('확정된 취소 정책');
   await expect.poll(readProposalStatuses).not.toContain('pending');
+  const confirmedEvidence=await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const record=await new Promise<any>((resolve,reject)=>{const req=db.transaction('projects').objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});db.close();
+    return record.designItems.find((item:any)=>item.title==='확정된 취소 정책')?.evidence??[];
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(confirmedEvidence).toEqual(expect.arrayContaining([expect.objectContaining({sourceType:'file',excerpt:sourceQuote})]));
+  await page.goto(`/blueprints/${projectId}/design`);
+  await page.getByRole('button',{name:'상세 보기'}).click();
+  const designBoardState=await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const record=await new Promise<any>((resolve,reject)=>{const req=db.transaction('projects').objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});db.close();
+    return {items:(record?.designItems??[]).map((item:any)=>({id:item.id,type:item.type,title:item.title,status:item.status,priority:item.priority,archivedAt:item.archivedAt})),rows:[...document.querySelectorAll<HTMLElement>('.design-item-row')].map((row)=>row.innerText)};
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(designBoardState.items.find((item:any)=>item.title==='확정된 취소 정책')).toEqual(expect.objectContaining({type:'requirement',status:'confirmed'}));
+  expect(designBoardState.rows.some((row:string)=>row.includes('확정된 취소 정책'))).toBe(true);
+  if(testInfo.project.name==='mobile-chromium') await page.getByRole('button',{name:'상세 닫기'}).click();
+  await page.locator('.design-item-row').filter({hasText:'확정된 취소 정책'}).click();
+  await expect(page.locator('[aria-label="상세 정보"]').getByRole('blockquote')).toHaveText(sourceQuote);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   if(testInfo.project.name==='mobile-chromium'){
     await page.getByRole('button',{name:'요약 보기'}).click();
     const mobileSummary=page.getByRole('dialog',{name:'요약'});
-    await expect(mobileSummary).toContainText('회의실 예약안 1');
+    await expect(mobileSummary).toContainText('확정된 취소 정책');
     await expect(mobileSummary).toContainText('남은 결정');
     await page.screenshot({path:`.pr-artifacts/CON-PR-05/mobile-chromium-summary-open.png`,scale:'css'});
     await mobileSummary.getByRole('button',{name:'대화 보기'}).click();
@@ -219,7 +281,7 @@ test('renders number, range and rank follow-ups as typed decision controls',asyn
       await route.fulfill({status:200,json:{assistantMessage:'구체적인 기준을 확인하겠습니다.',proposals:[],followUp:{...form,type:'question',id:`typed-${index}`,required:true,allowCustomAnswer:false,allowUnknown:false,allowDefer:false,targetItemTypes:['requirement']},referencedItemIds:[],referencedSourceIds:[]}});
     }else await route.fulfill({status:200,json:{assistantMessage:'정한 기준을 기록했습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
   });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('예약 수용량과 운영 시간을 정하고 싶어요.');
   await page.getByRole('button',{name:'AI로 답변 분석'}).click();
   await page.getByRole('button',{name:'동의하고 계속'}).click();
@@ -250,7 +312,7 @@ test('insufficient recommendation context asks one contextual follow-up without 
   let submitted:any;
   const response={assistantMessage:'추천을 준비하려면 먼저 기준을 확인할게요.',proposals:[],followUp:{type:'question',id:'insufficient-context-followup',topic:'추천 기준',prompt:'어떤 점을 우선해서 비교할까요?',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement'],options:[{value:'capacity',label:'예약 수용량',description:'동시 예약 규모를 고려합니다.'},{value:'approval',label:'승인 절차',description:'담당자 검토 흐름을 고려합니다.'}]},referencedItemIds:[],referencedSourceIds:[]};
   await page.route('**/api/blueprint/turn',async(route)=>{submitted=route.request().postDataJSON();await route.fulfill({status:200,json:response});});
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   if(testInfo.project.name==='mobile-chromium'){
     await page.getByRole('button',{name:'요약 보기'}).click();
     const summary=page.getByRole('dialog',{name:'요약'});
@@ -296,7 +358,7 @@ test('persists each turn before dispatch and before showing the assistant result
     },{databaseName,projectId,userTurnId:body.userTurn.id}));
     await route.fulfill({status:200,json:{assistantMessage:'저장된 응답입니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
   });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await page.evaluate(()=>{
     const original=IDBObjectStore.prototype.put;
     (window as any).__turnPersistenceFailures={user:true,assistant:true};
@@ -364,7 +426,7 @@ test('summary source navigation reveals an original message omitted by conversat
     store.put(record);
     await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
   },{databaseName,projectId});
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await expect(page.locator('[id="conversation-message-source-turn-1"]')).toHaveCount(0);
   const summary=testInfo.project.name==='mobile-chromium'?(await page.getByRole('button',{name:'요약 보기'}).click(),page.getByRole('dialog',{name:'요약'})):page.getByRole('complementary',{name:'요약'});
   await expect(summary).toContainText('예약 충돌 감소');
@@ -391,7 +453,7 @@ test('summary shows a non-actionable fallback when a source message is absent',a
     store.put(record);
     await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
   },{databaseName,projectId});
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   const summary=testInfo.project.name==='mobile-chromium'?(await page.getByRole('button',{name:'요약 보기'}).click(),page.getByRole('dialog',{name:'요약'})):page.getByRole('complementary',{name:'요약'});
   await expect(summary).toContainText('원본 대화를 찾을 수 없습니다.');
   await expect(summary.getByRole('button',{name:'대화 보기'})).toHaveCount(0);

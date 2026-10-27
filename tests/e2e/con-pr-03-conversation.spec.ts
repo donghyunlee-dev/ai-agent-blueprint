@@ -35,7 +35,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('project frame exposes the current conversation stage and the five supported destinations', async ({page}) => {
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   const stages = page.getByRole('navigation', {name:'프로젝트 단계'});
   await expect(stages.getByRole('link', {name:'대화'})).toHaveAttribute('aria-current', 'step');
   await expect(stages.getByRole('link', {name:'제안 검토'})).toBeVisible();
@@ -45,8 +45,16 @@ test('project frame exposes the current conversation stage and the five supporte
 });
 
 test('conversation renders prior summary, assistant message, and factual generation stage without percentages', async ({ page }) => {
-  await page.goto(`/blueprints/${projectId}`);
-  await expect(page.getByRole('complementary', { name: '요약' })).toContainText('회의실 예약 충돌을 줄인다.');
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  await expect(page.getByRole('heading', { name: '대화', exact: true })).toBeVisible({ timeout: 20_000 });
+  const summaryTrigger = page.getByRole('button', { name: '요약 보기' });
+  if (await summaryTrigger.isVisible()) await summaryTrigger.click();
+  const summary = page.locator('#conversation-summary-panel');
+  await expect(summary).toBeVisible();
+  await expect(summary).not.toContainText('회의실 예약 충돌을 줄인다.');
+  await expect(summary).toContainText('아직 확정된 내용이 없습니다.');
+  const closeSummary = summary.getByRole('button', { name: '요약 닫기' });
+  if (await closeSummary.isVisible()) await closeSummary.click();
   await expect(page.getByText('요약 아래에 최근 대화가 표시됩니다.')).toBeVisible();
   await expect(page.getByText('회의실 예약이 겹쳐요.')).toHaveCount(0);
   await expect(page.getByText('최근 대화 메시지 22')).toBeVisible();
@@ -75,7 +83,7 @@ test('AI consent is saved before the first turn request and response is rendered
     if (turnCalls === 1) await route.fulfill({status:200,json:{assistantMessage:'답변의 핵심을 정리했습니다.',proposals:[],followUp:{type:'question',id:'followup-1',topic:'예약 정책',prompt:'어떤 예약 기준이 필요할까요?',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement'],options:[{value:'capacity',label:'수용 인원 기준',proposalDraft:{operation:'create',targetType:'design_item',after:{type:'requirement',title:'수용 인원 기준',description:'회의실별 수용 인원을 예약 전에 확인합니다.'},rationale:'예약 충돌을 줄이기 위한 기준입니다.',evidence:[{sourceType:'message',sourceId:body.userTurn.id}],affectedItemIds:[]}}]},referencedItemIds:[],referencedSourceIds:[]}});
     else await route.fulfill({status:200,json:{assistantMessage:'선택을 검토 제안으로 보관했습니다.',proposals:[{operation:'create',targetType:'design_item',after:{type:'requirement',title:'수용 인원 기준',description:'회의실별 수용 인원을 예약 전에 확인합니다.'},rationale:'예약 충돌을 줄이기 위한 기준입니다.',evidence:[{sourceType:'message',sourceId:body.userTurn.responseTo.messageId}],affectedItemIds:[]}],referencedItemIds:[],referencedSourceIds:[]}});
   });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' }).fill('회의실 예약 중복을 줄이고 싶습니다.');
   await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
   await expect(page.getByRole('dialog', { name: 'AI 사용 및 데이터 안내' })).toContainText('최대 24시간');
@@ -101,7 +109,7 @@ test('AI consent is saved before the first turn request and response is rendered
 test('canceling first AI consent preserves draft and sends no request', async ({ page }) => {
   let requests = 0;
   page.on('request', (request) => { if(request.url().includes('/api/blueprint/turn')) requests += 1; });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   const draft=page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' });
   await draft.fill('취소해도 남아야 하는 초안입니다.');
   await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
@@ -132,7 +140,7 @@ test('explicit recommendation renders eleven grounded options and selection rema
       await route.fulfill({status:200,json:{assistantMessage:'선택을 승인 대기 제안으로 저장했습니다.',proposals:[candidate.proposalDraft],referencedItemIds:[],referencedSourceIds:[]}});
     }
   });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('추천해 주세요. 회의실 예약 충돌을 줄이고 싶어요.');
   await page.getByRole('button',{name:'AI로 답변 분석'}).click();
   await page.getByRole('button',{name:'동의하고 계속'}).click();
@@ -154,7 +162,7 @@ test('explicit recommendation renders eleven grounded options and selection rema
   await page.locator('[data-proposal-card]').getByRole('button',{name:'승인',exact:true}).click();
   await expect(page.getByRole('heading',{name:'검토할 제안이 없습니다'})).toBeVisible();
   await expect.poll(readProposalStatuses).toContain('accepted');
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await expect(page.getByRole('complementary',{name:'요약'})).toContainText('예약 운영안 1');
   await page.getByRole('complementary',{name:'요약'}).getByRole('button',{name:'대화 보기'}).click();
   await expect(page.locator(`[id="conversation-message-${originTurnId}"]`)).toBeFocused();
@@ -170,7 +178,7 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
     if(calls<=2) await route.fulfill({status:503,json:{error:'AI_REQUEST_UNKNOWN'}});
     else await route.fulfill({status:200,json:{assistantMessage:'새 intent로 받은 응답',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
   });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   const draft=page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' });
   const sendButton=page.getByRole('button', { name: 'AI로 답변 분석' });
   await draft.fill('네트워크 결과가 불명확해도 유지할 입력입니다.');
@@ -204,7 +212,7 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
 test('canceling an in-flight turn aborts it, keeps its draft, and renders no partial response', async ({ page }) => {
   let requests=0;
   await page.route('**/api/blueprint/turn', async (route) => { requests++; await new Promise((resolve)=>setTimeout(resolve,4000)); await route.fulfill({status:200,json:{assistantMessage:'부분 응답은 보이면 안 됩니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}}).catch(()=>{}); });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   const draft=page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' });
   await draft.fill('취소할 요청의 원문 초안입니다.');
   await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
@@ -217,25 +225,30 @@ test('canceling an in-flight turn aborts it, keeps its draft, and renders no par
 });
 
 
-test('validated catalog question block uses the interactive QuestionCard', async ({page}) => {
-  const ownerKey=await deriveOwnerKey(identity);
-  await page.evaluate(async ({databaseName,projectId})=>{
-    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
-    const aggregate=await new Promise<any>((resolve,reject)=>{const request=db.transaction('projects').objectStore('projects').get(projectId);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
-    const message=aggregate.messages.at(-1);
-    message.blocks=[{type:'question',id:'problem',topic:'problem.statement',prompt:'model text must not replace catalog form',answerMode:'text',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['problem']}];
-    const now=new Date().toISOString();
-    aggregate.answers=[{id:'answer-problem',projectId,threadId:aggregate.thread.id,questionId:'problem',logicalRequestId:'logical-request-problem',answerMode:'text',action:'answer',customText:'기존 답변',selectedValues:[],createdAt:now}];
-    const transaction=db.transaction('projects','readwrite');transaction.objectStore('projects').put(aggregate);
-    await new Promise<void>((resolve,reject)=>{transaction.oncomplete=()=>resolve();transaction.onerror=()=>reject(transaction.error);});db.close();
-  },{databaseName:databaseNameForOwner(ownerKey),projectId});
-  await page.goto(`/blueprints/${projectId}`);
+test('context-generated follow-up preserves its prompt and submits a referenced choice turn', async ({page}) => {
+  const turnPayloads:any[]=[];
+  await page.route('**/api/blueprint/turn',async(route)=>{
+    const body=route.request().postDataJSON();
+    turnPayloads.push(body);
+    if(body.userTurn.kind==='text'){
+      await route.fulfill({status:200,json:{assistantMessage:'회의실 운영 맥락을 확인하겠습니다.',proposals:[],followUp:{type:'question',id:'reservation-policy-follow-up',topic:'예약 운영 기준',prompt:'겹치는 예약은 어떤 기준으로 조정할까요?',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement'],options:[{value:'capacity-window',label:'참석 인원과 시간대',description:'정원과 기존 예약을 함께 살핍니다.'},{value:'operator-review',label:'담당자 검토',description:'운영 담당자가 겹치는 요청을 확인합니다.'}]},referencedItemIds:[],referencedSourceIds:[]}});
+      return;
+    }
+    await route.fulfill({status:200,json:{assistantMessage:'선택한 기준을 반영해 이어가겠습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
+  });
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('회의실 예약이 겹칠 때 기준을 정하고 싶습니다.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
   const assistant=page.locator('.workspace-message-assistant').last();
-  await expect(assistant.getByRole('heading',{name:'사용자가 해결해야 하는 가장 중요한 문제는 무엇인가요?'})).toBeVisible();
-  await expect(assistant.getByRole('heading',{name:'model text must not replace catalog form'})).toHaveCount(0);
-  await assistant.getByRole('textbox',{name:'직접 입력'}).fill('카탈로그 질문 입력 동작 확인');
+  await expect(assistant.getByRole('heading',{name:'겹치는 예약은 어떤 기준으로 조정할까요?'})).toBeVisible();
+  await expect(assistant.getByRole('radio',{name:/참석 인원과 시간대/})).toBeVisible();
+  await assistant.getByRole('radio',{name:/참석 인원과 시간대/}).check();
   await assistant.getByRole('button',{name:'답변 제출'}).click();
-  await expect(page.getByRole('region',{name:'질문 답변 이력'})).toContainText('카탈로그 질문 입력 동작 확인');
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:'선택한 기준을 반영해 이어가겠습니다.'})).toBeVisible();
+  expect(turnPayloads).toHaveLength(2);
+  expect(turnPayloads[1].userTurn).toMatchObject({kind:'choice',responseTo:{messageId:expect.any(String),blockId:'reservation-policy-follow-up',selectedValues:['capacity-window']}});
+  expect(turnPayloads[1].userTurn).not.toHaveProperty('questionId');
 });
 
 
@@ -253,7 +266,7 @@ test('without a valid saved summary, the turn request carries the full context w
     delete record.thread.summary;
     const transaction=db.transaction('projects','readwrite');transaction.objectStore('projects').put(record);await new Promise<void>((resolve,reject)=>{transaction.oncomplete=()=>resolve();transaction.onerror=()=>reject(transaction.error);});db.close();
   },{databaseName:databaseNameForOwner(ownerKey),projectId});
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('모든 이전 맥락을 그대로 포함합니다.');
   await page.getByRole('button',{name:'AI로 답변 분석'}).click();
   await page.getByRole('button',{name:'동의하고 계속'}).click();

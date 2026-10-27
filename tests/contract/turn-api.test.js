@@ -16,11 +16,46 @@ const output = { task: 'TURN_ANALYZE', promptVersion: 'v3', schemaVersion: 'v3',
 
 test('turn endpoint requires a valid session before any provider or store side effect', async () => {
   let providerCalls = 0;
+  let storeCalls = 0;
   const res = response();
-  await handler(request(body, false), res, { requestStructuredOutput: async () => { providerCalls++; }, store: createMemoryAuthStore() });
+  const store = new Proxy({}, { get() { storeCalls += 1; throw new Error('Store should not be accessed before authentication'); } });
+  await handler(request(body, false), res, { requestStructuredOutput: async () => { providerCalls++; }, store });
   assert.equal(res.statusCode, 401);
   assert.equal(res.body.error, 'AUTH_REQUIRED');
   assert.equal(providerCalls, 0);
+  assert.equal(storeCalls, 0);
+});
+
+test('debug validation logging never writes model-returned reference IDs', async () => {
+  const canary = 'private-user-text-should-never-enter-server-logs';
+  const priorDebug = process.env.DEBUG_CON_PR05;
+  const priorConsoleError = console.error;
+  const logged = [];
+  process.env.DEBUG_CON_PR05 = '1';
+  console.error = (...values) => logged.push(values.join(' '));
+  try {
+    const invalidOutput = { ...output, referencedSourceIds: [canary] };
+    const requestBody = {
+      ...body,
+      userTurn: { id: 'm1', kind: 'text', text: 'conversation-text-canary-should-never-be-logged' },
+      recentMessages: [{ id: 'prior-user', role: 'user', kind: 'text', content: 'prior-conversation-canary-should-never-be-logged' }],
+      sources: [{ id: 'excerpt-1', sourceId: 'source-1', text: 'file-content-canary-should-never-be-logged', location: 'page 1' }],
+    };
+    const res = response();
+    await handler(request(requestBody), res, {
+      store: createMemoryAuthStore(),
+      requestStructuredOutput: async () => invalidOutput,
+    });
+    assert.equal(res.statusCode, 502);
+    assert.equal(res.body.error, 'AI_INVALID_OUTPUT');
+  } finally {
+    console.error = priorConsoleError;
+    if (priorDebug === undefined) delete process.env.DEBUG_CON_PR05;
+    else process.env.DEBUG_CON_PR05 = priorDebug;
+  }
+  assert.deepEqual(logged, ['TURN_RESPONSE_VALIDATION_FAILED', 'TURN_RESPONSE_VALIDATION_FAILED']);
+  assert.doesNotMatch(logged.join('\n'), new RegExp(canary));
+  assert.doesNotMatch(logged.join('\n'), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
 });
 
 test('turn endpoint records an already-aborted client request as cancelled without provider work', async () => {
@@ -262,6 +297,61 @@ test('turn endpoint accepts only request-local excerpt IDs as file citation IDs'
   await handler(request({ ...requestBody, logicalRequestId:'logical-2234567890123456' }), valid, { store:createMemoryAuthStore(), requestStructuredOutput:async () => responseWithCitation('request-excerpt') });
   assert.equal(valid.statusCode, 200);
   assert.equal(valid.body.proposals[0].evidence[0].sourceId, 'request-excerpt');
+});
+
+test('recommendation file evidence survives selection in a later turn', async () => {
+  const sourceText = '예약 취소는 시작 두 시간 전까지 가능합니다.';
+  const recommendationOutput = {
+    ...output,
+    referencedSourceIds: ['excerpt-first'],
+    payload: {
+      ...output.payload,
+      recommendations: Array.from({ length: 11 }, (_, index) => ({
+        title: `예약안 ${index + 1}`,
+        rationale: '대화와 자료에 근거한 선택입니다.',
+        tradeoffs: [],
+        assumptions: [],
+        evidence: [{ sourceType: 'file', sourceId: 'excerpt-first', excerpt: sourceText }],
+        proposal: {
+          operation: 'create', targetType: 'design_item',
+          after: { type: 'requirement', title: `예약 정책 ${index + 1}`, description: sourceText },
+          rationale: '자료의 예약 정책을 반영합니다.',
+          evidence: [{ sourceType: 'file', sourceId: 'excerpt-first', excerpt: sourceText }],
+          affectedItemIds: [],
+        },
+      })),
+    },
+  };
+  const firstBody = {
+    ...body,
+    userTurn: { id: 'recommendation-turn', kind: 'text', text: '이 조건에 맞는 추천해 주세요.' },
+    sources: [{ id: 'excerpt-first', sourceId: 'canonical-source', text: sourceText, location: '문단 1' }],
+  };
+  const firstResponse = response();
+  const store = createMemoryAuthStore();
+  await handler(request(firstBody), firstResponse, { store, requestStructuredOutput: async () => recommendationOutput });
+  assert.equal(firstResponse.statusCode, 200);
+  const recommendationBlock = firstResponse.body.recommendationCandidates;
+  const candidate = recommendationBlock.candidates[0];
+  assert.equal(candidate.proposalDraft.evidence[0].sourceId, 'canonical-source');
+
+  const secondResponse = response();
+  const secondBody = {
+    ...body,
+    logicalRequestId: 'logical-3234567890123456',
+    userTurn: {
+      id: 'recommendation-choice-turn', kind: 'recommendation_choice', text: `추천 1번을 선택합니다: ${candidate.title}`,
+      responseTo: { messageId: 'assistant-recommendation', blockId: recommendationBlock.id, choiceId: candidate.id },
+    },
+    recentMessages: [
+      { id: 'user-recommendation', role: 'user', kind: 'text', content: '예약 정책 추천해 주세요.' },
+      { id: 'assistant-recommendation', role: 'assistant', kind: 'text', content: '추천 후보입니다.', blocks: [recommendationBlock] },
+    ],
+    sources: [{ id: 'excerpt-second', sourceId: 'canonical-source', text: sourceText, location: '문단 1' }],
+  };
+  await handler(request(secondBody), secondResponse, { store, requestStructuredOutput: async () => output });
+  assert.equal(secondResponse.statusCode, 200);
+  assert.equal(secondResponse.body.proposals[0].evidence[0].sourceId, 'excerpt-second');
 });
 
 test('turn endpoint enforces the task input cap before provider invocation', async () => {

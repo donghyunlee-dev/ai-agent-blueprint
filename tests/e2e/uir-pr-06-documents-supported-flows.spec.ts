@@ -23,12 +23,15 @@ const requirementMarkdown:Record<string,string>={
 const prdKeys = ['overview','problem_goals','users_scenarios','scope','features','success_metrics','risks','release_plan','open_issues'];
 
 async function setSectionSyncStatus(page:any,databaseName:string,projectId:string,sectionId:string,syncStatus:string) {
+  const returnTo = page.url();
+  await page.goto('/');
   await page.evaluate(async({databaseName,projectId,sectionId,syncStatus}:any)=>{
     const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
     const tx=db.transaction('projects','readwrite');const store=tx.objectStore('projects');const request=store.get(projectId);
     request.onsuccess=()=>{const record=request.result;record.sections.find((section:any)=>section.id===sectionId).syncStatus=syncStatus;store.put(record);};
     await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
   },{databaseName,projectId,sectionId,syncStatus});
+  await page.goto(returnTo);
 }
 
 async function setDocumentStatus(page:any,databaseName:string,projectId:string,documentId:string,status:string) {

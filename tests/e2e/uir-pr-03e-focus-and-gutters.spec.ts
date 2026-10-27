@@ -29,7 +29,7 @@ test.beforeEach(async ({ page }) => {
     const now = '2026-10-25T00:00:00.000Z';
     const project = { id: projectId, ownerKey, schemaVersion: 1, title: '회의실 예약 서비스', status: 'active', activeDocumentType: 'design', activeThreadId: 'thread', processState: 'discovering', readiness: { state: 'insufficient', areas: [], pendingProposalCount: 0, conflictCount: 0 }, createdAt: now, updatedAt: now, lastOpenedAt: now };
     const thread = { id: 'thread', projectId, title: project.title, status: 'active', createdAt: now, updatedAt: now, summary: { confirmedFacts: [{ text: '회의실 예약 충돌을 줄인다.', sourceMessageIds: ['m1'] }], explicitUnknowns: [{ text: '주요 사용자 대상', sourceMessageIds: [] }], rejectedDirections: [], unresolvedQuestions: [], sourceMessageIds: ['m1'] } };
-    const messages = [{ id: 'm1', threadId: 'thread', role: 'user', kind: 'text', content: '회의실 예약 충돌을 줄이는 서비스를 만들고 싶습니다.', createdAt: now }, { id: 'm2', threadId: 'thread', role: 'assistant', kind: 'text', content: '예약 현황과 충돌을 확인할 수 있도록 정리하겠습니다.', createdAt: now }];
+    const messages = [{ id: 'm1', threadId: 'thread', role: 'user', kind: 'text', content: '회의실 예약 충돌을 줄이는 서비스를 만들고 싶습니다.', createdAt: now }, { id: 'm2', threadId: 'thread', role: 'assistant', kind: 'text', content: '예약 현황과 충돌을 확인할 수 있도록 정리하겠습니다.', blocks: [{ type: 'question', id: 'meeting-room-policy', topic: '예약 정책', prompt: '회의실 예약이 겹치면 어떤 기준으로 조정할까요?', answerMode: 'single', required: true, allowCustomAnswer: false, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'], options: [{ value: 'priority', label: '팀 우선순위' }, { value: 'first-come', label: '먼저 신청한 순서' }] }], createdAt: now }];
     const aggregate = { project, thread, messages, answers: [], sources: [], designItems: [], proposals: [], documents: [], sections: [], generationJobs: [], requestLedgerEntries: [], contextManifests: [], activityEntries: [] };
     const transaction = db.transaction(['projects', 'activities'], 'readwrite');
     transaction.objectStore('projects').put({ id: projectId, schemaVersion: 1, ...aggregate });
@@ -109,7 +109,7 @@ test('conversation and summary content keep the specified desktop insets and mob
   const viewport = testInfo.project.name === 'mobile-chromium' ? { width: 390, height: 844 } : { width: 1440, height: 900 };
   const gutterArtifactDirectory = '.pr-artifacts/UIR-PR-03G';
   await page.setViewportSize(viewport);
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await expect(page.locator('.workspace-first-message')).toBeVisible();
   await expect(page.getByRole('button', { name: '요약 접기' })).toBeVisible();
   const geometry = await page.evaluate(() => {
@@ -119,7 +119,7 @@ test('conversation and summary content keep the specified desktop insets and mob
     const layout = document.querySelector('.conversation-stage-layout') as HTMLElement;
     const composer = document.querySelector('.ai-turn-composer') as HTMLElement;
     const conversationCard = document.querySelector('.workspace-conversation') as HTMLElement;
-    const questionCard = document.querySelector('.workspace-panels[data-stage="conversation"] .question-card') as HTMLElement;
+    const questionCard = document.querySelector('.workspace-panels[data-stage="conversation"] .question-card, .workspace-panels[data-stage="conversation"] .contextual-question-card') as HTMLElement;
     const assistantMessage = document.querySelector('.workspace-panels[data-stage="conversation"] .workspace-message-assistant') as HTMLElement;
     const read = (element: HTMLElement) => ({ paddingLeft: Number.parseFloat(getComputedStyle(element).paddingLeft), paddingRight: Number.parseFloat(getComputedStyle(element).paddingRight), paddingBottom: Number.parseFloat(getComputedStyle(element).paddingBottom) });
     const questionCardBounds = questionCard.getBoundingClientRect();
@@ -136,12 +136,13 @@ test('conversation and summary content keep the specified desktop insets and mob
     expect(Math.abs(geometry.layout.y + geometry.layout.height - geometry.conversationCard.y - geometry.conversationCard.height - 26)).toBeLessThanOrEqual(1);
     expect(Math.abs(geometry.layout.y + geometry.layout.height - geometry.summaryCard.y - geometry.summaryCard.height - 26)).toBeLessThanOrEqual(1);
     expect(Math.abs(geometry.composer.x - geometry.conversationCard.x - 30)).toBeLessThanOrEqual(1);
-    expect(Math.abs(geometry.conversationCard.x + geometry.conversationCard.width - geometry.composer.x - geometry.composer.width - 30)).toBeLessThanOrEqual(1);
+    expect(Math.abs(geometry.composer.x + geometry.composer.width - viewport.width + 34)).toBeLessThanOrEqual(1);
+    expect(geometry.composer.x + geometry.composer.width).toBeGreaterThan(geometry.summaryCard.x);
     expect(Math.abs(geometry.conversationCard.y + geometry.conversationCard.height - geometry.composer.y - geometry.composer.height - 10)).toBeLessThanOrEqual(1);
     expect(geometry.questionComposerGap, JSON.stringify({ questionCard: geometry.questionCard, assistantMessage: geometry.assistantMessage, composer: geometry.composer })).toBeGreaterThanOrEqual(10);
   } else {
-    await expect(page.locator('.workspace-first-message')).toBeInViewport();
-    expect(geometry.composer.bottom).toBeLessThanOrEqual(geometry.layout.height + geometry.layout.y + 1);
+    await expect(page.locator('.workspace-panels[data-stage="conversation"] .contextual-question-card, .workspace-panels[data-stage="conversation"] .question-card').first()).toBeInViewport();
+    expect(geometry.composer.bottom).toBeLessThanOrEqual(viewport.height + 1);
     expect(geometry.layoutPadding.paddingLeft).toBe(10);
     expect(geometry.layoutPadding.paddingRight).toBe(10);
   }
@@ -152,7 +153,7 @@ test('conversation and summary content keep the specified desktop insets and mob
     await page.locator(scrollerSelector).evaluate((element) => element.scrollTo({ top: element.scrollHeight, behavior: 'instant' }));
     await page.waitForTimeout(50);
     return page.evaluate(() => {
-      const question = document.querySelector('.workspace-panels[data-stage="conversation"] .question-card')!.getBoundingClientRect();
+      const question = document.querySelector('.workspace-panels[data-stage="conversation"] .question-card, .workspace-panels[data-stage="conversation"] .contextual-question-card')!.getBoundingClientRect();
       const composer = document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
       const scroller = document.querySelector('.workspace-panels[data-stage="conversation"] .conversation-stage-layout') as HTMLElement;
       const content = document.querySelector('.workspace-panels[data-stage="conversation"] .workspace-conversation-content') as HTMLElement;
@@ -172,7 +173,7 @@ test('conversation and summary content keep the specified desktop insets and mob
       const conversationCard = document.querySelector('.workspace-conversation') as HTMLElement;
       const summary = document.querySelector('.conversation-summary') as HTMLElement;
       const composer = document.querySelector('.ai-turn-composer') as HTMLElement;
-      const questionCard = document.querySelector('.workspace-panels[data-stage="conversation"] .question-card') as HTMLElement;
+      const questionCard = document.querySelector('.workspace-panels[data-stage="conversation"] .question-card, .workspace-panels[data-stage="conversation"] .contextual-question-card') as HTMLElement;
       const bounds = (element: HTMLElement) => element.getBoundingClientRect().toJSON();
       return { layout: bounds(layout), conversationCard: bounds(conversationCard), summary: bounds(summary), questionCard: bounds(questionCard), composer: bounds(composer), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
     });
@@ -197,7 +198,7 @@ test('conversation and summary content keep the specified desktop insets and mob
 test('conversation composer focus preserves its surface without a ring', async ({ page }, testInfo) => {
   const viewport = testInfo.project.name === 'mobile-chromium' ? { width: 390, height: 844 } : { width: 1440, height: 900 };
   await page.setViewportSize(viewport);
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   const idea = page.locator('#ai-turn-draft');
   await expect(idea).toBeVisible();
   await mkdir(artifactDirectory, { recursive: true });

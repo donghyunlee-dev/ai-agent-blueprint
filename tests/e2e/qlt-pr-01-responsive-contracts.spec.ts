@@ -113,7 +113,7 @@ async function seedConversation(page: any) {
     });
     db.close();
   }, { databaseName, ownerKey, projectId });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' }).fill('회의실 예약 충돌을 줄이고 싶어요.');
   await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
   await page.getByRole('button', { name: '동의하고 계속' }).click();
@@ -204,7 +204,7 @@ test('conversation remains usable at a 200% zoom-equivalent CSS viewport', async
 
 test('conversation summary can be opened and closed at tablet widths', async ({ page }) => {
   await seedConversation(page);
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await mkdir(artifactDirectory, { recursive: true });
   const trigger = page.getByRole('button', { name: '요약 보기' });
   const close = page.locator('.conversation-summary-mobile-close');

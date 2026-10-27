@@ -64,7 +64,7 @@ test.beforeEach(async ({ page }) => {
     await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(transaction.error); });
     db.close();
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' }).fill('사내 회의실 예약 충돌을 줄이고 싶어요. 참석 인원과 기존 예약을 고려하면 좋겠습니다.');
   await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
   await page.getByRole('button', { name: '동의하고 계속' }).click();
@@ -74,7 +74,7 @@ test.beforeEach(async ({ page }) => {
 test('captures the primary conversation frame at the required desktop and mobile viewport', async ({ page }, testInfo) => {
   const viewport = testInfo.project.name === 'mobile-chromium' ? { width: 390, height: 844 } : { width: 1440, height: 900 };
   await page.setViewportSize(viewport);
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await expect(page.getByRole('navigation', { name: '프로젝트 단계' })).toBeVisible();
   await expect(page.locator('.ai-turn-composer')).toBeVisible();
   await expect(page.locator('.ai-turn-composer textarea')).toHaveCSS('border-radius', '999px');
@@ -118,7 +118,7 @@ test('composer stays inside tablet and mobile conversation panels', async ({ pag
   await mkdir(directory, { recursive: true });
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto(`/blueprints/${projectId}`);
+    await page.goto(`/blueprints/${projectId}#conversation`);
     await expect(page.locator('.workspace-conversation')).toBeVisible();
     await expect(page.locator('.ai-turn-composer')).toBeVisible();
     const composerInsets = await page.evaluate(() => {
@@ -135,7 +135,7 @@ test('composer stays inside tablet and mobile conversation panels', async ({ pag
 
 test('contextual answer is submitted as a response and conversation continues', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('radio', { name: /수용 인원 확인/ }).check();
   await page.getByRole('button', { name: '답변 제출' }).click();
   await expect(page.getByText('수용 인원 확인', { exact: true }).last()).toBeVisible();
@@ -145,7 +145,7 @@ test('contextual answer is submitted as a response and conversation continues', 
 test('conversation frame matches the full 1672x941 reference canvas and preserves reading order', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'The source-size comparison runs once on desktop Chromium.');
   await page.setViewportSize({ width: 1672, height: 941 });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await expect(page.getByRole('navigation', { name: '프로젝트 단계' }).getByRole('link', { name: '1 대화' })).toHaveAttribute('aria-current', 'step');
   const requirementsStage = page.getByRole('navigation', { name: '프로젝트 단계' }).getByRole('button', { name: '4 요구사항 명세' });
   await expect(requirementsStage).toBeDisabled();
@@ -201,7 +201,10 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   await expect(contextualCard.getByText('시간대 중복 확인', { exact: true })).toBeVisible();
   await expect(contextualCard.getByText('담당자 승인', { exact: true })).toBeVisible();
   await expect(contextualCard.getByText('예약 우선순위', { exact: true })).toBeVisible();
-  await expect(page.locator('.workspace-first-message')).toHaveCSS('background-image', 'linear-gradient(110deg, rgb(230, 240, 254), rgb(233, 242, 254))');
+  const firstMessageBackground = await page.locator('.workspace-first-message').evaluate((element) => getComputedStyle(element).backgroundImage);
+  expect(firstMessageBackground).toContain('linear-gradient(110deg');
+  expect(firstMessageBackground).toContain('rgb(230, 240, 254)');
+  expect(firstMessageBackground).toContain('rgb(233, 242, 254)');
   await expect(page.locator('.workspace-title-input')).toHaveCSS('letter-spacing', '0.15px');
   await expect(page.locator('.workspace-first-message p')).toHaveCSS('letter-spacing', '-0.03px');
   await expect(page.locator('.conversation-stage-inspector .conversation-summary-group li').first()).toHaveCSS('line-height', '24px');

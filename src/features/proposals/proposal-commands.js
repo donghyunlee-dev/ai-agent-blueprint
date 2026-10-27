@@ -73,8 +73,9 @@ async function resolve({ ownerKey, projectId, proposalId, repository, action, ed
       return { status: 'stale', aggregate, proposal };
     }
     const at = now();
-    const value = action === 'edit' ? editedValue : proposal.after;
-    if (action === 'edit' && (!value || typeof value !== 'object' || !Object.keys(value).length || (proposal.targetType === 'design_item' && (!String(value.title ?? '').trim() || !String(value.description ?? '').trim())) || (proposal.targetType === 'acceptance_criterion' && !String(value.text ?? '').trim()) || (proposal.targetType === 'document_section' && !String(value.markdown ?? '').trim()))) return { status: 'invalid_value' };
+    const submittedValue = action === 'edit' ? editedValue : proposal.after;
+    if (action === 'edit' && (!submittedValue || typeof submittedValue !== 'object' || !Object.keys(submittedValue).length || (proposal.targetType === 'design_item' && (!String(submittedValue.title ?? '').trim() || !String(submittedValue.description ?? '').trim())) || (proposal.targetType === 'acceptance_criterion' && !String(submittedValue.text ?? '').trim()) || (proposal.targetType === 'document_section' && !String(submittedValue.markdown ?? '').trim()))) return { status: 'invalid_value' };
+    const value = action === 'edit' ? { ...(proposal.operation === 'create' ? proposal.after ?? {} : {}), ...submittedValue } : proposal.after;
     applyValue(aggregate, proposal, value, at, idFactory);
     proposal.status = action === 'edit' ? 'edited_and_accepted' : 'accepted'; proposal.resolvedAt = at;
     aggregate.project.designRevision = (aggregate.project.designRevision ?? 0) + 1;

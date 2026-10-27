@@ -46,10 +46,13 @@ test("/는 인증 확인 후 프로젝트 시작 composer를 제공한다", asyn
   await page.screenshot({ path: path.join(evidenceDirectory, `home-${testInfo.project.name}.png`), scale: "css" });
 });
 
-test("/login의 첫 키보드 포커스는 Google 로그인 버튼이다", async ({ page }, testInfo) => {
+test("/login은 자동 포커스하지 않고 첫 Tab으로 Google 로그인 버튼에 도달한다", async ({ page }, testInfo) => {
   await page.route("**/api/auth/session", (route) => route.fulfill({ status: 401, json: { error: "AUTH_REQUIRED" } }));
   await page.goto("/login");
-  await expect(page.getByRole("button", { name: "Google로 시작하기" })).toBeFocused();
+  const button = page.getByRole("button", { name: "Google로 시작하기" });
+  await expect(button).not.toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(button).toBeFocused();
   if (testInfo.project.name === "mobile-chromium") {
     await expect(page.locator(".auth-photo")).toBeHidden();
     await expect(page.locator(".auth-google-button")).toHaveCSS("width", "354px");

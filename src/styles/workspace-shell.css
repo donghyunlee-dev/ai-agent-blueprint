@@ -109,6 +109,9 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-panels { grid-template-columns: minmax(0, 1fr); }
   .workspace-conversation,.workspace-work { grid-column: 1; }
   .workspace-shell[data-mobile-mode="conversation"] .workspace-work,.workspace-shell[data-mobile-mode="work"] .workspace-conversation,.workspace-shell[data-mobile-mode="review"] .workspace-conversation,.workspace-shell[data-mobile-mode="review"] .workspace-work { display: none; }
+  .workspace-shell[data-mobile-mode="conversation"] .workspace-panels[data-stage="design"] > .conversation-stage-layout,.workspace-shell[data-mobile-mode="conversation"] .workspace-panels[data-stage="proposal"] > .conversation-stage-layout,.workspace-shell[data-mobile-mode="conversation"] .workspace-panels[data-stage="requirements"] > .conversation-stage-layout,.workspace-shell[data-mobile-mode="conversation"] .workspace-panels[data-stage="prd"] > .conversation-stage-layout { display: grid; grid-column: 1; grid-template-columns: minmax(0, 1fr); }
+  .workspace-panels[data-mobile-mode="conversation"] .conversation-stage-inspector { display: none; }
+  .workspace-shell[data-mobile-mode="review"] .workspace-panels[data-stage="design"][data-inspector-active="false"] > .workspace-inspector { display: block; }
   .workspace-shell[data-mobile-mode="review"] .workspace-inspector:not(.is-open) { position: relative; inset: auto; grid-column: 1; display: block; width: auto; height: auto; transform: none; box-shadow: none; }
   .workspace-shell[data-mobile-mode="review"] .workspace-inspector:not(.is-open) .workspace-drawer-close { display: none; }
   .workspace-mobile-tabs { display: flex; align-items: stretch; justify-content: center; gap: 8px; border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
@@ -170,6 +173,7 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 }
 @media (prefers-reduced-motion: reduce) { .workspace-inspector { transition: none; } }
 
+
 /* The approved project stage frame keeps navigation separate from the active work area. */
   .workspace-shell > .blueprint-stage-nav { display: flex; min-width: 0; align-items: center; gap: 16px; padding: 0 32px; border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
 .blueprint-stage-nav ol { display: flex; width: min(1000px, 100%); align-items: center; gap: 0; margin: 0; padding: 0; list-style: none; }
@@ -224,7 +228,6 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .workspace-panels[data-stage="conversation"] .workspace-resizer { display: none; }
 @media (max-width: 1023px) {
   .workspace-shell { grid-template-rows: 60px 56px minmax(0, 1fr); }
-  .workspace-shell > .workspace-mobile-tabs { display: none; }
   .workspace-shell > .blueprint-stage-nav { overflow-x: auto; padding-inline: 12px; }
   .blueprint-stage-nav ol { width: max-content; min-width: 100%; flex: none; }
   .blueprint-stage { flex: none; }
@@ -249,6 +252,7 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .ai-turn-composer { margin: auto -14px calc(-20px - env(safe-area-inset-bottom)); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); }
   .workspace-panels[data-stage="conversation"] .conversation-stage-inspector { display: block; }
 }
+
 
 @media (min-width: 1024px) {
   .workspace-shell { grid-template-rows: 75px 56px minmax(0, 1fr); }
@@ -882,6 +886,10 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   }
 }
 
+@media (min-width: 768px) and (max-width: 1023px) {
+  .workspace-panels[data-stage="conversation"] .workspace-message-assistant .contextual-question-card { margin: 12px 0 0; }
+}
+
 .workspace-panels[data-stage="conversation"] .contextual-question-card > form > fieldset.question-card-options > .question-card-option {
   flex-basis: 100%;
 }
@@ -904,4 +912,17 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
   .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-team svg { width: 30px; height: 30px; stroke-width: 2.2px; }
   .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-admin svg,
   .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon.is-visitor svg { width: 28px; height: 28px; stroke-width: 2.2px; }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .workspace-shell { grid-template-rows: 60px 48px 44px minmax(0, 1fr); }
+  .workspace-mobile-tabs { grid-row: 3; }
+  .workspace-panels { grid-row: 4; }
+}
+
+@media (max-width: 767px) {
+  .workspace-shell { grid-template-rows: 56px 52px minmax(0, 1fr) 58px; }
+  .workspace-shell > .blueprint-stage-nav { grid-row: 2; grid-column: 1; }
+  .workspace-shell > .workspace-panels { grid-row: 3; grid-column: 1; }
+  .workspace-shell > .workspace-mobile-tabs { grid-row: 4; grid-column: 1; }
 }

@@ -25,7 +25,7 @@ export function BlueprintStageNav({
   const navRef = useRef<HTMLElement>(null);
   const base = `/blueprints/${encodeURIComponent(projectId)}`;
   const href: Record<BlueprintStage, string> = {
-    conversation: base,
+    conversation: `${base}#conversation`,
     proposal: `${base}/design#proposal-review-title`,
     design: `${base}/design`,
     requirements: `${base}/requirements`,
