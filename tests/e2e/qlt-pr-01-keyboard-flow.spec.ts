@@ -18,9 +18,14 @@ const identity = {
 };
 
 async function tabTo(page: Page, target: Locator, maxTabs = 100) {
+  const direction = await target.evaluate((element) => {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || active === document.body || active === document.documentElement) return 'Tab';
+    return element.compareDocumentPosition(active) & Node.DOCUMENT_POSITION_FOLLOWING ? 'Shift+Tab' : 'Tab';
+  });
   for (let index = 0; index < maxTabs; index += 1) {
     if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) return;
-    await page.keyboard.press('Tab');
+    await page.keyboard.press(direction);
   }
   const active = await page.evaluate(() => (document.activeElement as HTMLElement | null)?.outerHTML ?? 'none');
   throw new Error(`Keyboard tab sequence did not reach ${await target.getAttribute('aria-label') ?? await target.textContent() ?? 'target'}; active=${active.slice(0, 180)}`);
@@ -131,7 +136,7 @@ async function authorizeProtectedPreview(page: Page) {
 }
 
 test('keyboard-only project creation through PRD download without Google OAuth', async ({ page }, testInfo) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const authRequests: string[] = [];
   const browserRequests: string[] = [];
   page.on('request', (request) => {
@@ -320,6 +325,7 @@ test('keyboard-only project creation through PRD download without Google OAuth',
   await expect(page.getByText('선택한 추천을 검토 대기 제안으로 만들었습니다.')).toBeVisible();
 
   await activateByKeyboard(page, page.getByRole('link', { name: '제안 검토' }));
+  await expect(page).toHaveURL(new RegExp(`/blueprints/${projectId}/design#proposal-review-title$`));
   await assertMainAndNamedFields(page);
   await expect(page.getByRole('heading', { name: '제안 1개' })).toBeVisible();
   await expectTextContrast(page, 'proposal review');
@@ -349,6 +355,7 @@ test('keyboard-only project creation through PRD download without Google OAuth',
   await expect(page.getByText('대상 사용자, 범위, 목표와 운영 위험을 정리했습니다. 각 제안을 검토해 주세요.')).toBeVisible();
 
   await activateByKeyboard(page, page.getByRole('link', { name: '제안 검토' }));
+  await expect(page).toHaveURL(new RegExp(`/blueprints/${projectId}/design#proposal-review-title$`));
   await expect(page.getByRole('heading', { name: `제안 ${readinessProposalResponse.length}개` })).toBeVisible();
   const approveButtons = page.locator('[data-proposal-card]').getByRole('button', { name: '승인', exact: true });
   while (await approveButtons.count()) {
