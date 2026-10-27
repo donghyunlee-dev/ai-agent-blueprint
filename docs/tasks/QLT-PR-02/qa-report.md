@@ -13,17 +13,20 @@ Local QA result: **pass** on the merged-main worktree after the summary-scroll c
 | Auth, budget, source-evidence, and secret boundaries | Contract/unit tests and built-bundle scanner | Pass |
 | Responsive rendered states and long-summary clearance | Desktop/mobile Playwright; long summary scrolled to its end stays at least 12px above the composer | Pass locally |
 | Live provider behavior | `OPENAI_API_KEY` is unset | Not verified |
-| Deployed Preview behavior on the latest PR head | Not run yet | Pending |
+| Deployed Preview keyboard journey | Commit `1a37d6f7846112989f10728537571fc4a81d33b8`; desktop and mobile | Pass through PRD Markdown download |
+| Deployed Preview full desktop viewport matrix | Repeated route loads across five viewport sizes | Timed out after the user journey; equivalent screenshot workflows pass in GitHub CI |
 
 ## Deployed Preview
 
-- The new commit's Preview URL and deployed SHA will be recorded after the deployment is ready and tested.
-- The browser session and AI/document API responses use deterministic Playwright fixtures. This verifies deployed frontend behavior, not live provider calls or production data persistence.
+- Immutable Preview URL: <https://windsoft-agent-blueprint-r1tq825ax.vercel.app>
+- Deployed commit: `1a37d6f7846112989f10728537571fc4a81d33b8` (`codex/qlt-pr-02-audit`); Vercel reports `READY`.
+- Desktop and mobile keyboard journeys pass through project creation, eleven recommendations, explicit proposal approval, Requirements confirmation, PRD generation, and Markdown download. Browser auth, AI, and document APIs use deterministic fixtures; Google login is excluded. This verifies deployed UI behavior, not live provider calls or production data persistence.
+- The desktop journey also writes a PRD screenshot at both primary widths. The post-journey 30-case route/viewport reload matrix exceeded 360 seconds on Preview; it is excluded from the focused Preview copy because the current SHA's GitHub screenshot workflows already pass.
 
 ## Preview checks
 
-- [ ] Verify the final Preview URL and deployed commit SHA.
-- [ ] Reproduce project start and the central conversation/recommendation flow on the deployed Preview with deterministic API fixtures.
-- [ ] Capture and inspect desktop and mobile rendered states.
+- [x] Verify the Preview URL and deployed commit SHA.
+- [x] Reproduce project start and the central conversation/recommendation flow on the deployed Preview with deterministic API fixtures.
+- [x] Capture and inspect desktop and mobile PRD rendered states.
 - [x] Report provider/live-AI coverage separately from deterministic fixture evidence.
 - [ ] Run live provider and authenticated production-data verification when credentials and an approved account are available.
