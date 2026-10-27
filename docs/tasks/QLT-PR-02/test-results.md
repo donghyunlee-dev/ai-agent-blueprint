@@ -2,20 +2,20 @@
 
 ## Result
 
-Local production-preview verification passed on the final implementation diff. Browser authentication uses test sessions; Google OAuth browser interaction and live AI provider calls are excluded by plan.
+The final local CI run passed on the merged-main worktree after the composer and summary-scroll corrections. Browser authentication uses test sessions; Google OAuth browser interaction and live AI provider calls are excluded by plan.
 
 | Check | Result |
 | --- | --- |
-| Unit and contract tests (`npm run test:unit`) | 370 passed, 0 failed |
+| Unit and contract tests (`npm run test:unit`) | 378 passed, 0 failed |
 | Synthetic AI evaluation (`npm run test:golden`) | 48/48 passed, no provider calls |
-| Browser suite (266 tests, desktop and mobile Chromium, login/OAuth tests excluded) | 261 passed, 5 skipped, 0 failed |
-| TypeScript and production build | Passed as part of the Playwright preview server startup |
+| Browser suite (`npm run test:e2e:ci`, desktop and mobile Chromium) | 289 passed, 5 conditional skips, 0 failed (294 total) |
+| TypeScript and production build (`npm run build`) | Passed |
 | Bundle secret scan (`npm run check:bundle-secrets`) | Passed; no configured secrets found in built assets |
-| `git diff --check` | Passed |
+| `git diff --check` | Passed before commit |
 
-On the deployed Vercel Preview for commit `1c11b04c45030619547747650004d13b37dd2f57`, a focused browser run passed **4/4** tests (desktop and mobile): project creation with a selected file into `#conversation`, and the freeform/contextual-choice/eleven-recommendations/source-navigation/pending-approval journey. The run used deterministic test session and API routes; it verified the deployed frontend and responsive rendering, not live provider or production-data behavior. Captured desktop/mobile recommendation states were visually inspected.
+The implementation and validation changes are ready to commit. Deployed Preview verification is pending; previous Preview evidence for `1c11b04c45030619547747650004d13b37dd2f57` is superseded and is not used to claim the current PR's deployed behavior.
 
-The browser run covers idea and file project creation, freeform conversation, context-generated questions, eleven grounded recommendations when context is sufficient, explicit proposal approval, source navigation, Requirements and PRD generation/readiness, retry and persistence boundaries, and responsive layouts. Five skipped tests are conditional desktop-only or mobile-only checks in the opposite browser project.
+The browser suite covers idea and file project creation, freeform conversation, context-generated questions, eleven grounded recommendations when context is sufficient, explicit proposal approval, source navigation, Requirements and PRD generation/readiness, retry and persistence boundaries, responsive layouts, and the long-summary/composer clearance regression. Five skipped tests are conditional desktop-only or mobile-only checks in the opposite browser project.
 
 ## Limits
 

@@ -158,10 +158,10 @@ Then A의 프로젝트가 하나도 노출되지 않는다
 
 - [x] Requirements implemented
 - [x] Acceptance criteria verified (deterministic browser/API fixtures)
-- [x] 독립 코드 리뷰 pass (exact commit `1c11b04c45030619547747650004d13b37dd2f57`)
-- [x] 독립 local QA pass (Preview validation remains pending)
-- [x] 화면 변경 시 desktop/mobile 캡처 완료 (local Playwright captures)
-- [ ] PR 생성 및 Preview 검증 완료
+- [x] 기존 구현과 후속 CSS·브라우저 수정 독립 검토 통과 (세부 결과: `review-notes.md`)
+- [x] 로컬 CI와 deterministic desktop/mobile QA 통과
+- [ ] 최종 변경 desktop/mobile Preview 캡처 검토
+- [ ] PR Preview 검증 완료
 - [ ] 사용자 PR 머지 확인
 
 ## 실행 시 추가 문서

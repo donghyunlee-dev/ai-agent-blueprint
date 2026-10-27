@@ -34,6 +34,7 @@ async function activateByKeyboard(page: Page, target: Locator) {
 
 async function assertMainAndNamedFields(page: Page) {
   await expect(page.getByRole('main')).toHaveCount(1);
+  await expect(page.locator('h1:visible').first()).toBeVisible();
   const headingIssues = await page.evaluate(() => {
     const levels = [...document.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6')]
       .filter((heading) => heading.getClientRects().length > 0)

@@ -131,7 +131,7 @@ test('conversation and summary content keep the specified desktop insets and mob
     expect(geometry.conversation.paddingLeft).toBe(25);
     expect(geometry.conversationEndSpacerHeight).toBe(25);
     expect(Math.abs(geometry.summary.paddingRight - 25)).toBeLessThanOrEqual(1);
-    expect(geometry.summary.paddingBottom).toBe(25);
+    expect(geometry.summary.paddingBottom).toBe(90);
     expect(Math.abs(geometry.conversationCard.x - geometry.layout.x - 26)).toBeLessThanOrEqual(1);
     expect(Math.abs(geometry.layout.y + geometry.layout.height - geometry.conversationCard.y - geometry.conversationCard.height - 26)).toBeLessThanOrEqual(1);
     expect(Math.abs(geometry.layout.y + geometry.layout.height - geometry.summaryCard.y - geometry.summaryCard.height - 26)).toBeLessThanOrEqual(1);
@@ -145,6 +145,29 @@ test('conversation and summary content keep the specified desktop insets and mob
     expect(geometry.composer.bottom).toBeLessThanOrEqual(viewport.height + 1);
     expect(geometry.layoutPadding.paddingLeft).toBe(10);
     expect(geometry.layoutPadding.paddingRight).toBe(10);
+  }
+  if (viewport.width === 1440) {
+    await page.evaluate(() => {
+      const content = document.querySelector('.conversation-stage-inspector .conversation-summary-content');
+      if (!content) throw new Error('Expected expanded summary content');
+      const group = document.createElement('section');
+      group.className = 'conversation-summary-group is-confirmed';
+      group.innerHTML = '<h3>확정 내용</h3><ul></ul>';
+      const list = group.querySelector('ul')!;
+      for (let index = 0; index < 12; index += 1) {
+        const item = document.createElement('li');
+        item.textContent = `Confirmed decision ${index + 1} remains available when the summary is scrolled to its end.`;
+        list.append(item);
+      }
+      content.append(group);
+      const inspector = document.querySelector('.conversation-stage-inspector') as HTMLElement;
+      inspector.scrollTop = inspector.scrollHeight;
+    });
+    await expect.poll(() => page.evaluate(() => {
+      const item = document.querySelector('.conversation-stage-inspector .conversation-summary-group ul li:last-child')!;
+      const composer = document.querySelector('.ai-turn-composer')!;
+      return composer.getBoundingClientRect().top - item.getBoundingClientRect().bottom;
+    })).toBeGreaterThanOrEqual(12);
   }
   await mkdir(gutterArtifactDirectory, { recursive: true });
   await page.screenshot({ path: `${gutterArtifactDirectory}/conversation-summary-${viewport.width}x${viewport.height}.png`, fullPage: false, scale: 'css' });
