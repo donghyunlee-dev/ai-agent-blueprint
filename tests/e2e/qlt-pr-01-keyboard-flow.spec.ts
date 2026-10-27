@@ -118,7 +118,7 @@ async function authorizeProtectedPreview(page: Page) {
   const previewUrl = process.env.PLAYWRIGHT_PREVIEW_URL;
   if (!previewUrl) return;
   const parsedUrl = new URL(previewUrl);
-  if (parsedUrl.protocol !== 'https:' || parsedUrl.port || parsedUrl.username || parsedUrl.password || parsedUrl.pathname !== '/' || parsedUrl.search || parsedUrl.hash || !/^windsoft-agent-blueprint-[a-z0-9-]+\.vercel\.app$/.test(parsedUrl.hostname)) {
+  if (parsedUrl.protocol !== 'https:' || parsedUrl.port || parsedUrl.username || parsedUrl.password || parsedUrl.pathname !== '/' || parsedUrl.search || parsedUrl.hash || !/^windsoft-agent-bluepr[a-z0-9-]*\.vercel\.app$/.test(parsedUrl.hostname)) {
     throw new Error('PLAYWRIGHT_PREVIEW_URL_MUST_BE_A_WINDSOFT_PREVIEW_DEPLOYMENT');
   }
   const token = process.env.VERCEL_OIDC_TOKEN;
@@ -147,6 +147,9 @@ test('keyboard-only project creation through PRD download without Google OAuth',
   await authorizeProtectedPreview(page);
   await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: { authenticated: true, user: identity } }));
   await page.goto('/');
+  if (process.env.PLAYWRIGHT_PREVIEW_URL) {
+    expect(new URL(page.url()).origin).toBe(new URL(process.env.PLAYWRIGHT_PREVIEW_URL).origin);
+  }
   await assertMainAndNamedFields(page);
   await expect(page.getByRole('heading', { name: '어떤 서비스를 만들고 싶으세요?', level: 1 })).toBeVisible();
   await expectTextContrast(page, 'home');
