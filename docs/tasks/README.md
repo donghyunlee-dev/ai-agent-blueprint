@@ -39,7 +39,7 @@
 | 27 | `GDE-PR-01` 설정 가이드 | 5단계 | merged (#29) | [plan](GDE-PR-01/plan.md), [review notes](GDE-PR-01/review-notes.md) |
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | merged (#66; merge `649133e22b3f3862295c1c2307fbd1b7cced58d6`) | [plan](QLT-PR-01/plan.md) |
 | 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | merged (#67; merge `9dea685145d76ca3ebe4c12ad2b3721d549c9256`) | [plan](QLT-PR-02/plan.md) · [tests](QLT-PR-02/test-results.md) · [QA](QLT-PR-02/qa-report.md) |
-| 30 | `QLT-PR-03A` 기술 출시 준비 | 6단계 | in_progress | [plan](QLT-PR-03A/plan.md) |
+| 30 | `QLT-PR-03A` 기술 출시 준비 | 6단계 | merged (#69; merge `fa5140a27905ad0611d71a903439dcd4b8f22984`) | [plan](QLT-PR-03A/plan.md) · [tests](QLT-PR-03A/test-results.md) · [release evidence](../delivery/evidence/QLT-PR-03A/release-checklist.md) |
 | 31 | `QLT-PR-03` 사용자 검증·최종 출시 판정 | 6단계 | planned (participant readiness required) | [plan](QLT-PR-03/plan.md) |
 | 32 | `AUTH-PR-04` ideon 로그인 화면 시안 개편 | UI 개선 | merged (#43) | [plan](AUTH-PR-04/plan.md) |
 | 33 | `AUTH-PR-05` 로그인 redirect 토스트와 Vercel SPA 경로 fallback | UI·배포 설정 | merged (#46) | [plan](AUTH-PR-05/plan.md) |
