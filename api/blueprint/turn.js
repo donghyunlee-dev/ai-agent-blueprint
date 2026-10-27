@@ -192,6 +192,31 @@ function proposalsInChoices(payload) {
   return [...optionProposals, ...recommendationProposals];
 }
 
+function referenceFailureCategories(errors) {
+  const categories = new Set();
+  const patterns = [
+    [/unknown item /, 'unknown_item_reference'],
+    [/unknown source|unknown request excerpt/, 'unknown_source_reference'],
+    [/unknown requirement /, 'unknown_requirement_reference'],
+    [/unknown open issue /, 'unknown_open_issue_reference'],
+    [/unknown question /, 'unknown_question_reference'],
+    [/unknown section /, 'unknown_section_reference'],
+    [/unknown issue /, 'unknown_issue_reference'],
+    [/unknown target /, 'unknown_target_reference'],
+    [/unknown proposal /, 'unknown_proposal_reference'],
+    [/message evidence must reference a user-authored message/, 'non_user_message_evidence'],
+    [/file evidence must reference a request excerpt/, 'non_request_excerpt_file_evidence'],
+    [/unsupported AI evidence type/, 'unsupported_evidence_type'],
+    [/target context required/, 'missing_target_context'],
+    [/targetId required/, 'missing_target_id'],
+    [/targetId does not match/, 'target_type_mismatch'],
+  ];
+  for (const error of errors) {
+    categories.add(patterns.find(([pattern]) => pattern.test(error))?.[1] ?? 'other');
+  }
+  return [...categories].sort();
+}
+
 function resultFromOutput(output, selectedProposals, sourceExcerpts) {
   const payload = output.payload;
   const recommendationBlock = payload.recommendations?.length ? {
@@ -285,6 +310,7 @@ export default async function handler(req, res, deps = {}) {
     let validationError;
     let validationFailureStage;
     let validationAttempts = 0;
+    let referenceValidationErrors = [];
     try {
       for (let retry = 0; retry <= 1; retry += 1) {
         validationAttempts = retry + 1;
@@ -312,6 +338,7 @@ export default async function handler(req, res, deps = {}) {
           designRevision: body.projectSummary.designRevision,
         });
         const references = validateReferences(output, manifest, targetContext);
+        referenceValidationErrors = references.errors;
         const domainResult = validateTurnAnalyzeV3(output.payload, body.userTurn);
         const choiceTargets = validateProposalTargets(proposalsInChoices(output.payload), targetContext);
         const failedValidation = [
@@ -326,7 +353,10 @@ export default async function handler(req, res, deps = {}) {
         if (!validationError) break;
       }
       if (validationError) {
-        console.error('TURN_RESPONSE_VALIDATION_FAILED', { stage: validationFailureStage, attempts: validationAttempts });
+        const failureDetails = validationFailureStage === 'references'
+          ? { referenceFailures: referenceFailureCategories(referenceValidationErrors) }
+          : {};
+        console.error('TURN_RESPONSE_VALIDATION_FAILED', { stage: validationFailureStage, attempts: validationAttempts, ...failureDetails });
         if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
         await circuitSuccess(store, circuitKey);
         return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
