@@ -166,7 +166,9 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
     tradeoffs: ['운영 규칙을 정해야 합니다.'], assumptions: [], evidence: [{ sourceType: 'message', sourceId: 'm1' }],
     proposal: { operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: `대안 ${index + 1}`, description: '예약 충돌을 줄입니다.' }, rationale: '명시적 추천 요청에 대한 선택지입니다.', evidence: [{ sourceType: 'message', sourceId: 'm1' }], affectedItemIds: [] },
   });
-  const recommendationOutput = { ...output, payload: { ...output.payload, recommendations: Array.from({ length: 11 }, (_, index) => makeCandidate(index)) } };
+  const unselectedProposal = { operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: '모델이 별도로 만든 미선택 제안', description: '선택하지 않은 recommendation을 확정 대기 목록에 넣지 않습니다.' }, rationale: '이 proposal은 사용자가 선택하지 않았습니다.', evidence: [{ sourceType: 'message', sourceId: 'm1' }], affectedItemIds: [] };
+  const unselectedProposalOutput = { ...output, payload: { ...output.payload, proposals: [unselectedProposal] } };
+  const recommendationOutput = { ...unselectedProposalOutput, payload: { ...unselectedProposalOutput.payload, recommendations: Array.from({ length: 11 }, (_, index) => makeCandidate(index)) } };
   const recommendationRequest = { ...body, logicalRequestId: 'logical-recommend-12345', userTurn: { id: 'm1', kind: 'text', text: '제가 설명한 회의실 예약 서비스와 운영 목표에 맞춰 비교하고 선택할 수 있는 11개 추천안을 보여주세요.' } };
   const recommendationRes = response();
   await handler(request(recommendationRequest), recommendationRes, { store: createMemoryAuthStore(), requestStructuredOutput: async () => recommendationOutput });
@@ -185,7 +187,7 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
     ],
   };
   const selectedRes = response();
-  await handler(request(selectionBody), selectedRes, { store: createMemoryAuthStore(), requestStructuredOutput: async () => output });
+  await handler(request(selectionBody), selectedRes, { store: createMemoryAuthStore(), requestStructuredOutput: async () => unselectedProposalOutput });
   assert.equal(selectedRes.statusCode, 200, JSON.stringify(selectedRes.body));
   assert.equal(selectedRes.body.proposals.length, 1);
   assert.equal(selectedRes.body.proposals[0].after.title, '대안 1');

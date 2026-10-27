@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/index.js';
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 import { validateProposalTargets, validateReferences, validateResponseMetadata } from '../../src/infrastructure/ai/context-manifest.js';
-import { questionFromFollowUp, validateTurnAnalyzeV3 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
+import { hasExplicitRecommendationRequest, questionFromFollowUp, validateTurnAnalyzeV3 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 import { canRequestAi } from '../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricing.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
@@ -217,7 +217,7 @@ function referenceFailureCategories(errors) {
   return [...categories].sort();
 }
 
-function resultFromOutput(output, selectedProposals, sourceExcerpts) {
+function resultFromOutput(output, selectedProposals, sourceExcerpts, { includeModelProposals = true } = {}) {
   const payload = output.payload;
   const recommendationBlock = payload.recommendations?.length ? {
     type: 'recommendation_candidates',
@@ -237,7 +237,7 @@ function resultFromOutput(output, selectedProposals, sourceExcerpts) {
   } : undefined;
   return {
     assistantMessage: payload.assistantMessage.trim(),
-    proposals: [...payload.proposals, ...selectedProposals],
+    proposals: [...(includeModelProposals ? payload.proposals : []), ...selectedProposals],
     ...(followUp ? { followUp: questionFromFollowUp(followUp, crypto.randomUUID()) } : {}),
     ...(recommendationBlock ? { recommendationCandidates: recommendationBlock } : {}),
     referencedItemIds: output.referencedItemIds,
@@ -388,7 +388,9 @@ export default async function handler(req, res, deps = {}) {
       if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
       return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
     }
-    const result = resultFromOutput(output, selected.proposals, body.sources);
+    const includeModelProposals = body.userTurn.kind !== 'recommendation_choice'
+      && !hasExplicitRecommendationRequest(body.userTurn.text);
+    const result = resultFromOutput(output, selected.proposals, body.sources, { includeModelProposals });
     const responseValidation = validateSchema(schemas.http.turnResponse, result);
     if (!responseValidation.valid || !result.assistantMessage) {
       if (process.env.DEBUG_CON_PR05) console.error('TURN_HTTP_RESPONSE_SCHEMA_INVALID');
