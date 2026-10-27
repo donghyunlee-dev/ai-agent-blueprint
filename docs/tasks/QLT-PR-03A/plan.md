@@ -75,4 +75,4 @@
 - [x] Run `npm run test:unit` and `npm run build`.
 - [x] Run `npm run test:e2e:ci -- tests/e2e/prj-pr01.spec.ts` to verify legacy routes remain common non-redirecting 404s.
 - [x] Run `git diff --check` and confirm no deleted path remains imported.
-- [ ] Verify the same committed application on its Vercel Preview; browser tests continue to use an authenticated session fixture, not Google OAuth.
+- [x] Verify the same committed application on its Vercel Preview; browser tests continue to use an authenticated session fixture, not Google OAuth. PR #69 commit `2bcb28c` was READY on Vercel and passed desktop/mobile browser flow 2/2 with the page origin asserted against the Preview URL.
