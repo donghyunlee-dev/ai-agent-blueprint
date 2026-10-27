@@ -371,6 +371,13 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .design-inspector-block h4 { margin: 0; color: var(--color-text-muted); font-size: 11px; }
 .design-inspector-block ul { display: grid; gap: 8px; margin: 8px 0 0; padding-left: 18px; }
 .design-inspector-block li { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.design-relationship-editor { display: grid; gap: 8px; margin-top: 14px; padding: 12px; border-radius: 10px; background: var(--color-page); }
+.design-relationship-editor h5 { margin: 0; color: var(--color-text-strong); font-size: 12px; }
+.design-relationship-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.design-relationship-row > span { min-width: 0; overflow-wrap: anywhere; }
+.design-relationship-row button { flex: none; }
+.design-relationship-help,.design-relationship-status { margin: 0; color: var(--color-text-muted); font-size: 11px; line-height: 1.5; }
+.design-relationship-status { color: var(--color-primary); }
 .design-evidence-preview { display: grid; gap: 5px; margin: 9px 0; padding: 10px 11px; border-left: 3px solid var(--color-border-strong); background: var(--color-page); overflow-wrap: anywhere; }
 .design-evidence-preview strong { color: var(--color-text-strong); font-size: 12px; }
 .design-evidence-preview blockquote { margin: 0; color: var(--color-text-body); font-size: 12px; line-height: 1.55; }
@@ -683,7 +690,24 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 .conversation-source-reveal-label { margin: 0 0 10px; color: var(--color-primary); font-size: 12px; font-weight: 700; }
 .conversation-source-revealed-row:focus { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 .conversation-summary-mobile-trigger,.conversation-summary-mobile-close,.conversation-summary-mobile-backdrop { display: none; }
+.conversation-summary-group-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.conversation-summary-group-heading h3 { display: flex; min-width: 0; align-items: center; gap: 9px; }
+.conversation-summary-view-toggle { display: inline-flex; flex: none; gap: 4px; padding: 3px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); }
+.conversation-summary-view-toggle button { min-height: 30px; padding: 4px 9px; border: 0; border-radius: 999px; background: transparent; color: var(--color-text-muted); font: inherit; font-size: 11px; font-weight: 650; cursor: pointer; }
+.conversation-summary-view-toggle button[aria-pressed="true"] { background: var(--color-primary-soft); color: var(--color-primary); }
+.conversation-summary-view-toggle button:focus-visible,.conversation-decision-node .summary-source-link:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.conversation-decision-diagram { display: grid; gap: 10px; margin-top: 10px; }
+.conversation-decision-nodes,.conversation-decision-edges { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.conversation-decision-node { display: grid; min-width: 0; gap: 4px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); }
+.conversation-decision-node strong { overflow-wrap: anywhere; color: var(--color-text-strong); font-size: 12px; }
+.conversation-decision-node .summary-source-link { justify-self: start; margin: 0; }
+.conversation-decision-edges li { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 6px; min-width: 0; padding: 8px 10px; border-radius: 9px; background: var(--color-surface-confirmed); color: var(--color-text-body); font-size: 10px; text-align: center; }
+.conversation-decision-edges li > span { min-width: 0; overflow-wrap: anywhere; }
+.conversation-decision-edge-label { color: var(--color-text-muted); font-weight: 700; }
 @media (max-width: 767px) {
+  .conversation-summary-group-heading { align-items: flex-start; flex-direction: column; }
+  .conversation-summary-view-toggle { align-self: flex-start; }
+  .conversation-decision-edges li { grid-template-columns: minmax(0,1fr); }
   .workspace-panels[data-stage="conversation"] .ai-turn-composer textarea { padding-inline: 10px; font-size: 13px; }
   .workspace-panels[data-stage="conversation"] .ai-turn-composer > button.ai-turn-cancel { width: auto; min-width: 0; min-height: 36px; padding: 6px 8px; font-size: 11px; }
 }
