@@ -1,4 +1,5 @@
 import { aiModelRegistry, validateModelConfiguration } from "../../src/infrastructure/ai/model-registry.js";
+import { decodeOpenAiStrictOutput, toOpenAiStrictSchema } from "../../src/infrastructure/ai/openai-strict-schema.js";
 
 const SAFE_PROVIDER_ERROR_TYPES = new Set(["api_error", "authentication_error", "billing_error", "invalid_request_error", "not_found_error", "permission_error", "rate_limit_error", "server_error"]);
 const SAFE_PROVIDER_ERROR_CODES = new Set(["context_length_exceeded", "insufficient_quota", "invalid_api_key", "invalid_json_schema", "model_not_found", "permission_denied", "rate_limit_exceeded", "server_error", "unsupported_parameter", "unsupported_value"]);
@@ -75,6 +76,7 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
     console.error("OPENAI_CONFIGURATION_UNAVAILABLE", { setting: "OPENAI_API_KEY" });
     throw error;
   }
+  const providerSchema = toOpenAiStrictSchema(schema);
   const controller = new AbortController();
   const abort = () => controller.abort(signal?.reason);
   if (signal?.aborted) abort();
@@ -84,7 +86,7 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: resolvedModel, input: messages, ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}), text: { format: { type: "json_schema", name, strict: true, schema } } }),
+      body: JSON.stringify({ model: resolvedModel, input: messages, ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}), text: { format: { type: "json_schema", name, strict: true, schema: providerSchema } } }),
       signal: controller.signal,
     });
     if (!response.ok) {
@@ -114,7 +116,7 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
       error.code = "AI_INVALID_OUTPUT";
       throw error;
     }
-    try { return JSON.parse(text); }
+    try { return decodeOpenAiStrictOutput(JSON.parse(text), schema); }
     catch {
       const error = new Error("AI output was not valid JSON");
       error.code = "AI_INVALID_OUTPUT";
