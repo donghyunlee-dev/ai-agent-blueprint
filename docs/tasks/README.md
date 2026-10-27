@@ -38,18 +38,19 @@
 | 26 | `SRC-PR-03` 추출 결과 다운로드 | 5단계 | merged (PR #28; merge `8bd59a14c1bd6e526b41f37cb5b9fe42018833f7`) | [plan](SRC-PR-03/plan.md) · [tests](SRC-PR-03/test-results.md) · [review](SRC-PR-03/review-notes.md) · [QA](SRC-PR-03/qa-report.md) |
 | 27 | `GDE-PR-01` 설정 가이드 | 5단계 | merged (#29) | [plan](GDE-PR-01/plan.md), [review notes](GDE-PR-01/review-notes.md) |
 | 28 | `QLT-PR-01` 접근성·반응형·성능 | 6단계 | merged (#66; merge `649133e22b3f3862295c1c2307fbd1b7cced58d6`) | [plan](QLT-PR-01/plan.md) |
-| 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | in_progress | [plan](QLT-PR-02/plan.md) |
-| 30 | `QLT-PR-03` 사용자 검증·출시 정리 | 6단계 | planned | [plan](QLT-PR-03/plan.md) |
-| 31 | `AUTH-PR-04` ideon 로그인 화면 시안 개편 | UI 개선 | merged (#43) | [plan](AUTH-PR-04/plan.md) |
-| 32 | `AUTH-PR-05` 로그인 redirect 토스트와 Vercel SPA 경로 fallback | UI·배포 설정 | merged (#46) | [plan](AUTH-PR-05/plan.md) |
-| 33 | `AUTH-PR-06` Google 로그인 버튼 초기 자동 포커스 제거 | UI 접근성 | merged (#48) | [plan](AUTH-PR-06/plan.md) |
-| 34 | `UIR-PR-03D` 대화 선택 카드·아이디어 입력 focus 보정 | UI 후속 | merged (#53, `ac5b8abade7b1235e68cb549703e7081a55379fa`) | [plan](UIR-PR-03D/plan.md) |
-| 35 | `UIR-PR-03E` 아이디어 포커스 링 제거·대화 여백 정리 | UI 후속 | merged (#59) | [plan](UIR-PR-03E/plan.md) |
-| 36 | `UIR-PR-03F` 포커스 시 입력 배경 유지 | UI 후속 | merged (#60, `9b81e9f`) | [plan](UIR-PR-03F/plan.md) |
-| 37 | `UIR-PR-03G` 대화·요약 패널 외부 여백 보정 | UI 후속 | merged (#61) | [plan](UIR-PR-03G/plan.md) |
-| 38 | `CON-PR-04` 대화·결정 요약 계약 재정립 | 대화 계약 | merged (#63; merge `df54aafa654142f11348321754c749588a2fbf9a`) | [plan](CON-PR-04/plan.md) |
-| 39 | `CON-PR-05` 대화 주도 발견·결정 패널 동기화 | 대화 구현 후속 | merged (#64) | [plan](CON-PR-05/plan.md) · [tests](CON-PR-05/test-results.md) · [screenshots](../delivery/evidence/CON-PR-05/README.md) |
-| 40 | `CON-PR-06` 확정 결정의 선택형 도식 보기 | 대화 UI 후속 | in_progress | [plan](CON-PR-06/plan.md) |
+| 29 | `QLT-PR-02` 보안·전체 회귀·AI eval | 6단계 | merged (#67; merge `9dea685145d76ca3ebe4c12ad2b3721d549c9256`) | [plan](QLT-PR-02/plan.md) · [tests](QLT-PR-02/test-results.md) · [QA](QLT-PR-02/qa-report.md) |
+| 30 | `QLT-PR-03A` 기술 출시 준비 | 6단계 | in_progress | [plan](QLT-PR-03A/plan.md) |
+| 31 | `QLT-PR-03` 사용자 검증·최종 출시 판정 | 6단계 | planned (participant readiness required) | [plan](QLT-PR-03/plan.md) |
+| 32 | `AUTH-PR-04` ideon 로그인 화면 시안 개편 | UI 개선 | merged (#43) | [plan](AUTH-PR-04/plan.md) |
+| 33 | `AUTH-PR-05` 로그인 redirect 토스트와 Vercel SPA 경로 fallback | UI·배포 설정 | merged (#46) | [plan](AUTH-PR-05/plan.md) |
+| 34 | `AUTH-PR-06` Google 로그인 버튼 초기 자동 포커스 제거 | UI 접근성 | merged (#48) | [plan](AUTH-PR-06/plan.md) |
+| 35 | `UIR-PR-03D` 대화 선택 카드·아이디어 입력 focus 보정 | UI 후속 | merged (#53, `ac5b8abade7b1235e68cb549703e7081a55379fa`) | [plan](UIR-PR-03D/plan.md) |
+| 36 | `UIR-PR-03E` 아이디어 포커스 링 제거·대화 여백 정리 | UI 후속 | merged (#59) | [plan](UIR-PR-03E/plan.md) |
+| 37 | `UIR-PR-03F` 포커스 시 입력 배경 유지 | UI 후속 | merged (#60, `9b81e9f`) | [plan](UIR-PR-03F/plan.md) |
+| 38 | `UIR-PR-03G` 대화·요약 패널 외부 여백 보정 | UI 후속 | merged (#61) | [plan](UIR-PR-03G/plan.md) |
+| 39 | `CON-PR-04` 대화·결정 요약 계약 재정립 | 대화 계약 | merged (#63; merge `df54aafa654142f11348321754c749588a2fbf9a`) | [plan](CON-PR-04/plan.md) |
+| 40 | `CON-PR-05` 대화 주도 발견·결정 패널 동기화 | 대화 구현 후속 | merged (#64) | [plan](CON-PR-05/plan.md) · [tests](CON-PR-05/test-results.md) · [screenshots](../delivery/evidence/CON-PR-05/README.md) |
+| 41 | `CON-PR-06` 확정 결정의 선택형 도식 보기 | 대화 UI 후속 | merged (#68) | [plan](CON-PR-06/plan.md) |
 
 상태 최신값은 `docs/delivery/development-pr-review-qa-workflow.md`와 `docs/delivery/traceability.md`가 원본이다. 이 표는 탐색 편의를 위한 것이며 실제 진행 상태는 두 원본 문서에서 갱신한다.
 

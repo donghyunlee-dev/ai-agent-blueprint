@@ -162,7 +162,7 @@ Then A의 프로젝트가 하나도 노출되지 않는다
 - [x] 로컬 CI와 deterministic desktop/mobile QA 통과
 - [x] desktop/mobile Preview 캡처 검토 — deployment of code SHA `048e76b`; `qa-report.md`
 - [x] PR Preview 검증 완료 — deployment of code SHA `048e76b`; `qa-report.md`
-- [ ] 사용자 PR 머지 확인
+- [x] PR #67 사용자 지정 기본 브랜치 `main`에 병합 확인 — merge `9dea685145d76ca3ebe4c12ad2b3721d549c9256`
 
 ## 실행 시 추가 문서
 
