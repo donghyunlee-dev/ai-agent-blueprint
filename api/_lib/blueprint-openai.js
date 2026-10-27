@@ -1,5 +1,9 @@
 import { aiModelRegistry, validateModelConfiguration } from "../../src/infrastructure/ai/model-registry.js";
 
+const SAFE_PROVIDER_ERROR_TYPES = new Set(["api_error", "authentication_error", "billing_error", "invalid_request_error", "not_found_error", "permission_error", "rate_limit_error", "server_error"]);
+const SAFE_PROVIDER_ERROR_CODES = new Set(["context_length_exceeded", "insufficient_quota", "invalid_api_key", "invalid_json_schema", "model_not_found", "permission_denied", "rate_limit_exceeded", "server_error", "unsupported_parameter", "unsupported_value"]);
+const SAFE_PROVIDER_ERROR_PARAMS = new Set(["model", "input", "text.format", "text.format.schema", "reasoning.effort"]);
+
 const fields = [
   "serviceName", "serviceDesc", "features", "env", "users", "os", "db", "dbExist", "dbType",
   "auth", "authTypes", "notif", "notifChannels", "automation", "aiAgent", "tools", "git", "deploy",
@@ -84,11 +88,20 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
       signal: controller.signal,
     });
     if (!response.ok) {
+      let providerError;
+      try { providerError = (await response.json())?.error; } catch { /* Provider error bodies are best-effort diagnostics only. */ }
+      const providerErrorType = SAFE_PROVIDER_ERROR_TYPES.has(providerError?.type) ? providerError.type : undefined;
+      const providerErrorCode = SAFE_PROVIDER_ERROR_CODES.has(providerError?.code) ? providerError.code : undefined;
+      const providerErrorParam = SAFE_PROVIDER_ERROR_PARAMS.has(providerError?.param)
+        ? providerError.param : undefined;
       console.error("OPENAI_RESPONSE_REJECTED", {
         operation: name,
         model: resolvedModel,
         status: response.status,
         requestId: response.headers?.get?.("x-request-id") ?? null,
+        ...(providerErrorType ? { providerErrorType } : {}),
+        ...(providerErrorCode ? { providerErrorCode } : {}),
+        ...(providerErrorParam ? { providerErrorParam } : {}),
       });
       const error = new Error(`OpenAI request failed (${response.status})`);
       error.statusCode = response.status === 429 ? 429 : response.status >= 500 ? 502 : 503;
