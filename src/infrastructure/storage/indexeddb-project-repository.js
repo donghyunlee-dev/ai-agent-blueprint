@@ -12,7 +12,9 @@ function invalidateOwnerConnections() {
     try { transaction.abort(); } catch { /* Completed transactions cannot be aborted. */ }
   }
   transactions.clear();
-  for (const database of databases.values()) database.close();
+  for (const databasePromise of databases.values()) {
+    void databasePromise.then((database) => database.close()).catch(() => {});
+  }
   databases.clear();
 }
 

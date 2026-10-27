@@ -258,6 +258,8 @@ test('stale owner retry completion cannot change the next owner project status',
 });
 
 test('owner namespaces isolate identical project ids and clear stale reads on account change', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   await seedProjects(page, 1, 'same-project-id', 'prj-qa-user', 'A 소유자 프로젝트');
   await seedProjects(page, 1, 'same-project-id', 'another-owner', 'B 소유자 프로젝트');
   await page.goto('/');
@@ -273,9 +275,12 @@ test('owner namespaces isolate identical project ids and clear stale reads on ac
   await expect(page.locator('body')).not.toContainText('A 소유자 프로젝트');
   await page.goto('/blueprints/same-project-id');
   await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue('B 소유자 프로젝트 1');
+  expect(pageErrors).toEqual([]);
 });
 
 test('authenticated owner switch hides the previous owner project with the same id', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   let activeIdentity = { ...identity, subject: 'owner-switch-a', email: 'owner-a@example.test' };
   await page.unroute('**/api/auth/session');
   await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: { authenticated: true, user: activeIdentity } }));
@@ -295,6 +300,7 @@ test('authenticated owner switch hides the previous owner project with the same 
   await projects.getByRole('link', { name: /B 계정 프로젝트/ }).click();
   await expect(page.getByRole('textbox', { name: '프로젝트 제목' })).toHaveValue('B 계정 프로젝트 1');
   await expect(page.locator('body')).not.toContainText('A 계정 프로젝트');
+  expect(pageErrors).toEqual([]);
 });
 
 test('twenty-first request uses a keyboard-accessible confirmation and keeps twenty after deletion and creation', async ({ page }, testInfo) => {
