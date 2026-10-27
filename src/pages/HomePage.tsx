@@ -15,7 +15,7 @@ export function HomePage() {
         <section className="home-shell-intro" aria-labelledby="home-shell-title">
           <h1 id="home-shell-title">어떤 서비스를 만들고 싶으세요?</h1>
         </section>
-        <ProjectComposer ownerKey={ownerKey} onCreated={(projectId, sourceNotice) => navigate("/blueprints/" + projectId, { state: sourceNotice ? { sourceNotice } : undefined })} />
+        <ProjectComposer ownerKey={ownerKey} onCreated={(projectId, sourceNotice) => navigate("/blueprints/" + projectId + "#conversation", { state: sourceNotice ? { sourceNotice } : undefined })} />
         <RecentProjects ownerKey={ownerKey} />
         <section className="home-start" aria-labelledby="home-start-title">
           <h2 id="home-start-title">시작하기</h2>

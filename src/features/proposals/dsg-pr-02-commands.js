@@ -74,8 +74,9 @@ export async function resolveProposalConflict({ ownerKey, projectId, proposalId,
       aggregate.activityEntries.push({ id: idFactory(), projectId, action: 'proposal_conflict_kept_current', targetType: 'proposal', targetId: proposal.id, logicalRequestId: proposal.logicalRequestId, summary: '충돌에서 기존 확정값을 유지했습니다.', createdAt: at });
     } else {
       if ((proposal.operation === 'create' && proposal.targetId && currentTarget(aggregate, proposal)) || (proposal.operation !== 'create' && !currentTarget(aggregate, proposal))) return { status: 'invalid_target', aggregate, proposal };
-      const value = choice === 'edit' ? editedValue : proposal.after;
-      if (choice === 'edit' && (!validValue({ ...proposal, after: value }) || (proposal.targetType === 'design_item' && (!String(value.title ?? '').trim() || !String(value.description ?? '').trim())))) return { status: 'invalid_value' };
+      const submittedValue = choice === 'edit' ? editedValue : proposal.after;
+      if (choice === 'edit' && (!validValue({ ...proposal, after: submittedValue }) || (proposal.targetType === 'design_item' && (!String(submittedValue.title ?? '').trim() || !String(submittedValue.description ?? '').trim())))) return { status: 'invalid_value' };
+      const value = choice === 'edit' ? { ...(proposal.operation === 'create' ? proposal.after ?? {} : {}), ...submittedValue } : proposal.after;
       const changedId = proposal.targetType === 'design_item' ? proposal.targetId : undefined;
       applyValue(aggregate, proposal, value, at, idFactory);
       proposal.status = choice === 'edit' ? 'edited_and_accepted' : 'accepted'; proposal.resolvedAt = at;

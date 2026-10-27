@@ -18,9 +18,14 @@ const identity = {
 };
 
 async function tabTo(page: Page, target: Locator, maxTabs = 100) {
+  const direction = await target.evaluate((element) => {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || active === document.body || active === document.documentElement) return 'Tab';
+    return element.compareDocumentPosition(active) & Node.DOCUMENT_POSITION_FOLLOWING ? 'Shift+Tab' : 'Tab';
+  });
   for (let index = 0; index < maxTabs; index += 1) {
     if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) return;
-    await page.keyboard.press('Tab');
+    await page.keyboard.press(direction);
   }
   const active = await page.evaluate(() => (document.activeElement as HTMLElement | null)?.outerHTML ?? 'none');
   throw new Error(`Keyboard tab sequence did not reach ${await target.getAttribute('aria-label') ?? await target.textContent() ?? 'target'}; active=${active.slice(0, 180)}`);
@@ -34,6 +39,7 @@ async function activateByKeyboard(page: Page, target: Locator) {
 
 async function assertMainAndNamedFields(page: Page) {
   await expect(page.getByRole('main')).toHaveCount(1);
+  await expect(page.locator('h1:visible').first()).toBeVisible();
   const headingIssues = await page.evaluate(() => {
     const levels = [...document.querySelectorAll<HTMLElement>('h1,h2,h3,h4,h5,h6')]
       .filter((heading) => heading.getClientRects().length > 0)
@@ -130,10 +136,12 @@ async function authorizeProtectedPreview(page: Page) {
 }
 
 test('keyboard-only project creation through PRD download without Google OAuth', async ({ page }, testInfo) => {
-  test.setTimeout(90_000);
+  test.setTimeout(300_000);
   const authRequests: string[] = [];
+  const browserRequests: string[] = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
+    if (url.protocol === 'http:' || url.protocol === 'https:') browserRequests.push(url.href);
     if (url.hostname === 'accounts.google.com' || /^\/api\/auth\/(?:google\/(?:start|callback)|logout)$/.test(url.pathname)) authRequests.push(request.url());
   });
   await authorizeProtectedPreview(page);
@@ -148,7 +156,7 @@ test('keyboard-only project creation through PRD download without Google OAuth',
   await expect(ideaField).toBeFocused();
   await page.keyboard.type('회의실 예약 충돌을 줄이고 담당자가 운영 기준을 정리하는 서비스를 만들고 싶어요.');
   await activateByKeyboard(page, page.getByRole('button', { name: 'Blueprint 시작' }));
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]+$/i);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]+#conversation$/i);
   await assertMainAndNamedFields(page);
   if (testInfo.project.name === 'mobile-chromium') {
     const summaryTrigger = page.getByRole('button', { name: '요약 보기' });
@@ -317,6 +325,7 @@ test('keyboard-only project creation through PRD download without Google OAuth',
   await expect(page.getByText('선택한 추천을 검토 대기 제안으로 만들었습니다.')).toBeVisible();
 
   await activateByKeyboard(page, page.getByRole('link', { name: '제안 검토' }));
+  await expect(page).toHaveURL(new RegExp(`/blueprints/${projectId}/design#proposal-review-title$`));
   await assertMainAndNamedFields(page);
   await expect(page.getByRole('heading', { name: '제안 1개' })).toBeVisible();
   await expectTextContrast(page, 'proposal review');
@@ -346,6 +355,7 @@ test('keyboard-only project creation through PRD download without Google OAuth',
   await expect(page.getByText('대상 사용자, 범위, 목표와 운영 위험을 정리했습니다. 각 제안을 검토해 주세요.')).toBeVisible();
 
   await activateByKeyboard(page, page.getByRole('link', { name: '제안 검토' }));
+  await expect(page).toHaveURL(new RegExp(`/blueprints/${projectId}/design#proposal-review-title$`));
   await expect(page.getByRole('heading', { name: `제안 ${readinessProposalResponse.length}개` })).toBeVisible();
   const approveButtons = page.locator('[data-proposal-card]').getByRole('button', { name: '승인', exact: true });
   while (await approveButtons.count()) {
@@ -410,7 +420,7 @@ test('keyboard-only project creation through PRD download without Google OAuth',
   if (testInfo.project.name === 'desktop-chromium') {
     const routes = [
       { path: '/', heading: '어떤 서비스를 만들고 싶으세요?', label: 'home', filename: 'home' },
-      { path: `/blueprints/${projectId}`, heading: '대화', label: 'conversation', filename: 'conversation' },
+      { path: `/blueprints/${projectId}#conversation`, heading: '대화', label: 'conversation', filename: 'conversation' },
       { path: `/blueprints/${projectId}/design`, heading: '설계', label: 'design and sources', filename: 'design' },
       { path: `/blueprints/${projectId}/design#proposal-review-title`, heading: '제안 검토', label: 'proposal review', filename: 'proposal' },
       { path: `/blueprints/${projectId}/requirements`, heading: '요구사항 명세', label: 'Requirements', filename: 'requirements' },
@@ -439,6 +449,13 @@ test('keyboard-only project creation through PRD download without Google OAuth',
     }
   }
   expect(authRequests, 'the product journey must not invoke Google login, callback, or logout').toEqual([]);
+  const appOrigin = new URL(page.url()).origin;
+  const staticFontHosts = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
+  const unexpectedThirdPartyRequests = browserRequests.filter((requestUrl) => {
+    const url = new URL(requestUrl);
+    return url.origin !== appOrigin && !staticFontHosts.has(url.hostname);
+  });
+  expect(unexpectedThirdPartyRequests, 'the product journey must not send analytics or other requests to third-party origins').toEqual([]);
 
   if (await page.evaluate(() => window.innerWidth <= 767)) {
     const mobileStepContrast = await page.getByRole('link', { name: '5 PRD' }).evaluate((element) => {

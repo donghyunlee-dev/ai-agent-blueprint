@@ -119,8 +119,9 @@ test('project start saves the idea and selected source through the same extracti
   await page.getByLabel('만들고 싶은 제품이나 해결할 문제').fill('업로드한 참고 자료에서 시작하는 프로젝트');
   await picker.setInputFiles({ name: 'start.md', mimeType: 'text/markdown', buffer: Buffer.from('# Start\nCreated with a source.') });
   await page.getByRole('button', { name: /Blueprint 시작/ }).click();
-  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]+\/?$/);
-  await page.goto(`${page.url().replace(/\/$/, '')}/design`);
+  await expect(page).toHaveURL(/\/blueprints\/[0-9a-f-]+#conversation$/);
+  const projectId = new URL(page.url()).pathname.split('/')[2];
+  await page.goto(`/blueprints/${projectId}/design`);
   await expect(page.getByRole('heading', { name: '참고 자료', exact: true })).toBeVisible();
   await expect(page.getByText('start.md')).toBeVisible();
   await expect(page.locator('.source-status-ready')).toBeVisible();

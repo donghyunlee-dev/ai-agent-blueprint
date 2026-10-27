@@ -40,11 +40,17 @@ test('opens and closes the design inspector from its visible trigger across mobi
   for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }]) {
     await page.setViewportSize(viewport);
     await page.goto(`/blueprints/${projectId}/design`);
-    await expect(page.locator('.workspace-mobile-tabs')).toBeHidden();
-    await expect(page.getByRole('tab', { name: '검토' })).toHaveCount(0);
     const workPanel = page.locator('#workspace-work-panel');
-    await expect(workPanel).toHaveAttribute('role', 'region');
-    await expect(workPanel).not.toHaveAttribute('aria-labelledby');
+    if (viewport.width <= 1023) {
+      await expect(page.getByRole('tablist', { name: '작업 패널' })).toBeVisible();
+      await expect(page.getByRole('tab', { name: '검토' })).toBeVisible();
+      await expect(workPanel).toHaveAttribute('role', 'tabpanel');
+      await expect(workPanel).toHaveAttribute('aria-labelledby', 'workspace-mode-tab-work');
+    } else {
+      await expect(page.getByRole('tablist', { name: '작업 패널' })).toBeHidden();
+      await expect(workPanel).toHaveAttribute('role', 'region');
+      await expect(workPanel).not.toHaveAttribute('aria-labelledby');
+    }
     await expect(page.getByTestId('design-board')).toBeVisible();
 
     const detailsTrigger = page.getByRole('button', { name: '상세 보기' });

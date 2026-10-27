@@ -22,6 +22,19 @@ test('selects relevant intact paragraphs with deterministic source locations and
   assert.equal(excerpts.some((entry) => entry.sourceId === 'not-ready' || entry.sourceId === 'foreign'), false);
 });
 
+test('prioritizes quoted evidence when submitting a contextual choice with unrelated text', () => {
+  const quote = '취소는 시작 두 시간 전까지 가능합니다.';
+  const excerpts = selectSourceExcerpts({
+    projectId:'p1',
+    query:'추천 1번을 선택합니다.',
+    evidence:[{ sourceType:'file', sourceId:'policy', excerpt:quote }],
+    sources:[source('policy', `서비스 개요입니다.\n\n이용자는 예약을 관리합니다.\n\n${quote}`)],
+    idFactory:()=> 'request-excerpt',
+  });
+
+  assert.equal(excerpts.some(({ text, location }) => text === quote && location === '문단 3'), true);
+});
+
 test('limits the request to 6000 excerpt-text characters and omits a paragraph that cannot fit intact', () => {
   const sources = Array.from({ length: 6 }, (_, index) => source(`s${index + 1}`, '가'.repeat(1200)));
   const excerpts = selectSourceExcerpts({ projectId:'p1', query:'가', idFactory:(() => { let id=0; return () => `id-${++id}`; })(), sources });

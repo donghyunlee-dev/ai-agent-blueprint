@@ -54,7 +54,7 @@ async function seedConversation(page: any) {
     proposals: [], documents: [], sections: [], generationJobs: [], requestLedgerEntries: [], contextManifests: [], activityEntries: [],
   };
   await writeProject(page, projectId, aggregate);
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
 }
 
 async function seedRequirements(page: any) {

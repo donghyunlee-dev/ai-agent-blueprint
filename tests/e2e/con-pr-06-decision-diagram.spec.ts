@@ -57,7 +57,7 @@ test('a user can explicitly connect confirmed decisions and navigate from the di
   }, { databaseName: databaseNameForOwner(ownerKey), projectId });
   expect(storedRelations).toEqual({ relations: [['decision-b'], ['decision-a']], designRevision: 1 });
 
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   const isMobile = (page.viewportSize()?.width ?? 1440) < 1024;
   if (isMobile) await page.getByRole('button', { name: '요약 보기' }).click();
   const summary = isMobile ? page.getByRole('dialog', { name: '요약' }) : page.getByRole('complementary', { name: '요약' });
@@ -73,9 +73,13 @@ test('a user can explicitly connect confirmed decisions and navigate from the di
   await expect(relationships).toContainText('관련 결정');
   expect(await relationships.locator('li > span').first().evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(100);
   if (!isMobile) {
-    const summaryLeft = await summary.evaluate((element) => element.getBoundingClientRect().left);
-    const composerRight = await page.locator('.ai-turn-composer').evaluate((element) => element.getBoundingClientRect().right);
-    expect(composerRight).toBeLessThanOrEqual(summaryLeft);
+    const composerGeometry = await page.evaluate(() => ({
+      right: document.querySelector('.ai-turn-composer')!.getBoundingClientRect().right,
+      summaryLeft: document.querySelector('.conversation-stage-inspector')!.getBoundingClientRect().left,
+      viewportWidth: window.innerWidth,
+    }));
+    expect(composerGeometry.right).toBe(composerGeometry.viewportWidth - 34);
+    expect(composerGeometry.right).toBeGreaterThan(composerGeometry.summaryLeft);
   }
   if (process.env.CON_PR_06_CAPTURE === '1') {
     const evidenceDirectory = path.resolve('.pr-artifacts/CON-PR-06');
@@ -88,7 +92,7 @@ test('a user can explicitly connect confirmed decisions and navigate from the di
 
 test('the text summary remains available when confirmed decisions have no explicit relationship', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`/blueprints/${projectId}`);
+  await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('button', { name: '요약 보기' }).click();
   const summary = page.getByRole('dialog', { name: '요약' });
   await expect(summary).toContainText('예약 시간 확인');

@@ -11,6 +11,30 @@ import type { ContextualResponse } from './ContextualQuestionCard.js';
 import { normalizeProposals } from '../../features/proposals/normalize-proposals.js';
 import { selectSourceExcerpts } from '../../features/sources/source-excerpt-selection.js';
 
+type FileSelectionEvidence = { sourceType:'file'; sourceId:string; excerpt?:string };
+
+function fileEvidenceFromProposalDraft(draft: unknown): FileSelectionEvidence[] {
+  if (!draft || typeof draft !== 'object' || !('evidence' in draft) || !Array.isArray(draft.evidence)) return [];
+  return draft.evidence.filter((reference): reference is FileSelectionEvidence => Boolean(reference && typeof reference === 'object'
+    && 'sourceType' in reference && reference.sourceType === 'file'
+    && 'sourceId' in reference && typeof reference.sourceId === 'string'
+    && (!('excerpt' in reference) || typeof reference.excerpt === 'string')));
+}
+
+function selectedProposalFileEvidence(messages: ConversationMessage[], kind: ContextualResponse['kind'], responseTo: ContextualResponse['responseTo']): FileSelectionEvidence[] {
+  if (!responseTo) return [];
+  const message = messages.find((item) => item.id === responseTo.messageId && item.role === 'assistant');
+  const block = message?.blocks?.find((item) => 'id' in item && item.id === responseTo.blockId);
+  if (kind === 'recommendation_choice' && block?.type === 'recommendation_candidates') {
+    return fileEvidenceFromProposalDraft(block.candidates.find((item) => item.id === responseTo.choiceId)?.proposalDraft);
+  }
+  if (kind === 'choice' && block?.type === 'question') {
+    const selectedValues = new Set(responseTo.rankedValues ?? responseTo.selectedValues);
+    return block.options?.filter((option) => selectedValues.has(option.value)).flatMap((option) => fileEvidenceFromProposalDraft(option.proposalDraft)) ?? [];
+  }
+  return [];
+}
+
 type AiTurnComposerProps = {
   aggregate: BlueprintAggregate;
   projectId: string;
@@ -124,7 +148,7 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
     const contextMessagesBeforeTurn = current.messages.filter((message)=>message.id!==userMessage.id);
     const context = compactConversationContext({messages:contextMessagesBeforeTurn,summary:current.thread.summary,threshold:20});
     const contextMessages = context.compacted ? [{id:`summary-${projectId}`,role:'assistant' as const,kind:'text' as const,content:JSON.stringify(context.summary)},...context.originalMessages] : context.originalMessages.filter((message)=>message.role!=='system');
-    const sourceExcerpts = selectSourceExcerpts({ projectId, query:[text].filter(Boolean).join('\n'), sources:current.sources });
+    const sourceExcerpts = selectSourceExcerpts({ projectId, query:text, sources:current.sources, evidence:selectedProposalFileEvidence(current.messages,kind,responseTo) });
     const payload = { projectSummary:{projectId,title:current.project.title,designRevision:current.project.designRevision ?? 0}, userTurn:{id:userMessage.id,kind,text,...(responseTo ? {responseTo} : {})}, recentMessages:contextMessages.map((message)=>({id:message.id,role:message.role,kind:message.kind==='question'?'question' as const:'text' as const,content:message.content,...('blocks' in message && message.blocks ? {blocks:message.blocks} : {})})), relevantDesignItems:current.designItems.filter((item)=>item.status==='confirmed').map(({id,type,key,title,description,attributes})=>({id,type,...(key?{key}:{}),title,description,attributes})), sources:sourceExcerpts };
     await send(payload,logicalRequestId,crypto.randomUUID(),sourceExcerpts);
   }

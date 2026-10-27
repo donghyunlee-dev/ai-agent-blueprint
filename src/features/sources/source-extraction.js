@@ -32,7 +32,8 @@ export function flattenPdfTextItems(pages) {
 
 async function extractPdf(file) {
   const { getDocument } = await import('./source-pdf-extraction.js');
-  const pdf = await getDocument({ data: await file.arrayBuffer(), useWorkerFetch: false, isEvalSupported: false }).promise;
+  const loadingTask = getDocument({ data: await file.arrayBuffer(), useWorkerFetch: false, isEvalSupported: false });
+  const pdf = await loadingTask.promise;
   const pages = [];
   try {
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
@@ -41,7 +42,7 @@ async function extractPdf(file) {
       pages.push(content.items);
     }
   } finally {
-    await pdf.destroy();
+    await loadingTask.destroy();
   }
   const text = flattenPdfTextItems(pages).trim();
   if (!text) return { extractionStatus: 'unsupported', errorCode: 'PDF_NO_TEXT' };

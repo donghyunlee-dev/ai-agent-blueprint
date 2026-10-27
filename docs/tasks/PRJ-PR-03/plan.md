@@ -52,7 +52,7 @@
 **PRJ-105 작업 공간 셸과 복구**
 
 - AppBar order: 홈 link, 프로젝트명(한 줄 ellipsis 및 전체 title을 accessible tooltip로 제공), 설계/Requirements/PRD document links, 기존 저장 상태 badge 및 retry action, 비활성 export entry, 기존 user menu. 저장 상태는 색상만으로 구분하지 않는다.
-- Document links는 URL navigation이다. 링크는 각각 `/blueprints/:id/design`, `/blueprints/:id/requirements`, `/blueprints/:id/prd`를 사용한다. explicit document route는 해당 값을 선택하고 canonical `project.activeDocumentType`을 기존 repository saver로 저장한다. base project route(`/blueprints/:id`)로 들어오면 canonical `activeDocumentType` 경로로 replace 이동해 RecentProjects의 기존 continue link도 마지막 문서로 복귀시킨다. Browser back/forward, 새로고침은 URL과 동기화한다. `setup_guide` document behavior/navigation is outside PRJ-03; preserve the route value if supplied without adding a top-level tab.
+- Document links는 URL navigation이다. 링크는 각각 `/blueprints/:id/design`, `/blueprints/:id/requirements`, `/blueprints/:id/prd`를 사용한다. explicit document route는 해당 값을 선택하고 canonical `project.activeDocumentType`을 기존 repository saver로 저장한다. base project route(`/blueprints/:id`)로 들어오면 canonical `activeDocumentType` 경로로 replace 이동해 RecentProjects의 기존 continue link도 마지막 문서로 복귀시킨다. 단계 내 대화는 `/blueprints/:id#conversation`으로 선택하고 문서 선택을 바꾸지 않는다. Browser back/forward, 새로고침은 URL과 동기화한다. `setup_guide` document behavior/navigation is outside PRJ-03; preserve the route value if supplied without adding a top-level tab.
 - Conversation panel은 PRJ-01/02가 저장한 첫 user message를 읽기 전용으로 보여주고, 실제 composer/AI behavior는 구현하지 않는다. Work surface는 선택 탭에 따른 empty-state container만, Inspector는 이름과 다음 단계 안내가 있는 empty state만 제공한다.
 - 각 visible panel은 자체 scroll container다. body는 `100dvh` shell 밖으로 스크롤되지 않는다. desktop에서 header/composer는 지정된 위치에 고정하고 content만 스크롤한다.
 - Conversation panel resizer는 320~420px 범위로 제한하고, 충분한 pointer hit area와 ArrowLeft/ArrowRight 조작을 제공한다. 대화 폭은 브라우저 UI preference에만 저장한다.
@@ -115,7 +115,7 @@ graph TD
 ## 데이터/API 영향
 
 - 서버 API, IndexedDB schema와 `ProjectRepository` 변경 없음.
-- URL이 있는 `/blueprints/:projectId/:documentType`는 현재 탭을 복구하는 URL state이며, 해당 document type은 canonical `BlueprintProject.activeDocumentType`에도 반영한다. Aggregate에 `activeTab` 필드를 추가하지 않는다. `/blueprints/:projectId` continue route는 저장된 canonical type으로 replace 이동한다.
+- URL이 있는 `/blueprints/:projectId/:documentType`는 현재 문서 탭을 복구하는 URL state이며, 해당 document type은 canonical `BlueprintProject.activeDocumentType`에도 반영한다. Aggregate에 `activeTab` 필드를 추가하지 않는다. `/blueprints/:projectId` continue route는 저장된 canonical type으로 replace 이동하고, `#conversation` hash route는 대화 단계를 표시하되 canonical 문서 선택을 갱신하지 않는다.
 - `conversationScrollTop`은 프로젝트별 숫자 UI preference로 localStorage에 저장하고, conversation content가 그려진 뒤 restore한다. 패널 폭은 320~420px 숫자 browser UI preference로 localStorage에 저장한다. 이 두 값 외 aggregate/content와 `ownerKey`는 브라우저 storage에 쓰지 않는다. Storage unavailable/invalid value는 preference 복구만 생략하고 프로젝트 저장·route behavior에 영향 주지 않는다.
 - UI preference의 근거: `docs/delivery/01-project-lifecycle.md`의 “last project ID, active tab, UI preferences만 localStorage”와 `docs/product/06-architecture.md`의 URL/UI/client state 구분. canonical project fields, 특히 `activeDocumentType`은 `docs/product/05-data-spec.md`를 따른다.
 

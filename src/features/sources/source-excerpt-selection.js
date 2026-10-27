@@ -22,9 +22,10 @@ function relevanceScore(text, queryTokens) {
   return score;
 }
 
-export function selectSourceExcerpts({ projectId, query, sources = [], idFactory = () => globalThis.crypto.randomUUID() }) {
+export function selectSourceExcerpts({ projectId, query, sources = [], evidence = [], idFactory = () => globalThis.crypto.randomUUID() }) {
   if (!projectId) return [];
   const queryTokens = new Set(tokens(query));
+  const fileEvidence = evidence.filter((reference) => reference?.sourceType === 'file' && typeof reference.sourceId === 'string');
   const candidates = [];
   for (const [sourceIndex, source] of sources.entries()) {
     if (source.projectId !== projectId || source.extractionStatus !== 'ready' || source.archivedAt || typeof source.extractedText !== 'string') continue;
@@ -34,10 +35,11 @@ export function selectSourceExcerpts({ projectId, query, sources = [], idFactory
       paragraphIndex,
       text,
       score: relevanceScore(text, queryTokens),
+      cited: fileEvidence.some((reference) => reference.sourceId === source.id && (!reference.excerpt || text.includes(reference.excerpt))),
     }));
   }
 
-  candidates.sort((left, right) => right.score - left.score || left.sourceIndex - right.sourceIndex || left.paragraphIndex - right.paragraphIndex);
+  candidates.sort((left, right) => Number(right.cited) - Number(left.cited) || right.score - left.score || left.sourceIndex - right.sourceIndex || left.paragraphIndex - right.paragraphIndex);
   const selected = [];
   const sourceCounts = new Map();
   const sourceChars = new Map();
