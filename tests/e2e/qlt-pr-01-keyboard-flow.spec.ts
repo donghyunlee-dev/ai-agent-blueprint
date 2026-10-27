@@ -118,9 +118,8 @@ async function authorizeProtectedPreview(page: Page) {
   const previewUrl = process.env.PLAYWRIGHT_PREVIEW_URL;
   if (!previewUrl) return;
   const parsedUrl = new URL(previewUrl);
-  const isBlueprintDeployment = /^windsoft-agent-blueprint-[a-z0-9-]+\.vercel\.app$/.test(parsedUrl.hostname);
   const isBlueprintGitPreview = /^windsoft-agent-bluepr-git-[a-z0-9-]+-donghyunlees-projects-e43b52b1\.vercel\.app$/.test(parsedUrl.hostname);
-  if (parsedUrl.protocol !== 'https:' || parsedUrl.port || parsedUrl.username || parsedUrl.password || parsedUrl.pathname !== '/' || parsedUrl.search || parsedUrl.hash || (!isBlueprintDeployment && !isBlueprintGitPreview)) {
+  if (parsedUrl.protocol !== 'https:' || parsedUrl.port || parsedUrl.username || parsedUrl.password || parsedUrl.pathname !== '/' || parsedUrl.search || parsedUrl.hash || !isBlueprintGitPreview) {
     throw new Error('PLAYWRIGHT_PREVIEW_URL_MUST_BE_A_WINDSOFT_PREVIEW_DEPLOYMENT');
   }
   const token = process.env.VERCEL_OIDC_TOKEN;
