@@ -26,7 +26,7 @@ test('turn endpoint requires a valid session before any provider or store side e
   assert.equal(storeCalls, 0);
 });
 
-test('TURN validation logs only a fixed stage and attempt count', async () => {
+test('TURN validation logs a fixed reference failure category without request data', async () => {
   const canary = 'private-user-text-should-never-enter-server-logs';
   const priorConsoleError = console.error;
   const logged = [];
@@ -49,7 +49,11 @@ test('TURN validation logs only a fixed stage and attempt count', async () => {
   } finally {
     console.error = priorConsoleError;
   }
-  assert.deepEqual(logged, [['TURN_RESPONSE_VALIDATION_FAILED', { stage: 'references', attempts: 2 }]]);
+  assert.deepEqual(logged, [['TURN_RESPONSE_VALIDATION_FAILED', {
+    stage: 'references',
+    attempts: 2,
+    referenceFailures: ['unknown_source_reference'],
+  }]]);
   assert.doesNotMatch(JSON.stringify(logged), new RegExp(canary));
   assert.doesNotMatch(JSON.stringify(logged), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
 });
