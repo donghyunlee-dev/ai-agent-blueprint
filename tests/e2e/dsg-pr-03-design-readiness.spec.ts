@@ -148,7 +148,7 @@ test('shows the ten-area readiness gate and keeps the selected design item avail
     await page.getByRole('button', { name: '상세 닫기' }).click();
     await expect(page.getByRole('button', { name: '설계 결정 관리' })).toBeFocused();
   }
-  await page.getByRole('button', { name: /설계 보드/ }).click();
+  await page.locator('[data-design-item-id="feature"]').click();
   await expect(inspector).toContainText('보드에서 확정 설계와 준비 원인을 확인할 수 있다');
   if (await page.getByRole('button', { name: '상세 닫기' }).isVisible()) {
     await page.getByRole('button', { name: '상세 닫기' }).click();
