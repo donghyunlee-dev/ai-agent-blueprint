@@ -37,6 +37,8 @@ export function getOpenAiConfig(env = process.env) {
   try {
     validateModelConfiguration(env);
   } catch (error) {
+    const setting = error.message.match(/\bAI_MODEL_(?:LIGHT|DEFAULT|FINAL)\b/)?.[0] ?? "AI_MODEL_CONFIGURATION";
+    console.error("OPENAI_CONFIGURATION_UNAVAILABLE", { setting });
     error.statusCode = 503;
     throw error;
   }
@@ -66,6 +68,7 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
   if (!apiKey) {
     const error = new Error("OPENAI_NOT_CONFIGURED");
     error.statusCode = 503;
+    console.error("OPENAI_CONFIGURATION_UNAVAILABLE", { setting: "OPENAI_API_KEY" });
     throw error;
   }
   const controller = new AbortController();
@@ -81,6 +84,12 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
       signal: controller.signal,
     });
     if (!response.ok) {
+      console.error("OPENAI_RESPONSE_REJECTED", {
+        operation: name,
+        model: resolvedModel,
+        status: response.status,
+        requestId: response.headers?.get?.("x-request-id") ?? null,
+      });
       const error = new Error(`OpenAI request failed (${response.status})`);
       error.statusCode = response.status === 429 ? 429 : response.status >= 500 ? 502 : 503;
       if (response.status < 500 && response.status !== 429) error.code = "AI_PROVIDER_REJECTED";

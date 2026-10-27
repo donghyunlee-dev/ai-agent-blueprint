@@ -13,3 +13,54 @@ test('sends a requested registered FINAL profile model to the Responses API',asy
   await requestStructuredOutput({name:'prd_draft',schema:{type:'object'},messages:[],model:'gpt-5.6-terra',reasoningEffort:'low'});
   assert.equal(sentModel,'gpt-5.6-terra');
 });
+
+test('logs provider rejection status and request ID without logging request or response content',async(t)=>{
+  const keys=['OPENAI_API_KEY','AI_MODEL_LIGHT','AI_MODEL_DEFAULT','AI_MODEL_FINAL'];
+  const previous=Object.fromEntries(keys.map((key)=>[key,process.env[key]]));
+  const originalFetch=globalThis.fetch;
+  const originalConsoleError=console.error;
+  const logged=[];
+  t.after(()=>{for(const key of keys){if(previous[key]===undefined)delete process.env[key];else process.env[key]=previous[key];}globalThis.fetch=originalFetch;console.error=originalConsoleError;});
+  process.env.OPENAI_API_KEY='test-only-api-key';process.env.AI_MODEL_LIGHT='gpt-5.6-luna';process.env.AI_MODEL_DEFAULT='gpt-5-mini';process.env.AI_MODEL_FINAL='gpt-5.6-terra';
+  console.error=(...values)=>logged.push(values);
+  globalThis.fetch=async()=>({ok:false,status:401,headers:{get:(name)=>name==='x-request-id'?'req_safe-correlation-id':null}});
+  await assert.rejects(
+    requestStructuredOutput({name:'turn_analyze_v3',schema:{type:'object'},messages:[{role:'user',content:'private-user-prompt-canary'}]}),
+    (error)=>error.statusCode===503&&error.code==='AI_PROVIDER_REJECTED',
+  );
+  assert.deepEqual(logged,[['OPENAI_RESPONSE_REJECTED',{operation:'turn_analyze_v3',model:'gpt-5-mini',status:401,requestId:'req_safe-correlation-id'}]]);
+  assert.doesNotMatch(JSON.stringify(logged),/private-user-prompt-canary|test-only-api-key|provider response body/);
+});
+
+test('logs only the missing model setting when provider configuration is rejected',async(t)=>{
+  const keys=['OPENAI_API_KEY','AI_MODEL_LIGHT','AI_MODEL_DEFAULT','AI_MODEL_FINAL'];
+  const previous=Object.fromEntries(keys.map((key)=>[key,process.env[key]]));
+  const originalFetch=globalThis.fetch;
+  const originalConsoleError=console.error;
+  const logged=[];
+  t.after(()=>{for(const key of keys){if(previous[key]===undefined)delete process.env[key];else process.env[key]=previous[key];}globalThis.fetch=originalFetch;console.error=originalConsoleError;});
+  process.env.OPENAI_API_KEY='test-only-api-key';process.env.AI_MODEL_LIGHT='gpt-5.6-luna';process.env.AI_MODEL_DEFAULT='unregistered-secret-model-name';process.env.AI_MODEL_FINAL='gpt-5.6-terra';
+  console.error=(...values)=>logged.push(values);
+  await assert.rejects(
+    requestStructuredOutput({name:'turn_analyze_v3',schema:{type:'object'},messages:[]}),
+    (error)=>error.statusCode===503,
+  );
+  assert.deepEqual(logged,[['OPENAI_CONFIGURATION_UNAVAILABLE',{setting:'AI_MODEL_DEFAULT'}]]);
+  assert.doesNotMatch(JSON.stringify(logged),/unregistered-secret-model-name|test-only-api-key/);
+});
+
+test('logs missing API-key configuration without exposing a key value',async(t)=>{
+  const keys=['OPENAI_API_KEY','AI_MODEL_LIGHT','AI_MODEL_DEFAULT','AI_MODEL_FINAL'];
+  const previous=Object.fromEntries(keys.map((key)=>[key,process.env[key]]));
+  const originalFetch=globalThis.fetch;
+  const originalConsoleError=console.error;
+  const logged=[];
+  t.after(()=>{for(const key of keys){if(previous[key]===undefined)delete process.env[key];else process.env[key]=previous[key];}globalThis.fetch=originalFetch;console.error=originalConsoleError;});
+  delete process.env.OPENAI_API_KEY;process.env.AI_MODEL_LIGHT='gpt-5.6-luna';process.env.AI_MODEL_DEFAULT='gpt-5-mini';process.env.AI_MODEL_FINAL='gpt-5.6-terra';
+  console.error=(...values)=>logged.push(values);
+  await assert.rejects(
+    requestStructuredOutput({name:'turn_analyze_v3',schema:{type:'object'},messages:[]}),
+    (error)=>error.statusCode===503&&error.message==='OPENAI_NOT_CONFIGURED',
+  );
+  assert.deepEqual(logged,[['OPENAI_CONFIGURATION_UNAVAILABLE',{setting:'OPENAI_API_KEY'}]]);
+});
