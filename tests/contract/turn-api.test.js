@@ -130,7 +130,8 @@ test('turn endpoint validates, calls the injected provider, and replays success 
   const recordedMetadata = [];
   const store = { ...baseStore, claimTurn: async (...args) => { recordedMetadata.push(args[1].metadata); return baseStore.claimTurn(...args); } };
   let calls = 0;
-  const deps = { store, requestStructuredOutput: async () => { calls++; return output; } };
+  let providerTimeout;
+  const deps = { store, requestStructuredOutput: async ({ timeoutMs }) => { providerTimeout = timeoutMs; calls++; return output; } };
   const first = response();
   await handler(request(body), first, deps);
   assert.equal(first.statusCode, 200);
@@ -139,6 +140,7 @@ test('turn endpoint validates, calls the injected provider, and replays success 
   assert.equal(recordedMetadata[0].task, 'TURN_ANALYZE');
   assert.equal(recordedMetadata[0].modelProfile, 'DEFAULT');
   assert.ok(recordedMetadata[0].estimatedInputTokens > 0);
+  assert.equal(providerTimeout, 120_000);
   assert.doesNotMatch(JSON.stringify(recordedMetadata[0]), /hello|Test|p1/);
   const retry = response();
   await handler(request({ ...body, attemptId: 'attempt-2' }), retry, deps);

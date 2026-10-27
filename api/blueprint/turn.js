@@ -292,6 +292,7 @@ export default async function handler(req, res, deps = {}) {
             schema: schemas.envelopes[TASK],
             messages: definition.buildInput(promptInput),
             signal: cancellation.signal,
+            timeoutMs: aiModelRegistry.tasks[TASK].timeoutMs,
           });
         } catch (error) {
           if (error?.code === 'AI_INVALID_OUTPUT' || error instanceof SyntaxError) {
