@@ -253,6 +253,21 @@ test('turn endpoint gives a bounded reference correction when the provider inven
   assert.equal(res.body.proposals.length,1);
 });
 
+test('turn endpoint gives a bounded design-item correction after domain validation fails', async () => {
+  const invalid = structuredClone(output);
+  invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'feature',title:'예약 중복 방지',description:'겹치는 예약을 막는다.',acceptanceCriteria:['겹치는 예약이 차단된다.']},rationale:'예약 중복을 줄입니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[] }];
+  const valid = structuredClone(output);
+  valid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 중복 방지',description:'겹치는 예약을 막는다.',acceptanceCriteria:[{text:'겹치는 예약이 차단된다.'}]},rationale:'예약 중복을 줄입니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[] }];
+  const calls=[];
+  const res=response();
+  await handler(request(body),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{calls.push(input);return calls.length===1?invalid:valid;}});
+  assert.equal(res.statusCode,200,JSON.stringify(res.body));
+  assert.equal(calls.length,2);
+  assert.match(calls[1].messages[1].content,/type must be one of product_definition, problem, goal, user_role/);
+  assert.match(calls[1].messages[1].content,/acceptanceCriteria must be omitted or be an array of non-empty \{text: string\} objects/);
+  assert.equal(res.body.proposals.length,1);
+});
+
 test('recommendation selection creates its pending proposal without another model call', async () => {
   const block = {
     type: 'recommendation_candidates', id: 'recommendation-block',
