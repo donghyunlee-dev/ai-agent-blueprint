@@ -245,6 +245,15 @@ function resultFromOutput(output, selectedProposals, sourceExcerpts, { includeMo
   };
 }
 
+function resultFromRecommendationSelection(selectedProposals) {
+  return {
+    assistantMessage: '선택한 추천을 승인 대기 제안으로 보관했습니다.',
+    proposals: selectedProposals,
+    referencedItemIds: [],
+    referencedSourceIds: [],
+  };
+}
+
 export default async function handler(req, res, deps = {}) {
   const session = requireSession(req);
   if (!session.ok) return fail(res, 401, 'AUTH_REQUIRED');
@@ -274,6 +283,36 @@ export default async function handler(req, res, deps = {}) {
     if (claim.kind === 'processing') return fail(res, 409, 'AI_REQUEST_IN_PROGRESS');
     if (claim.kind === 'unknown') return fail(res, 503, 'AI_REQUEST_UNKNOWN');
     if (claim.kind === 'replay') return sendJson(res, 200, claim.result);
+
+    if (body.userTurn.kind === 'recommendation_choice') {
+      if (!await finishTurn(store, key, { status: 'running', attemptId })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
+      const selectionManifest = {
+        designItemIds: body.relevantDesignItems.map((item) => item.id),
+        sourceExcerptIds: body.sources.map((source) => source.id),
+        recentMessageIds: [...body.recentMessages.map((message) => message.id), body.userTurn.id],
+        userMessageIds: [...body.recentMessages.filter((message) => message.role === 'user').map((message) => message.id), body.userTurn.id],
+      };
+      const selectionTargetContext = { designItems: body.relevantDesignItems.map(({ id, type }) => ({ id, type })) };
+      const selectedReferences = validateReferences({ proposals: selected.proposals }, selectionManifest, selectionTargetContext);
+      const selectedTargets = validateProposalTargets(selected.proposals, selectionTargetContext);
+      if (!selectedReferences.valid || !selectedTargets.valid) {
+        const errors = [...selectedReferences.errors, ...selectedTargets.errors];
+        console.error('TURN_SELECTED_OUTPUT_VALIDATION_FAILED', {
+          stage: 'selected_output',
+          referenceFailures: referenceFailureCategories(errors),
+        });
+        if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
+        return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
+      }
+      const result = resultFromRecommendationSelection(selected.proposals);
+      const responseValidation = validateSchema(schemas.http.turnResponse, result);
+      if (!responseValidation.valid) {
+        if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
+        return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
+      }
+      if (!await finishTurn(store, key, { status: 'succeeded', attemptId, result })) return fail(res, 503, 'AI_REQUEST_UNKNOWN');
+      return sendJson(res, 200, result);
+    }
 
     const circuitKey = ownerNamespace(session.user);
     if (!await finishTurn(store, key, { status: 'running', attemptId })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
