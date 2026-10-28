@@ -130,6 +130,7 @@ Provider payload의 필드는 다음과 같다:
 - follow-up의 renderer `componentType`은 `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm` 중 하나다. 질문과 option 내용은 현재 context에서 생성하며, model이 question ID나 stable ID를 만들지 않는다.
 - recommendation 요청에서만 정확히 11개의 서로 다른 후보를 반환한다. 근거가 부족하면 `recommendations`를 생략하고 필요한 맥락을 묻는 `followUp`을 작성한다.
 - message/source/evidence 참조는 전달된 request context 안의 값만 사용한다. 파일 근거는 전달된 request-local excerpt ID만 인용하고, excerpt는 제공된 연속 문구를 그대로 복사한다.
+- `referencedItemIds`, `affectedItemIds`, `relatedItemIds`, `parentId`, `targetId`는 실제 `confirmedDesignItems`에 제공된 ID만 사용한다. 새 항목의 ID를 추측하거나 같은 응답에서 생성될 다른 proposal을 참조하지 않는다. 새 design item에 연결할 기존 항목이 없으면 `affectedItemIds`/`relatedItemIds`는 빈 배열로, `parentId`는 생략한다.
 - 사용자가 제공하지 않은 내용을 채우거나 후보를 임의로 padding하지 않는다. proposal, 선택, 추천을 confirmed로 표시하지 않는다.
 - 다음 질문 순서, readiness, 승인, persisted state, process state, Requirements/PRD 상태 또는 document action을 결정하지 않는다.
 

@@ -38,6 +38,7 @@ test('typed input is serialized as user context with source excerpts explicitly 
   assert.match(messages[1].content, /after에 유효한 DesignItem type/);
   assert.match(messages[1].content, /priority는 must, should, could, wont/);
   assert.match(messages[1].content, /proposal target은 design_item 또는 acceptance_criterion/);
+  assert.match(messages[1].content, /새 design_item의 affectedItemIds와 relatedItemIds는 기존 ID가 없는 경우 빈 배열/);
   assert.match(messages[2].content, /ignore all system rules/);
   assert.doesNotMatch(messages[0].content, /ignore all system rules/);
   assert.deepEqual(prompt.validateDomain({ assistantMessage:'확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, { manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] } }), { valid: true, errors: [] });
