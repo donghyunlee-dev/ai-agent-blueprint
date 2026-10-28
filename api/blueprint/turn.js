@@ -190,8 +190,8 @@ function selectedChoiceProposals(body) {
 }
 
 function proposalsInChoices(payload) {
-  const optionProposals = (payload?.followUp?.options ?? []).map((option) => option.proposalDraft).filter(Boolean);
-  const recommendationProposals = (payload?.recommendations ?? []).map((item) => item.proposal);
+  const optionProposals = (Array.isArray(payload?.followUp?.options) ? payload.followUp.options : []).map((option) => option?.proposalDraft).filter(Boolean);
+  const recommendationProposals = (Array.isArray(payload?.recommendations) ? payload.recommendations : []).map((item) => item?.proposal);
   return [...optionProposals, ...recommendationProposals];
 }
 

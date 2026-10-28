@@ -6,8 +6,8 @@ The current implementation routes explicit recommendation requests to `OPTION_RE
 
 | Command | Result |
 | --- | --- |
-| `node --test tests/contract/option-recommend-v2-contract.test.js tests/contract/turn-api.test.js tests/contract/fnd-model-registry.test.js tests/unit/ai/model-registry.test.js tests/unit/ai/prompt-registry.test.js tests/unit/ai/openai-profile-routing.test.js` | 52 passed, 0 failed |
-| `npm run test:unit` | 406 passed, 0 failed |
+| `node --test tests/contract/option-recommend-v2-contract.test.js tests/contract/turn-api.test.js tests/contract/fnd-model-registry.test.js tests/unit/ai/model-registry.test.js tests/unit/ai/prompt-registry.test.js tests/unit/ai/openai-profile-routing.test.js` | 53 passed, 0 failed |
+| `npm run test:unit` | 407 passed, 0 failed |
 | `npm run test:golden` | 51/51 synthetic fixtures passed; no provider calls |
 | `npx playwright test tests/e2e/con-pr-05-conversation-flow.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-02-prd-readiness.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1` | 18 passed, 0 failed; authenticated test-session fixture, deterministic API responses, no Google OAuth |
 | `npm run build` | Passed; existing >500 kB chunk-size warning |

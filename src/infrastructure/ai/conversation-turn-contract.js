@@ -69,20 +69,24 @@ export function validateTurnAnalyzeV4(payload, userTurn) {
 export function validateTurnAnalyzeV5(payload) {
   const errors = [];
   const followUp = payload?.followUp;
+  const proposals = Array.isArray(payload?.proposals) ? payload.proposals : [];
+  if (payload && Object.hasOwn(payload, 'proposals') && !Array.isArray(payload.proposals)) errors.push('proposals must be an array');
   if (followUp) {
+    if (!Array.isArray(followUp.options) && followUp.options !== undefined) errors.push('followUp options must be an array');
+    const options = Array.isArray(followUp.options) ? followUp.options : [];
     if (!componentModes[followUp.componentType]) errors.push('followUp.componentType is not allowlisted');
     const mode = componentModes[followUp.componentType];
     const needsOptions = ['single', 'multiple', 'rank', 'confirm'].includes(mode);
     if (needsOptions && !followUp.options?.length) errors.push('followUp options are required for this component');
     if (['free_text', 'number', 'range'].includes(followUp.componentType) && followUp.options?.length) errors.push('followUp options are not supported by this component');
-    const values = (followUp.options ?? []).map((option) => option.value);
+    const values = options.map((option) => option?.value);
     if (new Set(values).size !== values.length) errors.push('followUp option values must be unique');
-    if (followUp.options?.some((option) => Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
+    if (options.some((option) => option && Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
     if ([followUp.prompt, followUp.help, followUp.topic].some((value) => typeof value === 'string' && unsafeCopy(value))) errors.push('followUp contains unsafe copy');
   }
   const proposalDrafts = [
-    ...(payload?.proposals ?? []),
-    ...(followUp?.options ?? []).map((option) => option.proposalDraft).filter(Boolean),
+    ...proposals,
+    ...(Array.isArray(followUp?.options) ? followUp.options : []).map((option) => option?.proposalDraft).filter(Boolean),
   ];
   errors.push(...validateProposalPayloads(proposalDrafts).errors);
   if (Object.hasOwn(payload ?? {}, 'recommendations')) errors.push('TURN_ANALYZE cannot return recommendations');

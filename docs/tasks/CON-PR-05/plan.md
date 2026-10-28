@@ -1,6 +1,6 @@
 # CON-PR-05 — 대화 주도 발견과 결정 요약 연결
 
-**Status: in_progress —** the current implementation separates free conversation (`TURN_ANALYZE` prompt v6/schema v5) from explicit dynamic recommendations (`OPTION_RECOMMEND` v2). Current worktree verification passes: 406 unit/contract tests, 51 golden fixtures, build, Mermaid validation, and 18 desktop/mobile browser tests covering conversation through PRD draft. Exact-HEAD independent review and protected Preview validation remain outstanding. Earlier checks in [`test-results.md`](test-results.md) are historical unless listed in the current verification section. 선행 계약 PR #63은 `main`의 `df54aafa654142f11348321754c749588a2fbf9a`에 병합됐다. 본 계획은 사용자 대화 한 건이 AI 응답·맥락형 입력·pending 제안·명시적 승인·오른쪽 결정 요약까지 같은 저장 aggregate로 이어지는 vertical slice를 정의한다.
+**Status: in_progress —** the current implementation separates free conversation (`TURN_ANALYZE` prompt v6/schema v5) from explicit dynamic recommendations (`OPTION_RECOMMEND` v2). Current worktree verification passes: 407 unit/contract tests, 51 golden fixtures, build, Mermaid validation, and 18 desktop/mobile browser tests covering conversation through PRD draft. Exact-HEAD independent review and protected Preview validation remain outstanding. Earlier checks in [`test-results.md`](test-results.md) are historical unless listed in the current verification section. 선행 계약 PR #63은 `main`의 `df54aafa654142f11348321754c749588a2fbf9a`에 병합됐다. 본 계획은 사용자 대화 한 건이 AI 응답·맥락형 입력·pending 제안·명시적 승인·오른쪽 결정 요약까지 같은 저장 aggregate로 이어지는 vertical slice를 정의한다.
 
 ## 사용자 결과
 
@@ -144,7 +144,7 @@ The route, schema/prompt registry, client renderer, persistence projection and r
 - [ ] Live provider recommendation and document flow pass on the protected Preview without increasing token caps.
 - [x] Pending/confirmed boundary, same-revision summary, source navigation and refresh/retry contracts pass.
 - [x] Existing consent, idempotency, cancellation, budget, auth and document readiness gates remain intact.
-- [x] Full unit/contract, golden, deterministic browser checks, and build pass on the current code; test report records exact commands and counts.
+- [x] Full unit/contract (407), golden (51), deterministic browser (18), and build checks pass on the current code; test report records exact commands and counts.
 - [ ] Desktop/mobile screenshots for the changed journey and target UI states are verified against the mapped design references at the resulting code HEAD.
 - [ ] Fresh independent review, protected Preview QA, and configured checks pass on the exact resulting PR HEAD; record their exact evidence in the PR.
 - [ ] PR is merged only if user authorization is explicit; verify GitHub merge commit and `origin/main` before planning a dependent PR.

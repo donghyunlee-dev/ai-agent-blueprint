@@ -333,6 +333,24 @@ test('turn endpoint uses bounded correction for malformed recommendation candida
   }
 });
 
+test('TURN_ANALYZE uses bounded correction when follow-up options are not an array', async () => {
+  const invalid = structuredClone(output);
+  invalid.payload.followUp = {
+    componentType: 'single_choice', topic: '예약', prompt: '어떤 기준인가요?', options: 'not-an-array',
+    required: true, allowCustomAnswer: false, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'],
+  };
+  const inputs = [];
+  let calls = 0;
+  const res = response();
+  await handler(request({ ...body, logicalRequestId: 'logical-turn-followup-schema-retry-123' }), res, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async (input) => { inputs.push(input); return calls++ === 0 ? invalid : output; },
+  });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(calls, 2);
+  assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: The previous response did not match the required JSON schema/);
+});
+
 test('turn endpoint gives a bounded reference correction when the provider invents item IDs', async () => {
   const invalid = structuredClone(output);
   invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 확인',description:'예약 충돌을 확인한다.',relatedItemIds:['invented-item']},rationale:'예약 문제를 해결합니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[] }];
