@@ -3,6 +3,7 @@ import { getSchemaDefinition } from './schema-registry.js';
 import { validateSchema } from './schemas/index.js';
 import { containsPromptInjectionInstruction } from './prompt-injection.js';
 import { validateSetupGuideCommandEvidence } from './setup-guide-output-validation.js';
+import { normalizeOptionRecommendV4 } from './conversation-turn-contract.js';
 
 export function evaluateGoldenFixture(fixture) {
   const errors = [];
@@ -13,9 +14,12 @@ export function evaluateGoldenFixture(fixture) {
   catch { return { pass: false, errors: [`unknown task/schema version: ${fixture.task} ${fixture.schemaVersion}`] }; }
   const schemaResult = validateSchema(schema, fixture.response);
   if (!schemaResult.valid) errors.push(...schemaResult.errors.map((error) => `schema: ${error}`));
-  const referenceResult = validateReferences(fixture.response, fixture.manifest, fixture.targetContext);
+  const normalizedResponse = fixture.task === 'OPTION_RECOMMEND' && fixture.schemaVersion === 'v4'
+    ? normalizeOptionRecommendV4(fixture.response)
+    : fixture.response;
+  const referenceResult = validateReferences(normalizedResponse, fixture.manifest, fixture.targetContext);
   errors.push(...referenceResult.errors);
-  errors.push(...inspectProhibitedOutcomes(fixture.response, fixture.targetContext));
+  errors.push(...inspectProhibitedOutcomes(normalizedResponse, fixture.targetContext));
   errors.push(...inspectSetupGuideOutput(fixture));
   const expectedPass=fixture.expectedPass!==false;
   if(expectedPass&&errors.length===0)return {pass:true,errors:[]};

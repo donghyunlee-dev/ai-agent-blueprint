@@ -15,7 +15,7 @@ test('synthetic golden fixtures pass deterministic schema, reference, and forbid
 
 test('every task has a passing synthetic fixture without provider calls', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
-  assert.equal(fixtures.length, 53);
+  assert.equal(fixtures.length, 55);
   for (const fixture of fixtures) assert.deepEqual(evaluateGoldenFixture(fixture), { pass: true, errors: [] }, fixture.id);
 });
 
@@ -34,6 +34,30 @@ test('golden fixture set covers current compact recommendation and insufficient-
   assert.equal(recommendationFixtures[0].response.recommendations.length, 11);
   assert.equal(recommendationFixtures[1].response.recommendations.length, 0);
   assert.ok(recommendationFixtures[1].response.followUp);
+});
+
+test('golden fixture set covers active v4 recommendation outputs', async () => {
+  const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
+  const recommendationFixtures = fixtures.filter(({ task, schemaVersion }) => task === 'OPTION_RECOMMEND' && schemaVersion === 'v4');
+  assert.deepEqual(recommendationFixtures.map(({ id }) => id), [
+    'option-recommend-v4-eleven-compact-candidates',
+    'option-recommend-v4-insufficient-context-follow-up',
+  ]);
+  assert.equal(recommendationFixtures[0].response.r.length, 11);
+  assert.equal(recommendationFixtures[1].response.r.length, 0);
+  assert.ok(recommendationFixtures[1].response.f);
+});
+
+test('v4 golden evaluator checks compact evidence IDs after response normalization', () => {
+  const result = evaluateGoldenFixture({
+    id: 'option-recommend-v4-unknown-evidence', task: 'OPTION_RECOMMEND', schemaVersion: 'v4',
+    response: {
+      m: '추천안', r: [{ t: '안', r: '근거', x: [], a: [], e: { s: 'message', i: 'missing' }, k: 'requirement', d: '기능 설명' }],
+    },
+    manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: ['message-1'], summaryIds: [] },
+  });
+  assert.equal(result.pass, false);
+  assert.ok(result.errors.some((error) => error.includes('unknown source missing')));
 });
 
 test('setup guide golden fixtures exercise evidence, injection, schema, and source-reference rejection paths', async () => {

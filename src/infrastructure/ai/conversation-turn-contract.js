@@ -157,6 +157,42 @@ export function validateOptionRecommendV3(payload, userTurn) {
   return { valid: errors.length === 0, errors };
 }
 
+export function normalizeOptionRecommendV4(payload) {
+  const recommendations = Array.isArray(payload?.r) ? payload.r : [];
+  return {
+    assistantMessage: payload?.m,
+    recommendations: recommendations.map((candidate) => ({
+      title: candidate?.t,
+      rationale: candidate?.r,
+      tradeoffs: candidate?.x,
+      assumptions: candidate?.a,
+      evidence: candidate?.e ? [{ sourceType: candidate.e.s, sourceId: candidate.e.i }] : [],
+      designItem: { type: candidate?.k, title: candidate?.t, description: candidate?.d },
+    })),
+    ...(payload?.f ? { followUp: payload.f } : {}),
+  };
+}
+
+export function validateOptionRecommendV4(payload, userTurn) {
+  const recommendations = Array.isArray(payload?.r) ? payload.r : [];
+  const normalized = normalizeOptionRecommendV4(payload);
+  const errors = [...validateOptionRecommendV2(normalized, userTurn).errors];
+  const lengths = [
+    ['m', payload?.m, 24],
+    ...recommendations.flatMap((candidate, index) => [
+      [`r[${index}].t`, candidate?.t, 12],
+      [`r[${index}].r`, candidate?.r, 20],
+      [`r[${index}].x[0]`, candidate?.x?.[0], 12],
+      [`r[${index}].a[0]`, candidate?.a?.[0], 12],
+      [`r[${index}].d`, candidate?.d, 20],
+    ]),
+  ];
+  for (const [field, value, limit] of lengths) {
+    if (typeof value === 'string' && [...value].length > limit) errors.push(`${field} exceeds the v4 concise-output limit`);
+  }
+  return { valid: errors.length === 0, errors };
+}
+
 export function questionFromFollowUp(followUp, id) {
   if (!followUp) return undefined;
   return {

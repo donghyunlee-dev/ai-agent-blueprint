@@ -3,7 +3,7 @@ import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/ind
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 import { validateProposalTargets, validateReferences, validateResponseMetadata } from '../../src/infrastructure/ai/context-manifest.js';
 import { validateProposalPayloads } from '../../src/features/proposals/proposal-payload-validation.js';
-import { hasExplicitRecommendationRequest, questionFromFollowUp, validateOptionRecommendV3, validateTurnAnalyzeV5 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
+import { hasExplicitRecommendationRequest, normalizeOptionRecommendV4, questionFromFollowUp, validateOptionRecommendV4, validateTurnAnalyzeV5 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 import { canRequestAi } from '../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricing.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
@@ -459,10 +459,13 @@ export default async function handler(req, res, deps = {}) {
           throw error;
         }
         if (cancellation.signal.aborted) return finishCancellation();
-        const validatedOutput = task === TASK && !includeModelProposals
-          ? { ...output, payload: { ...output?.payload, proposals: [] } }
+        const normalizedOutput = task === RECOMMENDATION_TASK
+          ? { ...output, payload: normalizeOptionRecommendV4(output?.payload) }
           : output;
-        const schemaResult = validateSchema(schemas.envelopes[task], validatedOutput);
+        const validatedOutput = task === TASK && !includeModelProposals
+          ? { ...normalizedOutput, payload: { ...normalizedOutput?.payload, proposals: [] } }
+          : normalizedOutput;
+        const schemaResult = validateSchema(schemas.envelopes[task], task === RECOMMENDATION_TASK ? output : validatedOutput);
         const metadataResult = validateResponseMetadata(output, {
           task, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion,
           designRevision: body.projectSummary.designRevision,
@@ -470,7 +473,7 @@ export default async function handler(req, res, deps = {}) {
         const references = validateReferences(validatedOutput, manifest, targetContext);
         referenceValidationErrors = references.errors;
         const domainResult = task === RECOMMENDATION_TASK
-          ? validateOptionRecommendV3(validatedOutput.payload, body.userTurn)
+          ? validateOptionRecommendV4(output?.payload, body.userTurn)
           : validateTurnAnalyzeV5(validatedOutput.payload);
         const taskProposals = task === RECOMMENDATION_TASK
           ? (Array.isArray(validatedOutput.payload?.recommendations) ? validatedOutput.payload.recommendations : []).map(recommendationProposalDraft)
@@ -487,7 +490,10 @@ export default async function handler(req, res, deps = {}) {
         ].find(([, result]) => !result.valid);
         validationError = failedValidation?.[1].errors ?? null;
         validationFailureStage = failedValidation?.[0] ?? undefined;
-        if (!validationError) break;
+        if (!validationError) {
+          output = normalizedOutput;
+          break;
+        }
       }
       if (validationError) {
         const failureDetails = validationFailureStage === 'references'

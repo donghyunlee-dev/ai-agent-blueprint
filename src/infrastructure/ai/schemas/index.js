@@ -45,6 +45,16 @@ const recommendationCandidateV3 = object({
   designItem: object({ type: designItemTypes, description: string }),
 });
 const optionRecommendV3 = object({ assistantMessage: string, recommendations: { type: 'array', items: recommendationCandidateV3, minItems: 0, maxItems: 11 }, followUp: opt(followUpDraft) });
+const recommendationCandidateV4 = object({
+  t: string,
+  r: string,
+  x: array(string, 1),
+  a: array(string, 1),
+  e: object({ s: enumeration('message', 'file'), i: string }),
+  k: designItemTypes,
+  d: string,
+});
+const optionRecommendV4 = object({ m: string, r: { type: 'array', items: recommendationCandidateV4, minItems: 0, maxItems: 11 }, f: opt(followUpDraft) });
 const recommendationCandidatesBlock = object({ type: { const: 'recommendation_candidates' }, id: string, candidates: array(object({ id: string, title: string, rationale: string, tradeoffs: strings, assumptions: strings, evidence: array(evidence), proposalDraft: proposal }, ['id', 'title', 'rationale', 'tradeoffs', 'assumptions', 'evidence', 'proposalDraft']), 11) });
 const displayBlock = union([...Object.values(blockTypes), recommendationCandidatesBlock]);
 const composition = object({ type: { const: 'question' }, prompt: string, help: opt(string), options: opt(array(option)) }, ['type', 'prompt']);
@@ -62,7 +72,7 @@ const turnAnalyzeV2 = object({ blocks: array(blockTypes.assistant_text, 6), prop
 const turnAnalyzeV4 = object({ assistantMessage: string, proposals: array(proposal, 8), answerInterpretation: object({ directAnswer: opt(string), additionalFacts: strings, ambiguities: strings }, ['additionalFacts', 'ambiguities']), followUp: opt(followUpDraft), recommendations: opt(recommendationCandidates) });
 const turnAnalyze = object({ assistantMessage: string, proposals: array(proposal, 8), answerInterpretation: object({ directAnswer: opt(string), additionalFacts: strings, ambiguities: strings }, ['additionalFacts', 'ambiguities']), followUp: opt(followUpDraft) });
 const tasks = {
-  QUESTION_COMPOSE: composition, QUESTION_EXPLAIN: explanationPayload, TURN_ANALYZE: turnAnalyze, OPTION_RECOMMEND: optionRecommendV3,
+  QUESTION_COMPOSE: composition, QUESTION_EXPLAIN: explanationPayload, TURN_ANALYZE: turnAnalyze, OPTION_RECOMMEND: optionRecommendV4,
   CONTEXT_COMPACT: object({ confirmedFacts: array(fact), explicitUnknowns: array(fact), rejectedDirections: array(fact), unresolvedQuestions: array(fact), sourceMessageIds: strings }),
   REQUIREMENTS_DRAFT: requirementsDraft, REQUIREMENTS_REVIEW: review, REQUIREMENTS_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }), SETUP_GUIDE_DRAFT: setupGuideDraft,
   PRD_DRAFT: prdDraft, PRD_REVIEW: prdReview, PRD_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }),
@@ -118,7 +128,7 @@ const setupGuideReadyRequest=object({confirmed:{type:'boolean'},projectId:string
 export const schemas = Object.freeze({
   displayBlock, normalizedBlocks: array(displayBlock, 6),
   tasks: Object.freeze(tasks), envelopes: Object.freeze(Object.fromEntries(Object.keys(tasks).map(task => [task, taskEnvelope(task)]))),
-  turnAnalyzeV2, turnAnalyzeV4, optionRecommendV1: recommendationPayload, optionRecommendV2, optionRecommendV3,
+  turnAnalyzeV2, turnAnalyzeV4, optionRecommendV1: recommendationPayload, optionRecommendV2, optionRecommendV3, optionRecommendV4,
   http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, requirementsGenerateRequest, prdGenerateRequest, setupGuideGenerateRequest, setupGuideReadyRequest, requirementsReadyRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
 });
 export function validateSchema(schema, value) {

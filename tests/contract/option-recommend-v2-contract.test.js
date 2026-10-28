@@ -28,13 +28,10 @@ test('OPTION_RECOMMEND v2 has its own versioned compact 11-candidate contract', 
   assert.equal(validateOptionRecommendV2({ assistantMessage: '목표에 근거한 비교입니다.', recommendations: payload.recommendations }, { text: '예약 정책을 정리해 주세요.' }).valid, false);
 });
 
-test('OPTION_RECOMMEND v3 keeps candidate evidence and decision text within the existing response budget', () => {
-  const prompt = getPromptDefinition('OPTION_RECOMMEND');
-  assert.equal(prompt.promptVersion, 'v3');
-  assert.equal(prompt.schemaVersion, 'v3');
-  assert.equal(prompt.schemaId, 'option.recommend.v3');
+test('OPTION_RECOMMEND v3 remains registered for response-contract compatibility', () => {
+  const schema = getSchemaDefinition('option.recommend.v3', 'v3');
   assert.ok(getSchemaDefinition('option.recommend.v2', 'v2'));
-  const candidateSchema = prompt.schema.properties.recommendations.items;
+  const candidateSchema = schema.properties.recommendations.items;
   assert.deepEqual(candidateSchema.properties.tradeoffs.maxItems, 1);
   assert.deepEqual(candidateSchema.properties.assumptions.maxItems, 1);
   assert.deepEqual(candidateSchema.properties.evidence.maxItems, 1);
@@ -51,7 +48,7 @@ test('OPTION_RECOMMEND v3 keeps candidate evidence and decision text within the 
   });
   const context = { manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: ['message-user-1'], userMessageIds: ['message-user-1'], summaryIds: [] }, targetContext: { designItems: [] } };
   const payload = { assistantMessage: '확인한 조건에 맞춘 안입니다.', recommendations: Array.from({ length: 11 }, (_, index) => compactCandidate(index)) };
-  assert.equal(prompt.validateDomain(payload, context).valid, true);
+  assert.equal(validateSchema(schema, payload).valid, true);
   assert.equal(validateOptionRecommendV3(payload, { text: requestText }).valid, true);
   assert.equal(validateOptionRecommendV3({ ...payload, recommendations: payload.recommendations.map((candidate, index) => index === 0 ? { ...candidate, rationale: '가'.repeat(36) } : candidate) }, { text: requestText }).valid, false);
   assert.equal(validateOptionRecommendV3({ ...payload, recommendations: payload.recommendations.slice(0, 10) }, { text: requestText }).valid, false);
