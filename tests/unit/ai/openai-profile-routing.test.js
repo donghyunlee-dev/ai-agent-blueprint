@@ -28,7 +28,7 @@ test('sends a requested registered FINAL profile model to the Responses API',asy
   t.after(()=>{for(const key of keys){if(previous[key]===undefined)delete process.env[key];else process.env[key]=previous[key];}globalThis.fetch=originalFetch;});
   process.env.OPENAI_API_KEY='test-stub-key';process.env.AI_MODEL_LIGHT='gpt-5.6-luna';process.env.AI_MODEL_DEFAULT='gpt-5-mini';process.env.AI_MODEL_FINAL='gpt-5.6-terra';
   let sentModel='';
-  globalThis.fetch=async(_url,init)=>{sentModel=JSON.parse(init.body).model;return{ok:true,json:async()=>({output_text:'{}'})};};
+  globalThis.fetch=async(_url,init)=>{sentModel=JSON.parse(init.body).model;return{ok:true,json:async()=>({status:'completed',output_text:'{}'})};};
   await requestStructuredOutput({name:'prd_draft',schema:{type:'object',properties:{},required:[],additionalProperties:false},messages:[],model:'gpt-5.6-terra',reasoningEffort:'low'});
   assert.equal(sentModel,'gpt-5.6-terra');
 });
@@ -45,7 +45,7 @@ test('sends the configured reasoning effort and output token cap to the Response
   process.env.OPENAI_API_KEY = 'test-stub-key'; process.env.AI_MODEL_LIGHT = 'gpt-5.6-luna'; process.env.AI_MODEL_DEFAULT = 'gpt-5-mini'; process.env.AI_MODEL_FINAL = 'gpt-5.6-terra';
   globalThis.fetch = async (_url, init) => {
     sentBody = JSON.parse(init.body);
-    return { ok: true, json: async () => ({ output_text: '{}' }) };
+    return { ok: true, json: async () => ({ status: 'completed', output_text: '{}' }) };
   };
 
   await requestStructuredOutput({
@@ -62,6 +62,91 @@ test('sends the configured reasoning effort and output token cap to the Response
   assert.equal(sentBody.max_output_tokens, 1800);
 });
 
+test('rejects non-completed provider responses and logs only safe completion metadata', async (t) => {
+  const keys = ['OPENAI_API_KEY', 'AI_MODEL_LIGHT', 'AI_MODEL_DEFAULT', 'AI_MODEL_FINAL'];
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  const originalFetch = globalThis.fetch;
+  const originalConsoleError = console.error;
+  const logged = [];
+  t.after(() => {
+    for (const key of keys) { if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key]; }
+    globalThis.fetch = originalFetch;
+    console.error = originalConsoleError;
+  });
+  process.env.OPENAI_API_KEY = 'test-stub-key'; process.env.AI_MODEL_LIGHT = 'gpt-5.6-luna'; process.env.AI_MODEL_DEFAULT = 'gpt-5-mini'; process.env.AI_MODEL_FINAL = 'gpt-5.6-terra';
+  console.error = (...values) => logged.push(values);
+  globalThis.fetch = async () => ({
+    ok: true,
+    headers: { get: (name) => name === 'x-request-id' ? 'req-safe-correlation-id' : null },
+    json: async () => ({
+      status: 'private-user-prompt-canary',
+      incomplete_details: { reason: 'max_output_tokens' },
+      usage: { input_tokens: 1200, output_tokens: 1800, output_tokens_details: { reasoning_tokens: 240 } },
+      output_text: JSON.stringify({ payload: { canary: 'private-user-prompt-canary' } }),
+    }),
+  });
+
+  await assert.rejects(
+    requestStructuredOutput({ name: 'turn_analyze', schema: { type: 'object', properties: {}, required: [], additionalProperties: false }, messages: [], maxOutputTokens: 1800 }),
+    (error) => error.code === 'AI_OUTPUT_INCOMPLETE',
+  );
+
+  assert.deepEqual(logged, [['OPENAI_RESPONSE_INCOMPLETE', {
+    operation: 'turn_analyze',
+    model: 'gpt-5-mini',
+    requestId: 'req-safe-correlation-id',
+    status: 'unknown',
+    reason: 'max_output_tokens',
+    inputTokens: 1200,
+    outputTokens: 1800,
+    reasoningTokens: 240,
+    maxOutputTokens: 1800,
+  }]]);
+  assert.doesNotMatch(JSON.stringify(logged), /private-user-prompt-canary|test-stub-key/);
+});
+
+test('logs safe usage metadata when a completed provider response is not valid JSON', async (t) => {
+  const keys = ['OPENAI_API_KEY', 'AI_MODEL_LIGHT', 'AI_MODEL_DEFAULT', 'AI_MODEL_FINAL'];
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  const originalFetch = globalThis.fetch;
+  const originalConsoleError = console.error;
+  const logged = [];
+  t.after(() => {
+    for (const key of keys) { if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key]; }
+    globalThis.fetch = originalFetch;
+    console.error = originalConsoleError;
+  });
+  process.env.OPENAI_API_KEY = 'test-stub-key'; process.env.AI_MODEL_LIGHT = 'gpt-5.6-luna'; process.env.AI_MODEL_DEFAULT = 'gpt-5-mini'; process.env.AI_MODEL_FINAL = 'gpt-5.6-terra';
+  console.error = (...values) => logged.push(values);
+  globalThis.fetch = async () => ({
+    ok: true,
+    headers: { get: (name) => name === 'x-request-id' ? 'req-safe-invalid-json' : null },
+    json: async () => ({
+      status: 'completed',
+      usage: { input_tokens: 900, output_tokens: 1799, output_tokens_details: { reasoning_tokens: 199 } },
+      output_text: 'private-user-prompt-canary is not JSON',
+    }),
+  });
+
+  await assert.rejects(
+    requestStructuredOutput({ name: 'turn_analyze', schema: { type: 'object', properties: {}, required: [], additionalProperties: false }, messages: [], maxOutputTokens: 1800 }),
+    (error) => error.code === 'AI_INVALID_OUTPUT',
+  );
+
+  assert.deepEqual(logged, [['OPENAI_OUTPUT_INVALID', {
+    operation: 'turn_analyze',
+    model: 'gpt-5-mini',
+    requestId: 'req-safe-invalid-json',
+    status: 'completed',
+    failure: 'invalid_json',
+    inputTokens: 900,
+    outputTokens: 1799,
+    reasoningTokens: 199,
+    maxOutputTokens: 1800,
+  }]]);
+  assert.doesNotMatch(JSON.stringify(logged), /private-user-prompt-canary|test-stub-key/);
+});
+
 test('sends every registered task envelope as strict-compatible Structured Outputs schema', async (t) => {
   const keys = ['OPENAI_API_KEY', 'AI_MODEL_LIGHT', 'AI_MODEL_DEFAULT', 'AI_MODEL_FINAL'];
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
@@ -74,7 +159,7 @@ test('sends every registered task envelope as strict-compatible Structured Outpu
   process.env.OPENAI_API_KEY = 'test-stub-key'; process.env.AI_MODEL_LIGHT = 'gpt-5.6-luna'; process.env.AI_MODEL_DEFAULT = 'gpt-5-mini'; process.env.AI_MODEL_FINAL = 'gpt-5.6-terra';
   globalThis.fetch = async (_url, init) => {
     sentSchemas.push(JSON.parse(init.body).text.format);
-    return { ok: true, json: async () => ({ output_text: '{}' }) };
+    return { ok: true, json: async () => ({ status: 'completed', output_text: '{}' }) };
   };
 
   for (const [task, schema] of Object.entries(schemas.envelopes)) {
@@ -110,7 +195,7 @@ test('preserves optional fields and arbitrary proposal snapshots across the stri
   };
   globalThis.fetch = async (_url, init) => {
     sentFormat = JSON.parse(init.body).text.format;
-    return { ok: true, json: async () => ({ output_text: JSON.stringify({ payload: { followUp: null, proposals: [{ before: JSON.stringify({ title: '기존 설계', attributes: { date: '2026-10-27' } }), after: null }] } }) }) };
+    return { ok: true, json: async () => ({ status: 'completed', output_text: JSON.stringify({ payload: { followUp: null, proposals: [{ before: JSON.stringify({ title: '기존 설계', attributes: { date: '2026-10-27' } }), after: null }] } }) }) };
   };
 
   const output = await requestStructuredOutput({ name: 'turn_analyze', schema, messages: [] });

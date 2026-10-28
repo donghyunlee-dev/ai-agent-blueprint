@@ -21,6 +21,7 @@ const MAX_BODY_BYTES = 100_000;
 function fail(res, status, error, extra = {}) { return sendJson(res, status, { error, ...extra }); }
 function errorKind(error) {
   if (error?.statusCode === 429) return { status: 429, code: 'AI_RATE_LIMITED', retryable: true };
+  if (error?.code === 'AI_OUTPUT_INCOMPLETE') return { status: 502, code: 'AI_OUTPUT_INCOMPLETE', retryable: true };
   const transportCode = error?.code || error?.cause?.code;
   if (['ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'ENOTFOUND', 'ECONNREFUSED', 'UND_ERR_CONNECT_TIMEOUT'].includes(transportCode) || error?.name === 'AbortError' || (error?.name === 'TypeError' && /fetch failed/i.test(error?.message || '')) || /timeout|network/i.test(error?.message || '')) return { status: 503, code: 'AI_REQUEST_UNKNOWN', unknown: true };
   if (error?.statusCode === 503 && /NOT_CONFIGURED|configuration/i.test(error?.message || '')) return { status: 503, code: 'AI_UNAVAILABLE', retryable: true };

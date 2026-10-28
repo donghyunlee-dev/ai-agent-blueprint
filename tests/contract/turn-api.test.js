@@ -612,3 +612,22 @@ test('turn endpoint bounds schema retry, records sanitized provider failures, an
   assert.equal(blocked.body.error, 'AI_CIRCUIT_OPEN');
   assert.equal(calls, 3);
 });
+
+test('turn endpoint does not repeat an incomplete provider response with the same output budget', async () => {
+  let calls = 0;
+  const res = response();
+  await handler(request(body), res, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async () => {
+      calls += 1;
+      const error = new Error('provider response incomplete');
+      error.code = 'AI_OUTPUT_INCOMPLETE';
+      throw error;
+    },
+  });
+
+  assert.equal(res.statusCode, 502);
+  assert.equal(res.body.error, 'AI_OUTPUT_INCOMPLETE');
+  assert.equal(res.body.retryable, true);
+  assert.equal(calls, 1);
+});
