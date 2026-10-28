@@ -194,6 +194,76 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
   assert.equal(selectedRes.body.proposals[0].status, undefined);
 });
 
+test('recommendation selection creates its pending proposal without another model call', async () => {
+  const block = {
+    type: 'recommendation_candidates', id: 'recommendation-block',
+    candidates: [{
+      id: 'candidate-1', title: '대안 1', rationale: '예약 충돌을 줄입니다.', tradeoffs: [], assumptions: [],
+      evidence: [{ sourceType: 'message', sourceId: 'm1' }],
+      proposalDraft: {
+        operation: 'create', targetType: 'design_item',
+        after: { type: 'requirement', title: '예약 충돌 확인', description: '예약 입력 시 일정 겹침을 확인합니다.' },
+        rationale: '사용자가 선택한 추천안입니다.',
+        evidence: [{ sourceType: 'message', sourceId: 'm1' }], affectedItemIds: [],
+      },
+    }],
+  };
+  const selectionBody = {
+    ...body,
+    logicalRequestId: 'logical-selection-no-model-123',
+    userTurn: { id: 'm2', kind: 'recommendation_choice', text: '대안 1을 선택합니다.', responseTo: { messageId: 'assistant-1', blockId: block.id, choiceId: 'candidate-1' } },
+    recentMessages: [
+      { id: 'm1', role: 'user', kind: 'text', content: '회의실 예약 충돌을 줄이고 싶어요.' },
+      { id: 'assistant-1', role: 'assistant', kind: 'text', content: '추천안입니다.', blocks: [block] },
+    ],
+  };
+  let providerCalls = 0;
+  const store = createMemoryAuthStore();
+  const res = response();
+  await handler(request(selectionBody), res, {
+    store,
+    requestStructuredOutput: async () => { providerCalls++; throw new Error('selection must not call the model'); },
+  });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(providerCalls, 0);
+  assert.equal(res.body.assistantMessage, '선택한 추천을 승인 대기 제안으로 보관했습니다.');
+  assert.equal(res.body.proposals.length, 1);
+  assert.equal(res.body.proposals[0].after.title, '예약 충돌 확인');
+  assert.equal(res.body.proposals[0].status, undefined);
+
+  const replay = response();
+  await handler(request({ ...selectionBody, attemptId: 'attempt-2' }), replay, {
+    store,
+    requestStructuredOutput: async () => { providerCalls++; throw new Error('replayed selection must not call the model'); },
+  });
+  assert.equal(replay.statusCode, 200);
+  assert.deepEqual(replay.body, res.body);
+  assert.equal(providerCalls, 0);
+
+  const forgedMessageEvidence = structuredClone(selectionBody);
+  forgedMessageEvidence.logicalRequestId = 'logical-selection-forged-evidence-123';
+  forgedMessageEvidence.attemptId = 'attempt-forged-evidence';
+  forgedMessageEvidence.recentMessages[1].blocks[0].candidates[0].proposalDraft.evidence[0].sourceId = 'assistant-1';
+  const invalidEvidence = response();
+  await handler(request(forgedMessageEvidence), invalidEvidence, { store: createMemoryAuthStore(), requestStructuredOutput: async () => { providerCalls++; throw new Error('invalid evidence must not call the model'); } });
+  assert.equal(invalidEvidence.statusCode, 502);
+  assert.equal(invalidEvidence.body.error, 'AI_INVALID_OUTPUT');
+
+  const forgedTarget = structuredClone(selectionBody);
+  forgedTarget.logicalRequestId = 'logical-selection-forged-target-123';
+  forgedTarget.attemptId = 'attempt-forged-target';
+  forgedTarget.recentMessages[1].blocks[0].candidates[0].proposalDraft = {
+    ...forgedTarget.recentMessages[1].blocks[0].candidates[0].proposalDraft,
+    operation: 'update', targetId: 'missing-design-item',
+    before: { type: 'requirement', title: '기존 예약 정책', description: '기존 정책입니다.' },
+  };
+  const invalidTarget = response();
+  await handler(request(forgedTarget), invalidTarget, { store: createMemoryAuthStore(), requestStructuredOutput: async () => { providerCalls++; throw new Error('invalid target must not call the model'); } });
+  assert.equal(invalidTarget.statusCode, 502);
+  assert.equal(invalidTarget.body.error, 'AI_INVALID_OUTPUT');
+  assert.equal(providerCalls, 0);
+});
+
 test('recommendation evidence accepts only user-authored messages or request excerpt IDs', async () => {
   const source = { id: 'request-excerpt-1', sourceId: 'canonical-file-1', text: '예약은 30일 전에 취소할 수 있습니다.' };
   const candidate = (index, evidence) => ({

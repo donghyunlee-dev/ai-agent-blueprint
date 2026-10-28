@@ -37,7 +37,7 @@ Blueprint의 AI 품질을 유지하면서 $10 단위의 선불 API 크레딧으�
 | 최종 PRD 작성·repair | AI pipeline | Terra 작업별 호출 |
 | 문서 revision, stale와 영향 계산 | 도메인 command | 없음 |
 
-`TURN_ANALYZE`는 매 자유 입력·선택 카드 제출에 응답하며, 후속 질문이나 choice card는 현재 정보가 부족하고 물어볼 필요가 있을 때만 포함한다. 현행 `QUESTION_COMPOSE`와 고정 catalog 흐름은 실제 runtime 설명이며 목표 contract가 아니다. `CON-PR-05`는 고정 allowlisted renderer type registry와 context-derived per-turn prompt/options를 strict schema로 검증하고, 버전된 prompt/schema/eval을 갱신한다. 구현 전에는 [대화 정본](04-conversation-process.md)과 [turn 처리 계약](../process/03-question-and-answer-decisions.md)을 따른다. 한 turn에서 목표·사용자·기능이 함께 발견되면 한 호출로 여러 atomic proposal을 반환할 수 있다. 명시적 추천 요청의 dynamic candidate 11개는 `OPTION_RECOMMEND`의 기존 output token cap 안에 간결하게 맞춰야 하며, 이 문서 변경만으로 model profile이나 token cap을 올리지 않는다.
+`TURN_ANALYZE`는 자유 입력과 context-generated choice 제출에 응답하며, 후속 질문이나 choice card는 현재 정보가 부족하고 물어볼 필요가 있을 때만 포함한다. 이미 반환한 추천 candidate의 `recommendation_choice`는 저장된 candidate의 proposal draft와 출처를 서버에서 검증해 승인 대기 proposal로 저장하고 고정 안내 문구를 반환하는 결정적 작업이다. 이 선택에는 model provider를 호출하지 않으며 AI 호출·token budget·circuit breaker에 반영하지 않는다. proposal은 기존 검토 흐름에서 사용자가 승인하기 전까지 확정되지 않는다. 현행 `QUESTION_COMPOSE`와 고정 catalog 흐름은 실제 runtime 설명이며 목표 contract가 아니다. `CON-PR-05`는 고정 allowlisted renderer type registry와 context-derived per-turn prompt/options를 strict schema로 검증하고, 버전된 prompt/schema/eval을 갱신한다. 구현 전에는 [대화 정본](04-conversation-process.md)과 [turn 처리 계약](../process/03-question-and-answer-decisions.md)을 따른다. 한 turn에서 목표·사용자·기능이 함께 발견되면 한 호출로 여러 atomic proposal을 반환할 수 있다. 명시적 추천 요청의 dynamic candidate 11개는 `OPTION_RECOMMEND`의 기존 output token cap 안에 간결하게 맞춰야 하며, 이 문서 변경만으로 model profile이나 token cap을 올리지 않는다.
 
 ## 논리 모델 프로필
 
