@@ -12,7 +12,7 @@ function request(body, authenticated = true) {
   return { method: 'POST', headers: { host: 'localhost:3000', origin: 'http://localhost:3000', cookie: authenticated ? buildSessionCookieHeader(value).split(';')[0] : '' }, body };
 }
 const body = { logicalRequestId: 'logical-1234567890123456', attemptId: 'attempt-1', projectSummary: { projectId: 'p1', title: 'Test', designRevision: 0 }, userTurn: { id: 'm1', kind: 'text', text: 'hello' }, recentMessages: [], relevantDesignItems: [], sources: [] };
-const output = { task: 'TURN_ANALYZE', promptVersion: 'v4', schemaVersion: 'v4', designRevision: 0, payload: { assistantMessage: '확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
+const output = { task: 'TURN_ANALYZE', promptVersion: 'v5', schemaVersion: 'v4', designRevision: 0, payload: { assistantMessage: '확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
 
 test('turn endpoint requires a valid session before any provider or store side effect', async () => {
   let providerCalls = 0;
@@ -250,6 +250,21 @@ test('turn endpoint gives a bounded reference correction when the provider inven
   assert.equal(res.statusCode,200,JSON.stringify(res.body));
   assert.equal(calls.length,2);
   assert.match(calls[1].messages[1].content,/included an item ID that was not provided/);
+  assert.equal(res.body.proposals.length,1);
+});
+
+test('turn endpoint corrects unsupported evidence types and IDs on its bounded retry', async () => {
+  const invalid = structuredClone(output);
+  invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 확인',description:'예약 충돌을 확인한다.'},rationale:'예약 문제를 해결합니다.',evidence:[{sourceType:'agent_inference',sourceId:'invented-message'}],affectedItemIds:[] }];
+  const valid = structuredClone(output);
+  valid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 확인',description:'예약 충돌을 확인한다.'},rationale:'예약 문제를 해결합니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[] }];
+  const calls=[];
+  const res=response();
+  await handler(request(body),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{calls.push(input);return calls.length===1?invalid:valid;}});
+  assert.equal(res.statusCode,200,JSON.stringify(res.body));
+  assert.equal(calls.length,2);
+  assert.match(calls[1].messages[1].content,/sourceType must be message or file/);
+  assert.match(calls[1].messages[1].content,/use only IDs from userTurn or user-authored recentMessages/);
   assert.equal(res.body.proposals.length,1);
 });
 
