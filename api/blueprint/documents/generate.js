@@ -80,7 +80,7 @@ export default async function handler(req, res, deps = {}) {
         if (!budget.allowed || budget.decision !== 'allow') throw Object.assign(new Error('AI_BUDGET_EXCEEDED'), { code: 'AI_BUDGET_EXCEEDED' });
         const estimatedCostUsd = calculateEstimatedCost(resolvedModel, { inputTokens, outputTokens: taskConfig.maxOutputTokens });
         usage = { ...usage, foregroundCalls: usage.foregroundCalls + 1, finalCalls: usage.finalCalls + (profile === 'FINAL' ? 1 : 0), inputTokens: usage.inputTokens + inputTokens, outputReasoningTokens: usage.outputReasoningTokens + taskConfig.maxOutputTokens, estimatedCostUsd: usage.estimatedCostUsd + estimatedCostUsd };
-        const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''), schema: schemas.envelopes[task], messages, model: resolvedModel, reasoningEffort: taskConfig.reasoning });
+        const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''), schema: schemas.envelopes[task], messages, model: resolvedModel, reasoningEffort: taskConfig.reasoning, maxOutputTokens: taskConfig.maxOutputTokens });
         const validation = validateSchema(schemas.envelopes[task], output);
         const createdAt = new Date().toISOString();
         requestLedgerEntries.push(createLedgerEntry({

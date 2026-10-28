@@ -61,7 +61,7 @@ function extractOutputText(payload) {
   return values.join("\n");
 }
 
-export async function requestStructuredOutput({ name, schema, messages, signal, reasoningEffort, model, timeoutMs = 45_000 }) {
+export async function requestStructuredOutput({ name, schema, messages, signal, reasoningEffort, model, maxOutputTokens, timeoutMs = 45_000 }) {
   const { apiKey, model: defaultModel } = getOpenAiConfig();
   const allowedModels = new Set(Object.values(aiModelRegistry.profiles).map((profile) => profile.model));
   if (model && !allowedModels.has(model)) {
@@ -90,7 +90,7 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: resolvedModel, input: messages, ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}), text: { format: { type: "json_schema", name, strict: true, schema: providerSchema } } }),
+      body: JSON.stringify({ model: resolvedModel, input: messages, ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}), ...(maxOutputTokens === undefined ? {} : { max_output_tokens: maxOutputTokens }), text: { format: { type: "json_schema", name, strict: true, schema: providerSchema } } }),
       signal: controller.signal,
     });
     if (!response.ok) {
