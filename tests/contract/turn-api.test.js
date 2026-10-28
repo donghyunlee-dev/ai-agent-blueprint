@@ -212,6 +212,20 @@ test('turn endpoint retries recommendations whose proposal drafts cannot create 
   assert.equal(res.body.recommendationCandidates.candidates.every((candidate) => candidate.proposalDraft.after.type === 'requirement' && typeof candidate.proposalDraft.after.description === 'string'), true);
 });
 
+test('turn endpoint gives a bounded reference correction when the provider invents item IDs', async () => {
+  const invalid = structuredClone(output);
+  invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 확인',description:'예약 충돌을 확인한다.',relatedItemIds:['invented-item']},rationale:'예약 문제를 해결합니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[] }];
+  const valid = structuredClone(output);
+  valid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 확인',description:'예약 충돌을 확인한다.',relatedItemIds:[]},rationale:'예약 문제를 해결합니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[] }];
+  const calls=[];
+  const res=response();
+  await handler(request(body),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{calls.push(input);return calls.length===1?invalid:valid;}});
+  assert.equal(res.statusCode,200,JSON.stringify(res.body));
+  assert.equal(calls.length,2);
+  assert.match(calls[1].messages[1].content,/included an item ID that was not provided/);
+  assert.equal(res.body.proposals.length,1);
+});
+
 test('recommendation selection creates its pending proposal without another model call', async () => {
   const block = {
     type: 'recommendation_candidates', id: 'recommendation-block',
