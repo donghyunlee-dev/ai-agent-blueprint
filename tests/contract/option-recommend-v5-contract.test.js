@@ -1,33 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 import { getSchemaDefinition } from '../../src/infrastructure/ai/schema-registry.js';
 import { normalizeOptionRecommendV4, validateOptionRecommendV4 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 import { toOpenAiStrictSchema } from '../../src/infrastructure/ai/openai-strict-schema.js';
 import { validateSchema } from '../../src/infrastructure/ai/schemas/index.js';
 
-test('OPTION_RECOMMEND v5 bounds compact field lengths in the provider schema', () => {
-  const prompt = getPromptDefinition('OPTION_RECOMMEND');
+test('OPTION_RECOMMEND v5 remains registered with its original compact field bounds', () => {
+  const schema = getSchemaDefinition('option.recommend.v5', 'v5');
 
-  assert.equal(prompt.promptVersion, 'v5');
-  assert.equal(prompt.schemaVersion, 'v5');
-  assert.equal(prompt.schemaId, 'option.recommend.v5');
-  assert.deepEqual(Object.keys(prompt.schema.properties), ['m', 'r', 'f']);
-
-  const candidate = prompt.schema.properties.r.items;
+  assert.deepEqual(Object.keys(schema.properties), ['m', 'r', 'f']);
+  const candidate = schema.properties.r.items;
   assert.deepEqual(Object.keys(candidate.properties), ['t', 'r', 'x', 'a', 'e', 'k', 'd']);
   assert.equal(candidate.properties.x.maxItems, 1);
   assert.equal(candidate.properties.a.maxItems, 1);
   assert.deepEqual(Object.keys(candidate.properties.e.properties), ['s', 'i']);
   assert.equal(candidate.properties.e.properties.i.pattern, '^.{1,36}$');
-  assert.equal(prompt.schema.properties.r.maxItems, 11);
+  assert.equal(schema.properties.r.maxItems, 11);
   assert.equal(candidate.properties.t.pattern, '^.{1,12}$');
   assert.equal(candidate.properties.r.pattern, '^.{1,20}$');
   assert.equal(candidate.properties.x.items.pattern, '^.{1,12}$');
   assert.equal(candidate.properties.a.items.pattern, '^.{1,12}$');
-  assert.equal(prompt.schema.properties.f.properties.prompt.pattern, '^.{1,160}$');
-  assert.equal(prompt.schema.properties.f.properties.options.maxItems, 6);
-  assert.equal(toOpenAiStrictSchema(prompt.schema).properties.r.items.properties.t.pattern, '^.{1,12}$');
+  assert.equal(schema.properties.f.properties.prompt.pattern, '^.{1,160}$');
+  assert.equal(schema.properties.f.properties.options.maxItems, 6);
+  assert.equal(toOpenAiStrictSchema(schema).properties.r.items.properties.t.pattern, '^.{1,12}$');
   assert.equal(getSchemaDefinition('option.recommend.v4', 'v4').properties.r.items.properties.t.pattern, undefined);
 
   const makeCandidate = (index) => ({
@@ -35,12 +30,12 @@ test('OPTION_RECOMMEND v5 bounds compact field lengths in the provider schema', 
     e: { s: 'message', i: 'a'.repeat(36) }, k: 'requirement', d: '충돌 시 저장 차단',
   });
   const payload = { m: '예약 방식 11개 안입니다.', r: Array.from({ length: 11 }, (_, index) => makeCandidate(index)) };
-  assert.equal(validateSchema(prompt.schema, payload).valid, true);
-  assert.equal(validateSchema(prompt.schema, { ...payload, r: payload.r.map((item, index) => index === 0 ? { ...item, t: '가'.repeat(13) } : item) }).valid, false);
-  assert.equal(validateSchema(prompt.schema, { ...payload, r: payload.r.map((item, index) => index === 0 ? { ...item, r: '가'.repeat(21) } : item) }).valid, false);
-  assert.equal(validateSchema(prompt.schema, { ...payload, r: payload.r.map((item, index) => index === 0 ? { ...item, e: { ...item.e, i: 'a'.repeat(37) } } : item) }).valid, false);
-  assert.equal(validateSchema(prompt.schema, { ...payload, r: payload.r.map((item, index) => index === 0 ? { ...item, x: ['가'.repeat(13)] } : item) }).valid, false);
-  assert.equal(validateSchema(prompt.schema, { ...payload, f: { componentType: 'free_text', topic: '기준', prompt: '가'.repeat(161), required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] } }).valid, false);
+  assert.equal(validateSchema(schema, payload).valid, true);
+  assert.equal(validateSchema(schema, { ...payload, r: payload.r.map((item, index) => index === 0 ? { ...item, t: '가'.repeat(13) } : item) }).valid, false);
+  assert.equal(validateSchema(schema, { ...payload, r: payload.r.map((item, index) => index === 0 ? { ...item, r: '가'.repeat(21) } : item) }).valid, false);
+  assert.equal(validateSchema(schema, { ...payload, r: payload.r.map((item, index) => index === 0 ? { ...item, e: { ...item.e, i: 'a'.repeat(37) } } : item) }).valid, false);
+  assert.equal(validateSchema(schema, { ...payload, r: payload.r.map((item, index) => index === 0 ? { ...item, x: ['가'.repeat(13)] } : item) }).valid, false);
+  assert.equal(validateSchema(schema, { ...payload, f: { componentType: 'free_text', topic: '기준', prompt: '가'.repeat(161), required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] } }).valid, false);
 
   const maximumPayload = {
     m: '가'.repeat(24),
@@ -49,7 +44,7 @@ test('OPTION_RECOMMEND v5 bounds compact field lengths in the provider schema', 
       e: { s: 'message', i: 'a'.repeat(36) }, k: 'technical_decision', d: '바'.repeat(20),
     })),
   };
-  assert.equal(validateSchema(prompt.schema, maximumPayload).valid, true);
+  assert.equal(validateSchema(schema, maximumPayload).valid, true);
   const serialized = JSON.stringify(maximumPayload);
   const hangulChars = [...serialized].filter((character) => /[\uac00-\ud7a3]/.test(character)).length;
   const otherChars = [...serialized].length - hangulChars;

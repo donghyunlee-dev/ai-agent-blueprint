@@ -1,6 +1,6 @@
 # CON-PR-05 — 대화 주도 발견과 결정 요약 연결
 
-**Status: in_progress —** free conversation uses `TURN_ANALYZE` prompt v6/schema v5; explicit dynamic recommendations use `OPTION_RECOMMEND` prompt/schema v5. V5 keeps compact model keys and bounds candidate strings with provider-supported schema patterns before generation, then normalizes them to the existing UI contract and reattaches request-local file evidence server-side. Production verification on main `84a11c5` returned 11 candidates once but reproduced `AI_OUTPUT_INCOMPLETE` at the unchanged 2,000-output-token cap; this follow-up adds provider-level bounds without raising model/profile/token limits. Current PR verification and protected Preview/production browser evidence are tracked in [`test-results.md`](test-results.md). Earlier checks are historical unless listed in its current verification section. 선행 계약 PR #63은 `main`의 `df54aafa654142f11348321754c749588a2fbf9a`에 병합됐다. 본 계획은 사용자 대화 한 건이 AI 응답·맥락형 입력·pending 제안·명시적 승인·오른쪽 결정 요약까지 같은 저장 aggregate로 이어지는 vertical slice를 정의한다.
+**Status: in_progress —** free conversation uses `TURN_ANALYZE` prompt v6/schema v5; explicit dynamic recommendations use `OPTION_RECOMMEND` prompt/schema v6. V6 retains the 11-candidate contract, bounds provider output fields to reduce payload size and truncation risk, and normalizes them to the existing UI contract while restoring request-local file evidence server-side. It keeps the registered model/profile and 2,000-output-token cap unchanged; no fixed reasoning-token headroom is claimed. Production validation showed v5 can still truncate intermittently; the v6 live-provider and full Requirements/PRD flow are tracked in [`test-results.md`](test-results.md). Earlier checks are historical unless listed in its current verification section. 선행 계약 PR #63은 `main`의 `df54aafa654142f11348321754c749588a2fbf9a`에 병합됐다. 본 계획은 사용자 대화 한 건이 AI 응답·맥락형 입력·pending 제안·명시적 승인·오른쪽 결정 요약까지 같은 저장 aggregate로 이어지는 vertical slice를 정의한다.
 
 ## 사용자 결과
 
@@ -41,7 +41,7 @@
 | 경계 | 현재 연결 | CON-PR-05 대상 |
 | --- | --- | --- |
 | 화면과 입력 | `src/pages/ProjectPage.tsx`는 `selectNextQuestion()`와 단일 `QuestionCard`를 진행 driver로 사용한다. `src/components/conversation/AiTurnComposer.tsx`는 자유 문장을 `answer.customText` 및 `questionId`로 구성한다. | `ProjectPage.tsx`, `AiTurnComposer.tsx`, `QuestionCard.tsx`, `ConversationWorkspace.tsx`; free turn와 response card를 같은 conversation에 렌더하고 catalog-driven next step을 제거한다. |
-| AI route/schema | `api/blueprint/turn.js` dispatches ordinary free turns to `TURN_ANALYZE` v6/v5 and explicit recommendation requests to `OPTION_RECOMMEND` v5. | Validate provider-bounded compact schema, grounding, exactly 11 distinct candidates when context is sufficient, empty candidates plus a contextual follow-up otherwise, and server-generated pending proposal drafts. Normalize valid v5 fields to the existing UI contract. Recommendation v1-v4 schemas remain registered for compatibility and regression fixtures. |
+| AI route/schema | `api/blueprint/turn.js` dispatches ordinary free turns to `TURN_ANALYZE` v6/v5 and explicit recommendation requests to `OPTION_RECOMMEND` v6. | Validate provider-bounded compact schema, grounding, exactly 11 distinct candidates when context is sufficient, empty candidates plus a contextual follow-up otherwise, and server-generated pending proposal drafts. Normalize valid v6 fields to the existing UI contract. Recommendation v1-v5 schemas remain registered for compatibility and regression fixtures. |
 | 렌더/폼 | `src/features/conversation/block-renderer.js`, `QuestionCard.tsx`, 기존 form component는 catalog QuestionSpec 기반이다. | 고정 renderer type registry에 context-generated prompt/option payload를 strict validate 후 넘긴다. unknown field/type, executable data, 중복 value 및 range violation은 fail closed한다. |
 | 상태 저장/제안 | `src/features/conversation/conversationService.ts`, `src/features/proposals/proposal-commands.js`, `src/features/conversation/useConversationalBlueprint.ts`가 대화와 제안의 저장/transaction 경계다. | 자유 입력과 선택 응답을 같은 thread의 메시지 및 `logicalRequestId`에 연결한다. 승인 transaction 이후에만 새 aggregate revision을 내보내고 retry/duplicate를 재사용한다. |
 | 요약/출처 | `src/components/conversation/ConversationSummary.tsx`는 `thread.summary`의 오래된 facts/unknown 목록을 직접 그린다. | `ProjectPage.tsx`에서 현재 aggregate를 project하고 `ConversationSummary.tsx`는 confirmed/remaining view, state 및 source navigation만 표시한다. summary는 persistence 성공 뒤 재계산한다. |
@@ -57,7 +57,7 @@ flowchart LR
   B --> C[기존 동의·세션·예산·idempotency 확인]
   C --> D{turn intent}
   D -- 자유 대화 --> E[TURN_ANALYZE v6/v5]
-  D -- 명시적 추천 요청 --> R[OPTION_RECOMMEND v5]
+  D -- 명시적 추천 요청 --> R[OPTION_RECOMMEND v6]
   E --> V{schema와 source 검증}
   R --> V
   V -- 실패 --> F[원문 보존 · 응답 미적용]

@@ -174,8 +174,10 @@ test('sends every registered task envelope as strict-compatible Structured Outpu
     assertStrictCompatible(format.schema);
   }
   const recommendationFormat = sentSchemas.find(({ name }) => name === 'option_recommend');
-  assert.equal(recommendationFormat.schema.properties.payload.properties.m.pattern, '^.{1,24}$');
-  assert.equal(recommendationFormat.schema.properties.payload.properties.r.items.properties.d.pattern, '^.{1,20}$');
+  assert.equal(recommendationFormat.schema.properties.payload.properties.m.pattern, '^.{1,12}$');
+  assert.equal(recommendationFormat.schema.properties.payload.properties.r.items.properties.t.pattern, '^.{1,8}$');
+  assert.equal(recommendationFormat.schema.properties.payload.properties.r.items.properties.r.pattern, '^.{1,12}$');
+  assert.equal(recommendationFormat.schema.properties.payload.properties.r.items.properties.d.pattern, '^.{1,12}$');
   assert.equal(recommendationFormat.schema.properties.payload.properties.r.items.properties.e.properties.i.pattern, '^.{1,36}$');
   assert.equal(recommendationFormat.schema.properties.payload.properties.f.anyOf[0].properties.prompt.pattern, '^.{1,160}$');
 });
