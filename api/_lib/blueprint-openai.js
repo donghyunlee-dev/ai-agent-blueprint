@@ -4,6 +4,8 @@ import { decodeOpenAiStrictOutput, toOpenAiStrictSchema } from "../../src/infras
 const SAFE_PROVIDER_ERROR_TYPES = new Set(["api_error", "authentication_error", "billing_error", "invalid_request_error", "not_found_error", "permission_error", "rate_limit_error", "server_error"]);
 const SAFE_PROVIDER_ERROR_CODES = new Set(["context_length_exceeded", "insufficient_quota", "invalid_api_key", "invalid_json_schema", "model_not_found", "permission_denied", "rate_limit_exceeded", "server_error", "unsupported_parameter", "unsupported_value"]);
 const SAFE_PROVIDER_ERROR_PARAMS = new Set(["model", "input", "text.format", "text.format.schema", "reasoning.effort"]);
+const SAFE_INCOMPLETE_REASONS = new Set(["max_output_tokens", "content_filter"]);
+const SAFE_RESPONSE_STATUSES = new Set(["cancelled", "completed", "incomplete", "failed", "in_progress", "queued"]);
 
 const fields = [
   "serviceName", "serviceDesc", "features", "env", "users", "os", "db", "dbExist", "dbType",
@@ -61,6 +63,23 @@ function extractOutputText(payload) {
   return values.join("\n");
 }
 
+function logInvalidOutput({ name, model, response, payload, failure, maxOutputTokens }) {
+  const usage = payload?.usage;
+  const count = (value) => Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+  const status = SAFE_RESPONSE_STATUSES.has(payload?.status) ? payload.status : "unknown";
+  console.error("OPENAI_OUTPUT_INVALID", {
+    operation: name,
+    model,
+    requestId: response.headers?.get?.("x-request-id") ?? null,
+    status,
+    failure,
+    ...(count(usage?.input_tokens) === undefined ? {} : { inputTokens: count(usage.input_tokens) }),
+    ...(count(usage?.output_tokens) === undefined ? {} : { outputTokens: count(usage.output_tokens) }),
+    ...(count(usage?.output_tokens_details?.reasoning_tokens) === undefined ? {} : { reasoningTokens: count(usage.output_tokens_details.reasoning_tokens) }),
+    ...(Number.isSafeInteger(maxOutputTokens) && maxOutputTokens >= 0 ? { maxOutputTokens } : {}),
+  });
+}
+
 export async function requestStructuredOutput({ name, schema, messages, signal, reasoningEffort, model, maxOutputTokens, timeoutMs = 45_000 }) {
   const { apiKey, model: defaultModel } = getOpenAiConfig();
   const allowedModels = new Set(Object.values(aiModelRegistry.profiles).map((profile) => profile.model));
@@ -114,14 +133,39 @@ export async function requestStructuredOutput({ name, schema, messages, signal, 
       if (response.status < 500 && response.status !== 429) error.code = "AI_PROVIDER_REJECTED";
       throw error;
     }
-    const text = extractOutputText(await response.json());
+    const payload = await response.json();
+    const responseStatus = SAFE_RESPONSE_STATUSES.has(payload?.status) ? payload.status : "unknown";
+    if (responseStatus !== "completed") {
+      const incompleteReason = SAFE_INCOMPLETE_REASONS.has(payload.incomplete_details?.reason)
+        ? payload.incomplete_details.reason : undefined;
+      const usage = payload.usage;
+      const count = (value) => Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+      const requestId = response.headers?.get?.("x-request-id") ?? null;
+      console.error("OPENAI_RESPONSE_INCOMPLETE", {
+        operation: name,
+        model: resolvedModel,
+        requestId,
+        status: responseStatus,
+        ...(incompleteReason ? { reason: incompleteReason } : {}),
+        ...(count(usage?.input_tokens) === undefined ? {} : { inputTokens: count(usage.input_tokens) }),
+        ...(count(usage?.output_tokens) === undefined ? {} : { outputTokens: count(usage.output_tokens) }),
+        ...(count(usage?.output_tokens_details?.reasoning_tokens) === undefined ? {} : { reasoningTokens: count(usage.output_tokens_details.reasoning_tokens) }),
+        ...(Number.isSafeInteger(maxOutputTokens) && maxOutputTokens >= 0 ? { maxOutputTokens } : {}),
+      });
+      const error = new Error("OpenAI response was incomplete");
+      error.code = "AI_OUTPUT_INCOMPLETE";
+      throw error;
+    }
+    const text = extractOutputText(payload);
     if (!text) {
+      logInvalidOutput({ name, model: resolvedModel, response, payload, failure: "empty_output", maxOutputTokens });
       const error = new Error("AI output was empty");
       error.code = "AI_INVALID_OUTPUT";
       throw error;
     }
     try { return decodeOpenAiStrictOutput(JSON.parse(text), schema); }
     catch {
+      logInvalidOutput({ name, model: resolvedModel, response, payload, failure: "invalid_json", maxOutputTokens });
       const error = new Error("AI output was not valid JSON");
       error.code = "AI_INVALID_OUTPUT";
       throw error;
