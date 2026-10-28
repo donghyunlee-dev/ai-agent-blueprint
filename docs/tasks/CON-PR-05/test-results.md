@@ -24,12 +24,13 @@ This working change routes explicit recommendation requests to `OPTION_RECOMMEND
 | `npm run test:golden` | 55/55 synthetic fixtures passed, including v4 11-candidate and insufficient-context cases; no provider calls |
 | Focused contract and golden-eval Node tests | 61 passed, 0 failed; includes raw v4 normalization, one bounded retry for overlength output, and compact evidence reference validation |
 | Targeted desktop/mobile Playwright: CON-PR-05, Requirements, PRD readiness | 18 passed; test-session fixture and deterministic API responses, no Google OAuth |
+| Protected Vercel Preview Playwright at PR #91 SHA `b23f10df08b45174f506acf98832f1f7211636df` | 18/18 desktop/mobile passed; 0 page errors, console errors, API failures, or Google auth requests; deterministic API/session fixtures, no live AI calls |
 | `npm run build` | Passed; existing >500 kB chunk-size warning |
 | `PUPPETEER_EXECUTABLE_PATH=... npm run docs:check:mermaid` | 46 diagrams passed |
 | `npm run check:bundle-secrets` | Passed; no configured secrets in built assets |
 | `git diff --check` | Passed |
 
-At Production merge HEAD `59bd4d71e3c26befc8dee6169cf89036cf686b05` (PR #90), a synthetic authenticated browser request reached `OPTION_RECOMMEND` but returned HTTP 502 `AI_OUTPUT_INCOMPLETE`. Runtime record `OPENAI_RESPONSE_INCOMPLETE` for request `xjmqv-1793161724821-59417a12fd64` reported model `gpt-5-mini`, input 1,509 tokens, output 2,000 tokens, reasoning 384 tokens, and `maxOutputTokens: 2000`. This confirms v3 still does not fit. V4 local validation is passing; live provider completion, protected Preview, and the full live Requirements→PRD flow remain pending until a v4 deployment is available.
+At Production merge HEAD `59bd4d71e3c26befc8dee6169cf89036cf686b05` (PR #90), a synthetic authenticated browser request reached `OPTION_RECOMMEND` but returned HTTP 502 `AI_OUTPUT_INCOMPLETE`. Runtime record `OPENAI_RESPONSE_INCOMPLETE` for request `xjmqv-1793161724821-59417a12fd64` reported model `gpt-5-mini`, input 1,509 tokens, output 2,000 tokens, reasoning 384 tokens, and `maxOutputTokens: 2000`. This confirms v3 still does not fit. V4 protected Preview fixture QA passed, but a separate live-provider attempt could not create an app session: Preview returned `AUTH_REQUIRED` from `/api/auth/session` because the synthetic cookie signed with the local secret was not accepted. No Google OAuth was attempted. Live provider completion and the full Requirements→PRD browser flow remain pending Production deployment.
 
 Base: `df54aafa654142f11348321754c749588a2fbf9a` (merged CON-PR-04, PR #63).
 
