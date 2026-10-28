@@ -32,6 +32,7 @@ test('proposal target IDs resolve to a target of the declared target type in req
  assert.equal(validateProposalTargets([{operation:'update',targetType:'acceptance_criterion',targetId:'i1'}],context).valid,false);
  assert.equal(validateProposalTargets([{operation:'update',targetType:'acceptance_criterion',targetId:'ac1'}],context).valid,true);
  assert.equal(validateReferences({proposals:[{operation:'update',targetType:'design_item',targetId:'missing',affectedItemIds:[],evidence:[]}]},manifest,context).valid,false);
+ assert.equal(validateReferences({proposals:[{operation:'create',targetType:'design_item',after:{parentId:'missing'},affectedItemIds:[],evidence:[]}]},manifest,context).valid,false);
 });
 
 test('proposal references fail closed when target validation context is omitted', () => {

@@ -6,6 +6,7 @@ const entries = Object.entries(schemas.tasks).flatMap(([task, schema]) => {
     ['turn.analyze.v1:v1', Object.freeze({ id: 'turn.analyze.v1', version: 'v1', task, schema: schemas.turnAnalyzeV2 })],
     ['turn.analyze.v2:v2', Object.freeze({ id: 'turn.analyze.v2', version: 'v2', task, schema: schemas.turnAnalyzeV2 })],
     ['turn.analyze.v3:v3', Object.freeze({ id: 'turn.analyze.v3', version: 'v3', task, schema })],
+    ['turn.analyze.v4:v4', Object.freeze({ id: 'turn.analyze.v4', version: 'v4', task, schema })],
   ];
   if (task === 'PRD_REVIEW') return [[`${id}:v1`, Object.freeze({ id, version: 'v1', task, schema: schemas.tasks.REQUIREMENTS_REVIEW })], ['prd.review.v2:v2', Object.freeze({ id: 'prd.review.v2', version: 'v2', task, schema })]];
   if (task === 'CONSISTENCY_REVIEW') {

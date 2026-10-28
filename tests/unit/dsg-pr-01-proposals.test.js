@@ -28,6 +28,16 @@ test('rejects a nonexistent update target and unreferenced evidence', () => {
   assert.throws(()=>normalizeProposals({...base,proposals:[{operation:'create',targetType:'design_item',after:{type:'goal',title:'goal'},rationale:'change',evidence:[{sourceType:'message',sourceId:'outside'}],affectedItemIds:[]}]}),/PROPOSAL_EVIDENCE_INVALID/);
 });
 
+test('rejects an incomplete create proposal before it can be persisted or approved', () => {
+  const base={projectId:'project',logicalRequestId:'request',existingProposals:[],designItems:[],sections:[],messages:[],sources:[]};
+  for (const after of [
+    { title:'유형이 빠진 기능', description:'예약 충돌 여부를 확인한다.' },
+    { type:'requirement', title:'설명이 빠진 기능' },
+  ]) {
+    assert.throws(()=>normalizeProposals({...base,proposals:[{operation:'create',targetType:'design_item',after,rationale:'사용자 답변에서 확인함',evidence:[],affectedItemIds:[]}]}),/PROPOSAL_PAYLOAD_INVALID/);
+  }
+});
+
 test('normalizer rejects acceptance criteria owned by archived design items', () => {
   const archived={...item,archivedAt:now,acceptanceCriteria:[{id:'criterion-1',text:'before',status:'confirmed',evidence,createdAt:now,updatedAt:now}]};
   assert.throws(()=>normalizeProposals({projectId:'project',logicalRequestId:'request',proposals:[{operation:'update',targetType:'acceptance_criterion',targetId:'criterion-1',before:{text:'before'},after:{text:'after'},rationale:'edit',evidence:[],affectedItemIds:[]}],designItems:[archived],sections:[],messages:[],sources:[]}),/PROPOSAL_TARGET_INVALID/);
@@ -41,6 +51,28 @@ test('approval atomically confirms a create and duplicate command has no extra r
   assert.equal(state.project.designRevision, 1);
   assert.equal(state.designItems.length, 1);
   assert.deepEqual(state.activityEntries, snapshot.activityEntries);
+});
+
+test('approval refuses a malformed design item instead of persisting an unreadable item', async () => {
+  for (const after of [
+    { title:'유형 없는 기능',description:'예약 충돌 여부를 확인한다.' },
+    { type:'requirement',title:'잘못된 속성',description:'예약 충돌 여부를 확인한다.',attributes:'not-an-object' },
+    { type:'requirement',title:'잘못된 완료 조건',description:'예약 충돌 여부를 확인한다.',acceptanceCriteria:'not-an-array' },
+  ]) {
+    const state=aggregate(proposal({after}));
+    const before=structuredClone(state);
+    const result=await approveProposal({ownerKey:'owner',projectId:'project',proposalId:'p1',repository:repository(state),now:()=>now,idFactory:()=> 'i2'});
+    assert.equal(result.status,'invalid_value');
+    assert.deepEqual(state,before);
+  }
+});
+
+test('edit approval validates the merged design item before applying it', async () => {
+  const state=aggregate();
+  const before=structuredClone(state);
+  const result=await editAndApproveProposal({ownerKey:'owner',projectId:'project',proposalId:'p1',editedValue:{type:'unknown',title:'유효하지 않은 유형',description:'예약 충돌을 확인한다.'},repository:repository(state),now:()=>now,idFactory:()=> 'i2'});
+  assert.equal(result.status,'invalid_value');
+  assert.deepEqual(state,before);
 });
 
 test('reject does not change confirmed design or revision', async () => {
@@ -65,11 +97,11 @@ test('edit-and-approve rejects empty values without changing a pending proposal'
 });
 
 test('editing a design proposal preserves unedited fields from the proposed value', async () => {
-  const state = aggregate(proposal({ after: { type:'constraint', title:'취소 정책', description:'초안 설명', priority:'high' } }));
+  const state = aggregate(proposal({ after: { type:'constraint', title:'취소 정책', description:'초안 설명', priority:'must' } }));
   const result = await editAndApproveProposal({ ownerKey:'owner', projectId:'project', proposalId:'p1', editedValue:{ title:'확정된 취소 정책', description:'변경된 설명' }, repository:repository(state), now:()=>now, idFactory:()=> 'i2' });
   assert.equal(result.status, 'applied');
   assert.equal(state.designItems[0].type, 'constraint');
-  assert.equal(state.designItems[0].priority, 'high');
+  assert.equal(state.designItems[0].priority, 'must');
   assert.equal(state.designItems[0].title, '확정된 취소 정책');
   assert.equal(state.designItems[0].description, '변경된 설명');
 });

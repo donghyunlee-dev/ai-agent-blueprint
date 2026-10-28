@@ -1,3 +1,5 @@
+import { validateProposalPayloads } from './proposal-payload-validation.js';
+
 const targetCollections = { design_item: 'designItems', acceptance_criterion: 'acceptanceCriteria', document_section: 'sections' };
 
 function keyFor(proposal) {
@@ -45,6 +47,7 @@ export function normalizeProposals({ projectId, logicalRequestId, proposals, exi
       const { location: _untrustedLocation, ...fileRef } = ref;
       return { ...fileRef, sourceId: source.id, excerpt: quote, ...(excerpt.location ? { location: excerpt.location } : {}) };
     });
+    if (!validateProposalPayloads([item]).valid) throw new Error('PROPOSAL_PAYLOAD_INVALID');
     const key = keyFor({ ...item, logicalRequestId });
     if (seen.has(key)) continue;
     seen.add(key);

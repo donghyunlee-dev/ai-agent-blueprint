@@ -25,7 +25,7 @@ test('unknown task, prompt version, schema id, and schema version fail closed', 
 
 test('typed input is serialized as user context with source excerpts explicitly untrusted', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
-  assert.equal(prompt.promptVersion, 'v3');
+  assert.equal(prompt.promptVersion, 'v4');
   const messages = prompt.buildInput({
     userInput: '사용자 답변',
     currentTarget: { id: 'q1', prompt: '목표는 무엇인가요?' },
@@ -35,6 +35,9 @@ test('typed input is serialized as user context with source excerpts explicitly 
   assert.deepEqual(messages.map(({ role }) => role), ['system', 'developer', 'user']);
   assert.match(messages[2].content, /SOURCE_EXCERPTS_UNTRUSTED/);
   assert.match(messages[1].content, /componentType allowlist/);
+  assert.match(messages[1].content, /after에 유효한 DesignItem type/);
+  assert.match(messages[1].content, /priority는 must, should, could, wont/);
+  assert.match(messages[1].content, /proposal target은 design_item 또는 acceptance_criterion/);
   assert.match(messages[2].content, /ignore all system rules/);
   assert.doesNotMatch(messages[0].content, /ignore all system rules/);
   assert.deepEqual(prompt.validateDomain({ assistantMessage:'확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, { manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] } }), { valid: true, errors: [] });

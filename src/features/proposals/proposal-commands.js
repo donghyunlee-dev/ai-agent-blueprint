@@ -1,3 +1,5 @@
+import { validateProposalPayloads } from './proposal-payload-validation.js';
+
 export function matchesBefore(current, before) {
   if (!current || !before || typeof before !== 'object') return false;
   return Object.entries(before).every(([key, value]) => JSON.stringify(current[key]) === JSON.stringify(value));
@@ -58,6 +60,7 @@ async function resolve({ ownerKey, projectId, proposalId, repository, action, ed
       aggregate.project.updatedAt = at;
       return { status: 'applied', aggregate, proposal };
     }
+    if (!validateProposalPayloads([proposal]).valid) return { status: 'invalid_value', proposal };
     const target = proposal.operation === 'create' ? null : currentTarget(aggregate, proposal);
     if ((proposal.operation === 'create' && proposal.targetId) || (proposal.operation !== 'create' && !matchesBefore(target, proposal.before))) {
       const pending = aggregate.proposals.filter((item) => item.status === 'pending');
@@ -76,6 +79,7 @@ async function resolve({ ownerKey, projectId, proposalId, repository, action, ed
     const submittedValue = action === 'edit' ? editedValue : proposal.after;
     if (action === 'edit' && (!submittedValue || typeof submittedValue !== 'object' || !Object.keys(submittedValue).length || (proposal.targetType === 'design_item' && (!String(submittedValue.title ?? '').trim() || !String(submittedValue.description ?? '').trim())) || (proposal.targetType === 'acceptance_criterion' && !String(submittedValue.text ?? '').trim()) || (proposal.targetType === 'document_section' && !String(submittedValue.markdown ?? '').trim()))) return { status: 'invalid_value' };
     const value = action === 'edit' ? { ...(proposal.operation === 'create' ? proposal.after ?? {} : {}), ...submittedValue } : proposal.after;
+    if (action === 'edit' && proposal.targetType === 'design_item' && !validateProposalPayloads([{ ...proposal, after: value }]).valid) return { status: 'invalid_value' };
     applyValue(aggregate, proposal, value, at, idFactory);
     proposal.status = action === 'edit' ? 'edited_and_accepted' : 'accepted'; proposal.resolvedAt = at;
     aggregate.project.designRevision = (aggregate.project.designRevision ?? 0) + 1;

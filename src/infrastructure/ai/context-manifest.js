@@ -18,6 +18,7 @@ export function validateReferences(response, manifest, targetContext) {
    const childPath=`${path}.${key}`;
    if(Array.isArray(child)&&itemReferenceFields.has(key)) for(const id of child) if(!itemIds.has(id)) errors.push(`${childPath}: unknown item ${id}`);
    if(Array.isArray(child)&&sourceReferenceFields.has(key)) for(const id of child) if(!sourceIds.has(id)) errors.push(`${childPath}: unknown source ${id}`);
+   if(key==='parentId'&&typeof child==='string'&&!itemIds.has(child)) errors.push(`${childPath}: unknown item ${child}`);
    if(key==='sourceId'&&typeof child==='string'&&!sourceIds.has(child)) errors.push(`${childPath}: unknown source ${child}`);
    if(key==='requirementIds'&&Array.isArray(child)) for(const id of child) if(!requirementIds.has(id)) errors.push(`${childPath}: unknown requirement ${id}`);
    if(key==='openIssueIds'&&Array.isArray(child)) for(const id of child) if(!openIssueIds.has(id)) errors.push(`${childPath}: unknown open issue ${id}`);

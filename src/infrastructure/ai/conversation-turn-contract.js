@@ -1,3 +1,5 @@
+import { validateProposalPayloads } from '../../features/proposals/proposal-payload-validation.js';
+
 const componentModes = Object.freeze({
   single_choice: 'single',
   multiple_choice: 'multiple',
@@ -27,7 +29,7 @@ export function hasExplicitRecommendationRequest(text) {
   return explicitRecommendation(text);
 }
 
-export function validateTurnAnalyzeV3(payload, userTurn) {
+export function validateTurnAnalyzeV4(payload, userTurn) {
   const errors = [];
   const followUp = payload?.followUp;
   if (followUp) {
@@ -52,6 +54,13 @@ export function validateTurnAnalyzeV3(payload, userTurn) {
   } else if (explicitRecommendation(userTurn?.text) && !followUp) {
     errors.push('insufficient recommendation context must ask a follow-up question');
   }
+
+  const proposalDrafts=[
+    ...(payload?.proposals ?? []),
+    ...(followUp?.options ?? []).map((option)=>option.proposalDraft).filter(Boolean),
+    ...(recommendations ?? []).map((candidate)=>candidate.proposal).filter(Boolean),
+  ];
+  errors.push(...validateProposalPayloads(proposalDrafts).errors);
 
   if (containsUnsafeCopy(payload)) errors.push('turn contains unsafe copy');
   return { valid: errors.length === 0, errors };

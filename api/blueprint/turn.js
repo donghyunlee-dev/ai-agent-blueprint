@@ -2,7 +2,8 @@ import crypto from 'node:crypto';
 import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/index.js';
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 import { validateProposalTargets, validateReferences, validateResponseMetadata } from '../../src/infrastructure/ai/context-manifest.js';
-import { hasExplicitRecommendationRequest, questionFromFollowUp, validateTurnAnalyzeV3 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
+import { validateProposalPayloads } from '../../src/features/proposals/proposal-payload-validation.js';
+import { hasExplicitRecommendationRequest, questionFromFollowUp, validateTurnAnalyzeV4 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 import { canRequestAi } from '../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricing.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
@@ -295,8 +296,9 @@ export default async function handler(req, res, deps = {}) {
       const selectionTargetContext = { designItems: body.relevantDesignItems.map(({ id, type }) => ({ id, type })) };
       const selectedReferences = validateReferences({ proposals: selected.proposals }, selectionManifest, selectionTargetContext);
       const selectedTargets = validateProposalTargets(selected.proposals, selectionTargetContext);
-      if (!selectedReferences.valid || !selectedTargets.valid) {
-        const errors = [...selectedReferences.errors, ...selectedTargets.errors];
+      const selectedPayloads = validateProposalPayloads(selected.proposals);
+      if (!selectedReferences.valid || !selectedTargets.valid || !selectedPayloads.valid) {
+        const errors = [...selectedReferences.errors, ...selectedTargets.errors, ...selectedPayloads.errors];
         console.error('TURN_SELECTED_OUTPUT_VALIDATION_FAILED', {
           stage: 'selected_output',
           referenceFailures: referenceFailureCategories(errors),
@@ -383,7 +385,7 @@ export default async function handler(req, res, deps = {}) {
         });
         const references = validateReferences(validatedOutput, manifest, targetContext);
         referenceValidationErrors = references.errors;
-        const domainResult = validateTurnAnalyzeV3(validatedOutput.payload, body.userTurn);
+        const domainResult = validateTurnAnalyzeV4(validatedOutput.payload, body.userTurn);
         const choiceTargets = validateProposalTargets(proposalsInChoices(validatedOutput.payload), targetContext);
         const failedValidation = [
           ['schema', schemaResult],
@@ -427,7 +429,8 @@ export default async function handler(req, res, deps = {}) {
 
     const selectedReferences = validateReferences({ proposals: selected.proposals }, manifest, targetContext);
     const selectedTargets = validateProposalTargets(selected.proposals, targetContext);
-    if (!selectedReferences.valid || !selectedTargets.valid) {
+    const selectedPayloads = validateProposalPayloads(selected.proposals);
+    if (!selectedReferences.valid || !selectedTargets.valid || !selectedPayloads.valid) {
       if (process.env.DEBUG_CON_PR05) console.error('TURN_SELECTED_OUTPUT_VALIDATION_FAILED');
       if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
       return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
