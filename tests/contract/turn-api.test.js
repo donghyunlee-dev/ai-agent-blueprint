@@ -64,7 +64,7 @@ test('OPTION_RECOMMEND validation logs a fixed domain failure category without m
   const logged = [];
   console.error = (...values) => logged.push(values);
   try {
-    const invalidOutput = { task: 'OPTION_RECOMMEND', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 0, payload: { assistantMessage: canary, recommendations: [] }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
+    const invalidOutput = { task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0, payload: { assistantMessage: canary, recommendations: [] }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
     const requestBody = { ...body, userTurn: { id: 'm1', kind: 'text', text: '추천안을 보여주세요.' } };
     const res = response();
     await handler(request(requestBody), res, {
@@ -193,9 +193,9 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
   const makeCandidate = (index) => ({
     title: `대안 ${index + 1}`, rationale: '사용자에게 확인한 예약 충돌 문제에 대응합니다.',
     tradeoffs: ['운영 규칙을 정해야 합니다.'], assumptions: [], evidence: [{ sourceType: 'message', sourceId: 'm1' }],
-    designItem: { type: 'requirement', title: `대안 ${index + 1}`, description: '예약 충돌을 줄입니다.' },
+    designItem: { type: 'requirement', description: '예약 충돌을 줄입니다.' },
   });
-  const recommendationOutput = { task: 'OPTION_RECOMMEND', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 0, payload: { assistantMessage: '근거 있는 예약 방식 11개를 비교합니다.', recommendations: Array.from({ length: 11 }, (_, index) => makeCandidate(index)) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
+  const recommendationOutput = { task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0, payload: { assistantMessage: '근거 있는 예약 방식 11개를 비교합니다.', recommendations: Array.from({ length: 11 }, (_, index) => makeCandidate(index)) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
   const recommendationRequest = { ...body, logicalRequestId: 'logical-recommend-12345', userTurn: { id: 'm1', kind: 'text', text: '제가 설명한 회의실 예약 서비스와 운영 목표에 맞춰 비교하고 선택할 수 있는 11개 추천안을 보여주세요.' } };
   const recommendationRes = response();
   const calls = [];
@@ -227,7 +227,7 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
 test('explicit recommendation requests use OPTION_RECOMMEND and normalize compact candidates into pending selection drafts', async () => {
   const calls = [];
   const recommendationOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0,
     payload: {
       assistantMessage: '확인된 예약 조건에 맞춘 추천안입니다.',
       recommendations: Array.from({ length: 11 }, (_, index) => ({
@@ -236,7 +236,7 @@ test('explicit recommendation requests use OPTION_RECOMMEND and normalize compac
         tradeoffs: ['예약 확정이 늦어질 수 있습니다.'],
         assumptions: [],
         evidence: [{ sourceType: 'message', sourceId: 'm1' }],
-        designItem: { type: 'requirement', title: `예약 방식 ${index + 1}`, description: '예약이 겹치면 확정을 차단합니다.' },
+        designItem: { type: 'requirement', description: '예약이 겹치면 확정을 차단합니다.' },
       })),
     },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
@@ -258,10 +258,45 @@ test('explicit recommendation requests use OPTION_RECOMMEND and normalize compac
   assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.evidence[0].sourceId, 'm1');
 });
 
+test('OPTION_RECOMMEND v3 keeps eleven concise candidates and derives proposal titles server-side', async () => {
+  const calls = [];
+  const recommendationOutput = {
+    task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0,
+    payload: {
+      assistantMessage: '확인된 조건에 맞춘 11개 안입니다.',
+      recommendations: Array.from({ length: 11 }, (_, index) => ({
+        title: `예약 방식 ${index + 1}`,
+        rationale: '중복 예약을 막는 확인 절차를 둡니다.',
+        tradeoffs: ['확정이 다소 늦어질 수 있습니다.'],
+        assumptions: ['예약 요청이 최신 상태입니다.'],
+        evidence: [{ sourceType: 'message', sourceId: 'm1' }],
+        designItem: { type: 'requirement', description: '예약 시간 충돌을 저장 전에 확인합니다.' },
+      })),
+    },
+    referencedItemIds: [], referencedSourceIds: [], warnings: [],
+  };
+  const requestBody = { ...body, logicalRequestId: 'logical-recommend-v3-12345', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약이 겹치지 않도록 추천안 11개를 보여주세요.' } };
+  const res = response();
+  await handler(request(requestBody), res, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async (input) => { calls.push(input); return recommendationOutput; },
+  });
+
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(calls[0].name, 'option_recommend');
+  assert.equal(calls[0].maxOutputTokens, 2000);
+  assert.equal(res.body.recommendationCandidates.candidates.length, 11);
+  assert.equal(res.body.recommendationCandidates.candidates[0].title, '예약 방식 1');
+  assert.deepEqual(res.body.recommendationCandidates.candidates[0].assumptions, ['예약 요청이 최신 상태입니다.']);
+  assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.after.title, '예약 방식 1');
+  assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.after.description, '예약 시간 충돌을 저장 전에 확인합니다.');
+  assert.equal(res.body.proposals.length, 0);
+});
+
 test('OPTION_RECOMMEND asks a contextual follow-up instead of padding when evidence is insufficient', async () => {
   const res = response();
   const recommendationOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0,
     payload: {
       assistantMessage: '근거 있는 비교를 위해 조건을 더 확인하겠습니다.',
       recommendations: [],
@@ -283,9 +318,9 @@ test('turn endpoint retries recommendations whose proposal drafts cannot create 
     evidence: [{ sourceType: 'message', sourceId: 'm1' }],
     designItem: designItem(index),
   });
-  const recommendationOutput = (recommendations) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 0, payload: { assistantMessage: '추천 후보를 정리합니다.', recommendations }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
-  const invalid = recommendationOutput(Array.from({ length: 11 }, (_, index) => makeCandidate(index, (i) => ({ title: `예약안 ${i + 1}`, description: '예약 충돌을 줄입니다.' }))));
-  const valid = recommendationOutput(Array.from({ length: 11 }, (_, index) => makeCandidate(index, (i) => ({ type: 'requirement', title: `예약안 ${i + 1}`, description: '예약 충돌을 줄입니다.' }))));
+  const recommendationOutput = (recommendations) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0, payload: { assistantMessage: '추천 후보를 정리합니다.', recommendations }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
+  const invalid = recommendationOutput(Array.from({ length: 11 }, (_, index) => makeCandidate(index, () => ({ description: '예약 충돌을 줄입니다.' }))));
+  const valid = recommendationOutput(Array.from({ length: 11 }, (_, index) => makeCandidate(index, () => ({ type: 'requirement', description: '예약 충돌을 줄입니다.' }))));
   const requestBody = { ...body, logicalRequestId: 'logical-recommendation-retry-123', userTurn: { id: 'm1', kind: 'text', text: '추천해 주세요. 예약 충돌을 줄이고 싶어요.' } };
   let calls = 0;
   const res = response();
@@ -300,10 +335,10 @@ test('turn endpoint uses bounded correction for malformed recommendation candida
   const candidate = (index) => ({
     title: `후보 ${index + 1}`, rationale: '현재 확인한 조건에 맞습니다.', tradeoffs: [], assumptions: [],
     evidence: [{ sourceType: 'message', sourceId: 'm1' }],
-    designItem: { type: 'requirement', title: `후보 ${index + 1}`, description: '예약이 겹치지 않도록 확인합니다.' },
+    designItem: { type: 'requirement', description: '예약이 겹치지 않도록 확인합니다.' },
   });
   const outputFor = (recommendations) => ({
-    task: 'OPTION_RECOMMEND', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0,
     payload: { assistantMessage: '추천 후보를 정리합니다.', recommendations },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   });
@@ -469,7 +504,7 @@ test('recommendation evidence accepts only user-authored messages or request exc
   const source = { id: 'request-excerpt-1', sourceId: 'canonical-file-1', text: '예약은 30일 전에 취소할 수 있습니다.' };
   const candidate = (index, evidence) => ({
     title: `대안 ${index + 1}`, rationale: '확인한 조건에 맞는 선택지입니다.', tradeoffs: [], assumptions: [], evidence,
-    designItem: { type: 'requirement', title: `대안 ${index + 1}`, description: '예약 충돌을 줄입니다.' },
+    designItem: { type: 'requirement', description: '예약 충돌을 줄입니다.' },
   });
   const requestBody = {
     ...body,
@@ -481,7 +516,7 @@ test('recommendation evidence accepts only user-authored messages or request exc
     ],
     sources: [source],
   };
-  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
+  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
 
   const assistantEvidence = response();
   let assistantCalls = 0;
@@ -509,13 +544,14 @@ test('recommendation evidence accepts only user-authored messages or request exc
   const groundedEvidence = response();
   await handler(request({ ...requestBody, logicalRequestId: 'logical-evidence-valid-123' }), groundedEvidence, {
     store: createMemoryAuthStore(),
-    requestStructuredOutput: async () => outputFor(() => [
-      { sourceType: 'message', sourceId: 'prior-user' },
-      { sourceType: 'file', sourceId: 'request-excerpt-1' },
-    ]),
+    requestStructuredOutput: async () => outputFor((index) => index === 0
+      ? [{ sourceType: 'file', sourceId: 'request-excerpt-1' }]
+      : [{ sourceType: 'message', sourceId: 'prior-user' }]),
   });
   assert.equal(groundedEvidence.statusCode, 200, JSON.stringify(groundedEvidence.body));
   assert.equal(groundedEvidence.body.recommendationCandidates.candidates.length, 11);
+  assert.equal(groundedEvidence.body.recommendationCandidates.candidates[0].evidence[0].sourceId, 'canonical-file-1');
+  assert.equal(groundedEvidence.body.recommendationCandidates.candidates[0].evidence[0].excerpt, source.text);
 });
 
 test('turn endpoint rejects a card choice that is not in the referenced contextual message', async () => {
@@ -577,7 +613,7 @@ test('turn endpoint accepts only request-local excerpt IDs as file citation IDs'
 test('recommendation file evidence survives selection in a later turn', async () => {
   const sourceText = '예약 취소는 시작 두 시간 전까지 가능합니다.';
   const recommendationOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v2', schemaVersion: 'v2', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0,
     referencedSourceIds: ['excerpt-first'],
     payload: {
       assistantMessage: '자료 근거를 반영한 추천입니다.',
@@ -586,8 +622,8 @@ test('recommendation file evidence survives selection in a later turn', async ()
         rationale: '대화와 자료에 근거한 선택입니다.',
         tradeoffs: [],
         assumptions: [],
-        evidence: [{ sourceType: 'file', sourceId: 'excerpt-first', excerpt: sourceText }],
-        designItem: { type: 'requirement', title: `예약 정책 ${index + 1}`, description: sourceText },
+        evidence: [{ sourceType: 'file', sourceId: 'excerpt-first' }],
+        designItem: { type: 'requirement', description: sourceText },
       })),
     },
     referencedItemIds: [], warnings: [],
@@ -604,6 +640,7 @@ test('recommendation file evidence survives selection in a later turn', async ()
   const recommendationBlock = firstResponse.body.recommendationCandidates;
   const candidate = recommendationBlock.candidates[0];
   assert.equal(candidate.proposalDraft.evidence[0].sourceId, 'canonical-source');
+  assert.equal(candidate.evidence[0].excerpt, sourceText);
 
   const secondResponse = response();
   const secondBody = {

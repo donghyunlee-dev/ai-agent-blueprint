@@ -3,7 +3,7 @@ import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/ind
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 import { validateProposalTargets, validateReferences, validateResponseMetadata } from '../../src/infrastructure/ai/context-manifest.js';
 import { validateProposalPayloads } from '../../src/features/proposals/proposal-payload-validation.js';
-import { hasExplicitRecommendationRequest, questionFromFollowUp, validateOptionRecommendV2, validateTurnAnalyzeV5 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
+import { hasExplicitRecommendationRequest, questionFromFollowUp, validateOptionRecommendV3, validateTurnAnalyzeV5 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 import { canRequestAi } from '../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricing.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
@@ -149,7 +149,12 @@ function persistFileEvidence(evidence, excerpts) {
   return evidence.map((reference) => {
     if (reference.sourceType !== 'file') return reference;
     const excerpt = excerptById.get(reference.sourceId);
-    return excerpt ? { ...reference, sourceId: excerpt.sourceId, ...(excerpt.location ? { location: excerpt.location } : {}) } : reference;
+    return excerpt ? {
+      ...reference,
+      sourceId: excerpt.sourceId,
+      ...(!reference.excerpt && excerpt.text ? { excerpt: excerpt.text } : {}),
+      ...(reference.location || !excerpt.location ? {} : { location: excerpt.location }),
+    } : reference;
   });
 }
 
@@ -251,10 +256,11 @@ function domainFailureCategories(errors) {
 
 function recommendationProposalDraft(candidate) {
   if (candidate?.proposal) return candidate.proposal;
+  const after = candidate?.designItem;
   return {
     operation: 'create',
     targetType: 'design_item',
-    after: candidate?.designItem,
+    after: after && !after.title ? { ...after, title: candidate.title } : after,
     rationale: candidate?.rationale,
     evidence: candidate?.evidence,
     affectedItemIds: [],
@@ -464,7 +470,7 @@ export default async function handler(req, res, deps = {}) {
         const references = validateReferences(validatedOutput, manifest, targetContext);
         referenceValidationErrors = references.errors;
         const domainResult = task === RECOMMENDATION_TASK
-          ? validateOptionRecommendV2(validatedOutput.payload, body.userTurn)
+          ? validateOptionRecommendV3(validatedOutput.payload, body.userTurn)
           : validateTurnAnalyzeV5(validatedOutput.payload);
         const taskProposals = task === RECOMMENDATION_TASK
           ? (Array.isArray(validatedOutput.payload?.recommendations) ? validatedOutput.payload.recommendations : []).map(recommendationProposalDraft)

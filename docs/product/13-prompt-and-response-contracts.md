@@ -8,7 +8,7 @@ AI가 같은 대화 안에서도 질문, 설명, 추천, 복수 제안, 충돌 �
 
 각 task의 실제 System/Developer template 문구와 변수는 [AI Prompt Template 명세](15-ai-prompt-template-spec.md)를 따른다.
 
-> **현재 runtime:** 자유 대화는 `TURN_ANALYZE` prompt v6와 schema `turn.analyze.v5`를 사용한다. 명시적인 추천 요청은 `OPTION_RECOMMEND` prompt/schema v2로 분리한다. 이전 schema 버전은 이미 생성된 작업과 회귀 검증을 위해 registry에 유지한다.
+> **현재 runtime:** 자유 대화는 `TURN_ANALYZE` prompt v6와 schema `turn.analyze.v5`를 사용한다. 명시적인 추천 요청은 `OPTION_RECOMMEND` prompt/schema v3로 분리한다. 추천 schema v1/v2는 registry 호환과 회귀 검증용으로 유지한다.
 
 ## 현재 `TURN_ANALYZE` 계약 — schema `turn.analyze.v5`, prompt `v6`
 
@@ -27,13 +27,13 @@ Provider payload에는 confirmed state, persisted IDs, readiness, process state,
 
 질문·선택 렌더링은 고정 allowlisted type registry를 사용한다: `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm`. 이것은 renderer type만 고정하며 question/option 콘텐츠는 current context에서 turn마다 생성한다. 응답은 각 type의 strict schema를 통과해야 한다. HTML, React, code, style, 임의 type/action/ID는 허용하지 않는다. 서버는 schema와 evidence를 검증하고 ID를 부여하며, 선택 제출은 pending proposal만 생성한다.
 
-## 현재 `OPTION_RECOMMEND` 계약 — schema `option.recommend.v2`, prompt `v2`
+## 현재 `OPTION_RECOMMEND` 계약 — schema `option.recommend.v3`, prompt `v3`
 
-이 task는 사용자가 명시적으로 추천을 요청한 turn에만 실행한다. 모델은 현재 대화, 확정 설계, 최근 사용자 메시지와 허용된 자료에서 근거를 찾고, 충분한 맥락이면 서로 다른 후보를 정확히 11개 반환한다. 각 후보는 `title`, `rationale`, 최대 2개의 `tradeoffs`, 최대 2개의 `assumptions`, 최대 2개의 검증 가능한 `evidence`, 그리고 선택 시 제안으로 만들 `designItem` (`type`, `title`, `description`)만 포함한다. 긴 proposal envelope와 ID는 모델이 만들지 않는다.
+이 task는 사용자가 명시적으로 추천을 요청한 turn에만 실행한다. 모델은 현재 대화, 확정 설계, 최근 사용자 메시지와 허용된 자료에서 근거를 찾고, 충분한 맥락이면 서로 다른 후보를 정확히 11개 반환한다. 각 후보는 `title`(20자 이내), `rationale`(35자 이내), 0~1개의 `tradeoffs`(28자 이내), 0~1개의 `assumptions`(25자 이내), 실제 message/file `evidence` 1개, 선택 시 제안으로 만들 `designItem` (`type`, `description` 35자 이내)만 포함한다. `designItem.title`은 후보 `title`과 같으므로 서버가 채운다. 파일 근거 excerpt와 위치도 서버가 현재 요청 자료에서 연결한다. 긴 proposal envelope와 ID는 모델이 만들지 않는다.
 
 근거 있는 후보 11개를 제시하기에 맥락이 부족하면 빈 `recommendations`와 하나의 contextual `followUp`을 반환한다. 후보가 있을 때 follow-up은 함께 반환하지 않는다. 서버는 schema, 명시적 요청, 후보 수·중복, user-authored message 또는 현재 요청의 file excerpt 근거, design item payload를 검증한다. 통과한 후보에만 서버가 ID와 pending proposal draft를 붙이며, 후보 선택은 기존 검토·승인 절차를 거쳐야 확정 설계가 된다.
 
-`OPTION_RECOMMEND`는 등록된 DEFAULT profile과 기존 입력/출력 한도를 사용한다. 후보 형식을 간결하게 유지하며 token cap을 높이거나 응답을 임의로 채우지 않는다. 이전 `option.recommend.v1` 단일 질문값 형식은 registry 호환용 legacy schema다.
+`OPTION_RECOMMEND`는 등록된 DEFAULT profile과 기존 입력/출력 한도를 사용한다. 서버는 응답 문구 길이와 배열 크기도 검증한다. 후보 형식을 간결하게 유지하며 token cap을 높이거나 응답을 임의로 채우지 않는다. `option.recommend.v1` 단일 질문값 및 v2 후보 형식은 registry 호환용 legacy schema다.
 
 ## Prompt Registry
 
@@ -220,9 +220,9 @@ interface NextActionBlock {
 
 The `QuestionBlock` is the completed display value: its `QuestionSpec` fields and stable option values come from the question catalog. A provider `QuestionCompositionBlock` may supply only prompt/help and option presentation; the application joins those values to the selected `QuestionSpec` and rejects changed/missing stable option values. `QUESTION_COMPOSE` is the only task that emits this composition shape.
 
-Provider-produced block payloads are `QuestionCompositionBlock`, `explanation`, and recommendation candidate data, and only where the selected task permits them. Current `TURN_ANALYZE` v5 returns an `assistantMessage` string, proposals, interpretation, and optional structured `followUp`; the application turns validated data into normalized display blocks. `QUESTION_EXPLAIN` emits `explanation`; `OPTION_RECOMMEND` v2 emits compact recommendation candidates. Proposal summary, conflict notice, readiness notice, and next action are application-generated from validated proposal IDs, current aggregate/readiness, and the canonical process state machine. They are not accepted in provider response schemas. In particular, `conflict_notice` references proposal IDs but code alone determines whether a before-value conflict exists; `next_action.action` is an application allowlist projection and must not be provider input.
+Provider-produced block payloads are `QuestionCompositionBlock`, `explanation`, and recommendation candidate data, and only where the selected task permits them. Current `TURN_ANALYZE` v5 returns an `assistantMessage` string, proposals, interpretation, and optional structured `followUp`; the application turns validated data into normalized display blocks. `QUESTION_EXPLAIN` emits `explanation`; `OPTION_RECOMMEND` v3 emits compact recommendation candidates. Proposal summary, conflict notice, readiness notice, and next action are application-generated from validated proposal IDs, current aggregate/readiness, and the canonical process state machine. They are not accepted in provider response schemas. In particular, `conflict_notice` references proposal IDs but code alone determines whether a before-value conflict exists; `next_action.action` is an application allowlist projection and must not be provider input.
 
-For `TURN_ANALYZE` v5, the provider schema contains only `assistantMessage`, proposal drafts, interpretation data, and optional context-generated follow-up data. A `design_item` create draft must include a valid type, nonempty title and description, and only allowed design fields. The application validates the payload, assigns IDs, applies the proposal lifecycle, and creates normalized display blocks; the provider cannot invent persisted IDs or choose a conflict state. `OPTION_RECOMMEND` v2 returns candidate data separately and the server creates the pending proposal envelope after validating each candidate.
+For `TURN_ANALYZE` v5, the provider schema contains only `assistantMessage`, proposal drafts, interpretation data, and optional context-generated follow-up data. A `design_item` create draft must include a valid type, nonempty title and description, and only allowed design fields. The application validates the payload, assigns IDs, applies the proposal lifecycle, and creates normalized display blocks; the provider cannot invent persisted IDs or choose a conflict state. `OPTION_RECOMMEND` v3 returns candidate data separately, omits the title duplicated by its parent candidate, and returns source IDs without repeating excerpt text. The server derives the proposal title, restores request-local file excerpt evidence, and creates the pending proposal envelope after validating each candidate.
 
 `NextAction` values are code-owned UI intents supported by [process state machine](../process/02-state-machine.md), [document generation flow](../process/05-document-generation.md), [end-to-end flow](../process/01-end-to-end-flow.md), and [document workspace actions](../ui/04-document-workspace.md). The application derives which intent is available from canonical process state. Provider schemas must never include a `next_action` block or its action enum.
 
