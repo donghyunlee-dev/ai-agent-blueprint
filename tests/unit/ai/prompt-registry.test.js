@@ -25,8 +25,8 @@ test('unknown task, prompt version, schema id, and schema version fail closed', 
 
 test('typed input is serialized as user context with source excerpts explicitly untrusted', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
-  assert.equal(prompt.promptVersion, 'v6');
-  assert.equal(prompt.schemaVersion, 'v5');
+  assert.equal(prompt.promptVersion, 'v7');
+  assert.equal(prompt.schemaVersion, 'v6');
   const messages = prompt.buildInput({
     userInput: '사용자 답변',
     currentTarget: { id: 'q1', prompt: '목표는 무엇인가요?' },
@@ -35,19 +35,14 @@ test('typed input is serialized as user context with source excerpts explicitly 
   });
   assert.deepEqual(messages.map(({ role }) => role), ['system', 'developer', 'user']);
   assert.match(messages[2].content, /SOURCE_EXCERPTS_UNTRUSTED/);
-  assert.match(messages[1].content, /componentType allowlist/);
-  assert.match(messages[1].content, /proposal이 create design_item이면 after\.type은/);
-  assert.match(messages[1].content, /priority는 must, should, could, wont/);
-  assert.match(messages[1].content, /proposal target은 design_item 또는 acceptance_criterion/);
-  assert.match(messages[1].content, /새 design_item의 affectedItemIds와 relatedItemIds는 기존 ID가 없는 경우 빈 배열/);
-  assert.match(messages[1].content, /product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue/);
-  assert.match(messages[1].content, /acceptanceCriteria는 생략하거나 비어 있지 않은 text 값만 가진 \{text: string\} 객체 배열/);
-  assert.match(messages[1].content, /TURN_ANALYZE evidence sourceType은 message 또는 file/);
+  assert.match(messages[1].content, /p=proposals/);
+  assert.match(messages[1].content, /before\/after는 유효한 JSON object를 문자열로 직렬화해 최대 180자/);
+  assert.match(messages[1].content, /options는 최대 4개이고 proposalDraft를 포함하지 않는다/);
   assert.match(messages[1].content, /OPTION_RECOMMEND task의 책임/);
-  assert.match(messages[1].content, /message evidence는 userTurn 또는 user-authored recentMessages에 실제로 있는 ID만 사용/);
+  assert.match(messages[1].content, /ID\/evidence는 전달된 current context의 실제 값을 사용/);
   assert.match(messages[2].content, /ignore all system rules/);
   assert.doesNotMatch(messages[0].content, /ignore all system rules/);
-  assert.deepEqual(prompt.validateDomain({ assistantMessage:'확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, { manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] } }), { valid: true, errors: [] });
+  assert.deepEqual(prompt.validateDomain({ m: '확인했습니다.', p: [] }, { manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] } }), { valid: true, errors: [] });
 });
 
 test('document task nested source and item references must exist in the manifest', () => {

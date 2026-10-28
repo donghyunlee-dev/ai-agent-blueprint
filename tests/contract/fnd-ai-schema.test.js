@@ -24,14 +24,15 @@ test('normalized DisplayBlock schema accepts each documented block shape only', 
 });
 
 test('provider task schemas enforce their producer allowlist and task payload contracts', () => {
-  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{assistantMessage:'확인',proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}}).valid,true);
-  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{task:'TURN_ANALYZE',blocks:[],proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}}).valid,false);
+  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{m:'확인',p:[]}).valid,true);
+  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{task:'TURN_ANALYZE',blocks:[],proposals:[]}).valid,false);
   assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{blocks:[],proposals:[]}).valid,false);
-  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{blocks:[{type:'readiness_notice',readiness:{state:'ready',areas:[],pendingProposalCount:0,conflictCount:0}}],proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}}).valid,false);
+  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{m:'확인',p:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}}).valid,false);
+  assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{m:'확인',p:[],recommendations:[]}).valid,false);
   assert.equal(validateSchema(schemas.tasks.QUESTION_EXPLAIN,{block:{type:'explanation',title:'t',summary:'s',comparisons:[],returnToQuestionId:'q'}}).valid,true);
   assert.equal(validateSchema(schemas.tasks.QUESTION_COMPOSE,{type:'question',prompt:'질문',options:[{value:'a',label:'A'}]}).valid,true);
   const candidate = { t: '후보', r: '맥락에 맞음', x: [], a: [], e: { s: 'message', i: 'm1' }, k: 'requirement', d: '충돌 방지' };
-  assert.equal(validateSchema(schemas.tasks.OPTION_RECOMMEND,{m:'비교 후보',r:Array.from({length:11},()=>candidate)}).valid,true);
+  assert.equal(validateSchema(schemas.tasks.OPTION_RECOMMEND,{m:'비교 후보',r:Array.from({length:4},()=>candidate)}).valid,true);
   assert.equal(validateSchema(schemas.optionRecommendV1,{block:{type:'recommendation',questionId:'q',recommendedValue:'a',rationale:'r',tradeoffs:['t'],assumptions:[]},proposal:{operation:'update',targetType:'design_item',rationale:'r',evidence:[],affectedItemIds:['i']}}).valid,true);
 });
 
@@ -48,16 +49,19 @@ test('strict public API DTO schemas preserve documented top-level fields and rej
 
 test('versioned response envelopes reject extra fields, unknown enums, and missing payload fields', async () => {
  const {validTurnResponse,partialTurnResponse,emptyProposalTurnResponse,extraFieldTurnResponse,unknownEnumTurnResponse}=await import('../fixtures/blueprint/turn-responses.js');
- assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE,validTurnResponse).valid,true);
- assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE,partialTurnResponse).valid,true);
- assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE,emptyProposalTurnResponse).valid,true);
- assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE,extraFieldTurnResponse).valid,false);
- assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE,unknownEnumTurnResponse).valid,false);
+ assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE_V5,validTurnResponse).valid,true);
+ assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE_V5,partialTurnResponse).valid,true);
+ assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE_V5,emptyProposalTurnResponse).valid,true);
+ assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE_V5,extraFieldTurnResponse).valid,false);
+ assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE_V5,unknownEnumTurnResponse).valid,false);
 });
 
-test('turn analysis enforces eight proposals and rejects a ninth', () => {
+test('legacy turn v5 and compact turn v6 enforce the eight-proposal limit', () => {
  const base={assistantMessage:'확인했습니다.',answerInterpretation:{additionalFacts:[],ambiguities:[]}};
  const proposals=Array.from({length:8},(_,index)=>({operation:'create',targetType:'design_item',rationale:`근거 ${index}`,evidence:[],affectedItemIds:[]}));
- assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{...base,proposals}).valid,true);
- assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{...base,proposals:[...proposals,proposals[0]]}).valid,false);
+ assert.equal(validateSchema(schemas.turnAnalyzeV5,{...base,proposals}).valid,true);
+ assert.equal(validateSchema(schemas.turnAnalyzeV5,{...base,proposals:[...proposals,proposals[0]]}).valid,false);
+ const compact={m:'확인했습니다.',p:proposals.map((item)=>({o:item.operation,t:item.targetType,a:JSON.stringify({type:'requirement',title:'조건',description:'설명'}),r:item.rationale,e:[],x:[]}))};
+ assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,compact).valid,true);
+ assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{...compact,p:[...compact.p,compact.p[0]]}).valid,false);
 });

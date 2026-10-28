@@ -7,7 +7,8 @@ const entries = Object.entries(schemas.tasks).flatMap(([task, schema]) => {
     ['turn.analyze.v2:v2', Object.freeze({ id: 'turn.analyze.v2', version: 'v2', task, schema: schemas.turnAnalyzeV2 })],
     ['turn.analyze.v3:v3', Object.freeze({ id: 'turn.analyze.v3', version: 'v3', task, schema: schemas.turnAnalyzeV4 })],
     ['turn.analyze.v4:v4', Object.freeze({ id: 'turn.analyze.v4', version: 'v4', task, schema: schemas.turnAnalyzeV4 })],
-    ['turn.analyze.v5:v5', Object.freeze({ id: 'turn.analyze.v5', version: 'v5', task, schema })],
+    ['turn.analyze.v5:v5', Object.freeze({ id: 'turn.analyze.v5', version: 'v5', task, schema: schemas.turnAnalyzeV5 })],
+    ['turn.analyze.v6:v6', Object.freeze({ id: 'turn.analyze.v6', version: 'v6', task, schema: schemas.turnAnalyzeV6 })],
   ];
   if (task === 'OPTION_RECOMMEND') return [
     ['option.recommend.v1:v1', Object.freeze({ id: 'option.recommend.v1', version: 'v1', task, schema: schemas.optionRecommendV1 })],
@@ -15,7 +16,8 @@ const entries = Object.entries(schemas.tasks).flatMap(([task, schema]) => {
     ['option.recommend.v3:v3', Object.freeze({ id: 'option.recommend.v3', version: 'v3', task, schema: schemas.optionRecommendV3 })],
     ['option.recommend.v4:v4', Object.freeze({ id: 'option.recommend.v4', version: 'v4', task, schema: schemas.optionRecommendV4 })],
     ['option.recommend.v5:v5', Object.freeze({ id: 'option.recommend.v5', version: 'v5', task, schema: schemas.optionRecommendV5 })],
-    ['option.recommend.v6:v6', Object.freeze({ id: 'option.recommend.v6', version: 'v6', task, schema })],
+    ['option.recommend.v6:v6', Object.freeze({ id: 'option.recommend.v6', version: 'v6', task, schema: schemas.optionRecommendV6 })],
+    ['option.recommend.v7:v7', Object.freeze({ id: 'option.recommend.v7', version: 'v7', task, schema })],
   ];
   if (task === 'PRD_REVIEW') return [[`${id}:v1`, Object.freeze({ id, version: 'v1', task, schema: schemas.tasks.REQUIREMENTS_REVIEW })], ['prd.review.v2:v2', Object.freeze({ id: 'prd.review.v2', version: 'v2', task, schema })]];
   if (task === 'CONSISTENCY_REVIEW') {

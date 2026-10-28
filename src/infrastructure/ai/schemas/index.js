@@ -89,6 +89,7 @@ const recommendationCandidateV6 = object({
   d: boundedString(12),
 });
 const optionRecommendV6 = object({ m: boundedString(12), r: { type: 'array', items: recommendationCandidateV6, minItems: 0, maxItems: 11 }, f: opt(recommendationFollowUpV5) });
+const optionRecommendV7 = object({ m: boundedString(12), r: { type: 'array', items: recommendationCandidateV6, minItems: 0, maxItems: 4 }, f: opt(recommendationFollowUpV5) });
 const recommendationCandidatesBlock = object({ type: { const: 'recommendation_candidates' }, id: string, candidates: array(object({ id: string, title: string, rationale: string, tradeoffs: strings, assumptions: strings, evidence: array(evidence), proposalDraft: proposal }, ['id', 'title', 'rationale', 'tradeoffs', 'assumptions', 'evidence', 'proposalDraft']), 11) });
 const displayBlock = union([...Object.values(blockTypes), recommendationCandidatesBlock]);
 const composition = object({ type: { const: 'question' }, prompt: string, help: opt(string), options: opt(array(option)) }, ['type', 'prompt']);
@@ -104,9 +105,27 @@ const prdDimensionReview = object({ dimension: enumeration('problem','goals','us
 const prdReview = object({ verdict: enumeration('pass', 'repairable', 'user_review_required'), issues: array(object({ code: string, severity: enumeration('error', 'warning'), sectionKey: string, relatedItemIds: strings, description: string, repairInstruction: opt(string) }, ['code', 'severity', 'sectionKey', 'relatedItemIds', 'description'])), coverage: array(object({ targetId: string, status: enumeration('covered', 'missing', 'conflict') })), dimensionReviews: array(prdDimensionReview) });
 const turnAnalyzeV2 = object({ blocks: array(blockTypes.assistant_text, 6), proposals: array(proposal, 8), answerInterpretation: object({ directAnswer: opt(string), additionalFacts: strings, ambiguities: strings }, ['additionalFacts', 'ambiguities']), suggestedFollowUp: opt(object({ purpose: enumeration('clarify_current_answer', 'continue_catalog'), reason: string })) });
 const turnAnalyzeV4 = object({ assistantMessage: string, proposals: array(proposal, 8), answerInterpretation: object({ directAnswer: opt(string), additionalFacts: strings, ambiguities: strings }, ['additionalFacts', 'ambiguities']), followUp: opt(followUpDraft), recommendations: opt(recommendationCandidates) });
-const turnAnalyze = object({ assistantMessage: string, proposals: array(proposal, 8), answerInterpretation: object({ directAnswer: opt(string), additionalFacts: strings, ambiguities: strings }, ['additionalFacts', 'ambiguities']), followUp: opt(followUpDraft) });
+const turnAnalyzeV5 = object({ assistantMessage: string, proposals: array(proposal, 8), answerInterpretation: object({ directAnswer: opt(string), additionalFacts: strings, ambiguities: strings }, ['additionalFacts', 'ambiguities']), followUp: opt(followUpDraft) });
+const turnEvidenceV6 = object({ s: enumeration('message', 'file'), i: boundedString(36) });
+const turnProposalV6 = object({
+  o: enumeration('create', 'update', 'delete'), t: enumeration('design_item', 'acceptance_criterion'),
+  i: opt(boundedString(36)), b: opt(boundedString(180)), a: opt(boundedString(180)),
+  r: boundedString(100), e: array(turnEvidenceV6, 2), x: array(boundedString(36), 4),
+}, ['o', 't', 'r', 'e', 'x']);
+const turnFollowUpOptionV6 = object({
+  value: boundedString(40), label: boundedString(60), description: opt(boundedString(80)),
+  recommended: opt({ type: 'boolean' }), recommendationReason: opt(boundedString(60)),
+}, ['value', 'label']);
+const turnFollowUpV6 = object({
+  componentType: enumeration('single_choice', 'multiple_choice', 'free_text', 'number', 'range', 'rank', 'confirm'),
+  topic: boundedString(60), prompt: boundedString(160), help: opt(boundedString(100)),
+  options: opt(array(turnFollowUpOptionV6, 4)), required: { type: 'boolean' },
+  allowCustomAnswer: { type: 'boolean' }, allowUnknown: { type: 'boolean' }, allowDefer: { type: 'boolean' },
+  targetItemTypes: array(designItemTypes, 13),
+});
+const turnAnalyzeV6 = object({ m: boundedString(200), p: array(turnProposalV6, 8), f: opt(turnFollowUpV6) });
 const tasks = {
-  QUESTION_COMPOSE: composition, QUESTION_EXPLAIN: explanationPayload, TURN_ANALYZE: turnAnalyze, OPTION_RECOMMEND: optionRecommendV6,
+  QUESTION_COMPOSE: composition, QUESTION_EXPLAIN: explanationPayload, TURN_ANALYZE: turnAnalyzeV6, OPTION_RECOMMEND: optionRecommendV7,
   CONTEXT_COMPACT: object({ confirmedFacts: array(fact), explicitUnknowns: array(fact), rejectedDirections: array(fact), unresolvedQuestions: array(fact), sourceMessageIds: strings }),
   REQUIREMENTS_DRAFT: requirementsDraft, REQUIREMENTS_REVIEW: review, REQUIREMENTS_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }), SETUP_GUIDE_DRAFT: setupGuideDraft,
   PRD_DRAFT: prdDraft, PRD_REVIEW: prdReview, PRD_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }),
@@ -118,11 +137,17 @@ const taskEnvelope = task => {
   return object({
     task: { const: task }, promptVersion: string, schemaVersion: string,
     designRevision: { type: 'integer', minimum: 0 }, payload: tasks[task],
-    referencedItemIds: recommendationMetadata ? array(string, 0) : strings,
-    referencedSourceIds: recommendationMetadata ? array(string, 0) : strings,
-    warnings: array(object({ code: string, severity: enumeration('info', 'warning'), message: string }, ['code', 'severity', 'message']), recommendationMetadata ? 0 : undefined),
+    referencedItemIds: recommendationMetadata || task === 'TURN_ANALYZE' ? array(string, 0) : strings,
+    referencedSourceIds: recommendationMetadata || task === 'TURN_ANALYZE' ? array(string, 0) : strings,
+    warnings: array(object({ code: string, severity: enumeration('info', 'warning'), message: string }, ['code', 'severity', 'message']), recommendationMetadata || task === 'TURN_ANALYZE' ? 0 : undefined),
   });
 };
+const turnAnalyzeV5Envelope = object({
+  task: { const: 'TURN_ANALYZE' }, promptVersion: string, schemaVersion: { const: 'v5' },
+  designRevision: { type: 'integer', minimum: 0 }, payload: turnAnalyzeV5,
+  referencedItemIds: strings, referencedSourceIds: strings,
+  warnings: array(object({ code: string, severity: enumeration('info', 'warning'), message: string }, ['code', 'severity', 'message'])),
+});
 const projectContext = object({ projectId: string, title: string, designRevision: { type: 'integer', minimum: 0 } });
 const responseTo = object({ messageId: string, blockId: string, choiceId: opt(string), selectedValues: opt(strings), customText: opt({ type: 'string' }), numberValue: opt({ type: 'number' }), rangeValue: opt(object({ start: { type: 'number' }, end: { type: 'number' } })), rankedValues: opt(strings) }, ['messageId', 'blockId']);
 const userTurn = object({ id: string, kind: enumeration('text', 'choice', 'recommendation_choice'), text: string, responseTo: opt(responseTo) }, ['id', 'kind', 'text']);
@@ -130,8 +155,8 @@ const contextMessage = object({ id: string, role: enumeration('user', 'assistant
 const attributeMap = { type: 'object', additionalProperties: {} };
 const designItemContext = object({ id: string, type: enumeration('product_definition', 'problem', 'goal', 'user_role', 'scenario', 'scope', 'out_of_scope', 'requirement', 'constraint', 'technical_decision', 'success_metric', 'risk', 'open_issue'), key: opt(string), title: string, description: { type: 'string' }, attributes: attributeMap });
 const sourceExcerpt = object({ id: string, sourceId: string, text: { type: 'string' }, location: opt(string) }, ['id', 'sourceId', 'text']);
-const turnRequest = object({ logicalRequestId: string, attemptId: string, projectSummary: projectContext, userTurn, recentMessages: array(contextMessage), relevantDesignItems: array(designItemContext), sources: array(sourceExcerpt) });
-const turnResponse = object({ assistantMessage: string, proposals: array(proposal), followUp: opt(question), recommendationCandidates: opt(recommendationCandidatesBlock), referencedItemIds: strings, referencedSourceIds: strings });
+const turnRequest = object({ logicalRequestId: string, attemptId: string, generationJobId: opt(string), projectSummary: projectContext, userTurn, recentMessages: array(contextMessage), relevantDesignItems: array(designItemContext), sources: array(sourceExcerpt), requestLedgerEntries: opt(array({ type: 'object', additionalProperties: {} }, 10000)) });
+const turnResponse = object({ assistantMessage: string, proposals: array(proposal), followUp: opt(question), recommendationCandidates: opt(recommendationCandidatesBlock), requestLedgerEntries: opt(array({ type: 'object', additionalProperties: {} }, 10000)), referencedItemIds: strings, referencedSourceIds: strings });
 const documentsGenerateRequest = object({ documentType: enumeration('requirements', 'prd', 'setup_guide'), designRevision: { type: 'integer', minimum: 0 } });
 const requirementsDesignItem = object({
   id: string, type: enumeration('product_definition', 'problem', 'goal', 'user_role', 'scenario', 'scope', 'out_of_scope', 'requirement', 'constraint', 'technical_decision', 'success_metric', 'risk', 'open_issue'),
@@ -170,8 +195,8 @@ const envelope = union([taskEnvelope('REQUIREMENTS_DRAFT'), taskEnvelope('PRD_DR
 const setupGuideReadyRequest=object({confirmed:{type:'boolean'},projectId:string,designRevision:{type:'integer',minimum:0},document:{type:'object',additionalProperties:{}},sections:array({type:'object',additionalProperties:{}}),generationArtifact:string});
 export const schemas = Object.freeze({
   displayBlock, normalizedBlocks: array(displayBlock, 6),
-  tasks: Object.freeze(tasks), envelopes: Object.freeze(Object.fromEntries(Object.keys(tasks).map(task => [task, taskEnvelope(task)]))),
-  turnAnalyzeV2, turnAnalyzeV4, optionRecommendV1: recommendationPayload, optionRecommendV2, optionRecommendV3, optionRecommendV4, optionRecommendV5, optionRecommendV6,
+  tasks: Object.freeze(tasks), envelopes: Object.freeze({ ...Object.fromEntries(Object.keys(tasks).map(task => [task, taskEnvelope(task)])), TURN_ANALYZE_V5: turnAnalyzeV5Envelope }),
+  turnAnalyzeV2, turnAnalyzeV4, turnAnalyzeV5, turnAnalyzeV6, optionRecommendV1: recommendationPayload, optionRecommendV2, optionRecommendV3, optionRecommendV4, optionRecommendV5, optionRecommendV6, optionRecommendV7,
   http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, requirementsGenerateRequest, prdGenerateRequest, setupGuideGenerateRequest, setupGuideReadyRequest, requirementsReadyRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
 });
 export function validateSchema(schema, value) {

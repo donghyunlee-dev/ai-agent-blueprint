@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { Redis } from "@upstash/redis";
 
 const TRANSACTION_TTL_SECONDS = 300;
-const TURN_TRANSITIONS = Object.freeze({ queued: new Set(["running", "failed", "cancelled"]), running: new Set(["succeeded", "failed", "cancelled", "unknown"]) });
+const TURN_TRANSITIONS = Object.freeze({ queued: new Set(["running", "failed", "cancelled"]), running: new Set(["running", "succeeded", "failed", "cancelled", "unknown"]) });
 const RATE_LIMIT_SCRIPT = `
 local count = redis.call('INCR', KEYS[1])
 if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
@@ -134,7 +134,7 @@ export function createRedisAuthStore(redis) {
         local decoded = cjson.decode(current)
         if decoded.attemptId ~= ARGV[1] then return 0 end
         local allowed = (decoded.status == 'queued' and (ARGV[4] == 'running' or ARGV[4] == 'failed' or ARGV[4] == 'cancelled'))
-          or (decoded.status == 'running' and (ARGV[4] == 'succeeded' or ARGV[4] == 'failed' or ARGV[4] == 'cancelled' or ARGV[4] == 'unknown'))
+          or (decoded.status == 'running' and (ARGV[4] == 'running' or ARGV[4] == 'succeeded' or ARGV[4] == 'failed' or ARGV[4] == 'cancelled' or ARGV[4] == 'unknown'))
         if not allowed then return 0 end
         redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
         return 1

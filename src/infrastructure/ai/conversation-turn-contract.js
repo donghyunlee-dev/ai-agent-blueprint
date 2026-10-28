@@ -94,6 +94,64 @@ export function validateTurnAnalyzeV5(payload) {
   return { valid: errors.length === 0, errors };
 }
 
+function parseSnapshot(value) {
+  if (value === undefined) return undefined;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : value;
+  } catch {
+    return value;
+  }
+}
+
+export function normalizeTurnAnalyzeV6(payload) {
+  const proposals = Array.isArray(payload?.p) ? payload.p.map((proposal) => ({
+    operation: proposal?.o,
+    targetType: proposal?.t,
+    ...(proposal?.i ? { targetId: proposal.i } : {}),
+    ...(proposal?.b !== undefined ? { before: parseSnapshot(proposal.b) } : {}),
+    ...(proposal?.a !== undefined ? { after: parseSnapshot(proposal.a) } : {}),
+    rationale: proposal?.r,
+    evidence: Array.isArray(proposal?.e) ? proposal.e.map((reference) => ({ sourceType: reference?.s, sourceId: reference?.i })) : proposal?.e,
+    affectedItemIds: proposal?.x,
+  })) : payload?.p;
+  const followUp = payload?.f ? {
+    ...payload.f,
+  } : undefined;
+  return {
+    assistantMessage: payload?.m,
+    proposals,
+    ...(followUp ? { followUp } : {}),
+  };
+}
+
+export function validateTurnAnalyzeV6(payload) {
+  const errors = [];
+  const proposals = Array.isArray(payload?.proposals) ? payload.proposals : [];
+  if (!Array.isArray(payload?.proposals)) errors.push('proposals must be an array');
+  for (const [index, proposal] of proposals.entries()) {
+    for (const field of ['before', 'after']) {
+      const snapshot = proposal?.[field];
+      if (snapshot !== undefined && (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot))) errors.push(`proposal[${index}].${field} must be a JSON object`);
+    }
+  }
+  const followUp = payload?.followUp;
+  if (followUp) {
+    if (!componentModes[followUp.componentType]) errors.push('followUp.componentType is not allowlisted');
+    const mode = componentModes[followUp.componentType];
+    const needsOptions = ['single', 'multiple', 'rank', 'confirm'].includes(mode);
+    const options = Array.isArray(followUp.options) ? followUp.options : [];
+    if (needsOptions && options.length === 0) errors.push('followUp options are required for this component');
+    if (['free_text', 'number', 'range'].includes(followUp.componentType) && options.length > 0) errors.push('followUp options are not supported by this component');
+    if (new Set(options.map((option) => option?.value)).size !== options.length) errors.push('followUp option values must be unique');
+    if (options.some((option) => Object.hasOwn(option ?? {}, 'proposalDraft'))) errors.push('followUp options cannot include proposalDraft');
+    if (containsUnsafeCopy(followUp)) errors.push('followUp contains unsafe copy');
+  }
+  errors.push(...validateProposalPayloads(proposals).errors);
+  if (containsUnsafeCopy(payload)) errors.push('turn contains unsafe copy');
+  return { valid: errors.length === 0, errors };
+}
+
 export function validateOptionRecommendV2(payload, userTurn) {
   const errors = [];
   const recommendations = Array.isArray(payload?.recommendations) ? payload.recommendations : [];
@@ -190,6 +248,32 @@ export function validateOptionRecommendV4(payload, userTurn) {
   for (const [field, value, limit] of lengths) {
     if (typeof value === 'string' && [...value].length > limit) errors.push(`${field} exceeds the v4 concise-output limit`);
   }
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateOptionRecommendV7Batch(payload, userTurn, { expectedCount, priorTitles = [], allowFollowUp = false } = {}) {
+  const errors = [];
+  const recommendations = Array.isArray(payload?.r) ? payload.r : [];
+  const normalized = normalizeOptionRecommendV4(payload);
+  if (!explicitRecommendation(userTurn?.text)) errors.push('recommendations require an explicit user request');
+  if (!Number.isSafeInteger(expectedCount) || expectedCount < 1 || expectedCount > 4) errors.push('recommendation batch count is invalid');
+  if (recommendations.length === 0) {
+    if (allowFollowUp) errors.push(...validateOptionRecommendV2(normalized, userTurn).errors);
+    else errors.push(`recommendation batch must contain exactly ${expectedCount} candidates`);
+    return { valid: errors.length === 0, errors };
+  }
+  if (recommendations.length !== expectedCount) errors.push(`recommendation batch must contain exactly ${expectedCount} candidates`);
+  if (normalized.followUp) errors.push('recommendation batches cannot include a follow-up with candidates');
+  const titleKey = (title) => String(title ?? '').trim().toLocaleLowerCase();
+  const titles = [...priorTitles.map(titleKey), ...recommendations.map((candidate) => titleKey(candidate?.t))];
+  if (new Set(titles).size !== titles.length) errors.push('recommendation batch titles must be distinct');
+  if (recommendations.some((candidate) => !candidate?.e?.s || !candidate?.e?.i)) errors.push('each recommendation needs user-grounded evidence');
+  const drafts = normalized.recommendations.map((candidate) => ({
+    operation: 'create', targetType: 'design_item', after: candidate.designItem,
+    rationale: candidate.rationale, evidence: candidate.evidence, affectedItemIds: [],
+  }));
+  errors.push(...validateProposalPayloads(drafts).errors);
+  if (containsUnsafeCopy(payload)) errors.push('recommendations contain unsafe copy');
   return { valid: errors.length === 0, errors };
 }
 

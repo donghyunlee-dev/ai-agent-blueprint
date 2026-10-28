@@ -13,6 +13,6 @@ test('five project fixtures cover the required aggregate states without numeric 
  for(const project of [emptyProject,generationReadyProject,deferredGeneratableProject,pendingProposalProject,conflictBlockedProject]) assert.equal(Object.hasOwn(project.readiness,'score'),false);
 });
 test('response fixtures represent complete, partial, empty, and malformed model output', () => {
- for(const valid of [validTurnResponse,partialTurnResponse,emptyProposalTurnResponse]) assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE,valid).valid,true);
- for(const invalid of [extraFieldTurnResponse,unknownEnumTurnResponse]) assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE,invalid).valid,false);
+ for(const valid of [validTurnResponse,partialTurnResponse,emptyProposalTurnResponse]) assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE_V5,valid).valid,true);
+ for(const invalid of [extraFieldTurnResponse,unknownEnumTurnResponse]) assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE_V5,invalid).valid,false);
 });

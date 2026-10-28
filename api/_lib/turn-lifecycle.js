@@ -17,7 +17,7 @@ export function turnKey(ownerKey, projectId, logicalRequestId) {
 export function turnFingerprint(request) {
   const canonical = (value) => Array.isArray(value) ? value.map(canonical)
     : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])])) : value;
-  return hmac(JSON.stringify(canonical({ ...request, attemptId: undefined })));
+  return hmac(JSON.stringify(canonical({ ...request, attemptId: undefined, requestLedgerEntries: undefined })));
 }
 
 export async function claimTurn(store, key, fingerprint, attemptId, metadata = {}) {
@@ -38,9 +38,9 @@ export async function claimTurn(store, key, fingerprint, attemptId, metadata = {
   return { kind: 'processing' };
 }
 
-export async function finishTurn(store, key, { status, attemptId, result, errorCode }) {
+export async function finishTurn(store, key, { status, attemptId, result, errorCode, metadata }) {
   const current = await store.readTurn(key);
   if (!current || current.attemptId !== attemptId) return false;
-  const record = { ...current, status, attemptId, updatedAt: Date.now(), ...(result ? { result } : {}), ...(errorCode ? { errorCode } : {}) };
+  const record = { ...current, status, attemptId, updatedAt: Date.now(), ...(metadata ? { metadata: { ...current.metadata, ...metadata } } : {}), ...(result ? { result } : {}), ...(errorCode ? { errorCode } : {}) };
   return store.finishTurn(key, record, status === 'unknown' || status === 'succeeded' ? TURN_RESULT_TTL_SECONDS : TURN_CLAIM_TTL_SECONDS);
 }

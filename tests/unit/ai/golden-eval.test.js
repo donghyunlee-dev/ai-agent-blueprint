@@ -15,7 +15,7 @@ test('synthetic golden fixtures pass deterministic schema, reference, and forbid
 
 test('every task has a passing synthetic fixture without provider calls', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
-  assert.equal(fixtures.length, 55);
+  assert.equal(fixtures.length, 57);
   for (const fixture of fixtures) assert.deepEqual(evaluateGoldenFixture(fixture), { pass: true, errors: [] }, fixture.id);
 });
 
@@ -46,6 +46,14 @@ test('golden fixture set retains v4 recommendation fixtures for compatibility', 
   assert.equal(recommendationFixtures[0].response.r.length, 11);
   assert.equal(recommendationFixtures[1].response.r.length, 0);
   assert.ok(recommendationFixtures[1].response.f);
+});
+
+test('v7 golden fixtures cover one bounded recommendation batch with grounded evidence', async () => {
+  const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
+  const batch = fixtures.find(({ id }) => id === 'option-recommend-v7-first-four-candidate-batch');
+  assert.ok(batch);
+  assert.equal(batch.response.r.length, 4);
+  assert.deepEqual(evaluateGoldenFixture(batch), { pass: true, errors: [] });
 });
 
 test('v4 golden evaluator checks compact evidence IDs after response normalization', () => {

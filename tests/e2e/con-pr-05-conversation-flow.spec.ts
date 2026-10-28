@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
 import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-migration.js';
+import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricing.js';
 
 const identity={issuer:'https://accounts.google.com',subject:'con-pr-05-flow',email:'con-pr-05@example.test'};
 const projectId='con-pr-05-flow-project';
@@ -22,7 +23,7 @@ test.beforeEach(async({page})=>{
 
 test('contextual help continues as a freeform conversation without a fixed question catalog',async({page})=>{
   let submitted:any;
-  await page.route('**/api/blueprint/turn',async(route)=>{
+  await page.route(/\/api\/blueprint\/turn(?:\?.*)?$/,async(route)=>{
     submitted=route.request().postDataJSON();
     await route.fulfill({status:200,json:{assistantMessage:'제품 목표는 사용자가 해결하려는 문제와 기대하는 결과를 간단히 설명하는 내용입니다. 성공 기준은 그 결과가 실제로 나아졌는지 확인하는 방법입니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
   });
@@ -71,7 +72,9 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
         });
       }
       recommendationBlock.candidates.forEach((candidate)=>{candidate.evidence[0].sourceId=body.userTurn.id;candidate.proposalDraft.evidence[0].sourceId=body.userTurn.id;});
-      await route.fulfill({status:200,json:{assistantMessage:'확인한 조건에 맞는 추천 후보입니다.',proposals:[],recommendationCandidates:recommendationBlock,referencedItemIds:[],referencedSourceIds:[]}});
+      const model='gpt-5-mini';
+      const requestLedgerEntries=Array.from({length:3},(_,index)=>({id:`recommendation-ledger-${index+1}`,projectId, generationJobId:body.generationJobId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,task:'OPTION_RECOMMEND',promptVersion:'v7',schemaVersion:'v7',modelProfile:'DEFAULT',resolvedModel:model,reasoningEffort:'low',designRevision:body.projectSummary.designRevision,estimatedInputTokens:100+index,estimatedOutputTokens:2000,estimatedCostUsd:calculateEstimatedCost(model,{inputTokens:100+index,outputTokens:2000}),status:'succeeded',createdAt:new Date().toISOString(),finishedAt:new Date().toISOString()}));
+      await route.fulfill({status:200,json:{assistantMessage:'확인한 조건에 맞는 추천 후보입니다.',proposals:[],recommendationCandidates:recommendationBlock,requestLedgerEntries,referencedItemIds:[],referencedSourceIds:[]}});
       return;
     }
     const selected=body.userTurn.responseTo;
@@ -153,6 +156,12 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
   await page.getByRole('button',{name:'AI로 답변 분석'}).click();
   await expect(page.getByRole('heading',{name:'대화에서 확인한 조건에 맞는 추천'})).toBeVisible();
   await expect(page.getByRole('button',{name:'이 추천 선택'})).toHaveCount(11);
+  expect(requests[2].requestLedgerEntries,JSON.stringify(requests[2])).toEqual([]);
+  expect(requests[2].generationJobId).toEqual(expect.any(String));
+  await expect.poll(async()=>page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const record=await new Promise<any>((resolve,reject)=>{const req=db.transaction('projects').objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});db.close();return record.requestLedgerEntries??[];
+  },{databaseName:databaseNameForOwner(await deriveOwnerKey(identity)),projectId})).toHaveLength(3);
   await expect(page.locator('.recommendation-candidates li').first().getByText('회의실 예약 충돌을 줄이고 싶어요.',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'대화 근거 보기'}).first().click();
   await expect(page.locator(`#conversation-message-${recommendationSourceTurnId}`)).toBeFocused();
@@ -161,6 +170,7 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
   await page.getByRole('button',{name:'이 추천 선택'}).first().click();
   await expect(page.locator('.workspace-message-assistant').filter({hasText:'선택한 추천을 승인 대기 제안으로 보관했습니다.'})).toBeVisible();
   expect(requests[3].userTurn.text).not.toMatch(/예약|취소/);
+  expect(requests[3].requestLedgerEntries).toHaveLength(3);
   expect(requests[3].sources.some((source:any)=>source.sourceId===reservationSourceId&&source.text.includes(sourceQuote))).toBe(true);
   await expect(page.locator('.ai-turn-cancel')).toBeHidden();
   const ownerKey=await deriveOwnerKey(identity);
@@ -397,6 +407,7 @@ test('persists each turn before dispatch and before showing the assistant result
   expect(userPersistedAtDispatch).toEqual([true,true]);
   expect(requests[1].logicalRequestId).toBe(requests[0].logicalRequestId);
   expect(requests[1].userTurn.id).toBe(requests[0].userTurn.id);
+  expect(requests[1].generationJobId).toBe(requests[0].generationJobId);
   expect(requests[1].attemptId).not.toBe(requests[0].attemptId);
   await expect(draft).toHaveValue('');
   await expect(page.locator('.workspace-first-message').getByText('예약 충돌을 줄이고 싶어요.',{exact:true})).toHaveCount(1);
@@ -458,4 +469,166 @@ test('summary shows a non-actionable fallback when a source message is absent',a
   await expect(summary).toContainText('원본 대화를 찾을 수 없습니다.');
   await expect(summary.getByRole('button',{name:'대화 보기'})).toHaveCount(0);
   await page.screenshot({path:`.pr-artifacts/CON-PR-05/${testInfo.project.name}-missing-source-fallback.png`,scale:'css'});
+});
+
+test('applies a completed response when the user cancels before response handling finishes',async({page})=>{
+  await page.addInitScript(()=>{
+    const state=window as any;
+    let resolveJsonReady:()=>void=()=>{};
+    let releaseJson:()=>void=()=>{};
+    state.__turnJsonReady=new Promise<void>((resolve)=>{resolveJsonReady=resolve;});
+    const jsonGate=new Promise<void>((resolve)=>{releaseJson=resolve;});
+    state.__releaseTurnJson=()=>releaseJson();
+    const originalFetch=window.fetch.bind(window);
+    window.fetch=async(input,init)=>{
+      const response=await originalFetch(input,init);
+      const url=typeof input==='string'?input:input instanceof Request?input.url:input.url;
+      if(url.includes('/api/blueprint/turn')){
+        const originalJson=response.json.bind(response);
+        response.json=async()=>{const data=await originalJson();resolveJsonReady();await jsonGate;return data;};
+      }
+      return response;
+    };
+  });
+  let requestBody:any;
+  const ledgerId='cancelled-response-ledger';
+  await page.route('**/api/blueprint/turn',async(route)=>{
+    requestBody=route.request().postDataJSON();
+    const now=new Date().toISOString();
+    await route.fulfill({status:200,json:{
+      assistantMessage:'응답은 도착했지만 사용자가 표시 전에 취소했습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[],
+      requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v7',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'succeeded',createdAt:now,finishedAt:now}],
+    }});
+  });
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('요구사항을 정리해 주세요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  await page.evaluate(async()=>await (window as any).__turnJsonReady);
+  await page.getByRole('button',{name:'AI 요청 취소'}).click();
+  await page.evaluate(()=>(window as any).__releaseTurnJson());
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:'응답은 도착했지만 사용자가 표시 전에 취소했습니다.'})).toBeVisible();
+  const ownerKey=await deriveOwnerKey(identity);
+  const saved=await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const record=await new Promise<any>((resolve,reject)=>{const req=db.transaction('projects').objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});db.close();return record;
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(saved.requestLedgerEntries).toContainEqual(expect.objectContaining({id:ledgerId,generationJobId:requestBody.generationJobId,status:'succeeded'}));
+  expect(saved.generationJobs).toContainEqual(expect.objectContaining({logicalRequestId:requestBody.logicalRequestId,status:'succeeded'}));
+});
+
+test('persists the failed generation status with returned provider accounting',async({page})=>{
+  let requestBody:any;
+  const ledgerId='failed-response-ledger';
+  await page.route('**/api/blueprint/turn',async(route)=>{
+    requestBody=route.request().postDataJSON();
+    const now=new Date().toISOString();
+    await route.fulfill({status:502,json:{error:'AI_OUTPUT_INCOMPLETE',requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v7',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'failed',errorCode:'AI_OUTPUT_INCOMPLETE',createdAt:now,finishedAt:now}]}});
+  });
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('답변이 잘리는 경우를 확인합니다.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  await expect(page.getByRole('alert').filter({hasText:'AI_OUTPUT_INCOMPLETE'})).toBeVisible();
+  const ownerKey=await deriveOwnerKey(identity);
+  const saved=await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const record=await new Promise<any>((resolve,reject)=>{const req=db.transaction('projects').objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});db.close();return record;
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(saved.requestLedgerEntries).toContainEqual(expect.objectContaining({id:ledgerId,status:'failed'}));
+  expect(saved.generationJobs).toContainEqual(expect.objectContaining({logicalRequestId:requestBody.logicalRequestId,status:'failed',errorCode:'AI_OUTPUT_INCOMPLETE'}));
+});
+
+test('recovers server-side accounting after an aborted response body',async({page})=>{
+  await page.addInitScript(()=>{
+    const state=window as any;
+    let resolveResponseReady:()=>void=()=>{};
+    let releaseBody:()=>void=()=>{};
+    state.__turnResponseReady=new Promise<void>((resolve)=>{resolveResponseReady=resolve;});
+    const bodyGate=new Promise<void>((resolve)=>{releaseBody=resolve;});
+    state.__releaseTurnBody=()=>releaseBody();
+    const originalFetch=window.fetch.bind(window);
+    window.fetch=async(input,init)=>{
+      const response=await originalFetch(input,init);
+      const url=typeof input==='string'?input:input instanceof Request?input.url:input.url;
+      if(url.includes('/api/blueprint/turn')&&(init?.method??'GET')==='POST'){
+        const originalJson=response.json.bind(response);
+        response.json=async()=>{resolveResponseReady();await bodyGate;return originalJson();};
+      }
+      return response;
+    };
+  });
+  let requestBody:any;
+  const ledgerId='aborted-body-recovered-ledger';
+  const ledgerFor=(body:any)=>({id:ledgerId,projectId,generationJobId:body.generationJobId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,task:'TURN_ANALYZE',promptVersion:'v7',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'unknown',errorCode:'AI_REQUEST_UNKNOWN',createdAt:new Date().toISOString(),finishedAt:new Date().toISOString()});
+  await page.route(/\/api\/blueprint\/turn(?:\?.*)?$/,async(route)=>{
+    if(route.request().method()==='GET'){
+      await route.fulfill({status:200,json:{status:'unknown',errorCode:'AI_REQUEST_UNKNOWN',requestLedgerEntries:[ledgerFor(requestBody)]}});
+      return;
+    }
+    requestBody=route.request().postDataJSON();
+    await route.fulfill({status:200,json:{assistantMessage:'응답 body 확인 전 연결이 끊겼습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
+  });
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('응답 취소 뒤 요청 기록을 복구합니다.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  await page.evaluate(async()=>await (window as any).__turnResponseReady);
+  await page.getByRole('button',{name:'AI 요청 취소'}).click();
+  await page.evaluate(()=>(window as any).__releaseTurnBody());
+  await expect(page.locator('.ai-unknown-recovery')).toContainText('24시간 동안 잠급니다');
+  const ownerKey=await deriveOwnerKey(identity);
+  const saved=await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const record=await new Promise<any>((resolve,reject)=>{const req=db.transaction('projects').objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});db.close();return record;
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(saved.requestLedgerEntries).toContainEqual(expect.objectContaining({id:ledgerId,status:'unknown'}));
+  expect(saved.generationJobs).toContainEqual(expect.objectContaining({logicalRequestId:requestBody.logicalRequestId,status:'failed',errorCode:'AI_REQUEST_UNKNOWN'}));
+});
+
+test('applies a completed server result recovered after the response body is aborted',async({page})=>{
+  await page.addInitScript(()=>{
+    const state=window as any;
+    let resolveResponseReady:()=>void=()=>{};
+    let releaseBody:()=>void=()=>{};
+    state.__turnResponseReady=new Promise<void>((resolve)=>{resolveResponseReady=resolve;});
+    const bodyGate=new Promise<void>((resolve)=>{releaseBody=resolve;});
+    state.__releaseTurnBody=()=>releaseBody();
+    const originalFetch=window.fetch.bind(window);
+    window.fetch=async(input,init)=>{
+      const response=await originalFetch(input,init);
+      const url=typeof input==='string'?input:input instanceof Request?input.url:input.url;
+      if(url.includes('/api/blueprint/turn')&&(init?.method??'GET')==='POST'){
+        const originalJson=response.json.bind(response);
+        response.json=async()=>{resolveResponseReady();await bodyGate;return originalJson();};
+      }
+      return response;
+    };
+  });
+  let requestBody:any;
+  const assistantMessage='서버가 이미 분석을 마쳤습니다. 회의실 예약 정책과 승인 흐름을 이어서 정리하겠습니다.';
+  await page.route(/\/api\/blueprint\/turn(?:\?.*)?$/,async(route)=>{
+    if(route.request().method()==='GET'){
+      await route.fulfill({status:200,json:{status:'succeeded',result:{assistantMessage,proposals:[],referencedItemIds:[],referencedSourceIds:[]},requestLedgerEntries:[]}});
+      return;
+    }
+    requestBody=route.request().postDataJSON();
+    await route.fulfill({status:200,json:{assistantMessage:'연결이 끊겨 본문을 읽지 못했습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
+  });
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('회의실 예약 정책을 정리해 주세요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  await page.evaluate(async()=>await (window as any).__turnResponseReady);
+  await page.getByRole('button',{name:'AI 요청 취소'}).click();
+  await page.evaluate(()=>(window as any).__releaseTurnBody());
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:assistantMessage})).toBeVisible();
+  await expect(page.getByRole('alert').filter({hasText:'요청을 취소했습니다'})).toHaveCount(0);
+  const ownerKey=await deriveOwnerKey(identity);
+  const saved=await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const record=await new Promise<any>((resolve,reject)=>{const req=db.transaction('projects').objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});db.close();return record;
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(saved.messages).toContainEqual(expect.objectContaining({logicalRequestId:requestBody.logicalRequestId,content:assistantMessage}));
+  expect(saved.generationJobs).toContainEqual(expect.objectContaining({logicalRequestId:requestBody.logicalRequestId,status:'succeeded'}));
 });

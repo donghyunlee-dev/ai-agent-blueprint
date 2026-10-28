@@ -3,9 +3,10 @@ import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/ind
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 import { validateProposalTargets, validateReferences, validateResponseMetadata } from '../../src/infrastructure/ai/context-manifest.js';
 import { validateProposalPayloads } from '../../src/features/proposals/proposal-payload-validation.js';
-import { hasExplicitRecommendationRequest, normalizeOptionRecommendV4, questionFromFollowUp, validateOptionRecommendV4, validateTurnAnalyzeV5 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
+import { hasExplicitRecommendationRequest, normalizeOptionRecommendV4, normalizeTurnAnalyzeV6, questionFromFollowUp, validateOptionRecommendV4, validateOptionRecommendV7Batch, validateTurnAnalyzeV6 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 import { canRequestAi } from '../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricing.js';
+import { createLedgerEntry, projectAiUsageFromLedger } from '../../src/infrastructure/ai/request-ledger.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
 import { selectContext } from '../../src/infrastructure/ai/context-selector.js';
 import { getAuthStore } from '../_lib/auth-store.js';
@@ -38,7 +39,8 @@ function ownerNamespace(user) {
 
 function validIds(body) {
   return typeof body.logicalRequestId === 'string' && body.logicalRequestId.length >= 16 && body.logicalRequestId.length <= 200
-    && typeof body.attemptId === 'string' && body.attemptId.length >= 8 && body.attemptId.length <= 200;
+    && typeof body.attemptId === 'string' && body.attemptId.length >= 8 && body.attemptId.length <= 200
+    && (body.generationJobId === undefined || (typeof body.generationJobId === 'string' && body.generationJobId.length >= 16 && body.generationJobId.length <= 200));
 }
 
 function prepareTurn(body, definition, task = TASK) {
@@ -81,12 +83,13 @@ function prepareTurn(body, definition, task = TASK) {
     estimatedInputTokens: selected.estimatedInputTokens,
     maxOutputTokens: taskConfig.maxOutputTokens,
   };
-  const budget = canRequestAi({}, budgetRequest);
+  const projectUsage = projectAiUsageFromLedger(body.requestLedgerEntries ?? [], body.projectSummary.projectId);
+  const budget = canRequestAi(projectUsage, budgetRequest);
   return {
     promptInput,
     budget,
     metadata: {
-      generationJobId: crypto.randomUUID(),
+      generationJobId: body.generationJobId ?? crypto.randomUUID(),
       task,
       promptVersion: definition.promptVersion,
       schemaVersion: definition.schemaVersion,
@@ -248,6 +251,7 @@ function domainFailureCategories(errors) {
     [/after\.acceptanceCriteria must contain text-only criteria/, 'invalid_design_item_acceptance_criteria'],
     [/after\.text is required/, 'invalid_acceptance_criterion'],
     [/after contains unsupported field/, 'unsupported_proposal_field'],
+    [/proposal\[\d+\]\.(?:before|after) must be a JSON object/, 'invalid_proposal_snapshot'],
     [/cannot change a document section/, 'unsupported_document_section_proposal'],
   ];
   for (const error of errors) categories.add(patterns.find(([pattern]) => pattern.test(error))?.[1] ?? 'other_domain_failure');
@@ -267,8 +271,20 @@ function recommendationProposalDraft(candidate) {
   };
 }
 
-function resultFromOutput(output, selectedProposals, sourceExcerpts, { includeModelProposals = true } = {}) {
+function resultFromOutput(output, selectedProposals, sourceExcerpts, { includeModelProposals = true, requestLedgerEntries } = {}) {
   const payload = output.payload;
+  const modelProposals = includeModelProposals ? (payload.proposals ?? []).map((proposal) => ({
+    ...proposal,
+    evidence: (proposal.evidence ?? []).map((reference) => {
+      if (reference.sourceType !== 'file') return reference;
+      const excerpt = sourceExcerpts.find((item) => item.id === reference.sourceId);
+      return excerpt ? {
+        ...reference,
+        excerpt: excerpt.text,
+        ...(excerpt.location ? { location: excerpt.location } : {}),
+      } : reference;
+    }),
+  })) : [];
   const recommendationBlock = payload.recommendations?.length ? {
     type: 'recommendation_candidates',
     id: crypto.randomUUID(),
@@ -291,9 +307,10 @@ function resultFromOutput(output, selectedProposals, sourceExcerpts, { includeMo
   } : undefined;
   return {
     assistantMessage: payload.assistantMessage.trim(),
-    proposals: [...(includeModelProposals ? payload.proposals ?? [] : []), ...selectedProposals],
+    proposals: [...modelProposals, ...selectedProposals],
     ...(followUp ? { followUp: questionFromFollowUp(followUp, crypto.randomUUID()) } : {}),
     ...(recommendationBlock ? { recommendationCandidates: recommendationBlock } : {}),
+    ...(requestLedgerEntries?.length ? { requestLedgerEntries } : {}),
     referencedItemIds: output.referencedItemIds,
     referencedSourceIds: output.referencedSourceIds,
   };
@@ -308,11 +325,212 @@ function resultFromRecommendationSelection(selectedProposals) {
   };
 }
 
+function estimateTokens(value) {
+  const chars = [...JSON.stringify(value)];
+  const hangul = chars.filter((character) => /[\uac00-\ud7a3]/.test(character)).length;
+  return hangul + Math.ceil((chars.length - hangul) / 4);
+}
+
+function createTurnLedgerEntry({ body, task, definition, metadata, messages, status = 'started', errorCode }) {
+  const taskConfig = aiModelRegistry.tasks[task];
+  const modelProfile = taskConfig.profile;
+  const resolvedModel = aiModelRegistry.profiles[modelProfile].model;
+  const estimatedInputTokens = estimateTokens(messages);
+  const estimatedOutputTokens = taskConfig.maxOutputTokens;
+  const estimatedCostUsd = calculateEstimatedCost(resolvedModel, { inputTokens: estimatedInputTokens, outputTokens: estimatedOutputTokens });
+  const createdAt = new Date().toISOString();
+  return createLedgerEntry({
+    id: crypto.randomUUID(), projectId: body.projectSummary.projectId, generationJobId: metadata.generationJobId,
+    logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, task,
+    promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion,
+    modelProfile, resolvedModel, reasoningEffort: taskConfig.reasoning,
+    designRevision: body.projectSummary.designRevision, estimatedInputTokens, estimatedOutputTokens,
+    estimatedCostUsd, status, ...(errorCode ? { errorCode } : {}), createdAt,
+  });
+}
+
+function finalizedTurnLedgerEntry(entry, status, errorCode) {
+  return createLedgerEntry({ ...entry, status, ...(errorCode ? { errorCode } : {}), finishedAt: new Date().toISOString() });
+}
+
+async function analyzeRecommendationBatches({ body, definition, promptInput, manifest, targetContext, signal, requestStructuredOutput, initialUsage, generationJobId, recordLedgerEntries }) {
+  const batchSizes = [4, 4, 3];
+  const recommendations = [];
+  const requestLedgerEntries = [];
+  let projectUsage = { ...initialUsage };
+  let firstAssistantMessage;
+  let totalAttempts = 0;
+  const persistLedger = async () => {
+    if (!await recordLedgerEntries(requestLedgerEntries)) throw Object.assign(new Error('AUTH_STORE_UNAVAILABLE'), { code: 'AUTH_STORE_UNAVAILABLE' });
+  };
+  const finalizeLedgerEntry = async (entry, status, errorCode) => {
+    const updated = createLedgerEntry({ ...entry, status, ...(errorCode ? { errorCode } : {}), finishedAt: new Date().toISOString() });
+    requestLedgerEntries[requestLedgerEntries.findIndex((candidate) => candidate.id === entry.id)] = updated;
+    await persistLedger();
+    return updated;
+  };
+  for (let batchIndex = 0; batchIndex < batchSizes.length; batchIndex += 1) {
+    const expectedCount = batchSizes[batchIndex];
+    const batchContext = {
+      ...promptInput,
+      recommendationBatch: {
+        index: batchIndex + 1,
+        total: batchSizes.length,
+        expectedCount,
+        previousTitles: recommendations.map((candidate) => candidate.t),
+      },
+    };
+    let validationError;
+    let validationFailureStage;
+    let referenceValidationErrors = [];
+    let output;
+    for (let retry = 0; retry <= 1; retry += 1) {
+      totalAttempts += 1;
+      if (signal.aborted) return { cancelled: true, attempts: totalAttempts, requestLedgerEntries };
+      const messages = definition.buildInput(batchContext);
+      if (retry > 0 && validationFailureStage === 'schema') {
+        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: 지정된 JSON Schema를 따르고 이번 묶음에 필요한 후보만 완성된 값으로 반환하세요.` };
+      }
+      if (retry > 0 && validationFailureStage === 'domain') {
+        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: 이번 묶음은 recommendationBatch.expectedCount와 같은 수의 후보를 반환하고, previousTitles의 제목이나 접근을 반복하지 마세요. 근거는 전달된 사용자 메시지나 파일 발췌만 사용하세요.` };
+      }
+      if (retry > 0 && validationFailureStage === 'references') {
+        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: evidence는 userTurn 또는 user-authored recentMessages의 실제 ID, 또는 SOURCE_EXCERPTS_UNTRUSTED_JSON의 request-local excerpt ID만 사용하세요. ID를 만들지 마세요.` };
+      }
+      const taskConfig = aiModelRegistry.tasks[RECOMMENDATION_TASK];
+      const modelProfile = taskConfig.profile;
+      const resolvedModel = aiModelRegistry.profiles[modelProfile].model;
+      const estimatedInputTokens = estimateTokens(messages);
+      const estimatedOutputTokens = taskConfig.maxOutputTokens;
+      const budget = canRequestAi(projectUsage, { task: RECOMMENDATION_TASK, profile: modelProfile, resolvedModel, estimatedInputTokens, maxOutputTokens: estimatedOutputTokens });
+      if (!budget.allowed || budget.decision !== 'allow') {
+        return { budgetError: true, validationError: ['AI_BUDGET_EXCEEDED'], validationFailureStage: 'budget', requestLedgerEntries, attempts: totalAttempts - 1 };
+      }
+      const estimatedCostUsd = calculateEstimatedCost(resolvedModel, { inputTokens: estimatedInputTokens, outputTokens: estimatedOutputTokens });
+      const createdAt = new Date().toISOString();
+      const ledgerEntry = createLedgerEntry({
+        id: crypto.randomUUID(), projectId: body.projectSummary.projectId, generationJobId,
+        logicalRequestId: body.logicalRequestId, attemptId: body.attemptId,
+        task: RECOMMENDATION_TASK, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion,
+        modelProfile, resolvedModel, reasoningEffort: taskConfig.reasoning,
+        designRevision: body.projectSummary.designRevision, estimatedInputTokens, estimatedOutputTokens,
+        estimatedCostUsd, status: 'started', createdAt,
+      });
+      requestLedgerEntries.push(ledgerEntry);
+      projectUsage = {
+        foregroundCalls: projectUsage.foregroundCalls + 1,
+        finalCalls: projectUsage.finalCalls + (modelProfile === 'FINAL' ? 1 : 0),
+        inputTokens: projectUsage.inputTokens + estimatedInputTokens,
+        outputReasoningTokens: projectUsage.outputReasoningTokens + estimatedOutputTokens,
+        estimatedCostUsd: projectUsage.estimatedCostUsd + estimatedCostUsd,
+      };
+      await persistLedger();
+      try {
+        output = await requestStructuredOutput({
+          name: definition.promptId.replaceAll('.', '_').replace(/_v\d+$/, ''),
+          schema: schemas.envelopes[RECOMMENDATION_TASK], messages, signal,
+          model: aiModelRegistry.profiles.DEFAULT.model,
+          reasoningEffort: aiModelRegistry.tasks[RECOMMENDATION_TASK].reasoning,
+          maxOutputTokens: aiModelRegistry.tasks[RECOMMENDATION_TASK].maxOutputTokens,
+          timeoutMs: aiModelRegistry.tasks[RECOMMENDATION_TASK].timeoutMs,
+        });
+      } catch (error) {
+        const normalizedError = errorKind(error);
+        await finalizeLedgerEntry(ledgerEntry, normalizedError.unknown ? 'unknown' : 'failed', normalizedError.code);
+        if (error?.code === 'AI_INVALID_OUTPUT' || error instanceof SyntaxError) {
+          validationError = ['provider returned invalid JSON'];
+          validationFailureStage = 'provider_output';
+          if (retry === 1) return { validationError, validationFailureStage, requestLedgerEntries, attempts: totalAttempts };
+          continue;
+        }
+        error.requestLedgerEntries = requestLedgerEntries;
+        throw error;
+      }
+      if (signal.aborted) {
+        await finalizeLedgerEntry(ledgerEntry, 'cancelled', 'AI_CANCELLED');
+        return { cancelled: true, attempts: totalAttempts, requestLedgerEntries };
+      }
+      const schemaResult = validateSchema(schemas.envelopes[RECOMMENDATION_TASK], output);
+      const metadataResult = validateResponseMetadata(output, {
+        task: RECOMMENDATION_TASK, promptVersion: definition.promptVersion,
+        schemaVersion: definition.schemaVersion, designRevision: body.projectSummary.designRevision,
+      });
+      const normalized = normalizeOptionRecommendV4(output?.payload);
+      const candidateProposals = normalized.recommendations.map(recommendationProposalDraft);
+      const references = validateReferences({ proposals: candidateProposals }, manifest, targetContext);
+      referenceValidationErrors = references.errors;
+      const domain = validateOptionRecommendV7Batch(output?.payload, body.userTurn, {
+        expectedCount, priorTitles: recommendations.map((candidate) => candidate.t), allowFollowUp: batchIndex === 0,
+      });
+      const targets = validateProposalTargets(candidateProposals, targetContext);
+      const payloads = validateProposalPayloads(candidateProposals);
+      const failedValidation = [
+        ['schema', schemaResult], ['metadata', metadataResult], ['references', references],
+        ['domain', domain], ['proposal_targets', targets], ['proposal_payloads', payloads],
+      ].find(([, result]) => !result.valid);
+      validationError = failedValidation?.[1].errors ?? null;
+      validationFailureStage = failedValidation?.[0];
+      if (!validationError) {
+        await finalizeLedgerEntry(ledgerEntry, 'succeeded');
+        if (batchIndex === 0 && normalized.recommendations.length === 0) {
+          return { output: { ...output, payload: normalized }, attempts: totalAttempts, requestLedgerEntries };
+        }
+        firstAssistantMessage ??= output.payload.m;
+        recommendations.push(...output.payload.r);
+        break;
+      }
+      await finalizeLedgerEntry(ledgerEntry, 'failed', 'AI_INVALID_OUTPUT');
+      if (retry === 1) return { validationError, validationFailureStage, referenceValidationErrors, attempts: totalAttempts, requestLedgerEntries };
+    }
+    if (validationError) return { validationError, validationFailureStage, referenceValidationErrors, attempts: totalAttempts, requestLedgerEntries };
+  }
+  const mergedRawPayload = { m: firstAssistantMessage, r: recommendations };
+  const domain = validateOptionRecommendV4(mergedRawPayload, body.userTurn);
+  const normalizedPayload = normalizeOptionRecommendV4(mergedRawPayload);
+  const candidateProposals = normalizedPayload.recommendations.map(recommendationProposalDraft);
+  const references = validateReferences({ proposals: candidateProposals }, manifest, targetContext);
+  const targets = validateProposalTargets(candidateProposals, targetContext);
+  const payloads = validateProposalPayloads(candidateProposals);
+  const finalFailure = [['domain', domain], ['references', references], ['proposal_targets', targets], ['proposal_payloads', payloads]]
+    .find(([, result]) => !result.valid);
+  if (finalFailure) return { validationError: finalFailure[1].errors, validationFailureStage: finalFailure[0], referenceValidationErrors: references.errors, attempts: totalAttempts, requestLedgerEntries };
+  return {
+    output: {
+      task: RECOMMENDATION_TASK, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion,
+      designRevision: body.projectSummary.designRevision, payload: normalizedPayload,
+      referencedItemIds: [], referencedSourceIds: [], warnings: [],
+    },
+    attempts: totalAttempts,
+    requestLedgerEntries,
+  };
+}
+
 export default async function handler(req, res, deps = {}) {
   const session = requireSession(req);
   if (!session.ok) return fail(res, 401, 'AUTH_REQUIRED');
-  if (rejectCrossOriginMutation(req, res)) return;
+  if (req.method === 'GET') {
+    const { projectId, logicalRequestId } = req.query ?? {};
+    if (typeof projectId !== 'string' || projectId.length < 1 || projectId.length > 200
+      || typeof logicalRequestId !== 'string' || logicalRequestId.length < 16 || logicalRequestId.length > 200) {
+      return fail(res, 400, 'INVALID_REQUEST');
+    }
+    try {
+      const store = deps.store || getAuthStore();
+      const key = turnKey(ownerNamespace(session.user), projectId, logicalRequestId);
+      const turn = await store.readTurn(key);
+      if (!turn) return fail(res, 404, 'TURN_NOT_FOUND');
+      return sendJson(res, 200, {
+        status: turn.status,
+        ...(turn.errorCode ? { errorCode: turn.errorCode } : {}),
+        requestLedgerEntries: Array.isArray(turn.metadata?.requestLedgerEntries) ? turn.metadata.requestLedgerEntries : [],
+        ...(turn.status === 'succeeded' && turn.result ? { result: turn.result } : {}),
+      });
+    } catch {
+      return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
+    }
+  }
   if (req.method !== 'POST') return fail(res, 405, 'METHOD_NOT_ALLOWED');
+  if (rejectCrossOriginMutation(req, res)) return;
 
   const body = req.body;
   if (!validIds(body) || Buffer.byteLength(JSON.stringify(body || {}), 'utf8') > MAX_BODY_BYTES) return fail(res, 400, 'INVALID_REQUEST');
@@ -324,7 +542,12 @@ export default async function handler(req, res, deps = {}) {
   const includeModelProposals = task === TASK && body.userTurn.kind !== 'recommendation_choice';
 
   const definition = getPromptDefinition(task);
-  const prepared = prepareTurn(body, definition, task);
+  let prepared;
+  try { prepared = prepareTurn(body, definition, task); }
+  catch (error) {
+    if (String(error?.message ?? '').startsWith('AI_LEDGER_')) return fail(res, 400, 'AI_LEDGER_INVALID');
+    return fail(res, 503, 'AI_BUDGET_UNAVAILABLE');
+  }
   let store;
   let key;
   let attemptId = body.attemptId;
@@ -407,7 +630,31 @@ export default async function handler(req, res, deps = {}) {
     let validationFailureStage;
     let validationAttempts = 0;
     let referenceValidationErrors = [];
+    let requestLedgerEntries = [];
+    let budgetError = false;
+    const persistCurrentLedger = async () => {
+      const updated = await finishTurn(store, key, { status: 'running', attemptId, metadata: { requestLedgerEntries } });
+      if (!updated) throw Object.assign(new Error('AUTH_STORE_UNAVAILABLE'), { code: 'AUTH_STORE_UNAVAILABLE' });
+      return true;
+    };
     try {
+      if (task === RECOMMENDATION_TASK) {
+        const initialUsage = projectAiUsageFromLedger(body.requestLedgerEntries ?? [], body.projectSummary.projectId);
+        const batched = await analyzeRecommendationBatches({
+          body, definition, promptInput, manifest, targetContext, signal: cancellation.signal,
+          requestStructuredOutput: deps.requestStructuredOutput || requestStructuredOutput,
+          initialUsage, generationJobId: prepared.metadata.generationJobId,
+          recordLedgerEntries: persistCurrentLedger,
+        });
+        output = batched.output;
+        validationError = batched.validationError ?? null;
+        validationFailureStage = batched.validationFailureStage;
+        referenceValidationErrors = batched.referenceValidationErrors ?? [];
+        validationAttempts = batched.attempts ?? 0;
+        requestLedgerEntries = batched.requestLedgerEntries ?? [];
+        budgetError = batched.budgetError === true;
+        if (batched.cancelled || cancellation.signal.aborted) return finishCancellation();
+      } else {
       for (let retry = 0; retry <= 1; retry += 1) {
         validationAttempts = retry + 1;
         if (cancellation.signal.aborted) return finishCancellation();
@@ -439,17 +686,52 @@ export default async function handler(req, res, deps = {}) {
                 content: `${messages[1].content}\nVALIDATION RETRY: For every design_item, type must be one of product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue. acceptanceCriteria must be omitted or be an array of non-empty {text: string} objects, for example [{"text":"예약 충돌이 차단된다."}]. Do not use a type such as feature and do not return acceptance criteria as strings.`,
               };
             }
+            if (failures.includes('invalid_proposal_snapshot')) {
+              messages[1] = {
+                ...messages[1],
+                content: `${messages[1].content}\nVALIDATION RETRY: before/after 값은 유효한 JSON object를 문자열로 직렬화해 반환하세요. 따옴표와 괄호를 완전히 닫고, 문자열 길이는 180자 이내로 유지하세요. 유효한 object를 만들 수 없으면 해당 before/after 필드를 생략하세요.`,
+              };
+            }
           }
-          output = await (deps.requestStructuredOutput || requestStructuredOutput)({
-            name: definition.promptId.replaceAll('.', '_').replace(/_v\d+$/, ''),
-            schema: schemas.envelopes[task],
-            messages,
-            signal: cancellation.signal,
-            model: prepared.metadata.resolvedModel,
-            reasoningEffort: aiModelRegistry.tasks[task].reasoning,
-            maxOutputTokens: aiModelRegistry.tasks[task].maxOutputTokens,
-            timeoutMs: aiModelRegistry.tasks[task].timeoutMs,
+          const activeUsage = projectAiUsageFromLedger([...(body.requestLedgerEntries ?? []), ...requestLedgerEntries], body.projectSummary.projectId);
+          const taskConfig = aiModelRegistry.tasks[task];
+          const budget = canRequestAi(activeUsage, {
+            task, profile: taskConfig.profile, resolvedModel: prepared.metadata.resolvedModel,
+            estimatedInputTokens: estimateTokens(messages), maxOutputTokens: taskConfig.maxOutputTokens,
           });
+          if (!budget.allowed || budget.decision !== 'allow') {
+            validationError = ['AI_BUDGET_EXCEEDED'];
+            validationFailureStage = 'budget';
+            budgetError = true;
+            break;
+          }
+          const ledgerEntry = createTurnLedgerEntry({ body, task, definition, metadata: prepared.metadata, messages });
+          requestLedgerEntries.push(ledgerEntry);
+          await persistCurrentLedger();
+          try {
+            output = await (deps.requestStructuredOutput || requestStructuredOutput)({
+              name: definition.promptId.replaceAll('.', '_').replace(/_v\d+$/, ''),
+              schema: schemas.envelopes[task],
+              messages,
+              signal: cancellation.signal,
+              model: prepared.metadata.resolvedModel,
+              reasoningEffort: taskConfig.reasoning,
+              maxOutputTokens: taskConfig.maxOutputTokens,
+              timeoutMs: taskConfig.timeoutMs,
+            });
+          } catch (error) {
+            const providerError = errorKind(error);
+            const failedEntry = finalizedTurnLedgerEntry(ledgerEntry, providerError.unknown ? 'unknown' : 'failed', providerError.code);
+            requestLedgerEntries[requestLedgerEntries.findIndex((entry) => entry.id === ledgerEntry.id)] = failedEntry;
+            await persistCurrentLedger();
+            if (error?.code === 'AI_INVALID_OUTPUT' || error instanceof SyntaxError) {
+              validationError = ['provider returned invalid JSON'];
+              validationFailureStage = 'provider_output';
+              if (retry === 0) continue;
+            }
+            error.requestLedgerEntries = requestLedgerEntries;
+            throw error;
+          }
         } catch (error) {
           if (error?.code === 'AI_INVALID_OUTPUT' || error instanceof SyntaxError) {
             validationError = ['provider returned invalid JSON'];
@@ -461,11 +743,11 @@ export default async function handler(req, res, deps = {}) {
         if (cancellation.signal.aborted) return finishCancellation();
         const normalizedOutput = task === RECOMMENDATION_TASK
           ? { ...output, payload: normalizeOptionRecommendV4(output?.payload) }
-          : output;
+          : { ...output, payload: normalizeTurnAnalyzeV6(output?.payload) };
         const validatedOutput = task === TASK && !includeModelProposals
           ? { ...normalizedOutput, payload: { ...normalizedOutput?.payload, proposals: [] } }
           : normalizedOutput;
-        const schemaResult = validateSchema(schemas.envelopes[task], task === RECOMMENDATION_TASK ? output : validatedOutput);
+        const schemaResult = validateSchema(schemas.envelopes[task], output);
         const metadataResult = validateResponseMetadata(output, {
           task, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion,
           designRevision: body.projectSummary.designRevision,
@@ -474,7 +756,7 @@ export default async function handler(req, res, deps = {}) {
         referenceValidationErrors = references.errors;
         const domainResult = task === RECOMMENDATION_TASK
           ? validateOptionRecommendV4(output?.payload, body.userTurn)
-          : validateTurnAnalyzeV5(validatedOutput.payload);
+          : validateTurnAnalyzeV6(validatedOutput.payload);
         const taskProposals = task === RECOMMENDATION_TASK
           ? (Array.isArray(validatedOutput.payload?.recommendations) ? validatedOutput.payload.recommendations : []).map(recommendationProposalDraft)
           : proposalsInChoices(validatedOutput.payload);
@@ -490,12 +772,23 @@ export default async function handler(req, res, deps = {}) {
         ].find(([, result]) => !result.valid);
         validationError = failedValidation?.[1].errors ?? null;
         validationFailureStage = failedValidation?.[0] ?? undefined;
+        const currentLedgerEntry = requestLedgerEntries.at(-1);
+        if (currentLedgerEntry?.status === 'started') {
+          const finalized = finalizedTurnLedgerEntry(currentLedgerEntry, validationError ? 'failed' : 'succeeded', validationError ? 'AI_INVALID_OUTPUT' : undefined);
+          requestLedgerEntries[requestLedgerEntries.length - 1] = finalized;
+          await persistCurrentLedger();
+        }
         if (!validationError) {
           output = normalizedOutput;
           break;
         }
       }
+      }
       if (validationError) {
+        if (budgetError) {
+          if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_BUDGET_EXCEEDED' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
+          return fail(res, 429, 'AI_BUDGET_EXCEEDED', { requestLedgerEntries });
+        }
         const failureDetails = validationFailureStage === 'references'
           ? { referenceFailures: referenceFailureCategories(referenceValidationErrors) }
           : validationFailureStage === 'domain'
@@ -504,7 +797,7 @@ export default async function handler(req, res, deps = {}) {
         console.error('TURN_RESPONSE_VALIDATION_FAILED', { stage: validationFailureStage, attempts: validationAttempts, ...failureDetails });
         if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
         await circuitSuccess(store, circuitKey);
-        return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
+        return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true, ...(requestLedgerEntries.length ? { requestLedgerEntries } : {}) });
       }
     } catch (error) {
       if (cancellation.signal.aborted || error?.name === 'AbortError') {
@@ -521,7 +814,7 @@ export default async function handler(req, res, deps = {}) {
         else await circuitSuccess(store, circuitKey);
         if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: normalized.code })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
       }
-      return fail(res, normalized.status, normalized.code, normalized.retryable ? { retryable: true } : {});
+      return fail(res, normalized.status, normalized.code, { ...(normalized.retryable ? { retryable: true } : {}), ...(Array.isArray(error?.requestLedgerEntries) && error.requestLedgerEntries.length ? { requestLedgerEntries: error.requestLedgerEntries } : {}) });
     } finally {
       cancellation.cleanup();
     }
@@ -534,7 +827,7 @@ export default async function handler(req, res, deps = {}) {
       if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
       return fail(res, 502, 'AI_INVALID_OUTPUT', { retryable: true });
     }
-    const result = resultFromOutput(output, selected.proposals, body.sources, { includeModelProposals });
+    const result = resultFromOutput(output, selected.proposals, body.sources, { includeModelProposals, requestLedgerEntries });
     const responseValidation = validateSchema(schemas.http.turnResponse, result);
     if (!responseValidation.valid || !result.assistantMessage) {
       if (process.env.DEBUG_CON_PR05) console.error('TURN_HTTP_RESPONSE_SCHEMA_INVALID');

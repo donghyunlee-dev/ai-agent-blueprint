@@ -1,5 +1,20 @@
 # CON-PR-05 validation results
 
+## Output reliability and request recovery follow-up — 2026-10-28
+
+This local candidate is based on merged PR #93 (`b2ff708c83db37c82462098c02e5d5b5a2eeef46`). `TURN_ANALYZE` v7/schema v6 keeps compact bounded turn output. `OPTION_RECOMMEND` v7/schema v7 now generates grounded recommendations in 4/4/3 batches; the server validates and combines all eleven before displaying the block and records each provider dispatch against the same UI generation job ID. The authenticated turn status read returns only owner-scoped status, request ledger entries, and a succeeded result, allowing the client to recover accounting after an aborted response body. Failed and cancelled generation states are persisted with the ledger.
+
+| Command | Result |
+| --- | --- |
+| `npm run test:unit` | 428 passed, 0 failed |
+| `npm run test:golden` | 57/57 synthetic fixtures passed; no provider calls |
+| `npm run build` | Passed; existing >500 kB chunk-size warning |
+| `npm run check:bundle-secrets` | No configured secrets found in built assets |
+| `git diff --check` | Passed |
+| Desktop/mobile conversation, Requirements generation/ready, and same-revision PRD Playwright | 26 passed on desktop 1440×900 and mobile 390×844 |
+
+The browser suite used deterministic API/session fixtures and excluded Google OAuth. It ran against this worktree's build on `http://127.0.0.1:4178`; the shared default port 4173 belongs to another worktree and was deliberately left untouched. Tests cover request ledger propagation, retry fingerprint stability when provider accounting changes, failed-state persistence, owner-scoped recovery after body abort, applying successful results recovered after cancellation, 11 recommendation candidates, explicit proposal approval, Requirements Markdown download, and same-revision PRD draft persistence. The current local code was compared with `docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png` at desktop and mobile screenshots from the same test build. This is local browser evidence only: the candidate has not yet been deployed to Preview, and live provider completion and the full real-provider Requirements-ready/download → PRD flow remain unverified.
+
 ## PR #92 Production validation and v6 output-bound follow-up — 2026-10-28
 
 PR #92 merged to `main` as `7ef38e96953306657699d7523733e9964a4db1d3` and deployed as Production deployment `dpl_4uUyqpQ2hGyPpJMyH6J2JRpJcyTZ`.

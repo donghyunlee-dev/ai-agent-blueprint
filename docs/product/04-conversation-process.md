@@ -62,7 +62,7 @@ AI는 자체 제안을 승인하거나, 사용자 의도를 대신 확정하거�
 
 ## 대화형 선택과 추천
 
-현재 runtime과 과거 개발 기록은 다음 질문 및 선택지를 고정 `QUESTION_CATALOG`에서 가져오는 방식이다. 이것은 현행 구현 사실이며, 사용자가 승인한 목표 동작은 아니다. 후속 구현에서는 고정 질문·추천 콘텐츠나 미리 정해진 순서를 주 대화의 source of truth로 사용하지 않는다. Agent는 확정 설계, 대화와 허용된 자료에서 빠진 결정을 판단해 질문과 선택지 내용을 해당 turn에 맞게 생성한다. 이미 제공한 정보는 다시 묻지 않고, 질문이 불필요하면 질문 없이 응답을 마친다.
+현재 대화 composer는 자유 입력 turn을 `TURN_ANALYZE`로 보내고, 모델 응답의 맥락형 `followUp`만 선택 카드로 표시한다. `QUESTION_CATALOG`와 `answers`는 이전 저장 데이터·QuestionCard 호환 표시를 위해 남아 있으며, 새 대화의 질문 source나 순서를 결정하지 않는다. Agent는 확정 설계, 대화와 허용된 자료에서 빠진 결정을 판단해 질문과 선택지 내용을 해당 turn에 맞게 생성한다. 이미 제공한 정보는 다시 묻지 않고, 질문이 불필요하면 질문 없이 응답을 마친다.
 
 선택이 유용하면 앱은 strict schema로 검증한 component type만 allowlist renderer에서 선택한다. 허용 타입은 `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm`이다. 모델은 선택할 component type과 현재 맥락에서 생성한 label/help/options/value를 데이터로 제안할 수 있지만, HTML, React, 코드, 스타일, 임의 renderer 또는 서버 식별자를 보낼 수 없다. 앱은 option 개수·고유 안정값·필수 입력 규칙·source reference를 검증하고, 잘못된 payload는 fail closed한다. 렌더 registry의 타입은 UI 구성요소 선택의 안전 경계이며 질문·추천 내용을 고정 catalog에서 가져온다는 뜻이 아니다. 사용자는 항상 자유 입력으로 답을 보완할 수 있다.
 

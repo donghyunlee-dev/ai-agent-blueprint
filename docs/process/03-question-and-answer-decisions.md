@@ -59,8 +59,8 @@ Provider가 전달하는 ID는 제안 ID로 사용하지 않는다. 응용 프�
 
 ## 질문·선택 카드 규칙
 
-- 현행 runtime은 fixed `QUESTION_CATALOG`에서 다음 질문을 고르고 `QUESTION_COMPOSE`가 문구를 다듬는다. 이것이 기존 구현의 실제 동작이며, 목표 계약과 다르다는 점을 명시한다.
-- 목표 구현은 대화·확정 설계·허용된 자료에서 다음 질문과 option 내용을 동적으로 만든다. catalog의 고정 콘텐츠·질문 순서·항목 소진은 대화 완료 조건이나 질문 선택 source가 아니다.
+- 새 자유 대화 runtime은 `TURN_ANALYZE`가 현재 대화·확정 설계·허용된 자료에 맞는 `followUp`을 선택적으로 만든다. `QUESTION_CATALOG`와 `QUESTION_COMPOSE`는 이전 catalog형 흐름 및 저장 answer의 호환 표시를 위해 남아 있으며 새 대화의 질문 source가 아니다.
+- 다음 질문과 option 내용은 현재 turn에 맞춰 동적으로 만든다. catalog의 고정 콘텐츠·질문 순서·항목 소진은 대화 완료 조건이나 질문 선택 source가 아니다.
 - 애플리케이션은 `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm`의 allowlisted component type registry와 각 strict schema로 렌더링한다. 모델은 이 타입 중 하나와 현재 turn에 근거한 표시 데이터만 제안하며 HTML/React/code, 임의 component type, URL/action route, ID 또는 저장 상태를 생성하지 않는다.
 - 서버는 payload type, 필수/선택 필드, option 수·고유 value, component별 값 범위, 입력 보완 정책과 evidence reference를 검증한다. unknown field/type, 잘못된 value 또는 근거 불일치는 fail closed하고 응답을 적용하지 않는다.
 - 선택 제출은 pending proposal을 만든다. 사용자가 기존 proposal review transaction에서 승인하기 전까지 confirmed design과 readiness는 변하지 않는다.
