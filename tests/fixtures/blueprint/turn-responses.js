@@ -1,5 +1,5 @@
 export const validTurnResponse = {
-  task:'TURN_ANALYZE', promptVersion:'v4', schemaVersion:'v4', designRevision:1,
+  task:'TURN_ANALYZE', promptVersion:'v5', schemaVersion:'v4', designRevision:1,
   payload:{ assistantMessage:'말씀하신 내용을 확인했습니다.', proposals:[], answerInterpretation:{directAnswer:'온라인 서비스',additionalFacts:[],ambiguities:[]} },
   referencedItemIds:[], referencedSourceIds:[], warnings:[],
 };

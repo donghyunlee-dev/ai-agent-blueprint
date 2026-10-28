@@ -4,9 +4,9 @@
 
 이 문서는 각 `AiTaskType`이 사용할 실제 prompt template의 역할, 변수, 금지 규칙과 기본 문구를 정의한다. 구현자는 의미를 임의 변경하지 않고 versioned Prompt Registry로 옮긴다. JSON Schema는 [프롬프트·응답 계약](13-prompt-and-response-contracts.md)을 따른다.
 
-> **현재 대화 runtime:** `TURN_ANALYZE`는 prompt/schema `turn.analyze.v4` (`v4`)를 사용하며 자유 turn을 현재 context에 근거해 분석한다. `turn.analyze.v1`~`v3`는 registry에 남아 있는 이전 schema shape이고, 새 turn에는 v4가 선택된다. `QUESTION_COMPOSE`와 `OPTION_RECOMMEND`는 별도 registry task다. 자유 대화의 질문 순서와 recommendation 후보는 이들 task 또는 catalog가 결정하지 않는다.
+> **현재 대화 runtime:** `TURN_ANALYZE`는 prompt v5와 schema `turn.analyze.v4` (schema v4)를 사용해 자유 turn을 현재 context에 근거해 분석한다. Schema v1~v3는 registry에 남아 있는 이전 response shape이고 새 turn에는 사용되지 않는다. `QUESTION_COMPOSE`와 `OPTION_RECOMMEND`는 별도 registry task다. 자유 대화의 질문 순서와 recommendation 후보는 이들 task 또는 catalog가 결정하지 않는다.
 
-v4 template는 자유 입력, 대화 context, confirmed design, 그리고 허용된 source excerpt에 근거해 자연스러운 응답과 pending proposal을 만든다. 필요한 경우에만 질문 하나를 만들며, 질문과 선택지 내용은 현재 context에서 생성한다. 선택 UI renderer type은 strict allowlist를 사용한다. 명시적 recommendation 요청에 근거가 충분할 때는 정확히 11개의 후보를 반환하고, 근거가 부족하면 후보를 임의로 채우지 않고 필요한 맥락을 묻는다. 대화 proposal target은 `design_item`과 `acceptance_criterion`으로 제한하고 `document_section` 변경은 별도 문서 작업에서만 처리한다. `design_item` create proposal은 유효한 `after.type`, 비어 있지 않은 `after.title`과 `after.description`을 포함하고 허용된 설계 필드만 사용한다. `priority`는 `must`/`should`/`could`/`wont`, `confidence`는 0~1, `attributes`는 object, `relatedItemIds`는 현재 context ID 배열, `acceptanceCriteria`는 `{text}` 배열이며 `parentId`는 현재 context의 item ID다. `acceptance_criterion`의 `after`는 비어 있지 않은 `text`만 포함한다. `summary`와 `status`는 `after`에 포함하지 않는다. Prompt/schema는 임의 markup/code/component/action/ID를 금지한다. model profile과 budget은 변경하지 않는다.
+v5 prompt는 schema `turn.analyze.v4`를 사용한다. 자유 입력, 대화 context, confirmed design, 그리고 허용된 source excerpt에 근거해 자연스러운 응답과 pending proposal을 만든다. 필요한 경우에만 질문 하나를 만들며, 질문과 선택지 내용은 현재 context에서 생성한다. 선택 UI renderer type은 strict allowlist를 사용한다. 명시적 recommendation 요청에 근거가 충분할 때는 정확히 11개의 후보를 반환하고, 근거가 부족하면 후보를 임의로 채우지 않고 필요한 맥락을 묻는다. 대화 proposal target은 `design_item`과 `acceptance_criterion`으로 제한하고 `document_section` 변경은 별도 문서 작업에서만 처리한다. `design_item` create proposal은 유효한 `after.type`, 비어 있지 않은 `after.title`과 `after.description`을 포함하고 허용된 설계 필드만 사용한다. `priority`는 `must`/`should`/`could`/`wont`, `confidence`는 0~1, `attributes`는 object, `relatedItemIds`는 현재 context ID 배열, `acceptanceCriteria`는 `{text}` 배열이며 `parentId`는 현재 context의 item ID다. `acceptance_criterion`의 `after`는 비어 있지 않은 `text`만 포함한다. `summary`와 `status`는 `after`에 포함하지 않는다. Prompt/schema는 임의 markup/code/component/action/ID를 금지한다. model profile과 budget은 변경하지 않는다.
 
 ## 공통 작성 규칙
 
@@ -112,7 +112,7 @@ USER_INPUT:
 - returnToQuestionId는 현재 questionId와 같아야 한다.
 ```
 
-## `TURN_ANALYZE` — `turn.analyze.v4` (`v4`)
+## `TURN_ANALYZE` — prompt `v5`, schema `turn.analyze.v4` (`v4`)
 
 사용자의 최신 자유 turn, 대화 context, confirmed design, 허용된 자료 발췌에서 자연스러운 대화 응답과 설계 변경 후보를 추출한다. 일반 turn을 질문 catalog 순서에 종속시키지 않는다.
 
@@ -132,6 +132,7 @@ Provider payload의 필드는 다음과 같다:
 - message/source/evidence 참조는 전달된 request context 안의 값만 사용한다. 파일 근거는 전달된 request-local excerpt ID만 인용하고, excerpt는 제공된 연속 문구를 그대로 복사한다.
 - `referencedItemIds`, `affectedItemIds`, `relatedItemIds`, `parentId`, `targetId`는 실제 `confirmedDesignItems`에 제공된 ID만 사용한다. 새 항목의 ID를 추측하거나 같은 응답에서 생성될 다른 proposal을 참조하지 않는다. 새 design item에 연결할 기존 항목이 없으면 `affectedItemIds`/`relatedItemIds`는 빈 배열로, `parentId`는 생략한다.
 - `design_item`의 `after.type`은 `product_definition`, `problem`, `goal`, `user_role`, `scenario`, `scope`, `out_of_scope`, `requirement`, `constraint`, `technical_decision`, `success_metric`, `risk`, `open_issue` 중 하나다. `acceptanceCriteria`는 생략하거나 비어 있지 않은 `text`만 있는 `{text}` 객체 배열로 반환한다. 문자열 배열은 허용하지 않는다.
+- `TURN_ANALYZE` evidence의 `sourceType`은 `message` 또는 `file`만 허용한다. `message`는 현재 `userTurn` 또는 `user` role의 `recentMessages`에 실제로 있는 ID를, `file`은 현재 요청의 `SOURCE_EXCERPTS_UNTRUSTED_JSON`에 있는 request-local ID를 사용한다. `user_edit`와 `agent_inference`는 conversation turn evidence로 반환하지 않는다.
 - 사용자가 제공하지 않은 내용을 채우거나 후보를 임의로 padding하지 않는다. proposal, 선택, 추천을 confirmed로 표시하지 않는다.
 - 다음 질문 순서, readiness, 승인, persisted state, process state, Requirements/PRD 상태 또는 document action을 결정하지 않는다.
 

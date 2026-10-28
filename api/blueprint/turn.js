@@ -393,6 +393,12 @@ export default async function handler(req, res, deps = {}) {
               content: `${messages[1].content}\nVALIDATION RETRY: The previous response included an item ID that was not provided in TYPED_CONTEXT_JSON. Use only IDs from confirmedDesignItems. For new design items, leave affectedItemIds and relatedItemIds empty unless they contain existing context IDs, omit parentId unless it is an existing context ID, and do not reference IDs from newly proposed items.`,
             };
           }
+          if (retry > 0 && validationFailureStage === 'references' && referenceFailureCategories(referenceValidationErrors).some((category) => ['unknown_source_reference', 'non_user_message_evidence', 'non_request_excerpt_file_evidence', 'unsupported_evidence_type'].includes(category))) {
+            messages[1] = {
+              ...messages[1],
+              content: `${messages[1].content}\nVALIDATION RETRY: Evidence sourceType must be message or file. For message evidence, use only IDs from userTurn or user-authored recentMessages. For file evidence, use only request-local excerpt IDs from SOURCE_EXCERPTS_UNTRUSTED_JSON. Never use user_edit or agent_inference as evidence sourceType, and do not invent source IDs.`,
+            };
+          }
           if (retry > 0 && validationFailureStage === 'domain') {
             const failures = domainFailureCategories(validationError);
             if (failures.includes('invalid_design_item_type') || failures.includes('invalid_design_item_acceptance_criteria')) {

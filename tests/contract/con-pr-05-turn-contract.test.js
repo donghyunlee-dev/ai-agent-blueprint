@@ -5,7 +5,7 @@ import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/ind
 import { validateTurnAnalyzeV4 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 
 const envelope = (payload) => ({
-  task: 'TURN_ANALYZE', promptVersion: 'v4', schemaVersion: 'v4', designRevision: 2,
+  task: 'TURN_ANALYZE', promptVersion: 'v5', schemaVersion: 'v4', designRevision: 2,
   payload, referencedItemIds: [], referencedSourceIds: [], warnings: [],
 });
 
