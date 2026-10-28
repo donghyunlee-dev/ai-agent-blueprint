@@ -218,6 +218,33 @@ function referenceFailureCategories(errors) {
   return [...categories].sort();
 }
 
+function domainFailureCategories(errors) {
+  const categories = new Set();
+  const patterns = [
+    [/recommendations require an explicit user request/, 'unsolicited_recommendations'],
+    [/recommendations must contain exactly eleven candidates/, 'recommendation_count'],
+    [/recommendations must be distinct/, 'duplicate_recommendation_titles'],
+    [/each recommendation needs user-grounded evidence/, 'recommendation_evidence_missing'],
+    [/insufficient recommendation context must ask a follow-up question/, 'missing_recommendation_follow_up'],
+    [/followUp\.componentType|followUp options|followUp option values/, 'invalid_follow_up_contract'],
+    [/followUp contains unsafe copy/, 'unsafe_follow_up_copy'],
+    [/turn contains unsafe copy/, 'unsafe_turn_copy'],
+    [/after\.type must be a known design item type/, 'invalid_design_item_type'],
+    [/after\.title is required|after\.title must be a non-empty string/, 'invalid_design_item_title'],
+    [/after\.description is required|after\.description must be a non-empty string/, 'invalid_design_item_description'],
+    [/after\.priority is invalid/, 'invalid_design_item_priority'],
+    [/after\.confidence must be between 0 and 1/, 'invalid_design_item_confidence'],
+    [/after\.attributes must be an object/, 'invalid_design_item_attributes'],
+    [/after\.relatedItemIds must contain non-empty strings/, 'invalid_design_item_relations'],
+    [/after\.acceptanceCriteria must contain text-only criteria/, 'invalid_design_item_acceptance_criteria'],
+    [/after\.text is required/, 'invalid_acceptance_criterion'],
+    [/after contains unsupported field/, 'unsupported_proposal_field'],
+    [/cannot change a document section/, 'unsupported_document_section_proposal'],
+  ];
+  for (const error of errors) categories.add(patterns.find(([pattern]) => pattern.test(error))?.[1] ?? 'other_domain_failure');
+  return [...categories].sort();
+}
+
 function resultFromOutput(output, selectedProposals, sourceExcerpts, { includeModelProposals = true } = {}) {
   const payload = output.payload;
   const recommendationBlock = payload.recommendations?.length ? {
@@ -408,6 +435,8 @@ export default async function handler(req, res, deps = {}) {
       if (validationError) {
         const failureDetails = validationFailureStage === 'references'
           ? { referenceFailures: referenceFailureCategories(referenceValidationErrors) }
+          : validationFailureStage === 'domain'
+            ? { domainFailures: domainFailureCategories(validationError) }
           : {};
         console.error('TURN_RESPONSE_VALIDATION_FAILED', { stage: validationFailureStage, attempts: validationAttempts, ...failureDetails });
         if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
