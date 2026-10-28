@@ -148,6 +148,7 @@ The route, schema/prompt registry, client renderer, persistence projection and r
 - [x] Pending/confirmed boundary, same-revision summary, source navigation and refresh/retry contracts pass.
 - [x] Existing consent, idempotency, cancellation, budget, auth and document readiness gates remain intact.
 - [x] Full unit/contract (428), golden (57), deterministic browser (26), and build checks pass on the current local candidate; test report records exact commands and counts.
-- [x] Desktop/mobile screenshots for the changed journey were captured and inspected at the resulting code HEAD; the canvas comparison is layout/anchor-only and does not claim same-data content parity.
-- [x] Independent review, protected Preview fixture QA, and configured checks passed on PR #94 HEAD `136ab30104d3717fb89dc4cfcf6c9dfa90a86f6a`; exact evidence is recorded in `test-results.md`.
+- [ ] Exact-HEAD desktop/mobile screenshots exist, but the committed canvas comparison still names earlier app HEAD `caf2e01`; a current-HEAD visual comparison remains open.
+- [ ] PR #94 protected Preview fixture QA and configured checks passed on HEAD `136ab30104d3717fb89dc4cfcf6c9dfa90a86f6a`, but it has no exact-head independent review record. A post-merge independent review found file evidence was lost during aborted-body recovery; PR #96 fixed and independently reviewed that path, with its focused protected Preview regression passing desktop and mobile (2/2). This follow-up does not retroactively establish a review of PR #94's exact head.
 - [x] PR #94 merged to `main` as `2135816d3a8881ee9f763e1e28c4a114c0d4e62f`; live-provider acceptance remains open.
+- [x] PR #96 recovery fix merged to `main` as `01eb994c76a52c6dd7ed102f14e9836ee61c99a1`; required CI passed (299 passed, 5 skipped), and the exact PR Preview regression passed on desktop and mobile (2/2) using deterministic fixtures.

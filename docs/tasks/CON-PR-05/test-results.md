@@ -1,5 +1,18 @@
 # CON-PR-05 validation results
 
+## Post-merge aborted-response evidence recovery — PR #96 — 2026-10-28
+
+An independent review after PR #94 merged found that its status-recovery path applied a succeeded turn without the active request's file excerpts. A recovered proposal backed by an uploaded file could therefore fail normalization as `AI_INVALID_OUTPUT`. PR #96 preserves those request-local excerpts through recovery and adds a regression that aborts the POST body, reads the succeeded result from the owner-scoped status endpoint, and verifies the persisted pending proposal retains the rebased source ID, excerpt, and location. The fix was independently reviewed with no remaining findings and merged to `main` as `01eb994c76a52c6dd7ed102f14e9836ee61c99a1`.
+
+| Evidence | Result |
+| --- | --- |
+| Regression on pre-fix `main` | Failed with `AI_INVALID_OUTPUT`, reproducing the missing file evidence |
+| PR #96 focused protected Preview regression | 2/2 passed at desktop 1440×900 and mobile 390×844 on exact deployed PR HEAD `45716370fd79a8e75c96631affd48004a1c97b5b` |
+| PR #96 GitHub Actions CI run `40662817316` | 299 passed, 5 skipped; build and bundle-secret check passed; `npm audit --omit=dev` found 0 vulnerabilities |
+| Independent code review of PR #96 | Passed; no remaining findings |
+
+The Preview regression used deterministic session/API fixtures. It proves the deployed browser recovery path preserves file-backed proposals; it does not prove a live AI-provider response. Live-provider recommendation and the complete Requirements-to-PRD flow remain open acceptance criteria.
+
 ## Output reliability and request recovery follow-up — 2026-10-28
 
 PR #94 was merged to `main` as `2135816d3a8881ee9f763e1e28c4a114c0d4e62f`. Its Production deployment `dpl_h6WXCHcoc7TxHaHU7LWYy4xYdcvS` is Ready at [windsoft-agent-blueprint-2uvn9607f.vercel.app](https://windsoft-agent-blueprint-2uvn9607f.vercel.app). `TURN_ANALYZE` v7/schema v6 keeps compact bounded turn output. `OPTION_RECOMMEND` v7/schema v7 generates grounded recommendations in 4/4/3 batches; the server validates all eleven before display and records each provider dispatch against the stable UI generation job ID. The authenticated turn status read returns only owner-scoped status, request ledger entries, and a succeeded result, allowing recovery after an aborted response body. Failed and cancelled generation states are persisted with the ledger.
@@ -14,7 +27,7 @@ PR #94 was merged to `main` as `2135816d3a8881ee9f763e1e28c4a114c0d4e62f`. Its P
 | Desktop/mobile conversation, Requirements generation/ready, and same-revision PRD Playwright | 26 passed on desktop 1440×900 and mobile 390×844 |
 | `npm run test:ci` (GitHub Actions run `40657052679`) | 428 unit/contract tests, 57/57 synthetic golden fixtures, 295 browser cases passed and 5 skipped; build, bundle-secret check, and `npm audit --omit=dev` passed |
 
-The browser suite used deterministic API/session fixtures and excluded Google OAuth. It ran against this worktree's build on `http://127.0.0.1:4178`; the shared default port 4173 belongs to another worktree and was deliberately left untouched. Tests cover request ledger propagation, retry fingerprint stability when provider accounting changes, failed-state persistence, owner-scoped recovery after body abort, applying successful results recovered after cancellation, 11 recommendation candidates, explicit proposal approval, Requirements Markdown download, and same-revision PRD draft persistence. The current local code was compared with `docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png` at desktop and mobile screenshots from the same test build.
+The browser suite used deterministic API/session fixtures and excluded Google OAuth. It ran against this worktree's build on `http://127.0.0.1:4178`; the shared default port 4173 belongs to another worktree and was deliberately left untouched. Tests cover request ledger propagation, retry fingerprint stability when provider accounting changes, failed-state persistence, owner-scoped recovery after body abort, applying successful results recovered after cancellation, 11 recommendation candidates, explicit proposal approval, Requirements Markdown download, and same-revision PRD draft persistence. The local test build was compared with `docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png`; however, the committed canvas-comparison report still identifies its app source as earlier HEAD `caf2e01`, so a current-HEAD visual comparison is not established.
 
 PR #94 Preview at exact PR head `136ab30104d3717fb89dc4cfcf6c9dfa90a86f6a` deployed as `dpl_FtiPPtD7qvckPvBDFypDhuX2Gggj` at [windsoft-agent-blueprint-8vk58dg93.vercel.app](https://windsoft-agent-blueprint-8vk58dg93.vercel.app). The protected Preview was accessed with a short-lived local OIDC token; all 26 desktop/mobile browser tests passed against its deployed assets. These tests used deterministic API/session fixtures. Preview has no server environment variables configured, so live-provider completion and the real-provider Requirements-ready/download → PRD flow remain unverified. No Google OAuth flow was run.
 
