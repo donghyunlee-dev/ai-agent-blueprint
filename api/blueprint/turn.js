@@ -413,6 +413,9 @@ export default async function handler(req, res, deps = {}) {
             schema: schemas.envelopes[TASK],
             messages,
             signal: cancellation.signal,
+            model: prepared.metadata.resolvedModel,
+            reasoningEffort: aiModelRegistry.tasks[TASK].reasoning,
+            maxOutputTokens: aiModelRegistry.tasks[TASK].maxOutputTokens,
             timeoutMs: aiModelRegistry.tasks[TASK].timeoutMs,
           });
         } catch (error) {

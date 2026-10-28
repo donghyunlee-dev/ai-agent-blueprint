@@ -79,7 +79,7 @@ export default async function handler(req, res, deps = {}) {
     const budget = canRequestAi(projectUsage, { task, profile, resolvedModel, estimatedInputTokens: inputTokens, maxOutputTokens: taskConfig.maxOutputTokens });
     if (!budget.allowed || budget.decision !== 'allow') { const error = new Error('AI_BUDGET_EXCEEDED'); error.code = 'AI_BUDGET_EXCEEDED'; throw error; }
     const estimatedCostUsd = calculateEstimatedCost(resolvedModel, { inputTokens, outputTokens: taskConfig.maxOutputTokens });
-    const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_'), schema: schemas.envelopes[task], messages, model: resolvedModel, reasoningEffort: taskConfig.reasoning });
+    const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_'), schema: schemas.envelopes[task], messages, model: resolvedModel, reasoningEffort: taskConfig.reasoning, maxOutputTokens: taskConfig.maxOutputTokens });
     const schema = validateSchema(schemas.envelopes[task], output);
     if (!schema.valid) throw Object.assign(new Error('AI_INVALID_OUTPUT'), { code: 'AI_INVALID_OUTPUT' });
     const metadata = validateResponseMetadata(output, { task, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion, designRevision: body.designRevision });

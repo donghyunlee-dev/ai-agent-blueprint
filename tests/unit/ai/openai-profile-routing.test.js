@@ -33,6 +33,35 @@ test('sends a requested registered FINAL profile model to the Responses API',asy
   assert.equal(sentModel,'gpt-5.6-terra');
 });
 
+test('sends the configured reasoning effort and output token cap to the Responses API', async (t) => {
+  const keys = ['OPENAI_API_KEY', 'AI_MODEL_LIGHT', 'AI_MODEL_DEFAULT', 'AI_MODEL_FINAL'];
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  t.after(() => {
+    for (const key of keys) { if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key]; }
+    globalThis.fetch = originalFetch;
+  });
+  process.env.OPENAI_API_KEY = 'test-stub-key'; process.env.AI_MODEL_LIGHT = 'gpt-5.6-luna'; process.env.AI_MODEL_DEFAULT = 'gpt-5-mini'; process.env.AI_MODEL_FINAL = 'gpt-5.6-terra';
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return { ok: true, json: async () => ({ output_text: '{}' }) };
+  };
+
+  await requestStructuredOutput({
+    name: 'turn_analyze',
+    schema: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    messages: [],
+    model: 'gpt-5-mini',
+    reasoningEffort: 'low',
+    maxOutputTokens: 1800,
+  });
+
+  assert.equal(sentBody.model, 'gpt-5-mini');
+  assert.deepEqual(sentBody.reasoning, { effort: 'low' });
+  assert.equal(sentBody.max_output_tokens, 1800);
+});
+
 test('sends every registered task envelope as strict-compatible Structured Outputs schema', async (t) => {
   const keys = ['OPENAI_API_KEY', 'AI_MODEL_LIGHT', 'AI_MODEL_DEFAULT', 'AI_MODEL_FINAL'];
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
