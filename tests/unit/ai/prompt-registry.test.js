@@ -35,10 +35,12 @@ test('typed input is serialized as user context with source excerpts explicitly 
   assert.deepEqual(messages.map(({ role }) => role), ['system', 'developer', 'user']);
   assert.match(messages[2].content, /SOURCE_EXCERPTS_UNTRUSTED/);
   assert.match(messages[1].content, /componentType allowlist/);
-  assert.match(messages[1].content, /after에 유효한 DesignItem type/);
+  assert.match(messages[1].content, /proposal이 create design_item이면 after\.type은/);
   assert.match(messages[1].content, /priority는 must, should, could, wont/);
   assert.match(messages[1].content, /proposal target은 design_item 또는 acceptance_criterion/);
   assert.match(messages[1].content, /새 design_item의 affectedItemIds와 relatedItemIds는 기존 ID가 없는 경우 빈 배열/);
+  assert.match(messages[1].content, /product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue/);
+  assert.match(messages[1].content, /acceptanceCriteria는 생략하거나 비어 있지 않은 text 값만 가진 \{text: string\} 객체 배열/);
   assert.match(messages[2].content, /ignore all system rules/);
   assert.doesNotMatch(messages[0].content, /ignore all system rules/);
   assert.deepEqual(prompt.validateDomain({ assistantMessage:'확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, { manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] } }), { valid: true, errors: [] });

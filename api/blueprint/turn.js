@@ -393,6 +393,15 @@ export default async function handler(req, res, deps = {}) {
               content: `${messages[1].content}\nVALIDATION RETRY: The previous response included an item ID that was not provided in TYPED_CONTEXT_JSON. Use only IDs from confirmedDesignItems. For new design items, leave affectedItemIds and relatedItemIds empty unless they contain existing context IDs, omit parentId unless it is an existing context ID, and do not reference IDs from newly proposed items.`,
             };
           }
+          if (retry > 0 && validationFailureStage === 'domain') {
+            const failures = domainFailureCategories(validationError);
+            if (failures.includes('invalid_design_item_type') || failures.includes('invalid_design_item_acceptance_criteria')) {
+              messages[1] = {
+                ...messages[1],
+                content: `${messages[1].content}\nVALIDATION RETRY: For every design_item, type must be one of product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue. acceptanceCriteria must be omitted or be an array of non-empty {text: string} objects, for example [{"text":"예약 충돌이 차단된다."}]. Do not use a type such as feature and do not return acceptance criteria as strings.`,
+              };
+            }
+          }
           output = await (deps.requestStructuredOutput || requestStructuredOutput)({
             name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''),
             schema: schemas.envelopes[TASK],
