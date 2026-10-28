@@ -1018,5 +1018,38 @@
       "followUp": {"componentType": "free_text", "topic": "예약 기준", "prompt": "예약에서 가장 중요한 기준은 무엇인가요?", "required": true, "allowCustomAnswer": true, "allowUnknown": true, "allowDefer": true, "targetItemTypes": ["requirement"]}
     },
     "manifest": {"designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": ["message-1"], "summaryIds": []}
+  },
+  {
+    "id": "option-recommend-v3-eleven-compact-candidates",
+    "task": "OPTION_RECOMMEND",
+    "schemaVersion": "v3",
+    "response": {
+      "assistantMessage": "예약 충돌을 줄이는 11개 방식입니다.",
+      "recommendations": [
+        {"title":"중복 저장 차단","rationale":"겹친 요청을 막습니다.","tradeoffs":["검사가 추가됩니다."],"assumptions":["시간대가 표준화됩니다."],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"requirement","description":"저장 전에 시간대 중복을 막습니다."}},
+        {"title":"확정 전 재검증","rationale":"최신 상태를 확인합니다.","tradeoffs":["확정이 늦어집니다."],"assumptions":[],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"requirement","description":"예약 확정 직전 충돌을 확인합니다."}},
+        {"title":"동시 요청 잠금","rationale":"동시 저장을 조율합니다.","tradeoffs":[],"assumptions":["잠금 기능을 지원합니다."],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"technical_decision","description":"같은 회의실 요청을 직렬 처리합니다."}},
+        {"title":"임시 예약 보류","rationale":"중복 확정을 줄입니다.","tradeoffs":["임시 상태가 필요합니다."],"assumptions":[],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"requirement","description":"검토 중인 요청은 확정에서 제외합니다."}},
+        {"title":"대체 시간 제안","rationale":"충돌 해결을 돕습니다.","tradeoffs":["대안 계산이 필요합니다."],"assumptions":[],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"requirement","description":"충돌 시 가능한 시간을 제시합니다."}},
+        {"title":"중복 경고 표시","rationale":"사용자가 충돌을 봅니다.","tradeoffs":["경고만으로 차단되지 않습니다."],"assumptions":[],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"requirement","description":"겹치는 시간과 예약을 함께 표시합니다."}},
+        {"title":"참석자 확인 단계","rationale":"요청 오류를 줄입니다.","tradeoffs":["입력 단계가 늘어납니다."],"assumptions":[],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"scenario","description":"참석자 확인 후 예약을 제출합니다."}},
+        {"title":"관리자 승인 적용","rationale":"예외를 통제합니다.","tradeoffs":["관리자 처리가 필요합니다."],"assumptions":["관리자가 운영합니다."],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"requirement","description":"충돌 예외는 관리자 승인 후 확정합니다."}},
+        {"title":"예약 대기열 운영","rationale":"자원이 부족할 때 유용합니다.","tradeoffs":["대기 순서 정책이 필요합니다."],"assumptions":[],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"requirement","description":"마감된 시간은 대기 요청으로 전환합니다."}},
+        {"title":"변경 이력 기록","rationale":"분쟁 근거를 남깁니다.","tradeoffs":["기록 보관이 필요합니다."],"assumptions":[],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"requirement","description":"예약 변경자와 시간을 기록합니다."}},
+        {"title":"이용 시간 제한","rationale":"특정 시간 편중을 줄입니다.","tradeoffs":["운영 규칙 합의가 필요합니다."],"assumptions":[],"evidence":[{"sourceType":"message","sourceId":"message-1"}],"designItem":{"type":"constraint","description":"사용자별 연속 예약 시간을 제한합니다."}}
+      ]
+    },
+    "manifest": {"designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": ["message-1"], "summaryIds": []}
+  },
+  {
+    "id": "option-recommend-v3-insufficient-context-follow-up",
+    "task": "OPTION_RECOMMEND",
+    "schemaVersion": "v3",
+    "response": {
+      "assistantMessage": "추천 기준을 더 확인하겠습니다.",
+      "recommendations": [],
+      "followUp": {"componentType":"free_text","topic":"예약 기준","prompt":"예약에서 가장 중요한 기준은 무엇인가요?","required":true,"allowCustomAnswer":true,"allowUnknown":true,"allowDefer":true,"targetItemTypes":["requirement"]}
+    },
+    "manifest": {"designItemIds": [], "sourceExcerptIds": [], "recentMessageIds": ["message-1"], "summaryIds": []}
   }
 ]

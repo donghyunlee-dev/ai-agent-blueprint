@@ -131,6 +131,32 @@ export function validateOptionRecommendV2(payload, userTurn) {
   return { valid: errors.length === 0, errors };
 }
 
+export function validateOptionRecommendV3(payload, userTurn) {
+  const recommendations = Array.isArray(payload?.recommendations) ? payload.recommendations : [];
+  const normalized = {
+    ...payload,
+    recommendations: recommendations.map((candidate) => candidate && typeof candidate === 'object' ? ({
+      ...candidate,
+      designItem: { ...candidate.designItem, title: candidate.title },
+    }) : candidate),
+  };
+  const errors = [...validateOptionRecommendV2(normalized, userTurn).errors];
+  const lengths = [
+    ['assistantMessage', payload?.assistantMessage, 70],
+    ...recommendations.flatMap((candidate, index) => [
+      [`recommendations[${index}].title`, candidate?.title, 20],
+      [`recommendations[${index}].rationale`, candidate?.rationale, 35],
+      [`recommendations[${index}].tradeoffs[0]`, candidate?.tradeoffs?.[0], 28],
+      [`recommendations[${index}].assumptions[0]`, candidate?.assumptions?.[0], 25],
+      [`recommendations[${index}].designItem.description`, candidate?.designItem?.description, 35],
+    ]),
+  ];
+  for (const [field, value, limit] of lengths) {
+    if (typeof value === 'string' && [...value].length > limit) errors.push(`${field} exceeds the v3 concise-output limit`);
+  }
+  return { valid: errors.length === 0, errors };
+}
+
 export function questionFromFollowUp(followUp, id) {
   if (!followUp) return undefined;
   return {

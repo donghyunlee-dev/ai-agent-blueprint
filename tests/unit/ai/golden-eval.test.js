@@ -15,7 +15,7 @@ test('synthetic golden fixtures pass deterministic schema, reference, and forbid
 
 test('every task has a passing synthetic fixture without provider calls', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
-  assert.equal(fixtures.length, 51);
+  assert.equal(fixtures.length, 53);
   for (const fixture of fixtures) assert.deepEqual(evaluateGoldenFixture(fixture), { pass: true, errors: [] }, fixture.id);
 });
 
@@ -26,10 +26,10 @@ test('versioned golden fixtures resolve the current v5 turn schema', () => {
 
 test('golden fixture set covers current compact recommendation and insufficient-context versions', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
-  const recommendationFixtures = fixtures.filter(({ task, schemaVersion }) => task === 'OPTION_RECOMMEND' && schemaVersion === 'v2');
+  const recommendationFixtures = fixtures.filter(({ task, schemaVersion }) => task === 'OPTION_RECOMMEND' && schemaVersion === 'v3');
   assert.deepEqual(recommendationFixtures.map(({ id }) => id), [
-    'option-recommend-v2-eleven-grounded-candidates',
-    'option-recommend-v2-insufficient-context-follow-up',
+    'option-recommend-v3-eleven-compact-candidates',
+    'option-recommend-v3-insufficient-context-follow-up',
   ]);
   assert.equal(recommendationFixtures[0].response.recommendations.length, 11);
   assert.equal(recommendationFixtures[1].response.recommendations.length, 0);
