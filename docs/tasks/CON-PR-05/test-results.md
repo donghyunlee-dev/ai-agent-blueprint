@@ -28,7 +28,11 @@ The provider uses the complete `OPTION_RECOMMEND` envelope. V6 now constrains it
 
 The local browser suite `npx playwright test tests/e2e/con-pr-05-conversation-flow.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-02-prd-readiness.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1 --reporter=line` passed **18/18**. It used deterministic API responses and test-session fixtures, not live AI or Google OAuth.
 
-The updated code is not yet deployed. These fixtures do not prove that real provider output remains complete or meaningful under the 2,000-token cap; repeated live recommendation runs and the full Requirements-ready/download and PRD flow remain required.
+PR #93 Preview at application SHA `b089feb95ef9614c8c591649c245bc3f0d32f1a8` passed **18/18** on desktop 1440×900 and mobile 390×844. Runtime page errors, console errors, failed requests, API responses >=400, and Google auth requests were all **0**. Requirements Markdown download and same-revision PRD `review_required` after reload were verified. The detailed QA report and screenshots are in the ignored worktree artifact directory `.pr-artifacts/CON-PR-05/v6-preview-qa/`; this Preview run used deterministic API/session fixtures, not live AI or backend persistence.
+
+The initial recommendation capture showed a transient `저장 중` indicator. A separate Preview check passed **2/2**: desktop and mobile both reached `저장됨` within 600ms, and IndexedDB contained 6 messages and 11 candidates at revision 0. Settled screenshots were recaptured; no provider calls were made.
+
+The v6 code is deployed to Preview but has not yet been deployed to Production or exercised with the live provider. Preview fixtures do not prove real provider output remains complete or meaningful under the 2,000-token cap. Repeated live recommendation runs and the full real-provider Requirements-ready/download and same-revision PRD flow remain required before CON-PR-05 is accepted.
 
 ## Production truncation diagnosis and v5 schema-bound follow-up — 2026-10-28
 
