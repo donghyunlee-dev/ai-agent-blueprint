@@ -19,21 +19,21 @@ function currentRecommendationOutput(value) {
   const shortText = (text, limit) => typeof text === 'string' ? [...text].slice(0, limit).join('') : text;
   const recommendations = Array.isArray(payload.recommendations)
     ? payload.recommendations.map((candidate) => candidate && typeof candidate === 'object' ? ({
-      t: shortText(candidate.title, 12),
-      r: shortText(candidate.rationale, 20),
-      x: Array.isArray(candidate.tradeoffs) ? candidate.tradeoffs.slice(0, 1).map((text) => shortText(text, 12)) : candidate.tradeoffs,
-      a: Array.isArray(candidate.assumptions) ? candidate.assumptions.slice(0, 1).map((text) => shortText(text, 12)) : candidate.assumptions,
+      t: shortText(candidate.title, 8),
+      r: shortText(candidate.rationale, 12),
+      x: Array.isArray(candidate.tradeoffs) ? candidate.tradeoffs.slice(0, 1).map((text) => shortText(text, 8)) : candidate.tradeoffs,
+      a: Array.isArray(candidate.assumptions) ? candidate.assumptions.slice(0, 1).map((text) => shortText(text, 8)) : candidate.assumptions,
       e: Array.isArray(candidate.evidence) && candidate.evidence[0] ? { s: candidate.evidence[0].sourceType, i: candidate.evidence[0].sourceId } : undefined,
       k: candidate.designItem?.type,
-      d: shortText(candidate.designItem?.description, 20),
+      d: shortText(candidate.designItem?.description, 12),
     }) : candidate)
     : payload.recommendations;
   return {
     ...value,
-    promptVersion: 'v5',
-    schemaVersion: 'v5',
+    promptVersion: 'v6',
+    schemaVersion: 'v6',
     payload: {
-      m: shortText(payload.assistantMessage, 24),
+      m: shortText(payload.assistantMessage, 12),
       r: recommendations,
       ...(payload.followUp ? { f: payload.followUp } : {}),
     },
@@ -223,12 +223,17 @@ test('turn endpoint assigns follow-up IDs and returns context-generated cards wi
 });
 
 test('turn endpoint returns eleven recommendation candidates and only creates a proposal draft after selection', async () => {
-  const makeCandidate = (index) => ({
-    title: `대안 ${index + 1}`, rationale: '사용자에게 확인한 예약 충돌 문제에 대응합니다.',
-    tradeoffs: ['운영 규칙을 정해야 합니다.'], assumptions: [], evidence: [{ sourceType: 'message', sourceId: 'm1' }],
-    designItem: { type: 'requirement', description: '예약 충돌을 줄입니다.' },
-  });
-  const recommendationOutput = { task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0, payload: { assistantMessage: '근거 있는 예약 방식 11개를 비교합니다.', recommendations: Array.from({ length: 11 }, (_, index) => makeCandidate(index)) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
+  const recommendationOutput = {
+    task: 'OPTION_RECOMMEND', promptVersion: 'v6', schemaVersion: 'v6', designRevision: 0,
+    payload: {
+      m: '예약안 11개',
+      r: Array.from({ length: 11 }, (_, index) => ({
+        t: `대안 ${index + 1}`, r: '충돌 줄임', x: ['운영 규칙'], a: [],
+        e: { s: 'message', i: 'm1' }, k: 'requirement', d: '예약 충돌 완화',
+      })),
+    },
+    referencedItemIds: [], referencedSourceIds: [], warnings: [],
+  };
   const recommendationRequest = { ...body, logicalRequestId: 'logical-recommend-12345', userTurn: { id: 'm1', kind: 'text', text: '제가 설명한 회의실 예약 서비스와 운영 목표에 맞춰 비교하고 선택할 수 있는 11개 추천안을 보여주세요.' } };
   const recommendationRes = response();
   const calls = [];
@@ -238,6 +243,7 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
   assert.equal(calls[0].maxOutputTokens, 2000);
   const block = recommendationRes.body.recommendationCandidates;
   assert.equal(block.candidates.length, 11);
+  assert.equal(block.candidates[0].rationale, '충돌 줄임');
   assert.equal(recommendationRes.body.proposals.length, 0);
 
   const selectionBody = {
@@ -257,9 +263,9 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
   assert.equal(selectedRes.body.proposals[0].status, undefined);
 });
 
-test('OPTION_RECOMMEND v5 normalizes compact model fields before grounding and pending selection', async () => {
+test('OPTION_RECOMMEND v6 normalizes compact model fields before grounding and pending selection', async () => {
   const recommendationOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v5', schemaVersion: 'v5', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v6', schemaVersion: 'v6', designRevision: 0,
     payload: {
       m: '11개 예약 안입니다.',
       r: Array.from({ length: 11 }, (_, index) => ({
@@ -269,7 +275,7 @@ test('OPTION_RECOMMEND v5 normalizes compact model fields before grounding and p
     },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
-  const requestBody = { ...body, logicalRequestId: 'logical-recommend-v5-12345', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약 11개 추천안을 보여주세요.' } };
+  const requestBody = { ...body, logicalRequestId: 'logical-recommend-v6-12345', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약 11개 추천안을 보여주세요.' } };
   const res = response();
   await runHandler(request(requestBody), res, { store: createMemoryAuthStore(), requestStructuredOutput: async () => recommendationOutput });
 
@@ -285,10 +291,10 @@ test('OPTION_RECOMMEND v5 normalizes compact model fields before grounding and p
   assert.equal(res.body.proposals.length, 0);
 });
 
-test('OPTION_RECOMMEND v5 retries output that violates provider-enforced field length patterns', async () => {
+test('OPTION_RECOMMEND v6 retries output that violates provider-enforced field length patterns', async () => {
   const calls = [];
   const baseOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v5', schemaVersion: 'v5', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v6', schemaVersion: 'v6', designRevision: 0,
     payload: {
       m: '추천안',
       r: Array.from({ length: 11 }, (_, index) => ({
@@ -299,7 +305,7 @@ test('OPTION_RECOMMEND v5 retries output that violates provider-enforced field l
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
   const invalidOutput = { ...baseOutput, payload: { ...baseOutput.payload, m: '추천안'.repeat(9) } };
-  const requestBody = { ...body, logicalRequestId: 'logical-recommend-v5-limit-123', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약 11개 추천안을 보여주세요.' } };
+  const requestBody = { ...body, logicalRequestId: 'logical-recommend-v6-limit-123', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약 11개 추천안을 보여주세요.' } };
   const res = response();
   await handler(request(requestBody), res, {
     store: createMemoryAuthStore(),
@@ -315,16 +321,12 @@ test('OPTION_RECOMMEND v5 retries output that violates provider-enforced field l
 test('explicit recommendation requests use OPTION_RECOMMEND and normalize compact candidates into pending selection drafts', async () => {
   const calls = [];
   const recommendationOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v6', schemaVersion: 'v6', designRevision: 0,
     payload: {
-      assistantMessage: '확인된 예약 조건에 맞춘 추천안입니다.',
-      recommendations: Array.from({ length: 11 }, (_, index) => ({
-        title: `예약 방식 ${index + 1}`,
-        rationale: '중복 예약을 막는 확인 절차를 둡니다.',
-        tradeoffs: ['예약 확정이 늦어질 수 있습니다.'],
-        assumptions: [],
-        evidence: [{ sourceType: 'message', sourceId: 'm1' }],
-        designItem: { type: 'requirement', description: '예약이 겹치면 확정을 차단합니다.' },
+      m: '예약 조건 반영',
+      r: Array.from({ length: 11 }, (_, index) => ({
+        t: `예약안 ${index + 1}`, r: '중복 예약 방지', x: ['승인 지연'], a: [],
+        e: { s: 'message', i: 'm1' }, k: 'requirement', d: '충돌 시 확정 차단',
       })),
     },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
@@ -346,19 +348,15 @@ test('explicit recommendation requests use OPTION_RECOMMEND and normalize compac
   assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.evidence[0].sourceId, 'm1');
 });
 
-test('OPTION_RECOMMEND v4 keeps eleven concise candidates and derives proposal titles server-side', async () => {
+test('OPTION_RECOMMEND v6 keeps eleven concise candidates and derives proposal titles server-side', async () => {
   const calls = [];
   const recommendationOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v6', schemaVersion: 'v6', designRevision: 0,
     payload: {
-      assistantMessage: '확인된 조건에 맞춘 11개 안입니다.',
-      recommendations: Array.from({ length: 11 }, (_, index) => ({
-        title: `예약 방식 ${index + 1}`,
-        rationale: '중복 예약을 막는 확인 절차를 둡니다.',
-        tradeoffs: ['확정이 다소 늦어질 수 있습니다.'],
-        assumptions: ['예약 요청이 최신 상태입니다.'],
-        evidence: [{ sourceType: 'message', sourceId: 'm1' }],
-        designItem: { type: 'requirement', description: '예약 시간 충돌을 저장 전에 확인합니다.' },
+      m: '예약안 11개',
+      r: Array.from({ length: 11 }, (_, index) => ({
+        t: `예약안 ${index + 1}`, r: '충돌 방지', x: ['승인 지연'], a: ['최신 요청'],
+        e: { s: 'message', i: 'm1' }, k: 'requirement', d: '충돌 시 저장 차단',
       })),
     },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
@@ -374,10 +372,12 @@ test('OPTION_RECOMMEND v4 keeps eleven concise candidates and derives proposal t
   assert.equal(calls[0].name, 'option_recommend');
   assert.equal(calls[0].maxOutputTokens, 2000);
   assert.equal(res.body.recommendationCandidates.candidates.length, 11);
-  assert.equal(res.body.recommendationCandidates.candidates[0].title, '예약 방식 1');
-  assert.deepEqual(res.body.recommendationCandidates.candidates[0].assumptions, ['예약 요청이 최신 상태']);
-  assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.after.title, '예약 방식 1');
-  assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.after.description, '예약 시간 충돌을 저장 전에 확인합니');
+  assert.equal(res.body.recommendationCandidates.candidates[0].title, '예약안 1');
+  assert.equal(res.body.recommendationCandidates.candidates[0].rationale, '충돌 방지');
+  assert.deepEqual(res.body.recommendationCandidates.candidates[0].tradeoffs, ['승인 지연']);
+  assert.deepEqual(res.body.recommendationCandidates.candidates[0].assumptions, ['최신 요청']);
+  assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.after.title, '예약안 1');
+  assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.after.description, '충돌 시 저장 차단');
   assert.equal(res.body.proposals.length, 0);
 });
 
@@ -701,20 +701,15 @@ test('turn endpoint accepts only request-local excerpt IDs as file citation IDs'
 test('recommendation file evidence survives selection in a later turn', async () => {
   const sourceText = '예약 취소는 시작 두 시간 전까지 가능합니다.';
   const recommendationOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0,
-    referencedSourceIds: ['excerpt-first'],
+    task: 'OPTION_RECOMMEND', promptVersion: 'v6', schemaVersion: 'v6', designRevision: 0,
     payload: {
-      assistantMessage: '자료 근거를 반영한 추천입니다.',
-      recommendations: Array.from({ length: 11 }, (_, index) => ({
-        title: `예약안 ${index + 1}`,
-        rationale: '대화와 자료에 근거한 선택입니다.',
-        tradeoffs: [],
-        assumptions: [],
-        evidence: [{ sourceType: 'file', sourceId: 'excerpt-first' }],
-        designItem: { type: 'requirement', description: sourceText },
+      m: '자료 반영 11안',
+      r: Array.from({ length: 11 }, (_, index) => ({
+        t: `예약안 ${index + 1}`, r: '취소조건 반영', x: [], a: [],
+        e: { s: 'file', i: 'excerpt-first' }, k: 'requirement', d: '취소기한 안내',
       })),
     },
-    referencedItemIds: [], warnings: [],
+    referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
   const firstBody = {
     ...body,
@@ -727,6 +722,8 @@ test('recommendation file evidence survives selection in a later turn', async ()
   assert.equal(firstResponse.statusCode, 200);
   const recommendationBlock = firstResponse.body.recommendationCandidates;
   const candidate = recommendationBlock.candidates[0];
+  assert.equal(candidate.title, '예약안 1');
+  assert.equal(candidate.rationale, '취소조건 반영');
   assert.equal(candidate.proposalDraft.evidence[0].sourceId, 'canonical-source');
   assert.equal(candidate.evidence[0].excerpt, sourceText);
 

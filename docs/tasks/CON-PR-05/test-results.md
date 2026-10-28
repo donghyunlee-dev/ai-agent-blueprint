@@ -1,5 +1,39 @@
 # CON-PR-05 validation results
 
+## PR #92 Production validation and v6 output-bound follow-up — 2026-10-28
+
+PR #92 merged to `main` as `7ef38e96953306657699d7523733e9964a4db1d3` and deployed as Production deployment `dpl_4uUyqpQ2hGyPpJMyH6J2JRpJcyTZ`.
+
+| Production run | Result |
+| --- | --- |
+| First run, v5 recommendation | Real `gpt-5-mini` response returned 11 candidates; candidate selection and explicit proposal approval succeeded. The harness then requested two design proposals in one free turn and got `AI_OUTPUT_INCOMPLETE`; runtime recorded 4,586 input, 1,800/1,800 output, and 448 reasoning tokens. |
+| Second fresh run, v5 recommendation | The initial recommendation request returned `AI_OUTPUT_INCOMPLETE`; runtime recorded 1,366 input, 2,000/2,000 output, and 320 reasoning tokens. Another fresh request had succeeded, so v5 was intermittent under the fixed cap. |
+
+V6 is a versioned follow-up. It keeps exactly 11 grounded candidates, the current card fields, `gpt-5-mini`, DEFAULT profile, one provider call, and the 2,000-token output limit. Provider schema bounds are now 12 characters for the assistant message, 8 for title, 12 for rationale and description, and 8 for each optional trade-off and assumption. The OPTION_RECOMMEND provider envelope also constrains redundant top-level reference and warning arrays to be empty; candidate evidence remains present and validated inside each candidate. Character counts do not predict provider token use or reserve reasoning capacity, so repeated live-provider completion remains the acceptance evidence.
+
+Local validation for v6: `npm run test:unit` **417 passed, 0 failed**; `npm run test:golden` **55/55 synthetic fixtures passed**; `npm run build` passed with the existing >500 kB chunk warning; `npm run check:bundle-secrets` found no configured secrets in built assets; `git diff --check` passed. Focused contract, API, golden, and registry tests passed **56/56**. V6 has not yet been deployed or exercised with the live provider; repeat Production recommendation runs and the full requirements-ready/download and PRD flow remain required.
+
+### V6 envelope and content-fixture follow-up
+
+The provider uses the complete `OPTION_RECOMMEND` envelope. V6 now constrains its redundant top-level `referencedItemIds`, `referencedSourceIds`, and `warnings` arrays to empty while retaining candidate evidence and its request-local reference validation. The envelope contract test verifies valid empty arrays and rejects non-empty source/warning arrays. The API fixture verifies that concise meaningful title, rationale, trade-off, assumption, and design-description values survive normalization unchanged; the file-evidence selection test uses the current v6 shape and still verifies source restoration across turns.
+
+| Command | Result |
+| --- | --- |
+| Focused recommendation, turn API, registry, golden evaluator, and provider-routing tests | 67 passed, 0 failed |
+| `npm run test:unit` | 417 passed, 0 failed |
+| `npm run test:golden` | 55/55 synthetic fixtures passed; no provider calls |
+| `npm run build` | Passed; existing >500 kB chunk-size warning |
+| `npm run check:bundle-secrets` | No configured secrets found in built assets |
+| `git diff --check` | Passed |
+
+The local browser suite `npx playwright test tests/e2e/con-pr-05-conversation-flow.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-02-prd-readiness.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1 --reporter=line` passed **18/18**. It used deterministic API responses and test-session fixtures, not live AI or Google OAuth.
+
+PR #93 Preview at application SHA `b089feb95ef9614c8c591649c245bc3f0d32f1a8` passed **18/18** on desktop 1440×900 and mobile 390×844. Runtime page errors, console errors, failed requests, API responses >=400, and Google auth requests were all **0**. Requirements Markdown download and same-revision PRD `review_required` after reload were verified. The detailed QA report and screenshots are in the ignored worktree artifact directory `.pr-artifacts/CON-PR-05/v6-preview-qa/`; this Preview run used deterministic API/session fixtures, not live AI or backend persistence.
+
+The initial recommendation capture showed a transient `저장 중` indicator. A separate Preview check passed **2/2**: desktop and mobile both reached `저장됨` within 600ms, and IndexedDB contained 6 messages and 11 candidates at revision 0. Settled screenshots were recaptured; no provider calls were made.
+
+The v6 code is deployed to Preview but has not yet been deployed to Production or exercised with the live provider. Preview fixtures do not prove real provider output remains complete or meaningful under the 2,000-token cap. Repeated live recommendation runs and the full real-provider Requirements-ready/download and same-revision PRD flow remain required before CON-PR-05 is accepted.
+
 ## Production truncation diagnosis and v5 schema-bound follow-up — 2026-10-28
 
 The first post-PR-91 Production run completed all 11 recommendations, candidate selection, and explicit proposal approval, then a large eight-decision free-turn batch returned `AI_OUTPUT_INCOMPLETE`. A smaller-turn rerun failed earlier in `OPTION_RECOMMEND`: Production request `558tg-1793163826928-08ff154740dd` used `gpt-5-mini`, input 1,560 tokens, output 2,000/2,000, reasoning 256, and stopped at `max_output_tokens`. The response contract's short field limits were checked only after generation, so they could not bound provider output.

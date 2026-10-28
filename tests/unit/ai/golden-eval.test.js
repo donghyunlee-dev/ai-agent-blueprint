@@ -75,6 +75,21 @@ test('v5 golden evaluator normalizes a complete set of bounded recommendation ca
   assert.deepEqual(result, { pass: true, errors: [] });
 });
 
+test('v6 golden evaluator normalizes eleven short bounded recommendation candidates', () => {
+  const result = evaluateGoldenFixture({
+    id: 'option-recommend-v6-eleven-short-bounded-candidates', task: 'OPTION_RECOMMEND', schemaVersion: 'v6',
+    response: {
+      m: '예약11안',
+      r: Array.from({ length: 11 }, (_, index) => ({
+        t: `안${index + 1}`, r: '중복방지', x: ['승인필요'], a: [],
+        e: { s: 'message', i: 'message-1' }, k: 'requirement', d: '충돌예약차단',
+      })),
+    },
+    manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: ['message-1'], summaryIds: [] },
+  });
+  assert.deepEqual(result, { pass: true, errors: [] });
+});
+
 test('setup guide golden fixtures exercise evidence, injection, schema, and source-reference rejection paths', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
   const setupFixtures = fixtures.filter((fixture) => fixture.task === 'SETUP_GUIDE_DRAFT');
