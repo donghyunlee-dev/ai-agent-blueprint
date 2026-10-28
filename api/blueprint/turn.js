@@ -3,7 +3,7 @@ import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/ind
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 import { validateProposalTargets, validateReferences, validateResponseMetadata } from '../../src/infrastructure/ai/context-manifest.js';
 import { validateProposalPayloads } from '../../src/features/proposals/proposal-payload-validation.js';
-import { hasExplicitRecommendationRequest, questionFromFollowUp, validateTurnAnalyzeV4 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
+import { hasExplicitRecommendationRequest, questionFromFollowUp, validateOptionRecommendV2, validateTurnAnalyzeV5 } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 import { canRequestAi } from '../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricing.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
@@ -16,6 +16,7 @@ import { circuitFailure, circuitState, circuitSuccess } from '../_lib/turn-circu
 import { claimTurn, finishTurn, turnFingerprint, turnKey } from '../_lib/turn-lifecycle.js';
 
 const TASK = 'TURN_ANALYZE';
+const RECOMMENDATION_TASK = 'OPTION_RECOMMEND';
 const MAX_BODY_BYTES = 100_000;
 
 function fail(res, status, error, extra = {}) { return sendJson(res, status, { error, ...extra }); }
@@ -40,12 +41,12 @@ function validIds(body) {
     && typeof body.attemptId === 'string' && body.attemptId.length >= 8 && body.attemptId.length <= 200;
 }
 
-function prepareTurn(body, definition) {
-  const taskConfig = aiModelRegistry.tasks[TASK];
+function prepareTurn(body, definition, task = TASK) {
+  const taskConfig = aiModelRegistry.tasks[task];
   const profile = taskConfig.profile;
   const resolvedModel = aiModelRegistry.profiles[profile].model;
   const fixedContext = {
-    task: TASK,
+    task,
     prompt: definition.systemTemplate,
     rules: definition.developerTemplate,
     projectSummary: body.projectSummary,
@@ -63,7 +64,7 @@ function prepareTurn(body, definition) {
     ...body.sources.map((source) => ({ type: 'source_excerpt', id: source.id, projectId: body.projectSummary.projectId, text: JSON.stringify(source) })),
     ...body.recentMessages.map((message) => ({ type: 'recent_message', id: message.id, projectId: body.projectSummary.projectId, text: JSON.stringify(message) })),
   ];
-  const selected = selectContext({ task: TASK, items, fixedTokens: textTokens(JSON.stringify(fixedContext)) + 256 });
+  const selected = selectContext({ task, items, fixedTokens: textTokens(JSON.stringify(fixedContext)) + 256 });
   const byType = (type) => selected.items.filter((item) => item.type === type);
   const promptInput = {
     currentTarget: body.userTurn.responseTo ?? null,
@@ -74,7 +75,7 @@ function prepareTurn(body, definition) {
     designRevision: body.projectSummary.designRevision,
   };
   const budgetRequest = {
-    task: TASK,
+    task,
     profile,
     resolvedModel,
     estimatedInputTokens: selected.estimatedInputTokens,
@@ -86,7 +87,7 @@ function prepareTurn(body, definition) {
     budget,
     metadata: {
       generationJobId: crypto.randomUUID(),
-      task: TASK,
+      task,
       promptVersion: definition.promptVersion,
       schemaVersion: definition.schemaVersion,
       modelProfile: profile,
@@ -227,10 +228,12 @@ function domainFailureCategories(errors) {
     [/recommendations must be distinct/, 'duplicate_recommendation_titles'],
     [/each recommendation needs user-grounded evidence/, 'recommendation_evidence_missing'],
     [/insufficient recommendation context must ask a follow-up question/, 'missing_recommendation_follow_up'],
+    [/recommendation candidates and follow-up cannot be returned together/, 'recommendation_follow_up_conflict'],
     [/followUp\.componentType|followUp options|followUp option values/, 'invalid_follow_up_contract'],
     [/followUp contains unsafe copy/, 'unsafe_follow_up_copy'],
     [/turn contains unsafe copy/, 'unsafe_turn_copy'],
     [/after\.type must be a known design item type/, 'invalid_design_item_type'],
+    [/after\.type is required/, 'invalid_design_item_type'],
     [/after\.title is required|after\.title must be a non-empty string/, 'invalid_design_item_title'],
     [/after\.description is required|after\.description must be a non-empty string/, 'invalid_design_item_description'],
     [/after\.priority is invalid/, 'invalid_design_item_priority'],
@@ -246,17 +249,33 @@ function domainFailureCategories(errors) {
   return [...categories].sort();
 }
 
+function recommendationProposalDraft(candidate) {
+  if (candidate?.proposal) return candidate.proposal;
+  return {
+    operation: 'create',
+    targetType: 'design_item',
+    after: candidate?.designItem,
+    rationale: candidate?.rationale,
+    evidence: candidate?.evidence,
+    affectedItemIds: [],
+  };
+}
+
 function resultFromOutput(output, selectedProposals, sourceExcerpts, { includeModelProposals = true } = {}) {
   const payload = output.payload;
   const recommendationBlock = payload.recommendations?.length ? {
     type: 'recommendation_candidates',
     id: crypto.randomUUID(),
-    candidates: payload.recommendations.map(({ proposal, ...candidate }) => ({
-      id: crypto.randomUUID(),
-      ...candidate,
-      evidence: persistFileEvidence(candidate.evidence, sourceExcerpts),
-      proposalDraft: { ...proposal, evidence: persistFileEvidence(proposal.evidence, sourceExcerpts) },
-    })),
+    candidates: payload.recommendations.map((candidate) => {
+      const { proposal, designItem, ...displayCandidate } = candidate;
+      const proposalDraft = recommendationProposalDraft(candidate);
+      return {
+        id: crypto.randomUUID(),
+        ...displayCandidate,
+        evidence: persistFileEvidence(candidate.evidence, sourceExcerpts),
+        proposalDraft: { ...proposalDraft, evidence: persistFileEvidence(proposalDraft.evidence, sourceExcerpts) },
+      };
+    }),
   } : undefined;
   const followUp = payload.followUp ? {
     ...payload.followUp,
@@ -266,7 +285,7 @@ function resultFromOutput(output, selectedProposals, sourceExcerpts, { includeMo
   } : undefined;
   return {
     assistantMessage: payload.assistantMessage.trim(),
-    proposals: [...(includeModelProposals ? payload.proposals : []), ...selectedProposals],
+    proposals: [...(includeModelProposals ? payload.proposals ?? [] : []), ...selectedProposals],
     ...(followUp ? { followUp: questionFromFollowUp(followUp, crypto.randomUUID()) } : {}),
     ...(recommendationBlock ? { recommendationCandidates: recommendationBlock } : {}),
     referencedItemIds: output.referencedItemIds,
@@ -295,11 +314,11 @@ export default async function handler(req, res, deps = {}) {
   if (!validation.valid) return fail(res, 400, 'INVALID_REQUEST');
   const selected = selectedChoiceProposals(body);
   if (!selected.valid) return fail(res, 400, 'INVALID_REQUEST');
-  const includeModelProposals = body.userTurn.kind !== 'recommendation_choice'
-    && !hasExplicitRecommendationRequest(body.userTurn.text);
+  const task = body.userTurn.kind === 'text' && hasExplicitRecommendationRequest(body.userTurn.text) ? RECOMMENDATION_TASK : TASK;
+  const includeModelProposals = task === TASK && body.userTurn.kind !== 'recommendation_choice';
 
-  const definition = getPromptDefinition(TASK);
-  const prepared = prepareTurn(body, definition);
+  const definition = getPromptDefinition(task);
+  const prepared = prepareTurn(body, definition, task);
   let store;
   let key;
   let attemptId = body.attemptId;
@@ -410,14 +429,14 @@ export default async function handler(req, res, deps = {}) {
             }
           }
           output = await (deps.requestStructuredOutput || requestStructuredOutput)({
-            name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''),
-            schema: schemas.envelopes[TASK],
+            name: definition.promptId.replaceAll('.', '_').replace(/_v\d+$/, ''),
+            schema: schemas.envelopes[task],
             messages,
             signal: cancellation.signal,
             model: prepared.metadata.resolvedModel,
-            reasoningEffort: aiModelRegistry.tasks[TASK].reasoning,
-            maxOutputTokens: aiModelRegistry.tasks[TASK].maxOutputTokens,
-            timeoutMs: aiModelRegistry.tasks[TASK].timeoutMs,
+            reasoningEffort: aiModelRegistry.tasks[task].reasoning,
+            maxOutputTokens: aiModelRegistry.tasks[task].maxOutputTokens,
+            timeoutMs: aiModelRegistry.tasks[task].timeoutMs,
           });
         } catch (error) {
           if (error?.code === 'AI_INVALID_OUTPUT' || error instanceof SyntaxError) {
@@ -428,24 +447,31 @@ export default async function handler(req, res, deps = {}) {
           throw error;
         }
         if (cancellation.signal.aborted) return finishCancellation();
-        const validatedOutput = includeModelProposals
-          ? output
-          : { ...output, payload: { ...output?.payload, proposals: [] } };
-        const schemaResult = validateSchema(schemas.envelopes[TASK], validatedOutput);
+        const validatedOutput = task === TASK && !includeModelProposals
+          ? { ...output, payload: { ...output?.payload, proposals: [] } }
+          : output;
+        const schemaResult = validateSchema(schemas.envelopes[task], validatedOutput);
         const metadataResult = validateResponseMetadata(output, {
-          task: TASK, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion,
+          task, promptVersion: definition.promptVersion, schemaVersion: definition.schemaVersion,
           designRevision: body.projectSummary.designRevision,
         });
         const references = validateReferences(validatedOutput, manifest, targetContext);
         referenceValidationErrors = references.errors;
-        const domainResult = validateTurnAnalyzeV4(validatedOutput.payload, body.userTurn);
-        const choiceTargets = validateProposalTargets(proposalsInChoices(validatedOutput.payload), targetContext);
+        const domainResult = task === RECOMMENDATION_TASK
+          ? validateOptionRecommendV2(validatedOutput.payload, body.userTurn)
+          : validateTurnAnalyzeV5(validatedOutput.payload);
+        const taskProposals = task === RECOMMENDATION_TASK
+          ? (Array.isArray(validatedOutput.payload?.recommendations) ? validatedOutput.payload.recommendations : []).map(recommendationProposalDraft)
+          : proposalsInChoices(validatedOutput.payload);
+        const choiceTargets = validateProposalTargets(taskProposals, targetContext);
+        const taskPayloads = validateProposalPayloads(taskProposals);
         const failedValidation = [
           ['schema', schemaResult],
           ['metadata', metadataResult],
           ['references', references],
           ['domain', domainResult],
           ['proposal_targets', choiceTargets],
+          ['proposal_payloads', taskPayloads],
         ].find(([, result]) => !result.valid);
         validationError = failedValidation?.[1].errors ?? null;
         validationFailureStage = failedValidation?.[0] ?? undefined;

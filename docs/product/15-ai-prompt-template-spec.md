@@ -4,9 +4,9 @@
 
 이 문서는 각 `AiTaskType`이 사용할 실제 prompt template의 역할, 변수, 금지 규칙과 기본 문구를 정의한다. 구현자는 의미를 임의 변경하지 않고 versioned Prompt Registry로 옮긴다. JSON Schema는 [프롬프트·응답 계약](13-prompt-and-response-contracts.md)을 따른다.
 
-> **현재 대화 runtime:** `TURN_ANALYZE`는 prompt v5와 schema `turn.analyze.v4` (schema v4)를 사용해 자유 turn을 현재 context에 근거해 분석한다. Schema v1~v3는 registry에 남아 있는 이전 response shape이고 새 turn에는 사용되지 않는다. `QUESTION_COMPOSE`와 `OPTION_RECOMMEND`는 별도 registry task다. 자유 대화의 질문 순서와 recommendation 후보는 이들 task 또는 catalog가 결정하지 않는다.
+> **현재 대화 runtime:** 자유 turn은 `TURN_ANALYZE` prompt v6/schema `turn.analyze.v5`, 명시적 추천 요청은 `OPTION_RECOMMEND` prompt/schema v2를 사용한다. 이전 schema 버전은 registry 호환 및 회귀 검증용으로 유지한다. 자유 대화의 질문 순서는 `QUESTION_CATALOG`에 종속되지 않는다.
 
-v5 prompt는 schema `turn.analyze.v4`를 사용한다. 자유 입력, 대화 context, confirmed design, 그리고 허용된 source excerpt에 근거해 자연스러운 응답과 pending proposal을 만든다. 필요한 경우에만 질문 하나를 만들며, 질문과 선택지 내용은 현재 context에서 생성한다. 선택 UI renderer type은 strict allowlist를 사용한다. 명시적 recommendation 요청에 근거가 충분할 때는 정확히 11개의 후보를 반환하고, 근거가 부족하면 후보를 임의로 채우지 않고 필요한 맥락을 묻는다. 대화 proposal target은 `design_item`과 `acceptance_criterion`으로 제한하고 `document_section` 변경은 별도 문서 작업에서만 처리한다. `design_item` create proposal은 유효한 `after.type`, 비어 있지 않은 `after.title`과 `after.description`을 포함하고 허용된 설계 필드만 사용한다. `priority`는 `must`/`should`/`could`/`wont`, `confidence`는 0~1, `attributes`는 object, `relatedItemIds`는 현재 context ID 배열, `acceptanceCriteria`는 `{text}` 배열이며 `parentId`는 현재 context의 item ID다. `acceptance_criterion`의 `after`는 비어 있지 않은 `text`만 포함한다. `summary`와 `status`는 `after`에 포함하지 않는다. Prompt/schema는 임의 markup/code/component/action/ID를 금지한다. model profile과 budget은 변경하지 않는다.
+`TURN_ANALYZE` prompt v6/schema v5는 자유 입력, 대화 context, confirmed design, 허용된 source excerpt에 근거해 자연스러운 응답과 pending proposal을 만든다. 필요한 경우에만 질문 하나를 만들며 질문과 선택지 내용은 현재 context에서 생성한다. 추천 후보는 이 task에서 만들지 않고 별도 `OPTION_RECOMMEND` task가 처리한다. 선택 UI renderer type은 strict allowlist를 사용한다. 대화 proposal target은 `design_item`과 `acceptance_criterion`으로 제한하고 `document_section` 변경은 별도 문서 작업에서만 처리한다. `design_item` create proposal은 유효한 `after.type`, 비어 있지 않은 `after.title`과 `after.description`을 포함하고 허용된 설계 필드만 사용한다. `priority`는 `must`/`should`/`could`/`wont`, `confidence`는 0~1, `attributes`는 object, `relatedItemIds`는 현재 context ID 배열, `acceptanceCriteria`는 `{text}` 배열이며 `parentId`는 현재 context의 item ID다. `acceptance_criterion`의 `after`는 비어 있지 않은 `text`만 포함한다. `summary`와 `status`는 `after`에 포함하지 않는다. Prompt/schema는 임의 markup/code/component/action/ID를 금지한다. model profile과 budget은 변경하지 않는다.
 
 ## 공통 작성 규칙
 
@@ -112,7 +112,7 @@ USER_INPUT:
 - returnToQuestionId는 현재 questionId와 같아야 한다.
 ```
 
-## `TURN_ANALYZE` — prompt `v5`, schema `turn.analyze.v4` (`v4`)
+## `TURN_ANALYZE` — prompt `v6`, schema `turn.analyze.v5` (`v5`)
 
 사용자의 최신 자유 turn, 대화 context, confirmed design, 허용된 자료 발췌에서 자연스러운 대화 응답과 설계 변경 후보를 추출한다. 일반 turn을 질문 catalog 순서에 종속시키지 않는다.
 
@@ -122,13 +122,12 @@ Provider payload의 필드는 다음과 같다:
 - `proposals`: 최대 8개의 atomic proposal draft.
 - `answerInterpretation`: 선택적 `directAnswer`, 그리고 `additionalFacts`와 `ambiguities` 배열.
 - `followUp` (선택): 질문 하나의 `componentType`, `topic`, `prompt`, 선택적 `help`/`options`, 허용 동작과 `targetItemTypes`.
-- `recommendations` (선택): 명시적 추천 요청에 충분한 근거가 있을 때 반환하는 후보 배열. 각 후보는 title, rationale, tradeoffs, assumptions, evidence와 proposal을 포함한다.
 
 규칙:
 
 - 한 proposal은 대상 하나와 create/update/delete 의도 하나만 가진다.
 - follow-up의 renderer `componentType`은 `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm` 중 하나다. 질문과 option 내용은 현재 context에서 생성하며, model이 question ID나 stable ID를 만들지 않는다.
-- recommendation 요청에서만 정확히 11개의 서로 다른 후보를 반환한다. 근거가 부족하면 `recommendations`를 생략하고 필요한 맥락을 묻는 `followUp`을 작성한다.
+- recommendation 후보는 이 task에서 반환하지 않는다. 명시적 요청은 `OPTION_RECOMMEND`로 dispatch한다.
 - message/source/evidence 참조는 전달된 request context 안의 값만 사용한다. 파일 근거는 전달된 request-local excerpt ID만 인용하고, excerpt는 제공된 연속 문구를 그대로 복사한다.
 - `referencedItemIds`, `affectedItemIds`, `relatedItemIds`, `parentId`, `targetId`는 실제 `confirmedDesignItems`에 제공된 ID만 사용한다. 새 항목의 ID를 추측하거나 같은 응답에서 생성될 다른 proposal을 참조하지 않는다. 새 design item에 연결할 기존 항목이 없으면 `affectedItemIds`/`relatedItemIds`는 빈 배열로, `parentId`는 생략한다.
 - `design_item`의 `after.type`은 `product_definition`, `problem`, `goal`, `user_role`, `scenario`, `scope`, `out_of_scope`, `requirement`, `constraint`, `technical_decision`, `success_metric`, `risk`, `open_issue` 중 하나다. `acceptanceCriteria`는 생략하거나 비어 있지 않은 `text`만 있는 `{text}` 객체 배열로 반환한다. 문자열 배열은 허용하지 않는다.
@@ -136,23 +135,26 @@ Provider payload의 필드는 다음과 같다:
 - 사용자가 제공하지 않은 내용을 채우거나 후보를 임의로 padding하지 않는다. proposal, 선택, 추천을 confirmed로 표시하지 않는다.
 - 다음 질문 순서, readiness, 승인, persisted state, process state, Requirements/PRD 상태 또는 document action을 결정하지 않는다.
 
-## `OPTION_RECOMMEND` — `option.recommend.v1`
+## `OPTION_RECOMMEND` — prompt/schema `v2`
 
 ```text
-현재 질문의 허용 선택지 중 confirmed 설계에 가장 잘 맞는 값을 추천한다.
+사용자가 명시적으로 추천을 요청한 경우, 현재 대화와 설계 및 허용된 자료에서 근거를 찾아 구별되는 후보 11개를 만든다.
 
 판단 순서:
-1. 질문의 결정 목적을 확인한다.
-2. 관련 confirmed 목표, 사용자, 기능과 제약을 근거로 비교한다.
-3. 근거가 충분하면 추천값 하나, 이유, trade-off와 가정을 반환한다.
-4. 근거가 부족하면 추천값을 만들지 않고 필요한 정보와 이유를 반환한다.
+1. 사용자 요청과 confirmed design에서 추천 목적과 제약을 확인한다.
+2. 현재 user-authored messages와 request-local file excerpts에서 후보별 evidence를 찾는다.
+3. 근거가 충분하면 정확히 11개의 서로 다른 간결한 후보를 반환한다. 각 후보는 title, rationale, 최대 2개 trade-offs, 최대 2개 assumptions, 최대 2개 evidence와 선택 후 제안으로 만들 designItem(type, title, description)을 가진다.
+4. 근거가 부족하면 빈 recommendations와 필요한 맥락을 묻는 contextual followUp을 반환한다.
 
 규칙:
-- 허용된 stable value 밖의 값을 반환하지 않는다.
+- 자유 문장에 없는 제품 사실을 만들지 않는다. 후보는 고정 목록에서 선택하지 않는다.
+- evidence는 실제 user-authored message ID 또는 현재 요청에 제공된 file excerpt ID만 사용한다.
+- 후보를 11개보다 적게 채우거나 중복된 제목으로 padding하지 않는다.
+- ID, proposal envelope, action, route, 저장 상태를 만들지 않는다. 서버가 검증 후 ID와 pending proposal draft를 만든다.
 - 추천을 확정, 선택 또는 승인으로 표시하지 않는다.
-- 장점만 나열하지 않고 최소 하나의 trade-off를 설명한다.
-- 일반론보다 현재 프로젝트의 confirmed 근거를 우선한다.
-- recommendation block과 pending proposal만 반환한다.
+- DEFAULT profile의 현재 input/output token cap을 사용한다. 더 많은 토큰을 요청하지 않고 각 후보를 짧게 쓴다.
+
+`option.recommend.v1` single-value template는 registry 호환용 legacy 형식이며 새 turn에는 dispatch하지 않는다.
 ```
 
 ## `CONTEXT_COMPACT` — `context.compact.v1`
