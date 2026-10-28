@@ -13,7 +13,7 @@ export const aiModelRegistry = Object.freeze({
   tasks: Object.freeze(Object.fromEntries(Object.entries(taskRows).map(([task,[profile,maxInputTokens,maxOutputTokens,timeoutMs=45_000]]) => [task,{profile,reasoning:'low',maxInputTokens,maxOutputTokens,timeoutMs}]))),
 });
 export const promptRegistry = Object.freeze(Object.fromEntries(Object.entries(promptIds).map(([task,id]) => {
-  const promptVersion = task === 'TURN_ANALYZE' ? 'v6' : task === 'OPTION_RECOMMEND' ? 'v4' : ['PRD_REVIEW', 'CONSISTENCY_REVIEW'].includes(task) ? 'v2' : 'v1';
+  const promptVersion = task === 'TURN_ANALYZE' ? 'v6' : task === 'OPTION_RECOMMEND' ? 'v5' : ['PRD_REVIEW', 'CONSISTENCY_REVIEW'].includes(task) ? 'v2' : 'v1';
   const schemaVersion = task === 'TURN_ANALYZE' ? 'v5' : promptVersion;
   return [task, Object.freeze({ task, promptId:id, promptVersion, schemaId:`${id}.${schemaVersion}`, schemaVersion, modelProfile:taskRows[task][0] })];
 })));

@@ -1,5 +1,6 @@
 const opt = value => ({ ...value, optional: true });
 const string = { type: 'string', minLength: 1 };
+const boundedString = (maxLength) => ({ type: 'string', pattern: `^.{1,${maxLength}}$` });
 const strings = { type: 'array', items: string };
 const enumeration = (...values) => ({ type: 'string', enum: values });
 const object = (props, required = Object.keys(props).filter(key => props[key]?.optional !== true)) => ({
@@ -55,6 +56,29 @@ const recommendationCandidateV4 = object({
   d: string,
 });
 const optionRecommendV4 = object({ m: string, r: { type: 'array', items: recommendationCandidateV4, minItems: 0, maxItems: 11 }, f: opt(followUpDraft) });
+const recommendationCandidateV5 = object({
+  t: boundedString(12),
+  r: boundedString(20),
+  x: array(boundedString(12), 1),
+  a: array(boundedString(12), 1),
+  e: object({ s: enumeration('message', 'file'), i: boundedString(36) }),
+  k: designItemTypes,
+  d: boundedString(20),
+});
+const recommendationFollowUpOptionV5 = object({ value: boundedString(40), label: boundedString(40), description: opt(boundedString(100)), recommended: opt({ type: 'boolean' }), recommendationReason: opt(boundedString(80)) }, ['value', 'label']);
+const recommendationFollowUpV5 = object({
+  componentType: enumeration('single_choice', 'multiple_choice', 'free_text', 'number', 'range', 'rank', 'confirm'),
+  topic: boundedString(60),
+  prompt: boundedString(160),
+  help: opt(boundedString(120)),
+  options: opt(array(recommendationFollowUpOptionV5, 6)),
+  required: { type: 'boolean' },
+  allowCustomAnswer: { type: 'boolean' },
+  allowUnknown: { type: 'boolean' },
+  allowDefer: { type: 'boolean' },
+  targetItemTypes: array(designItemTypes, 13),
+});
+const optionRecommendV5 = object({ m: boundedString(24), r: { type: 'array', items: recommendationCandidateV5, minItems: 0, maxItems: 11 }, f: opt(recommendationFollowUpV5) });
 const recommendationCandidatesBlock = object({ type: { const: 'recommendation_candidates' }, id: string, candidates: array(object({ id: string, title: string, rationale: string, tradeoffs: strings, assumptions: strings, evidence: array(evidence), proposalDraft: proposal }, ['id', 'title', 'rationale', 'tradeoffs', 'assumptions', 'evidence', 'proposalDraft']), 11) });
 const displayBlock = union([...Object.values(blockTypes), recommendationCandidatesBlock]);
 const composition = object({ type: { const: 'question' }, prompt: string, help: opt(string), options: opt(array(option)) }, ['type', 'prompt']);
@@ -72,7 +96,7 @@ const turnAnalyzeV2 = object({ blocks: array(blockTypes.assistant_text, 6), prop
 const turnAnalyzeV4 = object({ assistantMessage: string, proposals: array(proposal, 8), answerInterpretation: object({ directAnswer: opt(string), additionalFacts: strings, ambiguities: strings }, ['additionalFacts', 'ambiguities']), followUp: opt(followUpDraft), recommendations: opt(recommendationCandidates) });
 const turnAnalyze = object({ assistantMessage: string, proposals: array(proposal, 8), answerInterpretation: object({ directAnswer: opt(string), additionalFacts: strings, ambiguities: strings }, ['additionalFacts', 'ambiguities']), followUp: opt(followUpDraft) });
 const tasks = {
-  QUESTION_COMPOSE: composition, QUESTION_EXPLAIN: explanationPayload, TURN_ANALYZE: turnAnalyze, OPTION_RECOMMEND: optionRecommendV4,
+  QUESTION_COMPOSE: composition, QUESTION_EXPLAIN: explanationPayload, TURN_ANALYZE: turnAnalyze, OPTION_RECOMMEND: optionRecommendV5,
   CONTEXT_COMPACT: object({ confirmedFacts: array(fact), explicitUnknowns: array(fact), rejectedDirections: array(fact), unresolvedQuestions: array(fact), sourceMessageIds: strings }),
   REQUIREMENTS_DRAFT: requirementsDraft, REQUIREMENTS_REVIEW: review, REQUIREMENTS_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }), SETUP_GUIDE_DRAFT: setupGuideDraft,
   PRD_DRAFT: prdDraft, PRD_REVIEW: prdReview, PRD_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }),
@@ -128,7 +152,7 @@ const setupGuideReadyRequest=object({confirmed:{type:'boolean'},projectId:string
 export const schemas = Object.freeze({
   displayBlock, normalizedBlocks: array(displayBlock, 6),
   tasks: Object.freeze(tasks), envelopes: Object.freeze(Object.fromEntries(Object.keys(tasks).map(task => [task, taskEnvelope(task)]))),
-  turnAnalyzeV2, turnAnalyzeV4, optionRecommendV1: recommendationPayload, optionRecommendV2, optionRecommendV3, optionRecommendV4,
+  turnAnalyzeV2, turnAnalyzeV4, optionRecommendV1: recommendationPayload, optionRecommendV2, optionRecommendV3, optionRecommendV4, optionRecommendV5,
   http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, requirementsGenerateRequest, prdGenerateRequest, setupGuideGenerateRequest, setupGuideReadyRequest, requirementsReadyRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
 });
 export function validateSchema(schema, value) {
@@ -155,6 +179,7 @@ export function validateSchema(schema, value) {
     } else if (node.type === 'string') {
       if (typeof current !== 'string') errors.push(`${path}: expected string`);
       else if (current.length < (node.minLength ?? 0)) errors.push(`${path}: minLength ${node.minLength}`);
+      else if (node.pattern && !new RegExp(node.pattern, 'u').test(current)) errors.push(`${path}: pattern mismatch`);
     } else if (node.type === 'number') {
       if (typeof current !== 'number' || !Number.isFinite(current)) errors.push(`${path}: expected number`);
     } else if (node.type === 'integer') {
