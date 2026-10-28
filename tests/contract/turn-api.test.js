@@ -58,6 +58,33 @@ test('TURN validation logs a fixed reference failure category without request da
   assert.doesNotMatch(JSON.stringify(logged), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
 });
 
+test('TURN validation logs a fixed domain failure category without model output', async () => {
+  const canary = 'model-output-canary-must-not-enter-logs';
+  const priorConsoleError = console.error;
+  const logged = [];
+  console.error = (...values) => logged.push(values);
+  try {
+    const invalidOutput = structuredClone(output);
+    invalidOutput.payload.assistantMessage = canary;
+    const requestBody = { ...body, userTurn: { id: 'm1', kind: 'text', text: '추천안을 보여주세요.' } };
+    const res = response();
+    await handler(request(requestBody), res, {
+      store: createMemoryAuthStore(),
+      requestStructuredOutput: async () => invalidOutput,
+    });
+    assert.equal(res.statusCode, 502);
+    assert.equal(res.body.error, 'AI_INVALID_OUTPUT');
+  } finally {
+    console.error = priorConsoleError;
+  }
+  assert.deepEqual(logged, [['TURN_RESPONSE_VALIDATION_FAILED', {
+    stage: 'domain',
+    attempts: 2,
+    domainFailures: ['missing_recommendation_follow_up'],
+  }]]);
+  assert.doesNotMatch(JSON.stringify(logged), new RegExp(canary));
+});
+
 test('turn endpoint records an already-aborted client request as cancelled without provider work', async () => {
   const req = request(body);
   const controller = new AbortController();
