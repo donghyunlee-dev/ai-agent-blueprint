@@ -359,10 +359,17 @@ export default async function handler(req, res, deps = {}) {
         validationAttempts = retry + 1;
         if (cancellation.signal.aborted) return finishCancellation();
         try {
+          const messages = definition.buildInput(promptInput);
+          if (retry > 0 && validationFailureStage === 'references' && referenceFailureCategories(referenceValidationErrors).includes('unknown_item_reference')) {
+            messages[1] = {
+              ...messages[1],
+              content: `${messages[1].content}\nVALIDATION RETRY: The previous response included an item ID that was not provided in TYPED_CONTEXT_JSON. Use only IDs from confirmedDesignItems. For new design items, leave affectedItemIds and relatedItemIds empty unless they contain existing context IDs, omit parentId unless it is an existing context ID, and do not reference IDs from newly proposed items.`,
+            };
+          }
           output = await (deps.requestStructuredOutput || requestStructuredOutput)({
             name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''),
             schema: schemas.envelopes[TASK],
-            messages: definition.buildInput(promptInput),
+            messages,
             signal: cancellation.signal,
             timeoutMs: aiModelRegistry.tasks[TASK].timeoutMs,
           });
