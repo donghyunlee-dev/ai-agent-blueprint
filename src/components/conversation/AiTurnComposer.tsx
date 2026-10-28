@@ -109,7 +109,7 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
     pendingTurnRef.current = null;
     setDraft(''); setConfirmedUnknownJobId(null);
   }
-  async function reconcileAbortedTurn(nextJob: GenerationJob, logicalRequestId: string) {
+  async function reconcileAbortedTurn(nextJob: GenerationJob, logicalRequestId: string, sourceExcerpts: {id:string;sourceId:string;text:string;location?:string}[] = []) {
     let outcome: any = null;
     let lookupFailed = false;
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -144,7 +144,7 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
     }
     if (status === 'succeeded' && outcome?.result) {
       try {
-        await applyTurnResult(outcome.result, nextJob, logicalRequestId);
+        await applyTurnResult(outcome.result, nextJob, logicalRequestId, sourceExcerpts);
       } catch {
         await persistJobStatus({...nextJob,status:'failed',errorCode:'AI_INVALID_OUTPUT',finishedAt:new Date().toISOString()});
         setError('완료된 응답을 표시할 수 없습니다. 프로젝트 상태는 변경하지 않았습니다.');
@@ -181,13 +181,13 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
         else if (receivedLedgerEntries) {
           await persistJobStatus({...nextJob,status:'cancelled',errorCode:'AI_CANCELLED',finishedAt:new Date().toISOString()});
           setError('요청을 취소했습니다. 초안은 유지됩니다.');
-        } else await reconcileAbortedTurn(nextJob, logicalRequestId);
+        } else await reconcileAbortedTurn(nextJob, logicalRequestId, sourceExcerpts);
         return;
       }
       await applyTurnResult(data, nextJob, logicalRequestId, sourceExcerpts);
     } catch (cause) {
       if (controller.signal.aborted || cause instanceof TypeError || (cause instanceof Error && cause.name === 'AbortError')) {
-        await reconcileAbortedTurn(nextJob, logicalRequestId);
+        await reconcileAbortedTurn(nextJob, logicalRequestId, sourceExcerpts);
       } else {
         await persistJobStatus({...nextJob,status:'failed',errorCode:'AI_INVALID_OUTPUT',finishedAt:new Date().toISOString()});
         setError(cause instanceof Error && cause.message === 'AI_INVALID_OUTPUT' ? 'AI 응답을 표시할 수 없습니다. 프로젝트 상태는 변경하지 않았습니다.' : '요청을 완료하지 못했습니다. 초안은 유지됩니다.');

@@ -632,3 +632,78 @@ test('applies a completed server result recovered after the response body is abo
   expect(saved.messages).toContainEqual(expect.objectContaining({logicalRequestId:requestBody.logicalRequestId,content:assistantMessage}));
   expect(saved.generationJobs).toContainEqual(expect.objectContaining({logicalRequestId:requestBody.logicalRequestId,status:'succeeded'}));
 });
+
+test('persists file-backed proposals when a completed turn is recovered after body abort',async({page})=>{
+  await page.addInitScript(()=>{
+    const state=window as any;
+    let resolveResponseReady:()=>void=()=>{};
+    state.__turnResponseReady=new Promise<void>((resolve)=>{resolveResponseReady=resolve;});
+    const originalFetch=window.fetch.bind(window);
+    window.fetch=async(input,init)=>{
+      const response=await originalFetch(input,init);
+      const url=typeof input==='string'?input:input instanceof Request?input.url:input.url;
+      if(url.includes('/api/blueprint/turn')&&(init?.method??'GET')==='POST'){
+        response.json=async()=>{
+          resolveResponseReady();
+          await new Promise<never>((_resolve,reject)=>{
+            if(init?.signal?.aborted){reject(new DOMException('The request was aborted.','AbortError'));return;}
+            init?.signal?.addEventListener('abort',()=>reject(new DOMException('The request was aborted.','AbortError')),{once:true});
+          });
+        };
+      }
+      return response;
+    };
+  });
+  const sourceId='recovery-policy-source';
+  const quote='회의 예약 취소는 시작 두 시간 전까지 가능합니다.';
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  const ownerKey=await deriveOwnerKey(identity);
+  const now=new Date().toISOString();
+  const source={id:sourceId,projectId,fileName:'예약 정책.md',mediaType:'text/markdown',size:quote.length,extractionStatus:'ready',extractedText:quote,preview:quote,textHash:'recovery-policy-hash',createdAt:now};
+  await page.evaluate(async({databaseName,projectId,source})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    const tx=db.transaction('projects','readwrite');
+    const store=tx.objectStore('projects');
+    const record=await new Promise<any>((resolve,reject)=>{const request=store.get(projectId);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    store.put({...record,sources:[source]});
+    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});
+    db.close();
+  },{databaseName:databaseNameForOwner(ownerKey),projectId,source});
+  await page.reload();
+
+  let postBody:any;
+  let statusRead=false;
+  const assistantMessage='첨부한 예약 정책을 기준으로 취소 가능 시간을 제안합니다.';
+  const proposal={operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 취소 제한',description:'회의 시작 두 시간 전까지만 예약을 취소할 수 있습니다.'},rationale:'첨부 자료에 명시된 취소 기준입니다.',evidence:[],affectedItemIds:[]};
+  await page.route(/\/api\/blueprint\/turn(?:\?.*)?$/,async(route)=>{
+    if(route.request().method()==='GET'){
+      statusRead=true;
+      const excerpt=postBody.sources.find((item:any)=>item.text===quote);
+      await route.fulfill({status:200,json:{status:'succeeded',result:{assistantMessage,proposals:[{...proposal,evidence:[{sourceType:'file',sourceId:excerpt.id,excerpt:quote}]}],referencedItemIds:[],referencedSourceIds:[]},requestLedgerEntries:[]}});
+      return;
+    }
+    postBody=route.request().postDataJSON();
+    await route.fulfill({status:200,json:{assistantMessage:'POST 본문이 중단됐습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}});
+  });
+
+  await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('첨부한 회의 예약 취소 기준을 정리해 주세요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  await page.evaluate(async()=>await (window as any).__turnResponseReady);
+  await page.getByRole('button',{name:'AI 요청 취소'}).click();
+
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:assistantMessage})).toBeVisible();
+  expect(statusRead).toBe(true);
+  expect(postBody.sources).toContainEqual(expect.objectContaining({text:quote,sourceId}));
+  const saved=await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    const record=await new Promise<any>((resolve,reject)=>{const request=db.transaction('projects').objectStore('projects').get(projectId);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+    db.close();return record;
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(saved.proposals).toEqual(expect.arrayContaining([expect.objectContaining({
+    rationale:proposal.rationale,
+    status:'pending',
+    evidence:expect.arrayContaining([expect.objectContaining({sourceType:'file',sourceId,excerpt:quote,location:'문단 1'})]),
+  })]));
+  expect(saved.generationJobs).toContainEqual(expect.objectContaining({logicalRequestId:postBody.logicalRequestId,status:'succeeded'}));
+});
