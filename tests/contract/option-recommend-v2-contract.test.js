@@ -54,13 +54,15 @@ test('OPTION_RECOMMEND v3 remains registered for response-contract compatibility
   assert.equal(validateOptionRecommendV3({ ...payload, recommendations: payload.recommendations.slice(0, 10) }, { text: requestText }).valid, false);
 });
 
-test('TURN_ANALYZE v5 rejects recommendation candidates so explicit requests use the separate task', () => {
+test('TURN_ANALYZE preserves v5 while active v6 rejects recommendation candidates', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
-  assert.equal(prompt.promptVersion, 'v6');
-  assert.equal(prompt.schemaVersion, 'v5');
-  assert.equal(getSchemaDefinition('turn.analyze.v5', 'v5'), prompt.schema);
+  assert.equal(prompt.promptVersion, 'v7');
+  assert.equal(prompt.schemaVersion, 'v6');
+  const legacySchema = getSchemaDefinition('turn.analyze.v5', 'v5');
+  assert.notEqual(legacySchema, prompt.schema);
   const valid = { assistantMessage: '확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } };
   assert.equal(validateTurnAnalyzeV5(valid).valid, true);
   assert.equal(validateTurnAnalyzeV5({ ...valid, recommendations: [] }).valid, false);
-  assert.equal(prompt.validateDomain({ ...valid, recommendations: [] }, { manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] }, targetContext: { designItems: [] } }).valid, false);
+  assert.equal(validateSchema(legacySchema, valid).valid, true);
+  assert.equal(validateSchema(prompt.schema, { m: '확인했습니다.', p: [], recommendations: [] }).valid, false);
 });

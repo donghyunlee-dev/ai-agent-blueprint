@@ -184,7 +184,7 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
   await draft.fill('네트워크 결과가 불명확해도 유지할 입력입니다.');
   await sendButton.click();
   await page.getByRole('button', { name: '동의하고 계속' }).click();
-  await expect(page.locator('.ai-unknown-recovery')).toContainText('24시간 tombstone');
+  await expect(page.locator('.ai-unknown-recovery')).toContainText('24시간 동안 잠급니다');
   await expect(draft).toHaveValue('네트워크 결과가 불명확해도 유지할 입력입니다.');
   await expect(sendButton).toBeDisabled();
   expect(calls).toBe(1);
@@ -195,7 +195,7 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
   await expect(sendButton).toBeEnabled();
   await sendButton.click();
   await expect.poll(()=>calls).toBe(2);
-  await expect(page.locator('.ai-unknown-recovery')).toContainText('24시간 tombstone');
+  await expect(page.locator('.ai-unknown-recovery')).toContainText('24시간 동안 잠급니다');
   expect(calls).toBe(2);
   await page.clock.fastForward(24*60*60*1000+1000);
   await expect(confirmation).toBeVisible();
@@ -211,7 +211,15 @@ test('AI_REQUEST_UNKNOWN blocks new intents for 24 hours and then requires curre
 
 test('canceling an in-flight turn aborts it, keeps its draft, and renders no partial response', async ({ page }) => {
   let requests=0;
-  await page.route('**/api/blueprint/turn', async (route) => { requests++; await new Promise((resolve)=>setTimeout(resolve,4000)); await route.fulfill({status:200,json:{assistantMessage:'부분 응답은 보이면 안 됩니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}}).catch(()=>{}); });
+  await page.route(/\/api\/blueprint\/turn(?:\?.*)?$/, async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({status:404,json:{error:'TURN_NOT_FOUND'}});
+      return;
+    }
+    requests++;
+    await new Promise((resolve)=>setTimeout(resolve,4000));
+    await route.fulfill({status:200,json:{assistantMessage:'부분 응답은 보이면 안 됩니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[]}}).catch(()=>{});
+  });
   await page.goto(`/blueprints/${projectId}#conversation`);
   const draft=page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' });
   await draft.fill('취소할 요청의 원문 초안입니다.');
@@ -221,7 +229,7 @@ test('canceling an in-flight turn aborts it, keeps its draft, and renders no par
   await page.locator('.conversation-job-status').last().getByRole('button', { name: '작업 취소' }).click();
   await expect(draft).toHaveValue('취소할 요청의 원문 초안입니다.');
   await expect(page.getByText('부분 응답은 보이면 안 됩니다.')).toHaveCount(0);
-  await expect(page.getByRole('alert')).toContainText('요청을 취소했습니다');
+  await expect(page.locator('p[role="alert"]')).toContainText('요청을 취소했습니다');
 });
 
 

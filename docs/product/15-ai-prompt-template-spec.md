@@ -4,11 +4,11 @@
 
 이 문서는 각 `AiTaskType`이 사용할 실제 prompt template의 역할, 변수, 금지 규칙과 기본 문구를 정의한다. 구현자는 의미를 임의 변경하지 않고 versioned Prompt Registry로 옮긴다. JSON Schema는 [프롬프트·응답 계약](13-prompt-and-response-contracts.md)을 따른다.
 
-> **현재 대화 runtime:** 자유 turn은 `TURN_ANALYZE` prompt v6/schema `turn.analyze.v5`, 명시적 추천 요청은 `OPTION_RECOMMEND` prompt/schema v6를 사용한다. 추천 schema v1~v5는 registry 호환 및 회귀 검증용으로 유지한다. 자유 대화의 질문 순서는 `QUESTION_CATALOG`에 종속되지 않는다.
+> **현재 대화 runtime:** 자유 turn은 `TURN_ANALYZE` prompt v7/schema `turn.analyze.v6`, 명시적 추천 요청은 `OPTION_RECOMMEND` prompt/schema v7을 사용한다. 추천은 대화에서 얻은 근거를 바탕으로 4·4·3 후보를 순차 생성하고, 각 provider 호출은 별도 예산 기록으로 남긴다. 이전 대화 schema와 추천 schema v1~v6는 registry 호환 및 회귀 검증용으로 유지한다. 자유 대화의 질문 순서는 `QUESTION_CATALOG`에 종속되지 않는다.
 
-`OPTION_RECOMMEND` v6는 기존 provider envelope를 사용하되 중복 최상위 참조와 경고 배열을 빈 배열로 제한한다. 후보별 evidence는 유지하고 요청 manifest에 따라 서버가 검증한다. 11개 후보의 compact 문자열 제한은 출력 크기를 줄이기 위한 계약이며, 모델 tokenization이나 reasoning 사용량을 보장하지 않으므로 실제 provider 반복 검증이 필요하다.
+`OPTION_RECOMMEND` v7은 기존 provider envelope를 사용하되 중복 최상위 참조와 경고 배열을 빈 배열로 제한한다. 한 호출은 최대 4개만 출력하며, server가 4·4·3 순서를 전달하고 앞서 만든 제목을 제외하도록 지시한다. 첫 호출에서 근거가 부족하면 빈 후보와 contextual follow-up을 반환하고 나머지 호출은 실행하지 않는다. 충분한 context에서는 모든 묶음이 통과한 뒤에만 정확히 11개를 표시한다. 각 dispatch의 input/output 추정치와 비용을 budget 검사에 반영하고 request ledger에 기록한다.
 
-`TURN_ANALYZE` prompt v6/schema v5는 자유 입력, 대화 context, confirmed design, 허용된 source excerpt에 근거해 자연스러운 응답과 pending proposal을 만든다. 필요한 경우에만 질문 하나를 만들며 질문과 선택지 내용은 현재 context에서 생성한다. 추천 후보는 이 task에서 만들지 않고 별도 `OPTION_RECOMMEND` task가 처리한다. 선택 UI renderer type은 strict allowlist를 사용한다. 대화 proposal target은 `design_item`과 `acceptance_criterion`으로 제한하고 `document_section` 변경은 별도 문서 작업에서만 처리한다. `design_item` create proposal은 유효한 `after.type`, 비어 있지 않은 `after.title`과 `after.description`을 포함하고 허용된 설계 필드만 사용한다. `priority`는 `must`/`should`/`could`/`wont`, `confidence`는 0~1, `attributes`는 object, `relatedItemIds`는 현재 context ID 배열, `acceptanceCriteria`는 `{text}` 배열이며 `parentId`는 현재 context의 item ID다. `acceptance_criterion`의 `after`는 비어 있지 않은 `text`만 포함한다. `summary`와 `status`는 `after`에 포함하지 않는다. Prompt/schema는 임의 markup/code/component/action/ID를 금지한다. model profile과 budget은 변경하지 않는다.
+`TURN_ANALYZE` prompt v7/schema v6는 자유 입력, 대화 context, confirmed design, 허용된 source excerpt에 근거해 자연스러운 응답과 pending proposal을 만든다. Provider payload는 `m`(assistant text, 200자 이내), `p`(최대 8개 proposal), 선택적 `f`(follow-up)로 제한한다. Proposal은 `o/t/i/b/a/r/e/x` compact key를 사용하며 `before`/`after`는 최대 180자의 JSON object 문자열, rationale은 최대 100자, evidence는 최대 2개, affected IDs는 최대 4개다. Server가 snapshot 문자열을 parse한 뒤 기존 proposal validator로 검증하고 request-local file evidence를 복원한다. 질문은 필요할 때만 하나 만들며 options는 최대 4개이고 proposal draft를 중첩하지 않는다. 추천 후보는 이 task에서 만들지 않고 별도 `OPTION_RECOMMEND` task가 처리한다. renderer type는 strict allowlist를 사용하며 proposal target은 `design_item`과 `acceptance_criterion`으로 제한한다. `answerInterpretation`, warnings, 불필요한 참조 요약은 출력에서 제외한다. 질문 순서, 저장·승인 상태, readiness와 문서 상태는 모델이 결정하지 않는다. v5 schema는 이전 작업 호환용으로 그대로 등록한다. model profile, reasoning과 1,800 output-token cap은 변경하지 않는다.
 
 ## 공통 작성 규칙
 
@@ -114,23 +114,18 @@ USER_INPUT:
 - returnToQuestionId는 현재 questionId와 같아야 한다.
 ```
 
-## `TURN_ANALYZE` — prompt `v6`, schema `turn.analyze.v5` (`v5`)
+## `TURN_ANALYZE` — prompt `v7`, schema `turn.analyze.v6` (`v6`)
 
 사용자의 최신 자유 turn, 대화 context, confirmed design, 허용된 자료 발췌에서 자연스러운 대화 응답과 설계 변경 후보를 추출한다. 일반 turn을 질문 catalog 순서에 종속시키지 않는다.
 
-Provider payload의 필드는 다음과 같다:
-
-- `assistantMessage`: 자연스러운 한국어 응답.
-- `proposals`: 최대 8개의 atomic proposal draft.
-- `answerInterpretation`: 선택적 `directAnswer`, 그리고 `additionalFacts`와 `ambiguities` 배열.
-- `followUp` (선택): 질문 하나의 `componentType`, `topic`, `prompt`, 선택적 `help`/`options`, 허용 동작과 `targetItemTypes`.
+Provider payload는 `m`(assistantMessage, 최대 200자), `p`(최대 8개 proposal), 선택적 `f`(followUp)다. Proposal은 `o`(operation), `t`(targetType), 선택적 `i`(targetId), `b`/`a`(before/after JSON object 문자열, 각각 최대 180자), `r`(rationale, 최대 100자), `e`(최대 2개의 `{s: sourceType, i: sourceId}`), `x`(최대 4개 affectedItemIds)만 쓴다. Follow-up options는 최대 4개며 proposal draft를 포함하지 않는다. 사용하지 않는 interpretation/warning/참조 요약 필드는 생성하지 않는다.
 
 규칙:
 
 - 한 proposal은 대상 하나와 create/update/delete 의도 하나만 가진다.
 - follow-up의 renderer `componentType`은 `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm` 중 하나다. 질문과 option 내용은 현재 context에서 생성하며, model이 question ID나 stable ID를 만들지 않는다.
 - recommendation 후보는 이 task에서 반환하지 않는다. 명시적 요청은 `OPTION_RECOMMEND`로 dispatch한다.
-- message/source/evidence 참조는 전달된 request context 안의 값만 사용한다. 파일 근거는 전달된 request-local excerpt ID만 인용하고, excerpt는 제공된 연속 문구를 그대로 복사한다.
+- message/source/evidence 참조는 전달된 request context 안의 값만 사용한다. 파일 근거는 전달된 request-local excerpt ID만 인용한다. 서버가 excerpt 원문과 위치를 복원한다.
 - `referencedItemIds`, `affectedItemIds`, `relatedItemIds`, `parentId`, `targetId`는 실제 `confirmedDesignItems`에 제공된 ID만 사용한다. 새 항목의 ID를 추측하거나 같은 응답에서 생성될 다른 proposal을 참조하지 않는다. 새 design item에 연결할 기존 항목이 없으면 `affectedItemIds`/`relatedItemIds`는 빈 배열로, `parentId`는 생략한다.
 - `design_item`의 `after.type`은 `product_definition`, `problem`, `goal`, `user_role`, `scenario`, `scope`, `out_of_scope`, `requirement`, `constraint`, `technical_decision`, `success_metric`, `risk`, `open_issue` 중 하나다. `acceptanceCriteria`는 생략하거나 비어 있지 않은 `text`만 있는 `{text}` 객체 배열로 반환한다. 문자열 배열은 허용하지 않는다.
 - `TURN_ANALYZE` evidence의 `sourceType`은 `message` 또는 `file`만 허용한다. `message`는 현재 `userTurn` 또는 `user` role의 `recentMessages`에 실제로 있는 ID를, `file`은 현재 요청의 `SOURCE_EXCERPTS_UNTRUSTED_JSON`에 있는 request-local ID를 사용한다. `user_edit`와 `agent_inference`는 conversation turn evidence로 반환하지 않는다.

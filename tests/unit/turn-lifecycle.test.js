@@ -1,9 +1,28 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemoryAuthStore } from '../../api/_lib/auth-store.js';
-import { claimTurn, finishTurn, turnKey } from '../../api/_lib/turn-lifecycle.js';
+import { claimTurn, finishTurn, turnFingerprint, turnKey } from '../../api/_lib/turn-lifecycle.js';
 
 process.env.APP_SESSION_SECRET = 'turn-lifecycle-test-secret';
+
+test('turn fingerprints ignore accumulated provider accounting but retain user intent', () => {
+  const request = {
+    logicalRequestId: 'logical-request',
+    projectSummary: { projectId: 'project', designRevision: 2 },
+    userTurn: { id: 'user-turn', kind: 'text', text: '회의실 예약 문제를 해결하고 싶어요.' },
+    requestLedgerEntries: [],
+  };
+
+  assert.equal(turnFingerprint(request), turnFingerprint({
+    ...request,
+    attemptId: 'attempt-2',
+    requestLedgerEntries: [{ id: 'ledger-entry', status: 'failed' }],
+  }));
+  assert.notEqual(turnFingerprint(request), turnFingerprint({
+    ...request,
+    userTurn: { ...request.userTurn, text: '다른 요청입니다.' },
+  }));
+});
 
 test('turn claims block concurrent duplicates, allow retry after failure, and replay exact success', async () => {
   let now = 1000;
@@ -18,6 +37,8 @@ test('turn claims block concurrent duplicates, allow retry after failure, and re
   assert.equal((await claimTurn(store, key, 'different', 'attempt-2')).kind, 'conflict');
   assert.equal((await claimTurn(store, key, 'fingerprint', 'attempt-2')).kind, 'claimed');
   await finishTurn(store, key, { status: 'running', attemptId: 'attempt-2' });
+  assert.equal(await finishTurn(store, key, { status: 'running', attemptId: 'attempt-2', metadata: { dispatches: [{ batch: 1, status: 'started' }] } }), true);
+  assert.deepEqual((await store.readTurn(key)).metadata.dispatches, [{ batch: 1, status: 'started' }]);
   const result = { assistantMessage: 'ok', proposals: [], referencedItemIds: [], referencedSourceIds: [] };
   await finishTurn(store, key, { status: 'succeeded', attemptId: 'attempt-2', result });
   assert.deepEqual(await claimTurn(store, key, 'fingerprint', 'attempt-3'), { kind: 'replay', result });

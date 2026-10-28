@@ -14,7 +14,7 @@ export function evaluateGoldenFixture(fixture) {
   catch { return { pass: false, errors: [`unknown task/schema version: ${fixture.task} ${fixture.schemaVersion}`] }; }
   const schemaResult = validateSchema(schema, fixture.response);
   if (!schemaResult.valid) errors.push(...schemaResult.errors.map((error) => `schema: ${error}`));
-  const normalizedResponse = fixture.task === 'OPTION_RECOMMEND' && ['v4', 'v5', 'v6'].includes(fixture.schemaVersion)
+  const normalizedResponse = fixture.task === 'OPTION_RECOMMEND' && ['v4', 'v5', 'v6', 'v7'].includes(fixture.schemaVersion)
     ? normalizeOptionRecommendV4(fixture.response)
     : fixture.response;
   const referenceResult = validateReferences(normalizedResponse, fixture.manifest, fixture.targetContext);

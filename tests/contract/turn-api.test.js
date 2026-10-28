@@ -4,6 +4,8 @@ import { EventEmitter } from 'node:events';
 import { signSession, buildSessionCookieHeader } from '../../api/_lib/session.js';
 import { createMemoryAuthStore } from '../../api/_lib/auth-store.js';
 import handler from '../../api/blueprint/turn.js';
+import { createLedgerEntry, calculateEstimatedCost } from '../../src/infrastructure/ai/request-ledger.js';
+import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
 
 before(() => { process.env.APP_SESSION_SECRET = 'turn-test-secret'; });
 function response() { return { headers: {}, setHeader(k,v){this.headers[k]=v;}, end(body){this.body=JSON.parse(body);}, status(code){this.statusCode=code; return this;}, json(body){this.body=body; return this;} }; }
@@ -11,8 +13,29 @@ function request(body, authenticated = true) {
   const { value } = signSession({ issuer: 'https://accounts.google.com', subject: 'user-1' });
   return { method: 'POST', headers: { host: 'localhost:3000', origin: 'http://localhost:3000', cookie: authenticated ? buildSessionCookieHeader(value).split(';')[0] : '' }, body };
 }
+function getRequest(query, subject = 'user-1') {
+  const { value } = signSession({ issuer: 'https://accounts.google.com', subject });
+  return { method: 'GET', headers: { host: 'localhost:3000', origin: 'http://localhost:3000', cookie: buildSessionCookieHeader(value).split(';')[0] }, query };
+}
 const body = { logicalRequestId: 'logical-1234567890123456', attemptId: 'attempt-1', projectSummary: { projectId: 'p1', title: 'Test', designRevision: 0 }, userTurn: { id: 'm1', kind: 'text', text: 'hello' }, recentMessages: [], relevantDesignItems: [], sources: [] };
 const output = { task: 'TURN_ANALYZE', promptVersion: 'v6', schemaVersion: 'v5', designRevision: 0, payload: { assistantMessage: '확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
+function currentTurnAnalyzeOutput(value) {
+  if (value?.task !== 'TURN_ANALYZE' || Object.hasOwn(value.payload ?? {}, 'm')) return value;
+  const payload = value.payload ?? {};
+  const proposals = Array.isArray(payload.proposals) ? payload.proposals.map((proposal) => ({
+    o: proposal.operation, t: proposal.targetType,
+    ...(proposal.targetId ? { i: proposal.targetId } : {}),
+    ...(proposal.before !== undefined ? { b: JSON.stringify(proposal.before) } : {}),
+    ...(proposal.after !== undefined ? { a: JSON.stringify(proposal.after) } : {}),
+    r: proposal.rationale,
+    e: (proposal.evidence ?? []).map(({ sourceType, sourceId }) => ({ s: sourceType, i: sourceId })),
+    x: proposal.affectedItemIds ?? [],
+  })) : payload.proposals;
+  return {
+    ...value, promptVersion: 'v7', schemaVersion: 'v6',
+    payload: { m: payload.assistantMessage, p: proposals, ...(payload.followUp ? { f: payload.followUp } : {}) },
+  };
+}
 function currentRecommendationOutput(value) {
   if (value?.task !== 'OPTION_RECOMMEND' || Object.hasOwn(value.payload ?? {}, 'm')) return value;
   const payload = value.payload ?? {};
@@ -30,8 +53,8 @@ function currentRecommendationOutput(value) {
     : payload.recommendations;
   return {
     ...value,
-    promptVersion: 'v6',
-    schemaVersion: 'v6',
+    promptVersion: 'v7',
+    schemaVersion: 'v7',
     payload: {
       m: shortText(payload.assistantMessage, 12),
       r: recommendations,
@@ -43,7 +66,19 @@ async function runHandler(req, res, deps = {}) {
   if (typeof deps.requestStructuredOutput !== 'function') return handler(req, res, deps);
   return handler(req, res, {
     ...deps,
-    requestStructuredOutput: async (...args) => currentRecommendationOutput(await deps.requestStructuredOutput(...args)),
+    requestStructuredOutput: async (...args) => {
+      const input = args[0];
+      let output = currentTurnAnalyzeOutput(currentRecommendationOutput(await deps.requestStructuredOutput(...args)));
+      if (output?.task === 'OPTION_RECOMMEND' && Array.isArray(output.payload?.r) && output.payload.r.length === 11) {
+        const userContent = input?.messages?.find((message) => message.role === 'user')?.content ?? '';
+        const contextText = userContent.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)?.[1];
+        const batch = contextText ? JSON.parse(contextText).recommendationBatch : undefined;
+        const start = batch?.index === 3 ? 8 : batch?.index === 2 ? 4 : 0;
+        output = { ...output, promptVersion: 'v7', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
+      }
+      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v7', schemaVersion: 'v7' };
+      return output;
+    },
   });
 }
 
@@ -59,13 +94,51 @@ test('turn endpoint requires a valid session before any provider or store side e
   assert.equal(storeCalls, 0);
 });
 
+test('turn ledger entries use the generation job ID created by the conversation UI', async () => {
+  const generationJobId = 'conversation-job-1234567890';
+  const res = response();
+  await runHandler(request({ ...body, generationJobId }), res, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async () => output,
+  });
+  assert.equal(res.statusCode, 200);
+  assert.ok(res.body.requestLedgerEntries.length > 0);
+  assert.ok(res.body.requestLedgerEntries.every((entry) => entry.generationJobId === generationJobId));
+});
+
+test('GET turn status returns the owner-scoped outcome and hides it from other users', async () => {
+  const store = createMemoryAuthStore();
+  const generationJobId = 'conversation-job-lookup-1';
+  const created = response();
+  await runHandler(request({ ...body, generationJobId }), created, { store, requestStructuredOutput: async () => output });
+  assert.equal(created.statusCode, 200);
+
+  const query = { projectId: body.projectSummary.projectId, logicalRequestId: body.logicalRequestId };
+  const own = response();
+  await handler(getRequest(query), own, { store });
+  assert.equal(own.statusCode, 200);
+  assert.equal(own.body.status, 'succeeded');
+  assert.equal(own.body.result.assistantMessage, '확인했습니다.');
+  assert.ok(own.body.requestLedgerEntries.every((entry) => entry.generationJobId === generationJobId));
+  assert.equal(Object.hasOwn(own.body, 'attemptId'), false);
+  assert.equal(Object.hasOwn(own.body, 'fingerprint'), false);
+
+  const other = response();
+  await handler(getRequest(query, 'user-2'), other, { store });
+  assert.equal(other.statusCode, 404);
+  assert.equal(other.body.error, 'TURN_NOT_FOUND');
+});
+
 test('TURN validation logs a fixed reference failure category without request data', async () => {
-  const canary = 'private-user-text-should-never-enter-server-logs';
+  const canary = 'private-source-12345678901234567890';
   const priorConsoleError = console.error;
   const logged = [];
   console.error = (...values) => logged.push(values);
   try {
-    const invalidOutput = { ...output, referencedSourceIds: [canary] };
+    const invalidOutput = { ...output, payload: { ...output.payload, proposals: [{
+      operation: 'create', targetType: 'design_item', after: { type: 'requirement', title: '근거 확인', description: '요청 자료를 확인합니다.' },
+      rationale: '자료에 근거합니다.', evidence: [{ sourceType: 'file', sourceId: canary }], affectedItemIds: [],
+    }] } };
     const requestBody = {
       ...body,
       userTurn: { id: 'm1', kind: 'text', text: 'conversation-text-canary-should-never-be-logged' },
@@ -85,7 +158,7 @@ test('TURN validation logs a fixed reference failure category without request da
   assert.deepEqual(logged, [['TURN_RESPONSE_VALIDATION_FAILED', {
     stage: 'references',
     attempts: 2,
-    referenceFailures: ['unknown_source_reference'],
+    referenceFailures: ['non_request_excerpt_file_evidence', 'unknown_source_reference'],
   }]]);
   assert.doesNotMatch(JSON.stringify(logged), new RegExp(canary));
   assert.doesNotMatch(JSON.stringify(logged), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
@@ -291,10 +364,10 @@ test('OPTION_RECOMMEND v6 normalizes compact model fields before grounding and p
   assert.equal(res.body.proposals.length, 0);
 });
 
-test('OPTION_RECOMMEND v6 retries output that violates provider-enforced field length patterns', async () => {
+test('OPTION_RECOMMEND v7 retries output that violates provider-enforced field length patterns', async () => {
   const calls = [];
   const baseOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v6', schemaVersion: 'v6', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v7', schemaVersion: 'v7', designRevision: 0,
     payload: {
       m: '추천안',
       r: Array.from({ length: 11 }, (_, index) => ({
@@ -307,13 +380,13 @@ test('OPTION_RECOMMEND v6 retries output that violates provider-enforced field l
   const invalidOutput = { ...baseOutput, payload: { ...baseOutput.payload, m: '추천안'.repeat(9) } };
   const requestBody = { ...body, logicalRequestId: 'logical-recommend-v6-limit-123', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약 11개 추천안을 보여주세요.' } };
   const res = response();
-  await handler(request(requestBody), res, {
+  await runHandler(request(requestBody), res, {
     store: createMemoryAuthStore(),
     requestStructuredOutput: async (input) => { calls.push(input); return calls.length === 1 ? invalidOutput : baseOutput; },
   });
 
   assert.equal(res.statusCode, 200, JSON.stringify(res.body));
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 4);
   assert.equal(res.body.assistantMessage, '추천안');
   assert.equal(res.body.recommendationCandidates.candidates.length, 11);
 });
@@ -339,13 +412,64 @@ test('explicit recommendation requests use OPTION_RECOMMEND and normalize compac
   });
 
   assert.equal(res.statusCode, 200, `${JSON.stringify(res.body)} calls=${calls.length} name=${calls[0]?.name ?? 'none'}`);
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 3);
   assert.equal(calls[0].name, 'option_recommend');
   assert.equal(calls[0].maxOutputTokens, 2000);
+  assert.deepEqual(calls.slice(0, 3).map((call) => JSON.parse(call.messages[2].content.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)[1]).recommendationBatch.expectedCount), [4, 4, 3]);
   assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   assert.equal(res.body.proposals.length, 0);
+  assert.deepEqual(res.body.requestLedgerEntries.map((entry) => entry.status), ['succeeded', 'succeeded', 'succeeded']);
+  assert.deepEqual(res.body.requestLedgerEntries.map((entry) => entry.estimatedOutputTokens), [2000, 2000, 2000]);
+  const secondBatchContext = JSON.parse(calls[1].messages[2].content.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)[1]);
+  assert.equal(secondBatchContext.recommendationBatch.previousTitles.length, 4);
   assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.after.type, 'requirement');
   assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.evidence[0].sourceId, 'm1');
+});
+
+test('OPTION_RECOMMEND stops before a later batch when cumulative call budget is exhausted', async () => {
+  const requestLedgerEntries = Array.from({ length: 38 }, (_, index) => {
+    const resolvedModel = aiModelRegistry.profiles.DEFAULT.model;
+    return createLedgerEntry({
+      id: `ledger-${index}`, projectId: 'p1', generationJobId: `job-${index}`,
+      logicalRequestId: `logical-${index}`, attemptId: `attempt-${index}`, task: 'TURN_ANALYZE',
+      promptVersion: 'v7', schemaVersion: 'v6', modelProfile: 'DEFAULT', resolvedModel,
+      reasoningEffort: aiModelRegistry.tasks.TURN_ANALYZE.reasoning, designRevision: 0,
+      estimatedInputTokens: 0, estimatedOutputTokens: 0,
+      estimatedCostUsd: calculateEstimatedCost(resolvedModel, { inputTokens: 0, outputTokens: 0 }),
+      status: 'succeeded', createdAt: new Date().toISOString(),
+    });
+  });
+  let calls = 0;
+  const res = response();
+  await runHandler(request({ ...body, requestLedgerEntries, logicalRequestId: 'logical-recommend-budget-123', userTurn: { id: 'm1', kind: 'text', text: '11개 추천안을 보여주세요.' } }), res, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async () => { calls += 1; return { task: 'OPTION_RECOMMEND', promptVersion: 'v7', schemaVersion: 'v7', designRevision: 0, payload: { m: '추천 후보입니다.', r: Array.from({ length: 11 }, (_, index) => ({ t: `대안 ${index + 1}`, r: '중복을 줄임', x: [], a: [], e: { s: 'message', i: 'm1' }, k: 'requirement', d: '예약 중복 확인' })) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] }; },
+  });
+  assert.equal(res.statusCode, 429, JSON.stringify({ body: res.body, calls }));
+  assert.equal(res.body.error, 'AI_BUDGET_EXCEEDED');
+  assert.equal(calls, 2);
+  assert.equal(res.body.requestLedgerEntries.length, 2);
+  assert.deepEqual(res.body.requestLedgerEntries.map((entry) => entry.status), ['succeeded', 'succeeded']);
+  assert.equal(res.body.recommendationCandidates, undefined);
+});
+
+test('OPTION_RECOMMEND batch failure returns dispatch accounting without a partial candidate block', async () => {
+  let calls = 0;
+  const res = response();
+  await runHandler(request({ ...body, logicalRequestId: 'logical-recommend-batch-failure-123', userTurn: { id: 'm1', kind: 'text', text: '11개 추천안을 보여주세요.' } }), res, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async () => {
+      calls += 1;
+      if (calls === 2) throw Object.assign(new Error('incomplete'), { code: 'AI_OUTPUT_INCOMPLETE' });
+      return { task: 'OPTION_RECOMMEND', promptVersion: 'v7', schemaVersion: 'v7', designRevision: 0, payload: { m: '추천 후보입니다.', r: Array.from({ length: 11 }, (_, index) => ({ t: `대안 ${index + 1}`, r: '중복을 줄임', x: [], a: [], e: { s: 'message', i: 'm1' }, k: 'requirement', d: '예약 중복 확인' })) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
+    },
+  });
+  assert.equal(res.statusCode, 502);
+  assert.equal(res.body.error, 'AI_OUTPUT_INCOMPLETE');
+  assert.equal(calls, 2);
+  assert.equal(res.body.recommendationCandidates, undefined);
+  assert.deepEqual(res.body.requestLedgerEntries.map((entry) => entry.status), ['succeeded', 'failed']);
+  assert.equal(res.body.requestLedgerEntries[1].errorCode, 'AI_OUTPUT_INCOMPLETE');
 });
 
 test('OPTION_RECOMMEND v6 keeps eleven concise candidates and derives proposal titles server-side', async () => {
@@ -414,7 +538,7 @@ test('turn endpoint retries recommendations whose proposal drafts cannot create 
   const res = response();
   await runHandler(request(requestBody), res, { store: createMemoryAuthStore(), requestStructuredOutput: async () => (++calls === 1 ? invalid : valid) });
   assert.equal(res.statusCode, 200, JSON.stringify(res.body));
-  assert.equal(calls, 2);
+  assert.equal(calls, 4);
   assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   assert.equal(res.body.recommendationCandidates.candidates.every((candidate) => candidate.proposalDraft.after.type === 'requirement' && typeof candidate.proposalDraft.after.description === 'string'), true);
 });
@@ -447,11 +571,11 @@ test('turn endpoint uses bounded correction for malformed recommendation candida
     const res = response();
     await runHandler(request({ ...body, logicalRequestId: `logical-recommend-schema-retry-${index}-123`, userTurn: { id: 'm1', kind: 'text', text: '11개 추천안을 보여주세요.' } }), res, {
       store: createMemoryAuthStore(),
-      requestStructuredOutput: async (input) => { inputs.push(input); return outputs[calls++]; },
+      requestStructuredOutput: async (input) => { inputs.push(input); return outputs[calls++] ?? outputs[1]; },
     });
     assert.equal(res.statusCode, 200, `case=${index} calls=${calls} ${JSON.stringify(res.body)}`);
-    assert.equal(calls, 2);
-    assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: The previous response did not match the required JSON schema/);
+    assert.equal(calls, 4);
+    assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: 지정된 JSON Schema를 따르고 이번 묶음에 필요한 후보만/);
     assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   }
 });
@@ -498,8 +622,7 @@ test('turn endpoint corrects unsupported evidence types and IDs on its bounded r
   await runHandler(request(body),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{calls.push(input);return calls.length===1?invalid:valid;}});
   assert.equal(res.statusCode,200,JSON.stringify(res.body));
   assert.equal(calls.length,2);
-  assert.match(calls[1].messages[1].content,/sourceType must be message or file/);
-  assert.match(calls[1].messages[1].content,/use only IDs from userTurn or user-authored recentMessages/);
+  assert.match(calls[1].messages[1].content,/previous response did not match the required JSON schema/);
   assert.equal(res.body.proposals.length,1);
 });
 
@@ -516,6 +639,26 @@ test('turn endpoint gives a bounded design-item correction after domain validati
   assert.match(calls[1].messages[1].content,/type must be one of product_definition, problem, goal, user_role/);
   assert.match(calls[1].messages[1].content,/acceptanceCriteria must be omitted or be an array of non-empty \{text: string\} objects/);
   assert.equal(res.body.proposals.length,1);
+});
+
+test('TURN_ANALYZE v6 gives a bounded correction for malformed serialized proposal snapshots', async () => {
+  const invalid = {
+    task: 'TURN_ANALYZE', promptVersion: 'v7', schemaVersion: 'v6', designRevision: 0,
+    payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: '{', r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
+    referencedItemIds: [], referencedSourceIds: [], warnings: [],
+  };
+  const valid = {
+    task: 'TURN_ANALYZE', promptVersion: 'v7', schemaVersion: 'v6', designRevision: 0,
+    payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: JSON.stringify({ type: 'requirement', title: '예약 충돌 확인', description: '겹치는 예약을 저장하지 않습니다.' }), r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
+    referencedItemIds: [], referencedSourceIds: [], warnings: [],
+  };
+  const calls = [];
+  const res = response();
+  await runHandler(request(body), res, { store: createMemoryAuthStore(), requestStructuredOutput: async (input) => { calls.push(input); return calls.length === 1 ? invalid : valid; } });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(calls.length, 2);
+  assert.match(calls[1].messages[1].content, /VALIDATION RETRY: before\/after 값은 유효한 JSON object/);
+  assert.equal(res.body.proposals.length, 1);
 });
 
 test('recommendation selection creates its pending proposal without another model call', async () => {
@@ -683,7 +826,7 @@ test('turn endpoint validates rank selections against the source card and preser
 test('turn endpoint accepts only request-local excerpt IDs as file citation IDs', async () => {
   const requestBody = { ...body, sources:[{ id:'request-excerpt', sourceId:'canonical-source', text:'계약 해지는 30일 전에 알립니다.', location:'문단 2' }] };
   const fileProposal = (sourceId) => ({ operation:'create', targetType:'design_item', after:{ type:'constraint', title:'계약 해지', description:'30일 전에 알립니다.' }, rationale:'자료에 명시됨', evidence:[{ sourceType:'file', sourceId, excerpt:'계약 해지는 30일 전에 알립니다.' }], affectedItemIds:[] });
-  const responseWithCitation = (sourceId) => ({ ...output, payload:{ ...output.payload, proposals:[fileProposal(sourceId)] }, referencedSourceIds:[sourceId] });
+  const responseWithCitation = (sourceId) => ({ ...output, payload:{ ...output.payload, proposals:[fileProposal(sourceId)] }, referencedSourceIds:[] });
 
   const invalid = response();
   let invalidCalls = 0;
@@ -766,6 +909,12 @@ test('turn endpoint rejects malformed input and maps provider timeout to stable 
   await runHandler(request(body), timedOut, { store, requestStructuredOutput: async () => { const error = new Error('timeout'); error.code = 'ETIMEDOUT'; throw error; } });
   assert.equal(timedOut.statusCode, 503);
   assert.equal(timedOut.body.error, 'AI_REQUEST_UNKNOWN');
+  const recovered = response();
+  await handler(getRequest({ projectId: body.projectSummary.projectId, logicalRequestId: body.logicalRequestId }), recovered, { store });
+  assert.equal(recovered.statusCode, 200);
+  assert.equal(recovered.body.status, 'unknown');
+  assert.equal(recovered.body.errorCode, 'AI_REQUEST_UNKNOWN');
+  assert.equal(recovered.body.requestLedgerEntries[0].status, 'unknown');
   let calls = 0;
   const retry = response();
   await runHandler(request({ ...body, attemptId: 'attempt-2' }), retry, { store, requestStructuredOutput: async () => { calls++; return output; } });
