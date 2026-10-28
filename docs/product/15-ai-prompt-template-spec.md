@@ -4,7 +4,7 @@
 
 이 문서는 각 `AiTaskType`이 사용할 실제 prompt template의 역할, 변수, 금지 규칙과 기본 문구를 정의한다. 구현자는 의미를 임의 변경하지 않고 versioned Prompt Registry로 옮긴다. JSON Schema는 [프롬프트·응답 계약](13-prompt-and-response-contracts.md)을 따른다.
 
-> **현재 대화 runtime:** 자유 turn은 `TURN_ANALYZE` prompt v6/schema `turn.analyze.v5`, 명시적 추천 요청은 `OPTION_RECOMMEND` prompt/schema v3를 사용한다. 추천 schema v1/v2는 registry 호환 및 회귀 검증용으로 유지한다. 자유 대화의 질문 순서는 `QUESTION_CATALOG`에 종속되지 않는다.
+> **현재 대화 runtime:** 자유 turn은 `TURN_ANALYZE` prompt v6/schema `turn.analyze.v5`, 명시적 추천 요청은 `OPTION_RECOMMEND` prompt/schema v4를 사용한다. 추천 schema v1/v2/v3는 registry 호환 및 회귀 검증용으로 유지한다. 자유 대화의 질문 순서는 `QUESTION_CATALOG`에 종속되지 않는다.
 
 `TURN_ANALYZE` prompt v6/schema v5는 자유 입력, 대화 context, confirmed design, 허용된 source excerpt에 근거해 자연스러운 응답과 pending proposal을 만든다. 필요한 경우에만 질문 하나를 만들며 질문과 선택지 내용은 현재 context에서 생성한다. 추천 후보는 이 task에서 만들지 않고 별도 `OPTION_RECOMMEND` task가 처리한다. 선택 UI renderer type은 strict allowlist를 사용한다. 대화 proposal target은 `design_item`과 `acceptance_criterion`으로 제한하고 `document_section` 변경은 별도 문서 작업에서만 처리한다. `design_item` create proposal은 유효한 `after.type`, 비어 있지 않은 `after.title`과 `after.description`을 포함하고 허용된 설계 필드만 사용한다. `priority`는 `must`/`should`/`could`/`wont`, `confidence`는 0~1, `attributes`는 object, `relatedItemIds`는 현재 context ID 배열, `acceptanceCriteria`는 `{text}` 배열이며 `parentId`는 현재 context의 item ID다. `acceptance_criterion`의 `after`는 비어 있지 않은 `text`만 포함한다. `summary`와 `status`는 `after`에 포함하지 않는다. Prompt/schema는 임의 markup/code/component/action/ID를 금지한다. model profile과 budget은 변경하지 않는다.
 
@@ -135,7 +135,7 @@ Provider payload의 필드는 다음과 같다:
 - 사용자가 제공하지 않은 내용을 채우거나 후보를 임의로 padding하지 않는다. proposal, 선택, 추천을 confirmed로 표시하지 않는다.
 - 다음 질문 순서, readiness, 승인, persisted state, process state, Requirements/PRD 상태 또는 document action을 결정하지 않는다.
 
-## `OPTION_RECOMMEND` — prompt/schema `v3`
+## `OPTION_RECOMMEND` — prompt/schema `v4`
 
 ```text
 사용자가 명시적으로 추천을 요청한 경우, 현재 대화와 설계 및 허용된 자료에서 근거를 찾아 구별되는 후보 11개를 만든다.
@@ -143,8 +143,8 @@ Provider payload의 필드는 다음과 같다:
 판단 순서:
 1. 사용자 요청과 confirmed design에서 추천 목적과 제약을 확인한다.
 2. 현재 user-authored messages와 request-local file excerpts에서 후보별 evidence를 찾는다.
-3. 근거가 충분하면 정확히 11개의 서로 다른 후보를 반환한다. 각 후보는 title(20자 이내), rationale(35자 이내), trade-off 0~1개(28자 이내), assumption 0~1개(25자 이내), 실제 근거 1개와 designItem(type, description 35자 이내)을 가진다. designItem title은 후보 title과 같으므로 반복하지 않는다.
-4. 근거가 부족하면 빈 recommendations와 필요한 맥락을 묻는 contextual followUp을 반환한다.
+3. 근거가 충분하면 정확히 11개의 서로 다른 후보를 반환한다. compact payload의 root key는 `m`(assistantMessage, 24자 이내), `r`(recommendations), optional `f`(followUp)다. candidate key는 `t`(title, 12자 이내), `r`(rationale, 20자 이내), `x`(trade-off 0~1개, 12자 이내), `a`(assumption 0~1개, 12자 이내), `e`({`s`: sourceType, `i`: sourceId}), `k`(designItem type), `d`(designItem description, 20자 이내)만 사용한다. 각 후보는 실제 근거 하나를 포함한다. designItem title은 후보 title과 같으므로 반복하지 않는다.
+4. 근거가 부족하면 `r: []`와 필요한 맥락을 묻는 contextual `f`를 반환한다.
 
 규칙:
 - 자유 문장에 없는 제품 사실을 만들지 않는다. 후보는 고정 목록에서 선택하지 않는다.
@@ -153,7 +153,7 @@ Provider payload의 필드는 다음과 같다:
 - ID, proposal envelope, action, route, 저장 상태를 만들지 않는다. 서버가 검증 후 ID와 pending proposal draft를 만든다.
 - 추천을 확정, 선택 또는 승인으로 표시하지 않는다.
 - assistantMessage는 70자 이내로 쓴다. 후보 이유·장단점·전제·설명은 짧은 구절로 작성한다.
-- DEFAULT profile의 기존 input/output token cap 10,000/2,000을 사용한다. cap을 높이지 않고 반복 필드를 출력하지 않는다.
+- DEFAULT profile의 기존 input/output token cap 10,000/2,000을 사용한다. cap을 높이지 않고 repeated prose, excerpt, location을 출력하지 않는다. 서버가 길이와 근거를 검증한 뒤 compact key를 기존 UI 계약으로 정규화한다.
 
 `option.recommend.v1` single-value template는 registry 호환용 legacy 형식이며 새 turn에는 dispatch하지 않는다.
 ```
