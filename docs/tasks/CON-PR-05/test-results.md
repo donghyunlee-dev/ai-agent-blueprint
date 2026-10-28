@@ -1,5 +1,21 @@
 # CON-PR-05 validation results
 
+## Current recommendation contract worktree verification — 2026-10-28
+
+The current implementation routes explicit recommendation requests to `OPTION_RECOMMEND` v2 and ordinary free turns to `TURN_ANALYZE` v5. It keeps the registered DEFAULT profile and the existing output token caps. These local checks do not prove live provider or protected Preview behavior; record those separately against the final PR HEAD.
+
+| Command | Result |
+| --- | --- |
+| `node --test tests/contract/option-recommend-v2-contract.test.js tests/contract/turn-api.test.js tests/contract/fnd-model-registry.test.js tests/unit/ai/model-registry.test.js tests/unit/ai/prompt-registry.test.js tests/unit/ai/openai-profile-routing.test.js` | 53 passed, 0 failed |
+| `npm run test:unit` | 407 passed, 0 failed |
+| `npm run test:golden` | 51/51 synthetic fixtures passed; no provider calls |
+| `npx playwright test tests/e2e/con-pr-05-conversation-flow.spec.ts tests/e2e/doc-pr-01-requirements-generation.spec.ts tests/e2e/doc-pr-02-prd-readiness.spec.ts --project=desktop-chromium --project=mobile-chromium --workers=1` | 18 passed, 0 failed; authenticated test-session fixture, deterministic API responses, no Google OAuth |
+| `npm run build` | Passed; existing >500 kB chunk-size warning |
+| `PUPPETEER_EXECUTABLE_PATH=<installed Playwright Chromium> npm run docs:check:mermaid` | 46 diagrams passed |
+| `git diff --check` | Passed |
+
+At the previously deployed Production code HEAD `178828dd76d4ce44e7f6e55a737974faa715c349`, a synthetic authenticated browser request reached `TURN_ANALYZE` and returned `AI_OUTPUT_INCOMPLETE` after 21.7 seconds. Correlated Vercel runtime logs classified it as `max_output_tokens` at the existing 1,800-token output cap. The current task split removes candidate generation from ordinary `TURN_ANALYZE`; its live success and the full document flow remain pending a protected Preview run.
+
 Base: `df54aafa654142f11348321754c749588a2fbf9a` (merged CON-PR-04, PR #63).
 
 ## Focused validation

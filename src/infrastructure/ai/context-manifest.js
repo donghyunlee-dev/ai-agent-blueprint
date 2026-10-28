@@ -49,14 +49,14 @@ export function validateReferences(response, manifest, targetContext) {
   for (const [proposalIndex,proposal] of proposals.entries()) validateEvidenceArray(proposal.evidence,`$.proposals[${proposalIndex}].evidence`);
 
   const followUpOptions=response.payload?.followUp?.options ?? response.followUp?.options ?? [];
-  for (const [optionIndex,option] of followUpOptions.entries()) {
-   if (option.proposalDraft) validateEvidenceArray(option.proposalDraft.evidence,`$.payload.followUp.options[${optionIndex}].proposalDraft.evidence`);
+  for (const [optionIndex,option] of (Array.isArray(followUpOptions) ? followUpOptions : []).entries()) {
+   if (option?.proposalDraft) validateEvidenceArray(option.proposalDraft.evidence,`$.payload.followUp.options[${optionIndex}].proposalDraft.evidence`);
   }
 
   const recommendations=response.payload?.recommendations ?? response.recommendations ?? [];
-  for (const [candidateIndex,candidate] of recommendations.entries()) {
-   validateEvidenceArray(candidate.evidence,`$.payload.recommendations[${candidateIndex}].evidence`);
-   if (candidate.proposal) validateEvidenceArray(candidate.proposal.evidence,`$.payload.recommendations[${candidateIndex}].proposal.evidence`);
+  for (const [candidateIndex,candidate] of (Array.isArray(recommendations) ? recommendations : []).entries()) {
+   validateEvidenceArray(candidate?.evidence,`$.payload.recommendations[${candidateIndex}].evidence`);
+   if (candidate?.proposal) validateEvidenceArray(candidate.proposal.evidence,`$.payload.recommendations[${candidateIndex}].proposal.evidence`);
   }
  } else {
   for (const [proposalIndex, proposal] of (response.proposals ?? []).entries()) {

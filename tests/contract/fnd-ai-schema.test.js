@@ -30,7 +30,9 @@ test('provider task schemas enforce their producer allowlist and task payload co
   assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{blocks:[{type:'readiness_notice',readiness:{state:'ready',areas:[],pendingProposalCount:0,conflictCount:0}}],proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]}}).valid,false);
   assert.equal(validateSchema(schemas.tasks.QUESTION_EXPLAIN,{block:{type:'explanation',title:'t',summary:'s',comparisons:[],returnToQuestionId:'q'}}).valid,true);
   assert.equal(validateSchema(schemas.tasks.QUESTION_COMPOSE,{type:'question',prompt:'질문',options:[{value:'a',label:'A'}]}).valid,true);
-  assert.equal(validateSchema(schemas.tasks.OPTION_RECOMMEND,{block:{type:'recommendation',questionId:'q',recommendedValue:'a',rationale:'r',tradeoffs:['t'],assumptions:[]},proposal:{operation:'update',targetType:'design_item',rationale:'r',evidence:[],affectedItemIds:['i']}}).valid,true);
+  const candidate = { title: '후보', rationale: '현재 맥락에 맞습니다.', tradeoffs: [], assumptions: [], evidence: [{ sourceType: 'message', sourceId: 'm1' }], designItem: { type: 'requirement', title: '후보', description: '예약 충돌을 막습니다.' } };
+  assert.equal(validateSchema(schemas.tasks.OPTION_RECOMMEND,{assistantMessage:'비교 후보입니다.',recommendations:Array.from({length:11},()=>candidate)}).valid,true);
+  assert.equal(validateSchema(schemas.optionRecommendV1,{block:{type:'recommendation',questionId:'q',recommendedValue:'a',rationale:'r',tradeoffs:['t'],assumptions:[]},proposal:{operation:'update',targetType:'design_item',rationale:'r',evidence:[],affectedItemIds:['i']}}).valid,true);
 });
 
 test('strict public API DTO schemas preserve documented top-level fields and reject extras', () => {

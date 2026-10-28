@@ -8,27 +8,32 @@ AI가 같은 대화 안에서도 질문, 설명, 추천, 복수 제안, 충돌 �
 
 각 task의 실제 System/Developer template 문구와 변수는 [AI Prompt Template 명세](15-ai-prompt-template-spec.md)를 따른다.
 
-> **현재 runtime:** 자유 대화는 `TURN_ANALYZE` prompt v5와 schema `turn.analyze.v4` (schema v4)를 사용한다. Schema v1~v3는 이전 응답 형식으로 registry에 남아 있으며 새 turn에는 사용되지 않는다. 아래 계약은 v4 schema, [현재 prompt template](15-ai-prompt-template-spec.md)은 prompt v5를 설명한다.
+> **현재 runtime:** 자유 대화는 `TURN_ANALYZE` prompt v6와 schema `turn.analyze.v5`를 사용한다. 명시적인 추천 요청은 `OPTION_RECOMMEND` prompt/schema v2로 분리한다. 이전 schema 버전은 이미 생성된 작업과 회귀 검증을 위해 registry에 유지한다.
 
-## 현재 `TURN_ANALYZE` 계약 — schema `turn.analyze.v4` (`v4`), prompt `v5`
+## 현재 `TURN_ANALYZE` 계약 — schema `turn.analyze.v5`, prompt `v6`
 
-v4 runtime은 자유 대화 turn과 허용된 자료를 현재 context와 함께 분석한다. 일반 `userTurn`에는 catalog `questionId`가 필요하지 않다. `QUESTION_CATALOG`는 자유 대화의 질문 순서나 추천 후보를 정하지 않는다. 애플리케이션은 project, revision, message ID, evidence ID, proposal ID, follow-up ID와 choice response ID를 서버에서 검증하거나 생성한다.
+v5 runtime은 자유 대화 turn과 허용된 자료를 현재 context와 함께 분석한다. 일반 `userTurn`에는 catalog `questionId`가 필요하지 않다. `QUESTION_CATALOG`는 자유 대화의 질문 순서를 정하지 않으며 추천 후보 생성은 `OPTION_RECOMMEND`가 담당한다. 애플리케이션은 project, revision, message ID, evidence ID, proposal ID, follow-up ID와 choice response ID를 서버에서 검증하거나 생성한다.
 
-Provider payload의 v4 필드는 다음과 같다:
+Provider payload의 v5 필드는 다음과 같다:
 
 - `assistantMessage`: 자연스러운 대화 응답.
 - `proposals`: 최대 8개의 source-grounded atomic proposal draft.
 - `answerInterpretation`: 선택적 `directAnswer`와 필수 `additionalFacts`, `ambiguities`.
 - `followUp`: 선택적 맥락형 질문 하나. `componentType`은 `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm` 중 하나다. 질문과 선택지 내용은 현재 context에 따라 생성한다.
-- `recommendations`: 사용자가 명시적으로 요청하고 충분한 근거가 있을 때 반환하는 정확히 11개의 서로 다른 후보. 근거가 부족하면 후보 대신 필요한 내용을 묻는 `followUp`을 반환한다.
 
 Provider payload에는 confirmed state, persisted IDs, readiness, process state, approval, document status/action이 포함되지 않는다. Schema와 domain validation은 모든 provider 참조를 현재 context에 제한하며, 서버는 검증된 내용에 안정 ID와 상태를 부여한다.
 
 `TURN_ANALYZE` proposal target은 `design_item` 또는 `acceptance_criterion`이며 대화 turn에서 `document_section`을 생성·수정하지 않는다. `design_item` create proposal의 `after.type`은 `product_definition`, `problem`, `goal`, `user_role`, `scenario`, `scope`, `out_of_scope`, `requirement`, `constraint`, `technical_decision`, `success_metric`, `risk`, `open_issue` 중 하나이며 title과 description이 필수다. 허용 필드의 shape도 검증한다: priority는 `must`/`should`/`could`/`wont`, confidence는 0~1, attributes는 object, relatedItemIds는 context 참조 배열, acceptanceCriteria는 생략하거나 비어 있지 않은 `text`만 가진 `{text}` 객체 배열이며 parentId는 현재 context의 item ID여야 한다. 모든 item reference는 실제 `confirmedDesignItems` ID만 사용한다. 아직 서버가 만들지 않은 신규 항목 간 참조는 허용하지 않으며 연결할 기존 항목이 없으면 `affectedItemIds`/`relatedItemIds`는 빈 배열, `parentId`는 생략한다. Conversation turn evidence의 `sourceType`은 `message`/`file`만 허용하고, 메시지 근거는 실제 user-authored message ID, 파일 근거는 현재 요청에 포함된 excerpt ID만 사용한다. `user_edit`/`agent_inference` evidence는 허용하지 않으며 근거 참조 검증 실패 시 기존 1회 retry에 참조 오류 원인과 올바른 evidence 규칙을 전달한다. 도메인 검증에서 유형이나 acceptance criteria shape가 실패하면 허용 유형 목록과 올바른 객체 shape를 retry에 전달한다. `acceptance_criterion`의 `after`에는 비어 있지 않은 `text`만 허용한다. 누락·불일치 payload는 응답 전체를 적용하지 않고 기존 1회 validation retry를 사용한다. 사용자가 편집해 승인할 때도 동일한 create payload 계약을 검사한다. Proposal envelope는 strict schema를 따르고, `after`의 허용 필드와 값 형식은 target별 domain validation으로 검사한다.
 
-질문·선택 렌더링은 고정 allowlisted type registry를 사용한다: `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm`. 이것은 renderer type만 고정하며 question/option 콘텐츠는 current context에서 turn마다 생성한다. 응답은 각 type의 strict schema를 통과해야 한다. HTML, React, code, style, 임의 type/action/ID는 허용하지 않는다. 서버는 schema와 evidence를 검증하고 ID를 부여하며, 선택 제출은 pending proposal만 생성한다. 명시적 추천 요청에만 충분한 근거가 있을 때 exactly 11 dynamic candidates를 반환한다.
+질문·선택 렌더링은 고정 allowlisted type registry를 사용한다: `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm`. 이것은 renderer type만 고정하며 question/option 콘텐츠는 current context에서 turn마다 생성한다. 응답은 각 type의 strict schema를 통과해야 한다. HTML, React, code, style, 임의 type/action/ID는 허용하지 않는다. 서버는 schema와 evidence를 검증하고 ID를 부여하며, 선택 제출은 pending proposal만 생성한다.
 
-`OPTION_RECOMMEND`의 목표는 명시적 추천 요청에서 서로 구별되는 candidate 11개다. candidate마다 title, rationale, tradeoffs, assumptions와 request 내에서 검증 가능한 evidence references를 가진다. server는 output을 검증한 뒤 ID를 부여한다. 사용자가 고른 candidate만 ProposalPayload로 정규화한다. 근거 부족 시 candidate array를 채우지 않고 contextual follow-up으로 전환한다. 현재 DEFAULT profile의 output token cap은 바꾸지 않으므로 구현은 짧은 항목으로 맞추고, cap 경계에서 잘림이나 padding 없이 실패를 처리한다.
+## 현재 `OPTION_RECOMMEND` 계약 — schema `option.recommend.v2`, prompt `v2`
+
+이 task는 사용자가 명시적으로 추천을 요청한 turn에만 실행한다. 모델은 현재 대화, 확정 설계, 최근 사용자 메시지와 허용된 자료에서 근거를 찾고, 충분한 맥락이면 서로 다른 후보를 정확히 11개 반환한다. 각 후보는 `title`, `rationale`, 최대 2개의 `tradeoffs`, 최대 2개의 `assumptions`, 최대 2개의 검증 가능한 `evidence`, 그리고 선택 시 제안으로 만들 `designItem` (`type`, `title`, `description`)만 포함한다. 긴 proposal envelope와 ID는 모델이 만들지 않는다.
+
+근거 있는 후보 11개를 제시하기에 맥락이 부족하면 빈 `recommendations`와 하나의 contextual `followUp`을 반환한다. 후보가 있을 때 follow-up은 함께 반환하지 않는다. 서버는 schema, 명시적 요청, 후보 수·중복, user-authored message 또는 현재 요청의 file excerpt 근거, design item payload를 검증한다. 통과한 후보에만 서버가 ID와 pending proposal draft를 붙이며, 후보 선택은 기존 검토·승인 절차를 거쳐야 확정 설계가 된다.
+
+`OPTION_RECOMMEND`는 등록된 DEFAULT profile과 기존 입력/출력 한도를 사용한다. 후보 형식을 간결하게 유지하며 token cap을 높이거나 응답을 임의로 채우지 않는다. 이전 `option.recommend.v1` 단일 질문값 형식은 registry 호환용 legacy schema다.
 
 ## Prompt Registry
 
@@ -215,9 +220,9 @@ interface NextActionBlock {
 
 The `QuestionBlock` is the completed display value: its `QuestionSpec` fields and stable option values come from the question catalog. A provider `QuestionCompositionBlock` may supply only prompt/help and option presentation; the application joins those values to the selected `QuestionSpec` and rejects changed/missing stable option values. `QUESTION_COMPOSE` is the only task that emits this composition shape.
 
-Provider-produced block payloads are `QuestionCompositionBlock`, `explanation`, and `recommendation`, and only where the selected task permits them. Current `TURN_ANALYZE` v4 returns an `assistantMessage` string and structured `followUp`, proposal, interpretation, and optional candidate data; the application turns validated data into the normalized display blocks. `QUESTION_EXPLAIN` emits `explanation`; the separate `OPTION_RECOMMEND` task emits `recommendation`. Proposal summary, conflict notice, readiness notice, and next action are application-generated from validated proposal IDs, current aggregate/readiness, and the canonical process state machine. They are not accepted in provider response schemas. In particular, `conflict_notice` references proposal IDs but code alone determines whether a before-value conflict exists; `next_action.action` is an application allowlist projection and must not be provider input.
+Provider-produced block payloads are `QuestionCompositionBlock`, `explanation`, and recommendation candidate data, and only where the selected task permits them. Current `TURN_ANALYZE` v5 returns an `assistantMessage` string, proposals, interpretation, and optional structured `followUp`; the application turns validated data into normalized display blocks. `QUESTION_EXPLAIN` emits `explanation`; `OPTION_RECOMMEND` v2 emits compact recommendation candidates. Proposal summary, conflict notice, readiness notice, and next action are application-generated from validated proposal IDs, current aggregate/readiness, and the canonical process state machine. They are not accepted in provider response schemas. In particular, `conflict_notice` references proposal IDs but code alone determines whether a before-value conflict exists; `next_action.action` is an application allowlist projection and must not be provider input.
 
-For `TURN_ANALYZE` v4, the provider schema contains only `assistantMessage`, proposal drafts, interpretation data, and optional context-generated follow-up/recommendation data. A `design_item` create draft must include a valid type, nonempty title and description, and only allowed design fields. The application validates the payload, assigns IDs, applies the proposal lifecycle, and creates normalized display blocks; the provider cannot invent persisted IDs or choose a conflict state.
+For `TURN_ANALYZE` v5, the provider schema contains only `assistantMessage`, proposal drafts, interpretation data, and optional context-generated follow-up data. A `design_item` create draft must include a valid type, nonempty title and description, and only allowed design fields. The application validates the payload, assigns IDs, applies the proposal lifecycle, and creates normalized display blocks; the provider cannot invent persisted IDs or choose a conflict state. `OPTION_RECOMMEND` v2 returns candidate data separately and the server creates the pending proposal envelope after validating each candidate.
 
 `NextAction` values are code-owned UI intents supported by [process state machine](../process/02-state-machine.md), [document generation flow](../process/05-document-generation.md), [end-to-end flow](../process/01-end-to-end-flow.md), and [document workspace actions](../ui/04-document-workspace.md). The application derives which intent is available from canonical process state. Provider schemas must never include a `next_action` block or its action enum.
 
@@ -337,46 +342,47 @@ interface ExplanationPayload {
 자유 입력, 파일 발췌가 포함된 답변 또는 여러 사실이 섞인 응답을 분석한다.
 
 ```ts
-interface TurnAnalyzePayload {
-  blocks: AssistantTextBlock[];
+interface TurnAnalyzePayloadV5 {
+  assistantMessage: string;
   proposals: ProposalPayload[];
   answerInterpretation: {
     directAnswer?: string;
     additionalFacts: string[];
     ambiguities: string[];
   };
-  suggestedFollowUp?: {
-    purpose: "clarify_current_answer" | "continue_catalog";
-    reason: string;
-  };
+  followUp?: FollowUpDraft;
 }
 ```
 
 - 한 답변에서 최대 8개 atomic proposal을 반환한다.
 - 현재 질문의 직접 답과 추가 발견 사실을 구분한다.
 - 하나의 proposal은 대상 하나와 변경 의도 하나만 가진다.
-- 다음 question 자체는 반환하지 않고 필요성만 제안한다.
+- 필요할 때만 현재 맥락에서 생성한 후속 질문 하나를 반환한다.
+- recommendation candidate는 반환하지 않는다. 명시적 추천 요청은 `OPTION_RECOMMEND`로 처리한다.
 - 확정 여부, readiness와 document gate를 반환하지 않는다.
 
 ### 4. `OPTION_RECOMMEND`
 
 ```ts
-interface RecommendationPayload {
-  block: {
-    type: "recommendation";
-    questionId: string;
-    recommendedValue: string;
+interface OptionRecommendPayloadV2 {
+  assistantMessage: string;
+  recommendations: Array<{
+    title: string;
     rationale: string;
-    tradeoffs: string[];
-    assumptions: string[];
-  };
-  proposal: ProposalPayload;
+    tradeoffs: string[]; // up to 2
+    assumptions: string[]; // up to 2
+    evidence: ProposalEvidencePayload[]; // up to 2, message or file
+    designItem: { type: DesignItemType; title: string; description: string };
+  }>; // exactly 11 when context is sufficient; otherwise empty
+  followUp?: FollowUpDraft; // required when recommendations is empty
 }
 ```
 
-- 허용 value 밖을 추천하지 않는다. 직접 입력만 허용된 질문이면 사용자 문구의 proposal로 반환한다.
-- 근거가 부족하면 추천값 없이 필요한 정보 block을 반환한다.
-- 추천 표시는 자동 선택 또는 승인이 아니다.
+- 명시적 추천 요청에서만 실행하며, 후보는 current conversation, confirmed design, recent user messages, and allowed source excerpts에서 동적으로 도출한다.
+- 충분한 근거가 있을 때 정확히 11개의 서로 다른 후보를 반환한다. 후보마다 검증 가능한 user-authored message 또는 current request file excerpt evidence가 있어야 한다.
+- 근거가 부족하면 빈 후보 배열과 contextual follow-up을 반환한다. 후보를 padding하지 않는다.
+- 모델은 persisted ID나 ProposalPayload envelope를 만들지 않는다. 서버가 후보를 검증하고 ID와 pending proposal draft를 붙인다. 선택은 자동 확정 또는 승인이 아니다.
+- `option.recommend.v1`은 기존 단일 질문값 형식의 registry compatibility용 legacy schema다.
 
 ### 5. `CONTEXT_COMPACT`
 

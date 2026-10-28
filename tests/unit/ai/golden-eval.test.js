@@ -15,13 +15,25 @@ test('synthetic golden fixtures pass deterministic schema, reference, and forbid
 
 test('every task has a passing synthetic fixture without provider calls', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
-  assert.equal(fixtures.length, 48);
+  assert.equal(fixtures.length, 51);
   for (const fixture of fixtures) assert.deepEqual(evaluateGoldenFixture(fixture), { pass: true, errors: [] }, fixture.id);
 });
 
-test('versioned golden fixtures resolve the current v4 turn schema', () => {
-  const fixture={id:'turn-v4-follow-up',task:'TURN_ANALYZE',schemaVersion:'v4',response:{assistantMessage:'선택을 좁히겠습니다.',proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]},followUp:{componentType:'single_choice',topic:'예약',prompt:'어떤 기준인가요?',options:[{value:'capacity',label:'수용 인원'}],required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},manifest:{designItemIds:[],sourceExcerptIds:[],recentMessagesIds:[],summaryIds:[]}};
+test('versioned golden fixtures resolve the current v5 turn schema', () => {
+  const fixture={id:'turn-v5-follow-up',task:'TURN_ANALYZE',schemaVersion:'v5',response:{assistantMessage:'선택을 좁히겠습니다.',proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]},followUp:{componentType:'single_choice',topic:'예약',prompt:'어떤 기준인가요?',options:[{value:'capacity',label:'수용 인원'}],required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},manifest:{designItemIds:[],sourceExcerptIds:[],recentMessagesIds:[],summaryIds:[]}};
   assert.deepEqual(evaluateGoldenFixture(fixture),{pass:true,errors:[]});
+});
+
+test('golden fixture set covers current compact recommendation and insufficient-context versions', async () => {
+  const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
+  const recommendationFixtures = fixtures.filter(({ task, schemaVersion }) => task === 'OPTION_RECOMMEND' && schemaVersion === 'v2');
+  assert.deepEqual(recommendationFixtures.map(({ id }) => id), [
+    'option-recommend-v2-eleven-grounded-candidates',
+    'option-recommend-v2-insufficient-context-follow-up',
+  ]);
+  assert.equal(recommendationFixtures[0].response.recommendations.length, 11);
+  assert.equal(recommendationFixtures[1].response.recommendations.length, 0);
+  assert.ok(recommendationFixtures[1].response.followUp);
 });
 
 test('setup guide golden fixtures exercise evidence, injection, schema, and source-reference rejection paths', async () => {

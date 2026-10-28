@@ -10,7 +10,7 @@ const componentModes = Object.freeze({
   confirm: 'confirm',
 });
 
-const explicitRecommendation = (text) => /(?:추천해\s*(?:줘|주세요|주실래요?|봐)|추천(?:안(?:을)?|을)?\s*(?:부탁(?:해요)?|해줘|해주세요|알려\s*줘|알려\s*주세요|보여\s*줘|보여\s*주세요|제시해\s*줘|제시해\s*주세요)|추천\s*부탁|추천(?:이)?\s*(?:필요해요?|필요합니다)|대안(?:을)?\s*추천해\s*(?:줘|주세요)|(?:please\s+)?(?:recommend|suggest)\s+(?:me|some|a|an|options|ideas|what|which)|(?:can|could)\s+you\s+(?:please\s+)?(?:recommend|suggest))/i.test(String(text ?? ''));
+const explicitRecommendation = (text) => /(?:추천해\s*(?:줘|주세요|주실래요?|봐)|(?:\d{1,2}\s*개\s*)?추천(?:안)?\s*(?:\d{1,2}\s*개)?\s*(?:을|를)?\s*(?:보여\s*줘|보여\s*주세요|제시해\s*줘|제시해\s*주세요)|추천(?:안(?:을)?|을)?\s*(?:부탁(?:해요)?|해줘|해주세요|알려\s*줘|알려\s*주세요|보여\s*줘|보여\s*주세요|제시해\s*줘|제시해\s*주세요)|추천\s*부탁|추천(?:이)?\s*(?:필요해요?|필요합니다)|대안(?:을)?\s*추천해\s*(?:줘|주세요)|(?:please\s+)?(?:recommend|suggest)\s+(?:me|some|a|an|options|ideas|what|which)|(?:can|could)\s+you\s+(?:please\s+)?(?:recommend|suggest))/i.test(String(text ?? ''));
 const unsafeCopy = (text) => {
   const copy = String(text ?? '');
   const containsMarkupOrExecutableUrl = /<\/?[a-z][^>]*>|javascript:|data:text\/html/i.test(copy);
@@ -38,9 +38,9 @@ export function validateTurnAnalyzeV4(payload, userTurn) {
     const needsOptions = ['single', 'multiple', 'rank', 'confirm'].includes(mode);
     if (needsOptions && !followUp.options?.length) errors.push('followUp options are required for this component');
     if (['free_text', 'number', 'range'].includes(followUp.componentType) && followUp.options?.length) errors.push('followUp options are not supported by this component');
-    const values = (followUp.options ?? []).map((option) => option.value);
+    const values = (Array.isArray(followUp.options) ? followUp.options : []).map((option) => option?.value);
     if (new Set(values).size !== values.length) errors.push('followUp option values must be unique');
-    if (followUp.options?.some((option) => Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
+    if (Array.isArray(followUp.options) && followUp.options.some((option) => option && Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
     if ([followUp.prompt, followUp.help, followUp.topic].some((value) => typeof value === 'string' && unsafeCopy(value))) errors.push('followUp contains unsafe copy');
   }
 
@@ -62,6 +62,71 @@ export function validateTurnAnalyzeV4(payload, userTurn) {
   ];
   errors.push(...validateProposalPayloads(proposalDrafts).errors);
 
+  if (containsUnsafeCopy(payload)) errors.push('turn contains unsafe copy');
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateTurnAnalyzeV5(payload) {
+  const errors = [];
+  const followUp = payload?.followUp;
+  const proposals = Array.isArray(payload?.proposals) ? payload.proposals : [];
+  if (payload && Object.hasOwn(payload, 'proposals') && !Array.isArray(payload.proposals)) errors.push('proposals must be an array');
+  if (followUp) {
+    if (!Array.isArray(followUp.options) && followUp.options !== undefined) errors.push('followUp options must be an array');
+    const options = Array.isArray(followUp.options) ? followUp.options : [];
+    if (!componentModes[followUp.componentType]) errors.push('followUp.componentType is not allowlisted');
+    const mode = componentModes[followUp.componentType];
+    const needsOptions = ['single', 'multiple', 'rank', 'confirm'].includes(mode);
+    if (needsOptions && !followUp.options?.length) errors.push('followUp options are required for this component');
+    if (['free_text', 'number', 'range'].includes(followUp.componentType) && followUp.options?.length) errors.push('followUp options are not supported by this component');
+    const values = options.map((option) => option?.value);
+    if (new Set(values).size !== values.length) errors.push('followUp option values must be unique');
+    if (options.some((option) => option && Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
+    if ([followUp.prompt, followUp.help, followUp.topic].some((value) => typeof value === 'string' && unsafeCopy(value))) errors.push('followUp contains unsafe copy');
+  }
+  const proposalDrafts = [
+    ...proposals,
+    ...(Array.isArray(followUp?.options) ? followUp.options : []).map((option) => option?.proposalDraft).filter(Boolean),
+  ];
+  errors.push(...validateProposalPayloads(proposalDrafts).errors);
+  if (Object.hasOwn(payload ?? {}, 'recommendations')) errors.push('TURN_ANALYZE cannot return recommendations');
+  if (containsUnsafeCopy(payload)) errors.push('turn contains unsafe copy');
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateOptionRecommendV2(payload, userTurn) {
+  const errors = [];
+  const recommendations = Array.isArray(payload?.recommendations) ? payload.recommendations : [];
+  const followUp = payload?.followUp;
+  if (payload && Object.hasOwn(payload, 'recommendations') && !Array.isArray(payload.recommendations)) errors.push('recommendations must be an array');
+  if (!explicitRecommendation(userTurn?.text)) errors.push('recommendations require an explicit user request');
+  if (recommendations.length !== 0 && recommendations.length !== 11) errors.push('recommendations must contain zero or exactly eleven candidates');
+  if (recommendations.length === 11 && followUp) errors.push('recommendation candidates and follow-up cannot be returned together');
+  if (recommendations.length === 0 && !followUp) errors.push('insufficient recommendation context must ask a follow-up question');
+  if (followUp && (!Array.isArray(followUp.options) && followUp.options !== undefined)) errors.push('followUp options must be an array');
+  const titles = recommendations.map((candidate) => typeof candidate?.title === 'string' ? candidate.title.trim().toLocaleLowerCase() : '');
+  if (new Set(titles).size !== titles.length) errors.push('recommendations must be distinct');
+  if (recommendations.some((item) => !Array.isArray(item?.evidence) || !item.evidence.some((reference) => ['message', 'file'].includes(reference?.sourceType)))) errors.push('each recommendation needs user-grounded evidence');
+  const proposalDrafts = recommendations.map((candidate) => ({
+    operation: 'create',
+    targetType: 'design_item',
+    after: candidate?.designItem,
+    rationale: candidate?.rationale,
+    evidence: candidate?.evidence,
+    affectedItemIds: [],
+  }));
+  errors.push(...validateProposalPayloads(proposalDrafts).errors);
+  if (followUp) {
+    if (!componentModes[followUp.componentType]) errors.push('followUp.componentType is not allowlisted');
+    const mode = componentModes[followUp.componentType];
+    const needsOptions = ['single', 'multiple', 'rank', 'confirm'].includes(mode);
+    if (needsOptions && !followUp.options?.length) errors.push('followUp options are required for this component');
+    if (['free_text', 'number', 'range'].includes(followUp.componentType) && followUp.options?.length) errors.push('followUp options are not supported by this component');
+    const values = (Array.isArray(followUp.options) ? followUp.options : []).map((option) => option?.value);
+    if (new Set(values).size !== values.length) errors.push('followUp option values must be unique');
+    if (Array.isArray(followUp.options) && followUp.options.some((option) => option && Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
+    if ([followUp.prompt, followUp.help, followUp.topic].some((value) => typeof value === 'string' && unsafeCopy(value))) errors.push('followUp contains unsafe copy');
+  }
   if (containsUnsafeCopy(payload)) errors.push('turn contains unsafe copy');
   return { valid: errors.length === 0, errors };
 }
