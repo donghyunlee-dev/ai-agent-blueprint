@@ -2,7 +2,7 @@
 
 ## Post-merge aborted-response evidence recovery — PR #96 — 2026-10-28
 
-An independent review after PR #94 merged found that its status-recovery path applied a succeeded turn without the active request's file excerpts. A recovered proposal backed by an uploaded file could therefore fail normalization as `AI_INVALID_OUTPUT`. PR #96 preserves those request-local excerpts through recovery and adds a regression that aborts the POST body, reads the succeeded result from the owner-scoped status endpoint, and verifies the persisted pending proposal retains the rebased source ID, excerpt, and location. The fix was independently reviewed with no remaining findings and merged to `main` as `01eb994c76a52c6dd7ed102f14e9836ee61c99a1`.
+An independent review after PR #94 merged found that its status-recovery path applied a succeeded turn without the active request's file excerpts. A recovered proposal backed by an uploaded file could therefore fail normalization as `AI_INVALID_OUTPUT`. PR #96 preserves those request-local excerpts through recovery and adds a regression that aborts the POST body, reads the succeeded result from the owner-scoped status endpoint, and verifies the persisted pending proposal retains the rebased source ID, excerpt, and location. The fix was independently reviewed with no remaining findings (see [`review-notes.md`](./review-notes.md)) and merged to `main` as `01eb994c76a52c6dd7ed102f14e9836ee61c99a1`.
 
 | Evidence | Result |
 | --- | --- |
