@@ -8,13 +8,13 @@ AI가 같은 대화 안에서도 질문, 설명, 추천, 복수 제안, 충돌 �
 
 각 task의 실제 System/Developer template 문구와 변수는 [AI Prompt Template 명세](15-ai-prompt-template-spec.md)를 따른다.
 
-> **현재 runtime:** 자유 대화는 `TURN_ANALYZE` prompt/schema `turn.analyze.v3` (`v3`)를 사용한다. `turn.analyze.v1`과 `turn.analyze.v2`는 registry에 과거 응답 형식으로 남아 있으며 새 turn에는 사용되지 않는다. 아래의 `TURN_ANALYZE` 계약과 [현재 prompt template](15-ai-prompt-template-spec.md#turn_analyze--turnanalyzev3-v3)은 v3 runtime을 설명한다.
+> **현재 runtime:** 자유 대화는 `TURN_ANALYZE` prompt/schema `turn.analyze.v4` (`v4`)를 사용한다. `turn.analyze.v1`~`v3`는 registry에 과거 응답 형식으로 남아 있으며 새 turn에는 사용되지 않는다. 아래의 `TURN_ANALYZE` 계약과 [현재 prompt template](15-ai-prompt-template-spec.md#turn_analyze--turnanalyzev4-v4)은 v4 runtime을 설명한다.
 
-## 현재 `TURN_ANALYZE` 계약 — `turn.analyze.v3` (`v3`)
+## 현재 `TURN_ANALYZE` 계약 — `turn.analyze.v4` (`v4`)
 
-v3 runtime은 자유 대화 turn과 허용된 자료를 현재 context와 함께 분석한다. 일반 `userTurn`에는 catalog `questionId`가 필요하지 않다. `QUESTION_CATALOG`는 자유 대화의 질문 순서나 추천 후보를 정하지 않는다. 애플리케이션은 project, revision, message ID, evidence ID, proposal ID, follow-up ID와 choice response ID를 서버에서 검증하거나 생성한다.
+v4 runtime은 자유 대화 turn과 허용된 자료를 현재 context와 함께 분석한다. 일반 `userTurn`에는 catalog `questionId`가 필요하지 않다. `QUESTION_CATALOG`는 자유 대화의 질문 순서나 추천 후보를 정하지 않는다. 애플리케이션은 project, revision, message ID, evidence ID, proposal ID, follow-up ID와 choice response ID를 서버에서 검증하거나 생성한다.
 
-Provider payload의 v3 필드는 다음과 같다:
+Provider payload의 v4 필드는 다음과 같다:
 
 - `assistantMessage`: 자연스러운 대화 응답.
 - `proposals`: 최대 8개의 source-grounded atomic proposal draft.
@@ -23,6 +23,8 @@ Provider payload의 v3 필드는 다음과 같다:
 - `recommendations`: 사용자가 명시적으로 요청하고 충분한 근거가 있을 때 반환하는 정확히 11개의 서로 다른 후보. 근거가 부족하면 후보 대신 필요한 내용을 묻는 `followUp`을 반환한다.
 
 Provider payload에는 confirmed state, persisted IDs, readiness, process state, approval, document status/action이 포함되지 않는다. Schema와 domain validation은 모든 provider 참조를 현재 context에 제한하며, 서버는 검증된 내용에 안정 ID와 상태를 부여한다.
+
+`TURN_ANALYZE` proposal target은 `design_item` 또는 `acceptance_criterion`이며 대화 turn에서 `document_section`을 생성·수정하지 않는다. `design_item` create proposal의 `after`는 known type, title, description이 필수다. 허용 필드의 shape도 검증한다: priority는 `must`/`should`/`could`/`wont`, confidence는 0~1, attributes는 object, relatedItemIds는 context 참조 배열, acceptanceCriteria는 `{text}` 배열이며 parentId는 현재 context의 item ID여야 한다. `acceptance_criterion`의 `after`에는 비어 있지 않은 `text`만 허용한다. 누락·불일치 payload는 응답 전체를 적용하지 않고 기존 1회 validation retry를 사용한다. 사용자가 편집해 승인할 때도 동일한 create payload 계약을 검사한다. Proposal envelope는 strict schema를 따르고, `after`의 허용 필드와 값 형식은 target별 domain validation으로 검사한다.
 
 질문·선택 렌더링은 고정 allowlisted type registry를 사용한다: `single_choice`, `multiple_choice`, `free_text`, `number`, `range`, `rank`, `confirm`. 이것은 renderer type만 고정하며 question/option 콘텐츠는 current context에서 turn마다 생성한다. 응답은 각 type의 strict schema를 통과해야 한다. HTML, React, code, style, 임의 type/action/ID는 허용하지 않는다. 서버는 schema와 evidence를 검증하고 ID를 부여하며, 선택 제출은 pending proposal만 생성한다. 명시적 추천 요청에만 충분한 근거가 있을 때 exactly 11 dynamic candidates를 반환한다.
 
@@ -213,9 +215,9 @@ interface NextActionBlock {
 
 The `QuestionBlock` is the completed display value: its `QuestionSpec` fields and stable option values come from the question catalog. A provider `QuestionCompositionBlock` may supply only prompt/help and option presentation; the application joins those values to the selected `QuestionSpec` and rejects changed/missing stable option values. `QUESTION_COMPOSE` is the only task that emits this composition shape.
 
-Provider-produced block payloads are `QuestionCompositionBlock`, `explanation`, and `recommendation`, and only where the selected task permits them. Current `TURN_ANALYZE` v3 returns an `assistantMessage` string and structured `followUp`, proposal, interpretation, and optional candidate data; the application turns validated data into the normalized display blocks. `QUESTION_EXPLAIN` emits `explanation`; the separate `OPTION_RECOMMEND` task emits `recommendation`. Proposal summary, conflict notice, readiness notice, and next action are application-generated from validated proposal IDs, current aggregate/readiness, and the canonical process state machine. They are not accepted in provider response schemas. In particular, `conflict_notice` references proposal IDs but code alone determines whether a before-value conflict exists; `next_action.action` is an application allowlist projection and must not be provider input.
+Provider-produced block payloads are `QuestionCompositionBlock`, `explanation`, and `recommendation`, and only where the selected task permits them. Current `TURN_ANALYZE` v4 returns an `assistantMessage` string and structured `followUp`, proposal, interpretation, and optional candidate data; the application turns validated data into the normalized display blocks. `QUESTION_EXPLAIN` emits `explanation`; the separate `OPTION_RECOMMEND` task emits `recommendation`. Proposal summary, conflict notice, readiness notice, and next action are application-generated from validated proposal IDs, current aggregate/readiness, and the canonical process state machine. They are not accepted in provider response schemas. In particular, `conflict_notice` references proposal IDs but code alone determines whether a before-value conflict exists; `next_action.action` is an application allowlist projection and must not be provider input.
 
-For `TURN_ANALYZE` v3, the provider schema contains only `assistantMessage`, proposal drafts, interpretation data, and optional context-generated follow-up/recommendation data. The application validates the payload, assigns IDs, applies the proposal lifecycle, and creates normalized display blocks; the provider cannot invent persisted IDs or choose a conflict state.
+For `TURN_ANALYZE` v4, the provider schema contains only `assistantMessage`, proposal drafts, interpretation data, and optional context-generated follow-up/recommendation data. A `design_item` create draft must include a valid type, nonempty title and description, and only allowed design fields. The application validates the payload, assigns IDs, applies the proposal lifecycle, and creates normalized display blocks; the provider cannot invent persisted IDs or choose a conflict state.
 
 `NextAction` values are code-owned UI intents supported by [process state machine](../process/02-state-machine.md), [document generation flow](../process/05-document-generation.md), [end-to-end flow](../process/01-end-to-end-flow.md), and [document workspace actions](../ui/04-document-workspace.md). The application derives which intent is available from canonical process state. Provider schemas must never include a `next_action` block or its action enum.
 
@@ -241,7 +243,7 @@ interface ProposalPayload {
 }
 ```
 
-The application assigns `id`, `projectId`, `logicalRequestId`, `status`, and timestamps from the validated request/domain operation. Evidence IDs and timestamps are application-owned. A `TURN_ANALYZE` file citation must name a request-local excerpt ID actually sent; proposal normalization maps that ID to the canonical `SourceDocument.id`, exact quoted text, and location before persistence. Proposal target, operation, before/after, rationale and evidence semantics follow [data spec](05-data-spec.md) and [TURN_ANALYZE rules](15-ai-prompt-template-spec.md#turn_analyze--turnanalyzev3-v3). The strict schema must reject all additional properties.
+The application assigns `id`, `projectId`, `logicalRequestId`, `status`, and timestamps from the validated request/domain operation. Evidence IDs and timestamps are application-owned. A `TURN_ANALYZE` file citation must name a request-local excerpt ID actually sent; proposal normalization maps that ID to the canonical `SourceDocument.id`, exact quoted text, and location before persistence. Proposal target, operation, before/after, rationale and evidence semantics follow [data spec](05-data-spec.md) and [TURN_ANALYZE rules](15-ai-prompt-template-spec.md#turn_analyze--turnanalyzev4-v4). The strict schema must reject all additional properties.
 
 Document draft schemas use the source-backed content fields of `DocumentSection`:
 

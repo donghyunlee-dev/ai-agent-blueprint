@@ -12,7 +12,7 @@ function request(body, authenticated = true) {
   return { method: 'POST', headers: { host: 'localhost:3000', origin: 'http://localhost:3000', cookie: authenticated ? buildSessionCookieHeader(value).split(';')[0] : '' }, body };
 }
 const body = { logicalRequestId: 'logical-1234567890123456', attemptId: 'attempt-1', projectSummary: { projectId: 'p1', title: 'Test', designRevision: 0 }, userTurn: { id: 'm1', kind: 'text', text: 'hello' }, recentMessages: [], relevantDesignItems: [], sources: [] };
-const output = { task: 'TURN_ANALYZE', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0, payload: { assistantMessage: '확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
+const output = { task: 'TURN_ANALYZE', promptVersion: 'v4', schemaVersion: 'v4', designRevision: 0, payload: { assistantMessage: '확인했습니다.', proposals: [], answerInterpretation: { additionalFacts: [], ambiguities: [] } }, referencedItemIds: [], referencedSourceIds: [], warnings: [] };
 
 test('turn endpoint requires a valid session before any provider or store side effect', async () => {
   let providerCalls = 0;
@@ -192,6 +192,24 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
   assert.equal(selectedRes.body.proposals.length, 1);
   assert.equal(selectedRes.body.proposals[0].after.title, '대안 1');
   assert.equal(selectedRes.body.proposals[0].status, undefined);
+});
+
+test('turn endpoint retries recommendations whose proposal drafts cannot create valid design items', async () => {
+  const makeCandidate = (index, after) => ({
+    title: `예약안 ${index + 1}`, rationale: '예약 충돌을 줄이는 후보입니다.', tradeoffs: [], assumptions: [],
+    evidence: [{ sourceType: 'message', sourceId: 'm1' }],
+    proposal: { operation: 'create', targetType: 'design_item', after: after(index), rationale: '후보의 근거입니다.', evidence: [{ sourceType: 'message', sourceId: 'm1' }], affectedItemIds: [] },
+  });
+  const invalid = { ...output, payload: { ...output.payload, recommendations: Array.from({ length: 11 }, (_, index) => makeCandidate(index, (i) => ({ title: `예약안 ${i + 1}`, description: '예약 충돌을 줄입니다.' }))) } };
+  const valid = { ...output, payload: { ...output.payload, recommendations: Array.from({ length: 11 }, (_, index) => makeCandidate(index, (i) => ({ type: 'requirement', title: `예약안 ${i + 1}`, description: '예약 충돌을 줄입니다.' }))) } };
+  const requestBody = { ...body, logicalRequestId: 'logical-recommendation-retry-123', userTurn: { id: 'm1', kind: 'text', text: '추천해 주세요. 예약 충돌을 줄이고 싶어요.' } };
+  let calls = 0;
+  const res = response();
+  await handler(request(requestBody), res, { store: createMemoryAuthStore(), requestStructuredOutput: async () => (++calls === 1 ? invalid : valid) });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(calls, 2);
+  assert.equal(res.body.recommendationCandidates.candidates.length, 11);
+  assert.equal(res.body.recommendationCandidates.candidates.every((candidate) => candidate.proposalDraft.after.type === 'requirement' && typeof candidate.proposalDraft.after.description === 'string'), true);
 });
 
 test('recommendation selection creates its pending proposal without another model call', async () => {

@@ -19,8 +19,8 @@ test('every task has a passing synthetic fixture without provider calls', async 
   for (const fixture of fixtures) assert.deepEqual(evaluateGoldenFixture(fixture), { pass: true, errors: [] }, fixture.id);
 });
 
-test('versioned golden fixtures resolve the current v3 turn schema', () => {
-  const fixture={id:'turn-v3-follow-up',task:'TURN_ANALYZE',schemaVersion:'v3',response:{assistantMessage:'선택을 좁히겠습니다.',proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]},followUp:{componentType:'single_choice',topic:'예약',prompt:'어떤 기준인가요?',options:[{value:'capacity',label:'수용 인원'}],required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},manifest:{designItemIds:[],sourceExcerptIds:[],recentMessageIds:[],summaryIds:[]}};
+test('versioned golden fixtures resolve the current v4 turn schema', () => {
+  const fixture={id:'turn-v4-follow-up',task:'TURN_ANALYZE',schemaVersion:'v4',response:{assistantMessage:'선택을 좁히겠습니다.',proposals:[],answerInterpretation:{additionalFacts:[],ambiguities:[]},followUp:{componentType:'single_choice',topic:'예약',prompt:'어떤 기준인가요?',options:[{value:'capacity',label:'수용 인원'}],required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},manifest:{designItemIds:[],sourceExcerptIds:[],recentMessagesIds:[],summaryIds:[]}};
   assert.deepEqual(evaluateGoldenFixture(fixture),{pass:true,errors:[]});
 });
 
