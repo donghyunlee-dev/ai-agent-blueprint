@@ -38,9 +38,9 @@ export function validateTurnAnalyzeV4(payload, userTurn) {
     const needsOptions = ['single', 'multiple', 'rank', 'confirm'].includes(mode);
     if (needsOptions && !followUp.options?.length) errors.push('followUp options are required for this component');
     if (['free_text', 'number', 'range'].includes(followUp.componentType) && followUp.options?.length) errors.push('followUp options are not supported by this component');
-    const values = (followUp.options ?? []).map((option) => option.value);
+    const values = (Array.isArray(followUp.options) ? followUp.options : []).map((option) => option?.value);
     if (new Set(values).size !== values.length) errors.push('followUp option values must be unique');
-    if (followUp.options?.some((option) => Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
+    if (Array.isArray(followUp.options) && followUp.options.some((option) => option && Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
     if ([followUp.prompt, followUp.help, followUp.topic].some((value) => typeof value === 'string' && unsafeCopy(value))) errors.push('followUp contains unsafe copy');
   }
 
@@ -120,7 +120,7 @@ export function validateOptionRecommendV2(payload, userTurn) {
     if (['free_text', 'number', 'range'].includes(followUp.componentType) && followUp.options?.length) errors.push('followUp options are not supported by this component');
     const values = (Array.isArray(followUp.options) ? followUp.options : []).map((option) => option?.value);
     if (new Set(values).size !== values.length) errors.push('followUp option values must be unique');
-    if (followUp.options?.some((option) => option && Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
+    if (Array.isArray(followUp.options) && followUp.options.some((option) => option && Object.values(option).some((value) => typeof value === 'string' && unsafeCopy(value)))) errors.push('followUp contains unsafe copy');
     if ([followUp.prompt, followUp.help, followUp.topic].some((value) => typeof value === 'string' && unsafeCopy(value))) errors.push('followUp contains unsafe copy');
   }
   if (containsUnsafeCopy(payload)) errors.push('turn contains unsafe copy');

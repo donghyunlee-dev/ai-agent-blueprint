@@ -413,6 +413,12 @@ export default async function handler(req, res, deps = {}) {
               content: `${messages[1].content}\nVALIDATION RETRY: The previous response included an item ID that was not provided in TYPED_CONTEXT_JSON. Use only IDs from confirmedDesignItems. For new design items, leave affectedItemIds and relatedItemIds empty unless they contain existing context IDs, omit parentId unless it is an existing context ID, and do not reference IDs from newly proposed items.`,
             };
           }
+          if (retry > 0 && validationFailureStage === 'schema') {
+            messages[1] = {
+              ...messages[1],
+              content: `${messages[1].content}\nVALIDATION RETRY: The previous response did not match the required JSON schema. Return a complete response with every required field and the correct value types. Do not add fields that are not in the schema.`,
+            };
+          }
           if (retry > 0 && validationFailureStage === 'references' && referenceFailureCategories(referenceValidationErrors).some((category) => ['unknown_source_reference', 'non_user_message_evidence', 'non_request_excerpt_file_evidence', 'unsupported_evidence_type'].includes(category))) {
             messages[1] = {
               ...messages[1],

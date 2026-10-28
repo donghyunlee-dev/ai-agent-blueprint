@@ -309,21 +309,26 @@ test('turn endpoint uses bounded correction for malformed recommendation candida
   });
   const invalidCandidates = Array.from({ length: 11 }, (_, index) => candidate(index));
   delete invalidCandidates[0].title;
+  const invalidFollowUp = outputFor([]);
+  invalidFollowUp.payload.followUp = { componentType: 'free_text', topic: '예약', prompt: '어떤 조건인가요?', options: 'not-an-array', required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] };
   const invalidOutputs = [
     outputFor(invalidCandidates),
     outputFor({ not: 'an array' }),
     outputFor([null, ...Array.from({ length: 10 }, (_, index) => candidate(index))]),
+    invalidFollowUp,
   ];
   for (const [index, invalidOutput] of invalidOutputs.entries()) {
     const outputs = [invalidOutput, outputFor(Array.from({ length: 11 }, (_, candidateIndex) => candidate(candidateIndex)))];
+    const inputs = [];
     let calls = 0;
     const res = response();
     await handler(request({ ...body, logicalRequestId: `logical-recommend-schema-retry-${index}-123`, userTurn: { id: 'm1', kind: 'text', text: '11개 추천안을 보여주세요.' } }), res, {
       store: createMemoryAuthStore(),
-      requestStructuredOutput: async () => outputs[calls++],
+      requestStructuredOutput: async (input) => { inputs.push(input); return outputs[calls++]; },
     });
     assert.equal(res.statusCode, 200, `case=${index} calls=${calls} ${JSON.stringify(res.body)}`);
     assert.equal(calls, 2);
+    assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: The previous response did not match the required JSON schema/);
     assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   }
 });
