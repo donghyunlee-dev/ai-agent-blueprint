@@ -1,8 +1,21 @@
 # CON-PR-05 validation results
 
+## Post-merge aborted-response evidence recovery — PR #96 — 2026-10-28
+
+An independent review after PR #94 merged found that its status-recovery path applied a succeeded turn without the active request's file excerpts. A recovered proposal backed by an uploaded file could therefore fail normalization as `AI_INVALID_OUTPUT`. PR #96 preserves those request-local excerpts through recovery and adds a regression that aborts the POST body, reads the succeeded result from the owner-scoped status endpoint, and verifies the persisted pending proposal retains the rebased source ID, excerpt, and location. The fix was independently reviewed with no remaining findings (see [`review-notes.md`](./review-notes.md)) and merged to `main` as `01eb994c76a52c6dd7ed102f14e9836ee61c99a1`.
+
+| Evidence | Result |
+| --- | --- |
+| Regression on pre-fix `main` | Failed with `AI_INVALID_OUTPUT`, reproducing the missing file evidence |
+| PR #96 focused protected Preview regression | 2/2 passed at desktop 1440×900 and mobile 390×844 on exact deployed PR HEAD `45716370fd79a8e75c96631affd48004a1c97b5b` |
+| PR #96 GitHub Actions CI run `40662817316` | 299 passed, 5 skipped; build and bundle-secret check passed; `npm audit --omit=dev` found 0 vulnerabilities |
+| Independent code review of PR #96 | Passed; no remaining findings |
+
+The Preview regression used deterministic session/API fixtures. It proves the deployed browser recovery path preserves file-backed proposals; it does not prove a live AI-provider response. Live-provider recommendation and the complete Requirements-to-PRD flow remain open acceptance criteria.
+
 ## Output reliability and request recovery follow-up — 2026-10-28
 
-This local candidate is based on merged PR #93 (`b2ff708c83db37c82462098c02e5d5b5a2eeef46`). `TURN_ANALYZE` v7/schema v6 keeps compact bounded turn output. `OPTION_RECOMMEND` v7/schema v7 now generates grounded recommendations in 4/4/3 batches; the server validates and combines all eleven before displaying the block and records each provider dispatch against the same UI generation job ID. The authenticated turn status read returns only owner-scoped status, request ledger entries, and a succeeded result, allowing the client to recover accounting after an aborted response body. Failed and cancelled generation states are persisted with the ledger.
+PR #94 was merged to `main` as `2135816d3a8881ee9f763e1e28c4a114c0d4e62f`. Its Production deployment `dpl_h6WXCHcoc7TxHaHU7LWYy4xYdcvS` is Ready at [windsoft-agent-blueprint-2uvn9607f.vercel.app](https://windsoft-agent-blueprint-2uvn9607f.vercel.app). `TURN_ANALYZE` v7/schema v6 keeps compact bounded turn output. `OPTION_RECOMMEND` v7/schema v7 generates grounded recommendations in 4/4/3 batches; the server validates all eleven before display and records each provider dispatch against the stable UI generation job ID. The authenticated turn status read returns only owner-scoped status, request ledger entries, and a succeeded result, allowing recovery after an aborted response body. Failed and cancelled generation states are persisted with the ledger.
 
 | Command | Result |
 | --- | --- |
@@ -12,10 +25,13 @@ This local candidate is based on merged PR #93 (`b2ff708c83db37c82462098c02e5d5b
 | `npm run check:bundle-secrets` | No configured secrets found in built assets |
 | `git diff --check` | Passed |
 | Desktop/mobile conversation, Requirements generation/ready, and same-revision PRD Playwright | 26 passed on desktop 1440×900 and mobile 390×844 |
+| `npm run test:ci` (GitHub Actions run `40657052679`) | 428 unit/contract tests, 57/57 synthetic golden fixtures, 295 browser cases passed and 5 skipped; build, bundle-secret check, and `npm audit --omit=dev` passed |
 
-The browser suite used deterministic API/session fixtures and excluded Google OAuth. It ran against this worktree's build on `http://127.0.0.1:4178`; the shared default port 4173 belongs to another worktree and was deliberately left untouched. Tests cover request ledger propagation, retry fingerprint stability when provider accounting changes, failed-state persistence, owner-scoped recovery after body abort, applying successful results recovered after cancellation, 11 recommendation candidates, explicit proposal approval, Requirements Markdown download, and same-revision PRD draft persistence. The current local code was compared with `docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png` at desktop and mobile screenshots from the same test build.
+The browser suite used deterministic API/session fixtures and excluded Google OAuth. It ran against this worktree's build on `http://127.0.0.1:4178`; the shared default port 4173 belongs to another worktree and was deliberately left untouched. Tests cover request ledger propagation, retry fingerprint stability when provider accounting changes, failed-state persistence, owner-scoped recovery after body abort, applying successful results recovered after cancellation, 11 recommendation candidates, explicit proposal approval, Requirements Markdown download, and same-revision PRD draft persistence. The local test build was compared with `docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png`; however, the committed canvas-comparison report still identifies its app source as earlier HEAD `caf2e01`, so a current-HEAD visual comparison is not established.
 
-PR #94 Preview for code commit `364853099b77cbc2cdadfc089b0e4c28759afa16` deployed as `dpl_AWjf7NTRAbdkgUuSYWryammk5dgJ` at `https://windsoft-agent-blueprint-9gfh7p6pa.vercel.app`. The protected Preview was accessed with a short-lived local OIDC token; 26 desktop/mobile browser tests passed against its deployed assets. These tests still used deterministic API/session fixtures. Vercel has no Preview environment variables configured, so live-provider completion and the full real-provider Requirements-ready/download → PRD flow remain unverified.
+PR #94 Preview at exact PR head `136ab30104d3717fb89dc4cfcf6c9dfa90a86f6a` deployed as `dpl_FtiPPtD7qvckPvBDFypDhuX2Gggj` at [windsoft-agent-blueprint-8vk58dg93.vercel.app](https://windsoft-agent-blueprint-8vk58dg93.vercel.app). The protected Preview was accessed with a short-lived local OIDC token; all 26 desktop/mobile browser tests passed against its deployed assets. These tests used deterministic API/session fixtures. Preview has no server environment variables configured, so live-provider completion and the real-provider Requirements-ready/download → PRD flow remain unverified. No Google OAuth flow was run.
+
+The Production deployment has provider variables configured, but a read-only session probe signed with the local test secret received HTTP 401. Without a valid non-Google test session, no live-provider browser request was sent to Production.
 
 ## PR #92 Production validation and v6 output-bound follow-up — 2026-10-28
 
@@ -115,11 +131,11 @@ The browser suite uses deterministic API responses and the existing test-session
 
 The contract validation recursively rejects unsafe markup, executable text, fenced code and recognizable bare code in proposal and recommendation fields while allowing ordinary prose. Recommendation cards display their evidence excerpt and provenance; message evidence provides a keyboard-accessible navigation action to its source turn.
 
-## Full-suite result
+## Historical full-suite result before PR #64
 
 `npm run test:unit` reported 349 passed and 1 failed. The failing test is `tests/unit/src-pr-01-source-upload-command.test.js` — “removes a source transactionally without replacing sibling records” — where `removeSourceAndReferences` reads `undefined.map`. The same targeted failure was reproduced on clean `main` at `df54aafa`; it is pre-existing and outside this PR's source/conversation changes.
 
-Agent Browser is unavailable in the current environment; Playwright Chromium was used for the complete desktop and mobile flow. Live provider and Google OAuth behavior remain unverified by this validation. Current product-code test evidence is tied to source HEAD `caf2e01ce23052dc4f10016746e1fef415ba9eb4`; the active PR may add a documentation-only commit, so this SHA must not be reported as that later PR HEAD. Independent review on this app-code HEAD found documentation findings, which this update addresses. Fresh independent review, QA, and configured checks must pass against the resulting final PR HEAD before merge; record those outcomes and SHA in the PR.
+That historical validation used product-code source HEAD `caf2e01ce23052dc4f10016746e1fef415ba9eb4`. The current PR #94 CI and protected Preview evidence are recorded at the top of this file. Live provider validation remains open.
 
 ## Current-flow evidence workflow
 
