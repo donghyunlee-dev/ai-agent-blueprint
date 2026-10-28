@@ -30,8 +30,8 @@ function currentRecommendationOutput(value) {
     : payload.recommendations;
   return {
     ...value,
-    promptVersion: 'v4',
-    schemaVersion: 'v4',
+    promptVersion: 'v5',
+    schemaVersion: 'v5',
     payload: {
       m: shortText(payload.assistantMessage, 24),
       r: recommendations,
@@ -257,9 +257,9 @@ test('turn endpoint returns eleven recommendation candidates and only creates a 
   assert.equal(selectedRes.body.proposals[0].status, undefined);
 });
 
-test('OPTION_RECOMMEND v4 normalizes compact model fields before grounding and pending selection', async () => {
+test('OPTION_RECOMMEND v5 normalizes compact model fields before grounding and pending selection', async () => {
   const recommendationOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v4', schemaVersion: 'v4', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v5', schemaVersion: 'v5', designRevision: 0,
     payload: {
       m: '11개 예약 안입니다.',
       r: Array.from({ length: 11 }, (_, index) => ({
@@ -269,7 +269,7 @@ test('OPTION_RECOMMEND v4 normalizes compact model fields before grounding and p
     },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
-  const requestBody = { ...body, logicalRequestId: 'logical-recommend-v4-12345', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약 11개 추천안을 보여주세요.' } };
+  const requestBody = { ...body, logicalRequestId: 'logical-recommend-v5-12345', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약 11개 추천안을 보여주세요.' } };
   const res = response();
   await runHandler(request(requestBody), res, { store: createMemoryAuthStore(), requestStructuredOutput: async () => recommendationOutput });
 
@@ -285,10 +285,10 @@ test('OPTION_RECOMMEND v4 normalizes compact model fields before grounding and p
   assert.equal(res.body.proposals.length, 0);
 });
 
-test('OPTION_RECOMMEND v4 retries raw output that exceeds concise field limits', async () => {
+test('OPTION_RECOMMEND v5 retries output that violates provider-enforced field length patterns', async () => {
   const calls = [];
   const baseOutput = {
-    task: 'OPTION_RECOMMEND', promptVersion: 'v4', schemaVersion: 'v4', designRevision: 0,
+    task: 'OPTION_RECOMMEND', promptVersion: 'v5', schemaVersion: 'v5', designRevision: 0,
     payload: {
       m: '추천안',
       r: Array.from({ length: 11 }, (_, index) => ({
@@ -299,7 +299,7 @@ test('OPTION_RECOMMEND v4 retries raw output that exceeds concise field limits',
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
   const invalidOutput = { ...baseOutput, payload: { ...baseOutput.payload, m: '추천안'.repeat(9) } };
-  const requestBody = { ...body, logicalRequestId: 'logical-recommend-v4-limit-123', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약 11개 추천안을 보여주세요.' } };
+  const requestBody = { ...body, logicalRequestId: 'logical-recommend-v5-limit-123', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약 11개 추천안을 보여주세요.' } };
   const res = response();
   await handler(request(requestBody), res, {
     store: createMemoryAuthStore(),

@@ -1,5 +1,18 @@
 # CON-PR-05 validation results
 
+## Production truncation diagnosis and v5 schema-bound follow-up — 2026-10-28
+
+The first post-PR-91 Production run completed all 11 recommendations, candidate selection, and explicit proposal approval, then a large eight-decision free-turn batch returned `AI_OUTPUT_INCOMPLETE`. A smaller-turn rerun failed earlier in `OPTION_RECOMMEND`: Production request `558tg-1793163826928-08ff154740dd` used `gpt-5-mini`, input 1,560 tokens, output 2,000/2,000, reasoning 256, and stopped at `max_output_tokens`. The response contract's short field limits were checked only after generation, so they could not bound provider output.
+
+The follow-up creates `OPTION_RECOMMEND` v5 with provider-schema `pattern` bounds for the compact candidate fields. It keeps the model/profile, one-call behavior, visible recommendation content, and 2,000 output-token cap unchanged. Validation is local only at this point; a Preview provider call and complete Production browser flow remain required before acceptance.
+
+| Command | Result |
+| --- | --- |
+| `npm run test:unit` | 415 passed, 0 failed |
+| `npm run test:golden` | 55/55 synthetic fixtures passed; no provider calls |
+| `npm run build` | Passed; existing >500 kB chunk-size warning |
+| `git diff --check` | Passed |
+
 ## Recommendation output compression follow-up — 2026-10-28
 
 This working change routes explicit recommendation requests to `OPTION_RECOMMEND` prompt/schema v4 and ordinary free turns to `TURN_ANALYZE` v6/v5. It keeps the registered DEFAULT profile, model, and existing 2,000 output-token cap. Local fixtures and deterministic browser tests do not prove the provider can complete all 11 candidates within that cap; this remains a live deployment acceptance check.

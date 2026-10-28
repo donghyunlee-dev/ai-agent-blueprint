@@ -36,7 +36,7 @@ test('golden fixture set covers current compact recommendation and insufficient-
   assert.ok(recommendationFixtures[1].response.followUp);
 });
 
-test('golden fixture set covers active v4 recommendation outputs', async () => {
+test('golden fixture set retains v4 recommendation fixtures for compatibility', async () => {
   const fixtures = JSON.parse(await readFile(new URL('../../eval/golden/core.fixture.json', import.meta.url), 'utf8'));
   const recommendationFixtures = fixtures.filter(({ task, schemaVersion }) => task === 'OPTION_RECOMMEND' && schemaVersion === 'v4');
   assert.deepEqual(recommendationFixtures.map(({ id }) => id), [
@@ -58,6 +58,21 @@ test('v4 golden evaluator checks compact evidence IDs after response normalizati
   });
   assert.equal(result.pass, false);
   assert.ok(result.errors.some((error) => error.includes('unknown source missing')));
+});
+
+test('v5 golden evaluator normalizes a complete set of bounded recommendation candidates', () => {
+  const result = evaluateGoldenFixture({
+    id: 'option-recommend-v5-eleven-bounded-candidates', task: 'OPTION_RECOMMEND', schemaVersion: 'v5',
+    response: {
+      m: '예약 방식 11개 안입니다.',
+      r: Array.from({ length: 11 }, (_, index) => ({
+        t: `예약안 ${index + 1}`, r: '중복 예방', x: ['확인 필요'], a: [],
+        e: { s: 'message', i: 'message-1' }, k: 'requirement', d: '충돌 시 차단',
+      })),
+    },
+    manifest: { designItemIds: [], sourceExcerptIds: [], recentMessageIds: ['message-1'], summaryIds: [] },
+  });
+  assert.deepEqual(result, { pass: true, errors: [] });
 });
 
 test('setup guide golden fixtures exercise evidence, injection, schema, and source-reference rejection paths', async () => {
