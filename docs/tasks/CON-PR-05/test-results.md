@@ -2,23 +2,26 @@
 
 ## Current PR #97 candidate — 2026-10-29
 
-Source Preview HEAD: `87d82baa22adee44a54f64c9a98372e267624f21` (`codex/contextual-recommendation-action`), deployed as `dpl_FC4RSV9fTt1nqQwm3Z2oqPmeUfTL` (`https://windsoft-agent-bluepr-git-b41d80-donghyunlees-projects-e43b52b1.vercel.app`). The Requirements provider-input fix is committed locally as `3ae92661cb05a5474e215a146ee40e8bb5fc6709` and has passed the full local unit/contract suite and build; it has not yet been deployed to Preview.
+Source Preview HEAD: `6bc4c72453080a5985ba4a05b06366bee20b2455` (`codex/contextual-recommendation-action`), deployed as `dpl_EL2jVEhQ5kN54iWVonSXsyxXtom8` (`https://windsoft-agent-blueprint-q58v8kiiv.vercel.app`). The branch alias resolves to this Ready deployment. The Requirements provider-input fix is deployed in this candidate. Preview fixture browser tests below ran against this exact deployment.
 
 | Check | Result |
 | --- | --- |
-| `npm run test:unit` | 431 passed, 0 failed |
+| `npm run test:unit` | 434 passed, 0 failed |
 | `npm run test:golden` | 57/57 synthetic fixtures passed; no provider calls |
-| GitHub `npm run test:e2e:ci` | 314 passed, 5 skipped, 0 failed |
+| GitHub `npm run test:e2e:ci` | 315 passed, 5 skipped, 0 failed |
 | Exact-HEAD canvas geometry regression | 1 passed; 94.0158% full-canvas pixel score is diagnostic only under UIR-PR-03A |
-| Protected Preview keyboard and responsive journeys | 7 passed, 1 existing mobile viewport-matrix skip at `windsoft-agent-bluepr-git-b41d80-donghyunlees-projects-e43b52b1.vercel.app`; deterministic auth/API fixtures, no Google OAuth |
+| Protected Preview conversation, Requirements, PRD, proposal, keyboard, and responsive journeys | 48 passed, 2 existing viewport-specific skips; deterministic auth/API fixtures, no Google OAuth |
+| Protected Preview keyboard-only home → PRD download and responsive journeys | 7 passed, 1 existing mobile viewport-matrix skip; deterministic auth/API fixtures, no Google OAuth |
 | `npm run build` / bundle-secret check | Passed; existing >500 kB chunk warning; no configured secrets in built assets |
 | Full-canvas score | 1,479,200 / 1,573,352 (94.0158% at per-channel delta 24), diagnostic only under UIR-PR-03A |
 | Anchor geometry | Exact-HEAD test passed the position and size tolerances in `docs/ui/07-visual-acceptance.md`; report is in `.pr-artifacts/UIR-PR-03/comparison-report.json` |
 | Live provider | Still open. The prior real Preview turn returned `invalid_api_key` (HTTP 401); no live-provider result is claimed by fixture tests. |
 
-The protected Preview browser suite used a short-lived Vercel development OIDC token and did not print or commit it. It verifies the live deployed shell and deterministic user journey, not provider output. The latest Vercel deployment and all listed GitHub checks target the exact HEAD above.
+The protected Preview browser suite used a short-lived Vercel development OIDC token and did not print or commit it. It verifies the live deployed shell and deterministic user journey, not provider output. GitHub deployment `7405534696` confirms SHA `6bc4c72453080a5985ba4a05b06366bee20b2455`; all listed GitHub checks passed on that SHA.
 
-The Requirements document API previously serialized only the plan for every Requirements task. Commit `3ae92661cb05a5474e215a146ee40e8bb5fc6709` adds regression coverage that inspects the actual serialized provider messages and passes the current draft to review/re-review and the affected sections plus issue instructions to the one allowed repair. Before the fix, all three new assertions failed while the five existing API tests passed; after the fix, the focused Requirements/PRD contracts passed 12/12, the full unit/contract suite passed 434/434, and the production build passed with the existing chunk-size warning. The protected Preview responsive suite also passed locally: 5 passed, 1 existing skip. Updated CI and Preview deployment are still required for this candidate. A protected Preview session probe returned no usable local signing secret because Vercel does not download secret values through `vercel env run`; the earlier real provider call had returned `invalid_api_key` (HTTP 401). Therefore authenticated live-provider generation remains unverified.
+The Requirements document API previously serialized only the plan for every Requirements task. Commit `3ae92661cb05a5474e215a146ee40e8bb5fc6709` adds regression coverage that inspects the actual serialized provider messages and passes the current draft to review/re-review and the affected sections plus issue instructions to the one allowed repair. Before the fix, all three new assertions failed while the five existing API tests passed; after the fix, the focused Requirements/PRD contracts passed 12/12, the full unit/contract suite passed 434/434, and the production build passed with the existing chunk-size warning.
+
+Commit `f3a77ac8fc921cd1a3f98decbe1e25b9f5b83e6e` adds a Preview-only synthetic session bootstrap route for live API acceptance without Google OAuth. It is not yet deployed. Its environment token must be branch-scoped and Preview `APP_SESSION_SECRET` must differ from Production; session secrets are not available to `vercel env run`. An earlier real Preview turn returned `invalid_api_key` (HTTP 401). Authenticated real-provider generation remains unverified.
 
 ## Current candidate and protected Preview — 2026-10-29
 
