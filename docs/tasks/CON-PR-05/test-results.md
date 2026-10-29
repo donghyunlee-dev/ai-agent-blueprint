@@ -19,7 +19,7 @@ The protected Preview for source HEAD `dbc89e077b1d2c733f777dff5f0310df9caab745`
 | `npm run build` / bundle-secret check | Passed; existing >500 kB chunk warning; no configured secrets in built assets |
 | Independent review of Preview session route fix | No actionable findings; production logout and headerless Preview logout remain intact |
 
-The key is now accepted by the branch-scoped Preview deployment. The current patch strengthens the bounded `TURN_ANALYZE` retry to omit a proposal it cannot express with an allowed design-item type. Local turn API contract coverage passes (39/39), and the build passes with the existing chunk-size warning. The patch still needs deployment and a rerun of the real conversation, all 11 recommendations, selection/approval, Requirements-ready/download, and same-revision PRD-ready/download flow. No such end-to-end live-provider result is claimed yet.
+The key is now accepted by the branch-scoped Preview deployment. Prompt `TURN_ANALYZE` v8 adds the allowed design-item type list and says to represent a software feature as `requirement`; the bounded correction also omits proposals that cannot use an allowed type. Local turn API coverage passes (39/39), the focused prompt contract passes, and the prior build passed with the existing chunk-size warning. This prompt change still needs deployment and a rerun of the real conversation, all 11 recommendations, selection/approval, Requirements-ready/download, and same-revision PRD-ready/download flow. No such end-to-end live-provider result is claimed yet.
 
 ### Deployment route limit and correction
 

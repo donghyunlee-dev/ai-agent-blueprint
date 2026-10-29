@@ -25,7 +25,7 @@ test('unknown task, prompt version, schema id, and schema version fail closed', 
 
 test('typed input is serialized as user context with source excerpts explicitly untrusted', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
-  assert.equal(prompt.promptVersion, 'v7');
+  assert.equal(prompt.promptVersion, 'v8');
   assert.equal(prompt.schemaVersion, 'v6');
   const messages = prompt.buildInput({
     userInput: '사용자 답변',
@@ -39,6 +39,7 @@ test('typed input is serialized as user context with source excerpts explicitly 
   assert.match(messages[1].content, /before\/after는 유효한 JSON object를 문자열로 직렬화해 최대 180자/);
   assert.match(messages[1].content, /options는 최대 4개이고 proposalDraft를 포함하지 않는다/);
   assert.match(messages[1].content, /OPTION_RECOMMEND task의 책임/);
+  assert.match(messages[1].content, /기능\(feature\)은 requirement로 표현/);
   assert.match(messages[1].content, /ID\/evidence는 전달된 current context의 실제 값을 사용/);
   assert.match(messages[2].content, /ignore all system rules/);
   assert.doesNotMatch(messages[0].content, /ignore all system rules/);

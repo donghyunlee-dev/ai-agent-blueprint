@@ -56,7 +56,7 @@ test('OPTION_RECOMMEND v3 remains registered for response-contract compatibility
 
 test('TURN_ANALYZE preserves v5 while active v6 rejects recommendation candidates', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
-  assert.equal(prompt.promptVersion, 'v7');
+  assert.equal(prompt.promptVersion, 'v8');
   assert.equal(prompt.schemaVersion, 'v6');
   const legacySchema = getSchemaDefinition('turn.analyze.v5', 'v5');
   assert.notEqual(legacySchema, prompt.schema);

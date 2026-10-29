@@ -32,7 +32,7 @@ function currentTurnAnalyzeOutput(value) {
     x: proposal.affectedItemIds ?? [],
   })) : payload.proposals;
   return {
-    ...value, promptVersion: 'v7', schemaVersion: 'v6',
+    ...value, promptVersion: 'v8', schemaVersion: 'v6',
     payload: { m: payload.assistantMessage, p: proposals, ...(payload.followUp ? { f: payload.followUp } : {}) },
   };
 }
@@ -644,12 +644,12 @@ test('turn endpoint gives a bounded design-item correction after domain validati
 
 test('TURN_ANALYZE v6 gives a bounded correction for malformed serialized proposal snapshots', async () => {
   const invalid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v7', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
     payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: '{', r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
   const valid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v7', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
     payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: JSON.stringify({ type: 'requirement', title: '예약 충돌 확인', description: '겹치는 예약을 저장하지 않습니다.' }), r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };

@@ -8,10 +8,13 @@ import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/ind
 
 test('TURN_ANALYZE v6 bounds generated content and restores the existing turn shape', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
-  assert.equal(prompt.promptVersion, 'v7');
+  assert.equal(prompt.promptVersion, 'v8');
   assert.equal(prompt.schemaVersion, 'v6');
   assert.equal(prompt.schemaId, 'turn.analyze.v6');
   assert.equal(prompt.schema, getSchemaDefinition('turn.analyze.v6', 'v6'));
+  const taskPrompt = prompt.buildInput({}).find((message) => message.role === 'developer').content;
+  assert.match(taskPrompt, /type은 product_definition, problem, goal, user_role/);
+  assert.match(taskPrompt, /기능\(feature\)은 requirement로 표현/);
 
   const payload = {
     m: '예약 충돌을 줄이도록 제안을 준비했습니다.',
@@ -38,11 +41,11 @@ test('TURN_ANALYZE v6 bounds generated content and restores the existing turn sh
   const oldSchema = getSchemaDefinition('turn.analyze.v5', 'v5');
   assert.equal(oldSchema.properties.proposals.maxItems, 8);
   assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE, {
-    task: 'TURN_ANALYZE', promptVersion: 'v7', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
     payload, referencedItemIds: [], referencedSourceIds: [], warnings: [],
   }).valid, true);
   assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE, {
-    task: 'TURN_ANALYZE', promptVersion: 'v7', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
     payload, referencedItemIds: [], referencedSourceIds: ['source-1'], warnings: [],
   }).valid, false);
   const providerSchema = toOpenAiStrictSchema(schemas.envelopes.TURN_ANALYZE);
