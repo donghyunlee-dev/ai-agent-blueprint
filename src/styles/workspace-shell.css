@@ -850,8 +850,10 @@ html:has(.workspace-shell), body:has(.workspace-shell), body:has(.workspace-shel
 @media (min-width: 1280px) {
   .workspace-panels[data-stage="conversation"] .question-card > form > fieldset.question-card-options > .question-card-option:not(:has(.contextual-option-icon)) { flex-basis: 100%; }
 }
-.workspace-panels[data-stage="conversation"] .conversation-message-row-question .contextual-question-card[data-answer-mode="single"] > form > fieldset.question-card-options > .question-card-option:not(:has(.contextual-option-icon)),
-.workspace-panels[data-stage="conversation"] .conversation-message-row-question .contextual-question-card[data-answer-mode="single"] > form > fieldset.question-card-options > .question-card-option:has(.contextual-option-icon) { flex-basis: 100%; }
+@media (min-width: 768px) and (max-width: 1279px) {
+  .workspace-panels[data-stage="conversation"] .conversation-message-row-question .contextual-question-card[data-answer-mode="single"] > form > fieldset.question-card-options > .question-card-option:not(:has(.contextual-option-icon)),
+  .workspace-panels[data-stage="conversation"] .conversation-message-row-question .contextual-question-card[data-answer-mode="single"] > form > fieldset.question-card-options > .question-card-option:has(.contextual-option-icon) { flex-basis: 100%; }
+}
 .workspace-panels[data-stage="conversation"] .question-card-option.has-icon .question-option-icon {
   display: grid;
   width: 36px;
