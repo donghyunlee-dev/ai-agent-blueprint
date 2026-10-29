@@ -31,6 +31,8 @@ async function authorizeProtectedPreview(page: any) {
   });
 }
 
+test.beforeEach(async ({ page }) => authorizeProtectedPreview(page));
+
 async function seedConversation(page: any) {
   await page.route('**/api/auth/session', (route: any) => route.fulfill({
     status: 200,
@@ -142,7 +144,6 @@ async function seedConversation(page: any) {
 
 test('contextual question options adapt to conversation width without horizontal overflow', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Viewport matrix runs once in desktop Chromium.');
-  await authorizeProtectedPreview(page);
   await seedConversation(page);
 
   const viewports = [

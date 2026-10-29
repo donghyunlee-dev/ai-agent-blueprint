@@ -1,5 +1,25 @@
 # CON-PR-05 validation results
 
+## Current PR #97 candidate — 2026-10-29
+
+Source Preview HEAD: `87d82baa22adee44a54f64c9a98372e267624f21` (`codex/contextual-recommendation-action`), deployed as `dpl_FC4RSV9fTt1nqQwm3Z2oqPmeUfTL` (`https://windsoft-agent-bluepr-git-b41d80-donghyunlees-projects-e43b52b1.vercel.app`). The Requirements provider-input fix is committed locally as `3ae92661cb05a5474e215a146ee40e8bb5fc6709` and has passed the full local unit/contract suite and build; it has not yet been deployed to Preview.
+
+| Check | Result |
+| --- | --- |
+| `npm run test:unit` | 431 passed, 0 failed |
+| `npm run test:golden` | 57/57 synthetic fixtures passed; no provider calls |
+| GitHub `npm run test:e2e:ci` | 314 passed, 5 skipped, 0 failed |
+| Exact-HEAD canvas geometry regression | 1 passed; 94.0158% full-canvas pixel score is diagnostic only under UIR-PR-03A |
+| Protected Preview keyboard and responsive journeys | 7 passed, 1 existing mobile viewport-matrix skip at `windsoft-agent-bluepr-git-b41d80-donghyunlees-projects-e43b52b1.vercel.app`; deterministic auth/API fixtures, no Google OAuth |
+| `npm run build` / bundle-secret check | Passed; existing >500 kB chunk warning; no configured secrets in built assets |
+| Full-canvas score | 1,479,200 / 1,573,352 (94.0158% at per-channel delta 24), diagnostic only under UIR-PR-03A |
+| Anchor geometry | Exact-HEAD test passed the position and size tolerances in `docs/ui/07-visual-acceptance.md`; report is in `.pr-artifacts/UIR-PR-03/comparison-report.json` |
+| Live provider | Still open. The prior real Preview turn returned `invalid_api_key` (HTTP 401); no live-provider result is claimed by fixture tests. |
+
+The protected Preview browser suite used a short-lived Vercel development OIDC token and did not print or commit it. It verifies the live deployed shell and deterministic user journey, not provider output. The latest Vercel deployment and all listed GitHub checks target the exact HEAD above.
+
+The Requirements document API previously serialized only the plan for every Requirements task. Commit `3ae92661cb05a5474e215a146ee40e8bb5fc6709` adds regression coverage that inspects the actual serialized provider messages and passes the current draft to review/re-review and the affected sections plus issue instructions to the one allowed repair. Before the fix, all three new assertions failed while the five existing API tests passed; after the fix, the focused Requirements/PRD contracts passed 12/12, the full unit/contract suite passed 434/434, and the production build passed with the existing chunk-size warning. The protected Preview responsive suite also passed locally: 5 passed, 1 existing skip. Updated CI and Preview deployment are still required for this candidate. A protected Preview session probe returned no usable local signing secret because Vercel does not download secret values through `vercel env run`; the earlier real provider call had returned `invalid_api_key` (HTTP 401). Therefore authenticated live-provider generation remains unverified.
+
 ## Current candidate and protected Preview — 2026-10-29
 
 Candidate `2ca794b6e683159b1f06fafaaf1160cdd90a4634` preserves contextual response targets and reports missing session-secret configuration as unavailable. Its protected Preview deployment is `dpl_C3WYqcFfDybgwxfzqhezeSduT998` (`windsoft-agent-blueprint-dy34nyavy.vercel.app`). A branch-scoped synthetic session was accepted by `/api/auth/session`; Google OAuth was not run.
@@ -10,7 +30,7 @@ Candidate `2ca794b6e683159b1f06fafaaf1160cdd90a4634` preserves contextual respon
 | Conversation, Requirements, PRD, and proposal browser suites | 48 passed, 2 existing viewport skips, 0 failed; deterministic API/session fixtures on desktop and mobile |
 | `npm run build` | Passed; existing >500 kB chunk-size warning |
 | Independent review of `2ca794b` | No actionable findings |
-| Exact-HEAD canvas comparison | 1,481,837 / 1,573,352 matching pixels (94.1834%), below the 95% gate; report and screenshots are in `.pr-artifacts/UIR-PR-03/` |
+| Historical canvas comparison | 1,481,837 / 1,573,352 matching pixels (94.1834%). The prior 95% pixel gate is superseded by UIR-PR-03A; current anchor acceptance is recorded in the PR #97 section below |
 | Real provider turn on Preview | `POST /api/blueprint/turn` returned 503; Vercel runtime recorded provider HTTP 401 `invalid_api_key` for `gpt-5-mini` |
 
 The Production `OPENAI_API_KEY` value currently copied to this branch's Preview scope is invalid, so live recommendation, Requirements generation/ready/download, and same-revision PRD could not be exercised. No prompt, model profile, or token cap was changed. Replace the provider key in Vercel, then refresh the branch-scoped Preview value and repeat the real-browser flow. The failed live response does not count as provider-flow acceptance; deterministic browser results above do not replace it.
