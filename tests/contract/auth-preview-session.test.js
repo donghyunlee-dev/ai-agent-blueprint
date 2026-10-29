@@ -1,6 +1,5 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import handler from '../../api/auth/preview-session.js';
 import sessionHandler from '../../api/auth/session.js';
 import { requireSession } from '../../api/_lib/session.js';
 import { deriveOwnerKey } from '../../src/features/auth/ownerContext.js';
@@ -23,7 +22,7 @@ afterEach(() => {
 });
 
 function request({ method = 'POST', headers = {}, body } = {}) {
-  return { ...createMockReq({ method, url: '/api/auth/preview-session', headers: {
+  return { ...createMockReq({ method, url: '/api/auth/session', headers: {
     host: 'preview.example.test', origin: 'https://preview.example.test',
     'x-forwarded-proto': 'https', 'sec-fetch-site': 'same-origin',
     'x-preview-e2e-session-token': token, ...headers,
@@ -32,22 +31,33 @@ function request({ method = 'POST', headers = {}, body } = {}) {
 
 async function invoke(req = request()) {
   const res = createMockRes();
-  await handler(req, res);
+  await sessionHandler(req, res);
   assert.equal(res.ended, true);
-  assert.equal(res.headers['Cache-Control'], 'no-store');
   return res;
 }
 
-test('bootstrap is hidden outside Preview even with a configured token', async () => {
+test('outside Preview a special-header POST still only logs out', async () => {
   for (const environment of ['production', 'development', '', undefined]) {
     if (environment === undefined) delete process.env.VERCEL_ENV;
     else process.env.VERCEL_ENV = environment;
-    for (const method of ['POST', 'GET', 'OPTIONS']) {
-      const res = await invoke(request({ method }));
-      assert.equal(res.statusCode, 404);
-      assert.equal(res.headers['Set-Cookie'], undefined);
+    for (const value of [token, 'wrong']) {
+      const res = await invoke(request({ headers: { 'x-preview-e2e-session-token': value } }));
+      assert.equal(res.statusCode, 204);
+      assert.match(res.headers['Set-Cookie'], /Max-Age=0/);
       assert.equal(res.body, undefined);
     }
+  }
+});
+
+test('headerless Preview POST retains logout even if token appears in body or query', async () => {
+  for (const configured of [true, false]) {
+    if (!configured) delete process.env.PREVIEW_E2E_SESSION_TOKEN;
+    const req = request({ body: { token } });
+    delete req.headers['x-preview-e2e-session-token'];
+    req.url += `?token=${token}`;
+    const res = await invoke(req);
+    assert.equal(res.statusCode, 204);
+    assert.match(res.headers['Set-Cookie'], /Max-Age=0/);
   }
 });
 
@@ -57,18 +67,25 @@ test('bootstrap is hidden without an explicitly configured nonblank token', asyn
     else process.env.PREVIEW_E2E_SESSION_TOKEN = value;
     const res = await invoke();
     assert.equal(res.statusCode, 404);
+    assert.equal(res.headers['Cache-Control'], 'no-store');
     assert.equal(res.headers['Set-Cookie'], undefined);
   }
 });
 
 test('enabled bootstrap accepts POST only and does not allow CORS preflight', async () => {
-  for (const method of ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE']) {
+  for (const method of ['HEAD', 'OPTIONS', 'PUT', 'DELETE']) {
     const res = await invoke(request({ method }));
     assert.equal(res.statusCode, 405);
-    assert.equal(res.headers.Allow, 'POST');
     assert.equal(res.headers['Set-Cookie'], undefined);
     assert.equal(res.headers['Access-Control-Allow-Origin'], undefined);
   }
+});
+
+test('GET with the special header preserves session lookup and cannot bootstrap', async () => {
+  const res = await invoke(request({ method: 'GET' }));
+  assert.equal(res.statusCode, 401);
+  assert.deepEqual(JSON.parse(res.body), { error: 'AUTH_REQUIRED' });
+  assert.equal(res.headers['Set-Cookie'], undefined);
 });
 
 test('bootstrap requires the exact single custom-header token', async () => {
@@ -109,6 +126,7 @@ test('bootstrap issues a normal secure session for only the fixed synthetic owne
   const res = await invoke(req);
   assert.equal(res.statusCode, 204);
   assert.equal(res.body, undefined);
+  assert.equal(res.headers['Cache-Control'], 'no-store');
   const cookie = res.headers['Set-Cookie'];
   assert.match(cookie, /^__Host-sfb_session=/);
   for (const attribute of ['Path=/', 'HttpOnly', 'Secure', 'SameSite=Lax', 'Max-Age=']) assert.ok(cookie.includes(attribute));
