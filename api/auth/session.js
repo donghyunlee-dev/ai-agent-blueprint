@@ -20,6 +20,7 @@ export default function handler(req, res) {
     res.end();
     return;
   }
+  if (!process.env.APP_SESSION_SECRET) return sendJson(res, 503, { error: "AUTH_UNAVAILABLE" });
   const result = requireSession(req);
   if (!result.ok) return sendJson(res, 401, { error: "AUTH_REQUIRED" });
   return sendJson(res, 200, { authenticated: true, user: result.user });
