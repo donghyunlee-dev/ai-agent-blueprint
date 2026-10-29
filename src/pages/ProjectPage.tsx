@@ -146,7 +146,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
   const contextualSubmitRef = useRef<((response:ContextualResponse)=>Promise<void>)|null>(null);
   const saverRef = useRef<ProjectSaver | null>(null);
   const conversationContentRef = useRef<HTMLDivElement | null>(null);
-  const conversationWasAtBottomRef = useRef(true);
+  const conversationWasAtBottomRef = useRef(false);
   const inspectorPanelRef = useRef<HTMLElement | null>(null);
   const inspectorTriggerRef = useRef<HTMLButtonElement | null>(null);
   const inspectorCloseRef = useRef<HTMLButtonElement | null>(null);
@@ -175,6 +175,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
 
     saverRef.current?.dispose();
     saverRef.current = null;
+    conversationWasAtBottomRef.current = false;
     setAggregate(null);
     aggregateRef.current = null;
     setRevealedSourceMessageId(null);
@@ -295,6 +296,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       if (saved !== null) {
         panel.scrollTop = clampScrollOffset(saved, panel.scrollHeight, panel.clientHeight);
         conversationWasAtBottomRef.current = panel.scrollHeight - panel.clientHeight - panel.scrollTop <= 32;
+      } else {
+        conversationWasAtBottomRef.current = false;
       }
     });
     const persist = () => {
@@ -662,6 +665,24 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     return () => window.cancelAnimationFrame(frame);
   }, [aggregate?.messages.length]);
 
+  useEffect(() => {
+    const content = conversationContentRef.current;
+    if (!content || loadStatus !== "ready") return;
+    const resizeObserver = new ResizeObserver(() => {
+      if (conversationWasAtBottomRef.current) content.scrollTop = content.scrollHeight;
+    });
+    const observeChildren = () => {
+      for (const child of content.children) resizeObserver.observe(child);
+    };
+    const mutationObserver = new MutationObserver(observeChildren);
+    observeChildren();
+    mutationObserver.observe(content, { childList: true, subtree: true, characterData: true });
+    return () => {
+      mutationObserver.disconnect();
+      resizeObserver.disconnect();
+    };
+  }, [loadStatus, projectId]);
+
   if (documentType && !documentTypes.has(documentType)) return <NotFoundPage />;
   if (aggregate && (aggregate.project.ownerKey !== ownerKey || aggregate.project.id !== projectId)) return <main className="project-route-state" role="status">프로젝트를 불러오는 중입니다.</main>;
   if (loadStatus === 'loading') return <main className="project-route-state" role="status">프로젝트를 불러오는 중입니다.</main>;
@@ -946,7 +967,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
               return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{reviewRequired ? <p role="status">선행 답변 변경으로 다시 검토가 필요합니다.</p> : null}{answer.action === "defer" ? <button className="question-answer-edit" type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : answer.action === "answer" ? <button className="question-answer-edit" type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>수정</button> : null}</article>;
             })}</section> : null}
             {!visibleConversationMessages.some((message) => message.role === "assistant") ? <p className="question-complete-state" role="status">대화에 답하면 필요한 선택지가 여기 표시됩니다.</p> : null}
-            <AiTurnComposer aggregate={aggregate} projectId={aggregate.project.id} onAggregateChange={applyAggregate} persistAggregate={persistAggregateNow} activeTurnCancellationRef={activeTurnCancellationRef} contextualSubmitRef={contextualSubmitRef} />
+            <AiTurnComposer aggregate={aggregate} projectId={aggregate.project.id} onAggregateChange={applyAggregate} onUserTurn={() => { conversationWasAtBottomRef.current = true; }} persistAggregate={persistAggregateNow} activeTurnCancellationRef={activeTurnCancellationRef} contextualSubmitRef={contextualSubmitRef} />
           </div>
         </section>
         </ConversationWorkspace>

@@ -196,6 +196,17 @@ test('dynamic Korean options preserve their values and selected state', async ({
   await card.getByRole('button', { name: '답변 제출' }).click();
   await expect.poll(() => turnRequests.length).toBe(1);
   expect(turnRequests[0].userTurn.responseTo.selectedValues).toEqual(['building-access', 'none']);
+  await page.setViewportSize({ width: 1023, height: 768 });
+  const tabletRows = await options.locator(':scope > label').evaluateAll((labels) => {
+    const counts = new Map<number, number>();
+    for (const label of labels) {
+      const row = Math.round(label.getBoundingClientRect().top);
+      counts.set(row, (counts.get(row) ?? 0) + 1);
+    }
+    return [...counts.values()];
+  });
+  expect(tabletRows).toEqual([2, 2]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await placeChoicesInConversationViewport(page);
   await mkdir(evidenceDirectory, { recursive: true });
   await page.screenshot({ path: `${evidenceDirectory}/security-selected-${testInfo.project.name}.png`, fullPage: false, scale: 'css' });

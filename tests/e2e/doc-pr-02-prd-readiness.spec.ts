@@ -99,6 +99,7 @@ test('explicit Requirements confirmation unlocks same-revision PRD generation on
   await page.goto(`/blueprints/${projectId}/requirements`);
   await page.getByRole('button',{name:'검토 완료 확인'}).click();
   await page.getByRole('dialog').getByRole('button',{name:'요구사항 명세 검토 완료'}).click();
+  await expect(page.locator('.requirements-ready-review [role="status"]')).toContainText('설계 revision 5');
   await expect(page.locator('#project-save-state')).toContainText('저장됨');
   stored=await readStored(page,databaseNameForOwner(ownerKey),projectId);
   expect(stored.documents.find((document:any)=>document.type==='requirements').status).toBe('ready');

@@ -39,12 +39,13 @@ type AiTurnComposerProps = {
   aggregate: BlueprintAggregate;
   projectId: string;
   onAggregateChange: (aggregate: BlueprintAggregate) => void;
+  onUserTurn: () => void;
   persistAggregate: (aggregate: BlueprintAggregate) => Promise<void>;
   activeTurnCancellationRef: MutableRefObject<{jobId:string;abort:()=>void}|null>;
   contextualSubmitRef?: MutableRefObject<((response:ContextualResponse)=>Promise<void>)|null>;
 };
 
-export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persistAggregate, activeTurnCancellationRef, contextualSubmitRef }: AiTurnComposerProps) {
+export function AiTurnComposer({ aggregate, projectId, onAggregateChange, onUserTurn, persistAggregate, activeTurnCancellationRef, contextualSubmitRef }: AiTurnComposerProps) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string|null>(null);
@@ -216,6 +217,7 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
       setError('입력을 저장하지 못해 요청을 보내지 않았습니다. 입력은 유지됩니다.');
       return;
     }
+    onUserTurn();
     aggregateRef.current = withUserMessage; onAggregateChange(withUserMessage);
     const contextMessagesBeforeTurn = current.messages.filter((message)=>message.id!==userMessage.id);
     const context = compactConversationContext({messages:contextMessagesBeforeTurn,summary:current.thread.summary,threshold:20});
