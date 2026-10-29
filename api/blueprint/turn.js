@@ -699,9 +699,13 @@ export default async function handler(req, res, deps = {}) {
             };
           }
           if (retry > 0 && validationFailureStage === 'schema') {
+            const boundedFieldCorrections = [];
+            if (validationError.some((error) => error.startsWith('$.payload.f.prompt:'))) boundedFieldCorrections.push('f.prompt must be at most 160 characters');
+            if (validationError.some((error) => error.startsWith('$.payload.f.topic:'))) boundedFieldCorrections.push('f.topic must be at most 60 characters');
+            if (validationError.some((error) => error.startsWith('$.payload.f.help:'))) boundedFieldCorrections.push('f.help must be at most 100 characters');
             messages[1] = {
               ...messages[1],
-              content: `${messages[1].content}\nVALIDATION RETRY: The previous response did not match the required JSON schema. Return a complete response with every required field and the correct value types. Do not add fields that are not in the schema.`,
+              content: `${messages[1].content}\nVALIDATION RETRY: The previous response did not match the required JSON schema. Return a complete response with every required field and the correct value types. Do not add fields that are not in the schema.${boundedFieldCorrections.length ? ` ${boundedFieldCorrections.join('; ')}.` : ''}`,
             };
           }
           if (retry > 0 && validationFailureStage === 'references' && referenceFailureCategories(referenceValidationErrors).some((category) => ['unknown_source_reference', 'non_user_message_evidence', 'non_request_excerpt_file_evidence', 'unsupported_evidence_type'].includes(category))) {

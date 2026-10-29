@@ -622,6 +622,23 @@ test('TURN_ANALYZE uses bounded correction when follow-up options are not an arr
   assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: The previous response did not match the required JSON schema/);
 });
 
+test('TURN_ANALYZE names the field limit when a contextual follow-up exceeds its schema bound', async () => {
+  const invalid = {
+    task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
+    payload: { m: '확인했습니다.', p: [], f: { componentType: 'free_text', topic: '예약', prompt: '가'.repeat(161), required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] } },
+    referencedItemIds: [], referencedSourceIds: [], warnings: [],
+  };
+  const inputs = [];
+  const res = response();
+  await runHandler(request(body), res, { store: createMemoryAuthStore(), requestStructuredOutput: async (input) => {
+    inputs.push(input);
+    return inputs.length === 1 ? invalid : { ...invalid, payload: { ...invalid.payload, f: { ...invalid.payload.f, prompt: '예약 우선순위를 알려주세요.' } } };
+  } });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(inputs.length, 2);
+  assert.match(inputs[1].messages[1].content, /f\.prompt must be at most 160 characters/);
+});
+
 test('turn endpoint gives a bounded reference correction when the provider invents item IDs', async () => {
   const invalid = structuredClone(output);
   invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 확인',description:'예약 충돌을 확인한다.',relatedItemIds:['invented-item']},rationale:'예약 문제를 해결합니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[] }];
