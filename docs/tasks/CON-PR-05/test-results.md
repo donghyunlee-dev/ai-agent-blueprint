@@ -2,7 +2,28 @@
 
 ## Current PR #97 candidate — 2026-10-29
 
-The previous deployment attempt for `ed597b8` built successfully but Vercel rejected it because the standalone bootstrap route would raise this Hobby deployment to 13 serverless functions (limit 12). Commit `43d240f48edabe5e7e231a867fa657c70c36f118` moves the Preview-only bootstrap into the existing `POST /api/auth/session` route and deletes the standalone route, keeping the source route count at 12. Independent security review found no actionable issues. Exact-HEAD local validation: `npm run test:unit` **444/444**, `npm run test:golden` **57/57**, `npm run build` passed with the existing chunk-size warning, and `git diff --check` passed. This commit has not yet been deployed; real-provider acceptance remains open.
+### Exact deployed candidate `dbc89e0` — 2026-10-29
+
+The protected Preview for source HEAD `dbc89e077b1d2c733f777dff5f0310df9caab745` is Ready as deployment `dpl_DAbsqMpoDnPBp7hygkm2wKFVg69T` at `https://windsoft-agent-blueprint-fm9ckh09z.vercel.app`. Vercel deployed the 12 API route files successfully after the standalone session route was folded into `/api/auth/session`. A branch-scoped Preview token minted the fixed synthetic session with `POST /api/auth/session` (204); the session probe returned 200. Google OAuth was excluded.
+
+| Check | Result |
+| --- | --- |
+| Exact-deployment protected Preview browser flow: conversation, recommendations, proposals, Requirements, PRD, responsive states | 48 passed, 2 existing viewport skips; deterministic API/session fixtures on desktop and mobile |
+| Real provider turn | `POST /api/blueprint/turn` returned 503 `AI_UNAVAILABLE`; Vercel runtime log for request `req_b1f0b783f48e4056b2735e52f601c1b4` records `gpt-5-mini` provider HTTP 401 `invalid_api_key` |
+| Live recommendation and Requirements → PRD | Not reached because the configured Preview provider key is rejected |
+| `npm run test:unit` | 444 passed, 0 failed |
+| `npm run test:golden` | 57/57 synthetic fixtures passed; no provider calls |
+| Local conversation, Requirements, and PRD browser suites | 42 passed on desktop and mobile |
+| `npm run build` / bundle-secret check | Passed; existing >500 kB chunk warning; no configured secrets in built assets |
+| Independent review of Preview session route fix | No actionable findings; production logout and headerless Preview logout remain intact |
+
+The Vercel Preview `OPENAI_API_KEY` is branch-scoped but currently invalid. The development environment has no provider key available to replace it. No live-provider recommendation, Requirements, or PRD result is claimed. Refresh that Preview variable with a valid key, then rerun the real-browser flow.
+
+### Deployment route limit and correction
+
+The deployment attempt for `ed597b8` built successfully but Vercel rejected it because the standalone bootstrap route would raise this Hobby deployment to 13 serverless functions (limit 12). Commit `43d240f48edabe5e7e231a867fa657c70c36f118` moves the Preview-only bootstrap into the existing `POST /api/auth/session` route and deletes the standalone route, keeping the source route count at 12. Vercel deployed that correction in the exact candidate above. Independent security review found no actionable issues. Exact-HEAD local validation: `npm run test:unit` **444/444**, `npm run test:golden` **57/57**, `npm run build` passed with the existing chunk-size warning, and `git diff --check` passed.
+
+### Previous exact-HEAD candidate `6bc4c72`
 
 Source Preview HEAD: `6bc4c72453080a5985ba4a05b06366bee20b2455` (`codex/contextual-recommendation-action`), deployed as `dpl_EL2jVEhQ5kN54iWVonSXsyxXtom8` (`https://windsoft-agent-blueprint-q58v8kiiv.vercel.app`). The branch alias resolves to this Ready deployment. The Requirements provider-input fix is deployed in this candidate. Preview fixture browser tests below ran against this exact deployment.
 
