@@ -88,3 +88,52 @@ test('successful API handler returns HTTP 200 after mocked draft and review call
   assert.equal(result.processStatus,'review_required');
   assert.equal(providerTasks.length,2);
 });
+
+function providerContext(messages) {
+  const userMessage = messages.find(({ role }) => role === 'user').content;
+  return JSON.parse(userMessage.split('TYPED_CONTEXT_JSON:\n')[1].split('\nSOURCE_EXCERPTS_UNTRUSTED_JSON:')[0]);
+}
+
+async function repairGeneration() {
+  const { body, plan } = readyBody();
+  const draft = providerOutput('requirements_draft', plan);
+  draft.payload.sections[0].markdown = '검토 전 제품 정의';
+  const issue = {
+    code: 'PRODUCT_DEFINITION_UNCLEAR', severity: 'warning', sectionKey: draft.payload.sections[0].key,
+    relatedItemIds: ['item-0'], description: '제품 정의를 명확하게 작성해야 합니다.',
+    repairInstruction: '확정된 제품 정의를 명확한 문장으로 작성하세요.',
+  };
+  const repairedSection = { ...draft.payload.sections[0], markdown: '수정된 제품 정의' };
+  const review = providerOutput('requirements_review', plan);
+  const repairableReview = { ...review, payload: { ...review.payload, verdict: 'repairable', issues: [issue] } };
+  const repair = { ...draft, task: 'REQUIREMENTS_REPAIR', payload: { sections: [repairedSection], resolvedIssueIds: [] } };
+  const outputs = [draft, repairableReview, repair, review];
+  const calls = [];
+  const res = createMockRes();
+  await handler(request(body), res, { store: store(), requestStructuredOutput: async ({ name, messages }) => {
+    calls.push({ name, context: providerContext(messages) });
+    return outputs[calls.length - 1];
+  } });
+  assert.equal(res.statusCode, 200, res.body);
+  assert.deepEqual(calls.map(({ name }) => name), ['requirements_draft', 'requirements_review', 'requirements_repair', 'requirements_review']);
+  return { calls, plan, draft, issue, repairedSection, result: JSON.parse(res.body) };
+}
+
+test('initial Requirements review receives the generated draft in serialized provider messages', async () => {
+  const { calls, plan, draft } = await repairGeneration();
+  assert.deepEqual(calls[0].context.currentTarget, plan);
+  assert.deepEqual(calls[1].context.currentTarget, { plan, draft });
+});
+
+test('Requirements repair receives only affected sections and review issues with repair instructions', async () => {
+  const { calls, plan, draft, issue } = await repairGeneration();
+  assert.deepEqual(calls[2].context.currentTarget, { plan, sections: [draft.payload.sections[0]], issues: [issue] });
+});
+
+test('Requirements re-review receives the repaired draft while retaining unaffected content', async () => {
+  const { calls, plan, draft, repairedSection, result } = await repairGeneration();
+  const repairedDraft = { ...draft, payload: { ...draft.payload, sections: [repairedSection, ...draft.payload.sections.slice(1)] } };
+  assert.deepEqual(calls[3].context.currentTarget, { plan, draft: repairedDraft });
+  assert.equal(result.sections[0].markdown, '수정된 제품 정의');
+  assert.deepEqual(result.reviewIssues, []);
+});

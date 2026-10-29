@@ -70,7 +70,7 @@ export default async function handler(req, res, deps = {}) {
       const messages = definition.buildInput(isPrd
         ? { currentTarget: task === 'PRD_DRAFT' ? input.plan : task === 'PRD_REVIEW' ? { plan: input.plan, draft: input.draft } : { plan: input.plan, sections: input.sections, issues: input.issues }, confirmedDesignItems: input.requirements, unknownsAndConflicts: input.openIssues, designRevision: input.designRevision }
         : isSetupGuide ? { currentTarget:input.plan,confirmedDesignItems:input.designItems,unknownsAndConflicts:input.openIssues,sourceExcerpts:input.sourceExcerpts,designRevision:input.designRevision }
-          : { currentTarget: input.plan, confirmedDesignItems: input.designItems.filter((item) => item.status === 'confirmed'), unknownsAndConflicts: input.openIssues, designRevision: input.designRevision });
+          : { currentTarget: task === 'REQUIREMENTS_DRAFT' ? input.plan : task === 'REQUIREMENTS_REVIEW' ? { plan: input.plan, draft: input.draft } : { plan: input.plan, sections: input.sections, issues: input.issues }, confirmedDesignItems: input.designItems.filter((item) => item.status === 'confirmed'), unknownsAndConflicts: input.openIssues, designRevision: input.designRevision });
       const taskConfig = aiModelRegistry.tasks[task];
       const inputTokens = estimateTokens(messages);
       const profile = taskConfig.profile;
