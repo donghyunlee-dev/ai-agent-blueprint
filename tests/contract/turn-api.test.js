@@ -164,6 +164,30 @@ test('TURN validation logs a fixed reference failure category without request da
   assert.doesNotMatch(JSON.stringify(logged), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
 });
 
+test('TURN validation logs sanitized schema paths without model output', async () => {
+  const canary = 'private-model-output-canary';
+  const priorConsoleError = console.error;
+  const logged = [];
+  console.error = (...values) => logged.push(values);
+  try {
+    const invalidOutput = {
+      task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
+      payload: { m: '확인했습니다.', p: [], [canary]: true },
+      referencedItemIds: [], referencedSourceIds: [], warnings: [],
+    };
+    const res = response();
+    await runHandler(request(body), res, { store: createMemoryAuthStore(), requestStructuredOutput: async () => invalidOutput });
+    assert.equal(res.statusCode, 502);
+    assert.equal(res.body.error, 'AI_INVALID_OUTPUT');
+  } finally {
+    console.error = priorConsoleError;
+  }
+  assert.deepEqual(logged, [['TURN_RESPONSE_VALIDATION_FAILED', {
+    stage: 'schema', attempts: 2, schemaFailures: ['$.payload.*:additional_property'],
+  }]]);
+  assert.doesNotMatch(JSON.stringify(logged), new RegExp(canary));
+});
+
 test('OPTION_RECOMMEND validation logs a fixed domain failure category without model output', async () => {
   const canary = 'model-output-canary';
   const priorConsoleError = console.error;

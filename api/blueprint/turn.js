@@ -276,6 +276,20 @@ function domainFailureCategories(errors) {
   return [...categories].sort();
 }
 
+function schemaFailureDetails(errors) {
+  return [...new Set(errors.map((error) => {
+    const [rawPath, detail = 'invalid shape'] = error.split(': ', 2);
+    const path = rawPath.replace(/\[\d+\]/g, '[*]');
+    const safePath = detail === 'additional property' ? path.replace(/\.[^.\[]+$/, '.*') : path;
+    const category = detail === 'required' ? 'missing_required_field'
+      : detail === 'additional property' ? 'additional_property'
+        : detail === 'invalid enum' ? 'invalid_enum'
+          : /pattern mismatch|minLength|maxItems|minItems|minimum/.test(detail) ? 'constraint_violation'
+            : /expected/.test(detail) ? 'invalid_shape' : 'invalid_value';
+    return `${safePath}:${category}`;
+  }))].sort();
+}
+
 function recommendationProposalDraft(candidate) {
   if (candidate?.proposal) return candidate.proposal;
   const after = candidate?.designItem;
@@ -811,6 +825,8 @@ export default async function handler(req, res, deps = {}) {
           ? { referenceFailures: referenceFailureCategories(referenceValidationErrors) }
           : validationFailureStage === 'domain'
             ? { domainFailures: domainFailureCategories(validationError) }
+          : validationFailureStage === 'schema'
+            ? { schemaFailures: schemaFailureDetails(validationError) }
           : {};
         console.error('TURN_RESPONSE_VALIDATION_FAILED', { stage: validationFailureStage, attempts: validationAttempts, ...failureDetails });
         if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
