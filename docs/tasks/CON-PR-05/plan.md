@@ -129,7 +129,7 @@ flowchart LR
 | Integration | `npm run build` | TypeScript/Vite production build pass. |
 | Diff | `git diff --check` | no whitespace errors or unrelated changes. |
 
-The deterministic browser tests mock the authenticated test session and AI/document APIs. For opt-in real-provider acceptance, `/api/auth/preview-session` can mint the fixed synthetic owner only when `VERCEL_ENV=preview` and a branch-scoped `PREVIEW_E2E_SESSION_TOKEN` exist; production remains 404. Keep that Preview branch's `APP_SESSION_SECRET` distinct from Production. Use protected-preview access without disabling deployment protection, and do not claim live-provider success from fixture tests.
+The deterministic browser tests mock the authenticated test session and AI/document APIs. For opt-in real-provider acceptance, `POST /api/auth/session` can mint the fixed synthetic owner only when `VERCEL_ENV=preview`, a branch-scoped `PREVIEW_E2E_SESSION_TOKEN` exists, and that token is sent in `x-preview-e2e-session-token`; without that header the endpoint keeps its normal logout behavior. Production always keeps normal logout behavior. Keep that Preview branch's `APP_SESSION_SECRET` distinct from Production. Use protected-preview access without disabling deployment protection, and do not claim live-provider success from fixture tests.
 
 ## UI evidence requirements
 

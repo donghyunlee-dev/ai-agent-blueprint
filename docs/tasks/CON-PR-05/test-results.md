@@ -2,6 +2,8 @@
 
 ## Current PR #97 candidate — 2026-10-29
 
+The previous deployment attempt for `ed597b8` built successfully but Vercel rejected it because the standalone bootstrap route would raise this Hobby deployment to 13 serverless functions (limit 12). Commit `43d240f48edabe5e7e231a867fa657c70c36f118` moves the Preview-only bootstrap into the existing `POST /api/auth/session` route and deletes the standalone route, keeping the source route count at 12. Independent security review found no actionable issues. Exact-HEAD local validation: `npm run test:unit` **444/444**, `npm run test:golden` **57/57**, `npm run build` passed with the existing chunk-size warning, and `git diff --check` passed. This commit has not yet been deployed; real-provider acceptance remains open.
+
 Source Preview HEAD: `6bc4c72453080a5985ba4a05b06366bee20b2455` (`codex/contextual-recommendation-action`), deployed as `dpl_EL2jVEhQ5kN54iWVonSXsyxXtom8` (`https://windsoft-agent-blueprint-q58v8kiiv.vercel.app`). The branch alias resolves to this Ready deployment. The Requirements provider-input fix is deployed in this candidate. Preview fixture browser tests below ran against this exact deployment.
 
 | Check | Result |
@@ -21,7 +23,7 @@ The protected Preview browser suite used a short-lived Vercel development OIDC t
 
 The Requirements document API previously serialized only the plan for every Requirements task. Commit `3ae92661cb05a5474e215a146ee40e8bb5fc6709` adds regression coverage that inspects the actual serialized provider messages and passes the current draft to review/re-review and the affected sections plus issue instructions to the one allowed repair. Before the fix, all three new assertions failed while the five existing API tests passed; after the fix, the focused Requirements/PRD contracts passed 12/12, the full unit/contract suite passed 434/434, and the production build passed with the existing chunk-size warning.
 
-Commit `f3a77ac8fc921cd1a3f98decbe1e25b9f5b83e6e` adds a Preview-only synthetic session bootstrap route for live API acceptance without Google OAuth. It is not yet deployed. Its environment token must be branch-scoped and Preview `APP_SESSION_SECRET` must differ from Production; session secrets are not available to `vercel env run`. An earlier real Preview turn returned `invalid_api_key` (HTTP 401). Authenticated real-provider generation remains unverified.
+Commit `f3a77ac8fc921cd1a3f98decbe1e25b9f5b83e6e` initially added a standalone Preview-only synthetic session bootstrap route for live API acceptance without Google OAuth; that route exceeded Vercel's function limit and was removed in `43d240f`. The bootstrap now reuses `POST /api/auth/session`. Its environment token must be branch-scoped and Preview `APP_SESSION_SECRET` must differ from Production; session secrets are not available to `vercel env run`. An earlier real Preview turn returned `invalid_api_key` (HTTP 401). Authenticated real-provider generation remains unverified.
 
 ## Current candidate and protected Preview — 2026-10-29
 
