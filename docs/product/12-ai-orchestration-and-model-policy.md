@@ -62,7 +62,7 @@ Blueprint의 AI 품질을 유지하면서 $10 단위의 선불 API 크레딧으�
 | `QUESTION_COMPOSE` | LIGHT | low | 3,000 | 500 | catalog 문구로 부족할 때만 |
 | `QUESTION_EXPLAIN` | LIGHT | low | 4,000 | 700 | 정적 도움말로 부족할 때만 |
 | `TURN_ANALYZE` | DEFAULT | low | 8,000 | 1,800 | 자유 입력·파일 발췌 |
-| `OPTION_RECOMMEND` | DEFAULT | low | 10,000 | 2,000 | 사용자가 추천 요청 |
+| `OPTION_RECOMMEND` | DEFAULT | minimal | 10,000 | 2,000 | 사용자가 추천 요청 |
 | `CONTEXT_COMPACT` | LIGHT | low | 12,000 | 1,200 | context threshold 초과 |
 | `REQUIREMENTS_DRAFT` | DEFAULT | low | 30,000 | 8,000 | deterministic plan 검증 후 |
 | `REQUIREMENTS_REVIEW` | DEFAULT | low | 36,000 | 3,000 | draft 후 |

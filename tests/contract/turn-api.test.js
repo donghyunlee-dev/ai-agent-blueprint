@@ -438,6 +438,7 @@ test('explicit recommendation requests use OPTION_RECOMMEND and normalize compac
   assert.equal(res.statusCode, 200, `${JSON.stringify(res.body)} calls=${calls.length} name=${calls[0]?.name ?? 'none'}`);
   assert.equal(calls.length, 3);
   assert.equal(calls[0].name, 'option_recommend');
+  assert.equal(calls[0].reasoningEffort, 'minimal');
   assert.equal(calls[0].maxOutputTokens, 2000);
   assert.deepEqual(calls.slice(0, 3).map((call) => JSON.parse(call.messages[2].content.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)[1]).recommendationBatch.expectedCount), [4, 4, 3]);
   assert.equal(res.body.recommendationCandidates.candidates.length, 11);
