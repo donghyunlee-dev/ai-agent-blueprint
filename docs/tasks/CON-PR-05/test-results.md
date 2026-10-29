@@ -9,15 +9,17 @@ The protected Preview for source HEAD `dbc89e077b1d2c733f777dff5f0310df9caab745`
 | Check | Result |
 | --- | --- |
 | Exact-deployment protected Preview browser flow: conversation, recommendations, proposals, Requirements, PRD, responsive states | 48 passed, 2 existing viewport skips; deterministic API/session fixtures on desktop and mobile |
-| Real provider turn | `POST /api/blueprint/turn` returned 503 `AI_UNAVAILABLE`; Vercel runtime log for request `req_b1f0b783f48e4056b2735e52f601c1b4` records `gpt-5-mini` provider HTTP 401 `invalid_api_key` |
-| Live recommendation and Requirements → PRD | Not reached because the configured Preview provider key is rejected |
+| Initial provider configuration | The first deployment used a rejected Preview key and returned 503 `AI_UNAVAILABLE`. After the user updated the branch-scoped `OPENAI_API_KEY`, deployment `dpl_DyJY7empiGJ6jRqN9h42vQbzf1b9` became Ready; synthetic session bootstrap returned 204 and session probe returned 200 |
+| Live free conversation | A short turn returned 200 in one run. Two other turns stopped at the `TURN_ANALYZE` 1,800-token cap (`gpt-5-mini`, 512 reasoning tokens); runtime requests `869hx-1793256680584-7166999d0ba5` and `9gcvj-1793256978103-22f003e65ce9` returned 502 `AI_OUTPUT_INCOMPLETE` |
+| Live recommendation | The explicit `OPTION_RECOMMEND` path returned 200 with a context-generated single-choice follow-up and no candidates, as designed when required context is missing. A later answer turn returned 502 after two domain-validation attempts because the generated design item used an unsupported type (`invalid_design_item_type`; request `8cmcx-1793257207893-ba503a2f0e4c`) |
+| Requirements → PRD | Not reached; live provider flow is still incomplete |
 | `npm run test:unit` | 444 passed, 0 failed |
 | `npm run test:golden` | 57/57 synthetic fixtures passed; no provider calls |
 | Local conversation, Requirements, and PRD browser suites | 42 passed on desktop and mobile |
 | `npm run build` / bundle-secret check | Passed; existing >500 kB chunk warning; no configured secrets in built assets |
 | Independent review of Preview session route fix | No actionable findings; production logout and headerless Preview logout remain intact |
 
-The Vercel Preview `OPENAI_API_KEY` is branch-scoped but currently invalid. The development environment has no provider key available to replace it. No live-provider recommendation, Requirements, or PRD result is claimed. Refresh that Preview variable with a valid key, then rerun the real-browser flow.
+The key is now accepted by the branch-scoped Preview deployment. The current patch strengthens the bounded `TURN_ANALYZE` retry to omit a proposal it cannot express with an allowed design-item type. Local turn API contract coverage passes (39/39), and the build passes with the existing chunk-size warning. The patch still needs deployment and a rerun of the real conversation, all 11 recommendations, selection/approval, Requirements-ready/download, and same-revision PRD-ready/download flow. No such end-to-end live-provider result is claimed yet.
 
 ### Deployment route limit and correction
 

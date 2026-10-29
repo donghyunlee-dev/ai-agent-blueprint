@@ -701,7 +701,7 @@ export default async function handler(req, res, deps = {}) {
             if (failures.includes('invalid_design_item_type') || failures.includes('invalid_design_item_acceptance_criteria')) {
               messages[1] = {
                 ...messages[1],
-                content: `${messages[1].content}\nVALIDATION RETRY: For every design_item, type must be one of product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue. acceptanceCriteria must be omitted or be an array of non-empty {text: string} objects, for example [{"text":"예약 충돌이 차단된다."}]. Do not use a type such as feature and do not return acceptance criteria as strings.`,
+                content: `${messages[1].content}\nVALIDATION RETRY: For every design_item, type must be one of product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue. acceptanceCriteria must be omitted or be an array of non-empty {text: string} objects, for example [{"text":"예약 충돌이 차단된다."}]. Do not use a type such as feature and do not return acceptance criteria as strings. If the proposal cannot be represented with an allowed type, omit the entire proposal instead of inventing a type.`,
               };
             }
             if (failures.includes('invalid_proposal_snapshot')) {

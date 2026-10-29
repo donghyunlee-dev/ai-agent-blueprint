@@ -638,6 +638,7 @@ test('turn endpoint gives a bounded design-item correction after domain validati
   assert.equal(calls.length,2);
   assert.match(calls[1].messages[1].content,/type must be one of product_definition, problem, goal, user_role/);
   assert.match(calls[1].messages[1].content,/acceptanceCriteria must be omitted or be an array of non-empty \{text: string\} objects/);
+  assert.match(calls[1].messages[1].content,/omit the entire proposal instead of inventing a type/);
   assert.equal(res.body.proposals.length,1);
 });
 
