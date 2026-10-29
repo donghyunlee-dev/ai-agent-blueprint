@@ -785,6 +785,66 @@ test('recommendation evidence accepts only user-authored messages or request exc
   assert.equal(groundedEvidence.body.recommendationCandidates.candidates[0].evidence[0].excerpt, source.text);
 });
 
+test('contextual text targets preserve the actual answer and route only explicit recommendation actions', async () => {
+  const prompt='“추천해 주세요”라는 예시와 관계없이 예약 기준을 입력해 주세요.';
+  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v7',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
+  const cases=[
+    {mode:'number',text:'24',value:{numberValue:24}},
+    {mode:'range',text:'9–18',value:{rangeValue:{start:9,end:18}}},
+    {mode:'text',text:'예약 기준',value:{customText:'예약 기준'}},
+    {mode:'number',text:'이 항목은 아직 모르겠습니다.',value:{customText:'이 항목은 아직 모르겠습니다.'}},
+    {mode:'number',text:'이 항목은 나중에 결정하겠습니다.',value:{customText:'이 항목은 나중에 결정하겠습니다.'}},
+    {mode:'number',text:'추천해 주세요.',value:{customText:'추천해 주세요.'},recommend:true},
+  ];
+  for(const [index,item] of cases.entries()){
+    const block={type:'question',id:'original-question',topic:'예약',prompt,answerMode:item.mode,required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']};
+    const target={messageId:'original-assistant',blockId:block.id,...item.value};
+    const requestBody={...body,logicalRequestId:`logical-contextual-text-${index}`,userTurn:{id:'answer-turn',kind:'text',text:item.text,responseTo:target},recentMessages:[{id:'original-assistant',role:'assistant',kind:'text',content:prompt,blocks:[block]}]};
+    const calls=[];const res=response();
+    await runHandler(request(requestBody),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{calls.push(input);return item.recommend?recommendationOutput:output;}});
+    assert.equal(res.statusCode,200,JSON.stringify(res.body));
+    assert.equal(calls.length,1);
+    assert.equal(calls[0].name,item.recommend?'option_recommend':'turn_analyze');
+    const context=JSON.parse(calls[0].messages.find((message)=>message.role==='user').content.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)[1]);
+    assert.equal(context.userInput.text,item.text);
+    assert.deepEqual(context.currentTarget,{...target,question:block});
+  }
+});
+
+test('contextual text targets reject missing questions, malformed typed values and disallowed actions before dispatch', async () => {
+  const block={type:'question',id:'number-question',topic:'수용 인원',prompt:'몇 명까지 예약할 수 있나요?',answerMode:'number',required:true,allowCustomAnswer:false,allowUnknown:false,allowDefer:false,targetItemTypes:['requirement']};
+  const target={messageId:'assistant-number',blockId:block.id};
+  const cases=[
+    {text:'24',responseTo:{...target,messageId:'missing',numberValue:24}},
+    {text:'24',responseTo:{...target,blockId:'missing',numberValue:24}},
+    {text:'24',responseTo:{...target,numberValue:'24'}},
+    {text:'24',responseTo:{...target,numberValue:Infinity}},
+    {text:'25',responseTo:{...target,numberValue:24}},
+    {text:'24',responseTo:{...target,numberValue:24,customText:'24'}},
+    {text:'24',responseTo:{...target,numberValue:24,selectedValues:[]}},
+    {text:'24',responseTo:{...target,numberValue:24,unknownField:'not allowed'}},
+    {text:'24',responseTo:{...target}},
+    {text:'24',responseTo:{...target,customText:'24'}},
+    {text:'이 항목은 아직 모르겠습니다.',responseTo:{...target,customText:'이 항목은 아직 모르겠습니다.'}},
+    {text:'이 항목은 나중에 결정하겠습니다.',responseTo:{...target,customText:'이 항목은 나중에 결정하겠습니다.'}},
+    {text:'18–9',responseTo:{...target,rangeValue:{start:18,end:9}},mode:'range'},
+    {text:'9–18',responseTo:{...target,rangeValue:{start:9,end:19}},mode:'range'},
+    {text:'답변',responseTo:{...target,customText:'다른 답변'},mode:'text'},
+    {text:' ',responseTo:{...target,customText:' '},mode:'text'},
+    {text:'24',responseTo:{...target,numberValue:24},mode:'text'},
+    {text:'24',responseTo:{...target,numberValue:24},role:'user'},
+  ];
+  let calls=0;
+  for(const [index,item] of cases.entries()){
+    const res=response();
+    const requestBody={...body,logicalRequestId:`logical-invalid-context-${index}`,userTurn:{id:'answer-turn',kind:'text',text:item.text,responseTo:item.responseTo},recentMessages:[{id:target.messageId,role:item.role??'assistant',kind:'text',content:block.prompt,blocks:[{...block,answerMode:item.mode??block.answerMode}]}]};
+    await runHandler(request(requestBody),res,{store:createMemoryAuthStore(),requestStructuredOutput:async()=>{calls++;return output;}});
+    assert.equal(res.statusCode,400,`case ${index}: ${JSON.stringify(res.body)}`);
+    assert.equal(res.body.error,'INVALID_REQUEST');
+  }
+  assert.equal(calls,0);
+});
+
 test('turn endpoint rejects a card choice that is not in the referenced contextual message', async () => {
   let calls = 0;
   const res = response();

@@ -43,7 +43,7 @@ function validIds(body) {
     && (body.generationJobId === undefined || (typeof body.generationJobId === 'string' && body.generationJobId.length >= 16 && body.generationJobId.length <= 200));
 }
 
-function prepareTurn(body, definition, task = TASK) {
+function prepareTurn(body, definition, task = TASK, currentTarget = body.userTurn.responseTo ?? null) {
   const taskConfig = aiModelRegistry.tasks[task];
   const profile = taskConfig.profile;
   const resolvedModel = aiModelRegistry.profiles[profile].model;
@@ -52,7 +52,7 @@ function prepareTurn(body, definition, task = TASK) {
     prompt: definition.systemTemplate,
     rules: definition.developerTemplate,
     projectSummary: body.projectSummary,
-    currentTarget: body.userTurn.responseTo ?? null,
+    currentTarget,
     userInput: body.userTurn,
   };
   const textTokens = (value) => {
@@ -69,7 +69,7 @@ function prepareTurn(body, definition, task = TASK) {
   const selected = selectContext({ task, items, fixedTokens: textTokens(JSON.stringify(fixedContext)) + 256 });
   const byType = (type) => selected.items.filter((item) => item.type === type);
   const promptInput = {
-    currentTarget: body.userTurn.responseTo ?? null,
+    currentTarget,
     confirmedDesignItems: byType('confirmed_design').map(({ id }) => body.relevantDesignItems.find((item) => item.id === id)),
     conversationContext: byType('recent_message').map(({ id }) => body.recentMessages.find((message) => message.id === id)),
     userInput: body.userTurn,
@@ -167,6 +167,24 @@ function selectedChoiceProposals(body) {
   const message = body.recentMessages.find((item) => item.id === responseTo.messageId && item.role === 'assistant');
   const block = message?.blocks?.find((item) => item.id === responseTo.blockId);
   if (!block) return { valid: false, proposals: [] };
+  if (body.userTurn.kind === 'text') {
+    if (block.type !== 'question' || ['choiceId','selectedValues','rankedValues'].some((key) => Object.hasOwn(responseTo,key))) return { valid:false, proposals:[] };
+    const fields = ['customText','numberValue','rangeValue'].filter((key) => Object.hasOwn(responseTo,key));
+    if (fields.length !== 1) return { valid:false, proposals:[] };
+    let valid = false;
+    if (fields[0] === 'numberValue') {
+      valid = block.answerMode === 'number' && Number.isFinite(responseTo.numberValue) && body.userTurn.text === String(responseTo.numberValue);
+    } else if (fields[0] === 'rangeValue') {
+      const {start,end} = responseTo.rangeValue;
+      valid = block.answerMode === 'range' && Number.isFinite(start) && Number.isFinite(end) && start <= end && body.userTurn.text === `${start}–${end}`;
+    } else {
+      const text = responseTo.customText;
+      const allowedAction = text === '추천해 주세요.' || (text === '이 항목은 아직 모르겠습니다.' && block.allowUnknown) || (text === '이 항목은 나중에 결정하겠습니다.' && block.allowDefer);
+      const disabledAction = (text === '이 항목은 아직 모르겠습니다.' && !block.allowUnknown) || (text === '이 항목은 나중에 결정하겠습니다.' && !block.allowDefer);
+      valid = Boolean(text.trim()) && text === body.userTurn.text && !disabledAction && (block.answerMode === 'text' || allowedAction);
+    }
+    return { valid, proposals:[], ...(valid ? {currentTarget:{...responseTo,question:block}} : {}) };
+  }
   if (body.userTurn.kind === 'recommendation_choice') {
     if (block.type !== 'recommendation_candidates' || !responseTo.choiceId) return { valid: false, proposals: [] };
     const candidate = block.candidates.find((item) => item.id === responseTo.choiceId);
@@ -543,7 +561,7 @@ export default async function handler(req, res, deps = {}) {
 
   const definition = getPromptDefinition(task);
   let prepared;
-  try { prepared = prepareTurn(body, definition, task); }
+  try { prepared = prepareTurn(body, definition, task, selected.currentTarget); }
   catch (error) {
     if (String(error?.message ?? '').startsWith('AI_LEDGER_')) return fail(res, 400, 'AI_LEDGER_INVALID');
     return fail(res, 503, 'AI_BUDGET_UNAVAILABLE');

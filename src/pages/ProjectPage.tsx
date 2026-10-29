@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import type { BlueprintAggregate, EvidenceRef, SourceDocument } from "../domain/blueprint/types.js";
@@ -15,6 +15,7 @@ import { BlueprintStageNav } from "../components/blueprint/BlueprintStageNav";
 import type { BlueprintStage } from "../components/blueprint/BlueprintStageNav";
 import { GenerationJobStatus } from "../components/conversation/GenerationJobStatus";
 import { DisplayBlocks } from "../components/blueprint/display-blocks/DisplayBlocks";
+import { prepareDisplayBlocks } from "../features/conversation/block-renderer.js";
 import { compactConversationContext } from "../features/conversation/context-compaction-view.js";
 import { AiTurnComposer } from "../components/conversation/AiTurnComposer";
 import type { CatalogQuestion } from "../features/conversation/questionEngine.js";
@@ -655,7 +656,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     const content = conversationContentRef.current;
     if (!content) return;
     const frame = window.requestAnimationFrame(() => {
-      if (conversationWasAtBottomRef.current) content.scrollTop = content.scrollHeight;
+      const overflow = content.scrollHeight - content.clientHeight;
+      if (conversationWasAtBottomRef.current && overflow > 1) content.scrollTop = content.scrollHeight;
     });
     return () => window.cancelAnimationFrame(frame);
   }, [aggregate?.messages.length]);
@@ -915,11 +917,26 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
           }}>
             {revealedSourceMessage ? <section className="conversation-source-reveal" aria-label="접힌 대화에서 연 원본 메시지"><p className="conversation-source-reveal-label" role="status">접힌 대화에서 연 원본 메시지</p><div id={`conversation-message-${revealedSourceMessage.id}`} tabIndex={-1} className={`conversation-message-row conversation-message-row-${revealedSourceMessage.role} conversation-source-revealed-row`}>{revealedSourceMessage.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}<article className={`workspace-message workspace-message-${revealedSourceMessage.role}`}><span className="workspace-message-label">{revealedSourceMessage.role === "assistant" ? "Agent" : revealedSourceMessage.role === "system" ? "작업 상태" : "나"}</span><p>{revealedSourceMessage.content}</p></article></div></section> : null}
             <div id={firstVisibleUserMessage ? `conversation-message-${firstVisibleUserMessage.id}` : undefined} tabIndex={firstVisibleUserMessage ? -1 : undefined} className="conversation-message-row conversation-message-row-user"><ConversationAvatar role="user" /><article className="workspace-first-message"><span className="workspace-message-label">내 아이디어</span><p>{firstVisibleUserMessage?.content ?? (compactedConversation.compacted ? "요약 아래에 최근 대화가 표시됩니다." : "아직 대화가 없습니다.")}</p></article>{firstVisibleUserMessage?.createdAt ? <time className="conversation-message-time" dateTime={firstVisibleUserMessage.createdAt}>{formatConversationTime(firstVisibleUserMessage.createdAt)}</time> : null}</div>
-            {visibleConversationMessages.filter((message) => message.id !== firstVisibleUserMessage?.id).map((message) => <div id={`conversation-message-${message.id}`} tabIndex={-1} key={message.id} className={`conversation-message-row conversation-message-row-${message.role}`}>
-              {message.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}
-              <article className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{message.blocks ? <DisplayBlocks blocks={message.blocks} questionCatalog={QUESTION_CATALOG} proposalIds={aggregate.proposals.map((proposal) => proposal.id)} messages={aggregate.messages} messageId={message.id} onNavigateSource={navigateToSourceMessage} onContextualSubmit={(response)=>void contextualSubmitRef.current?.(response)} onQuestionSubmit={(question,answer,mode)=>saveQuestionAnswer(question,answer,mode)} /> : <p>{message.content}</p>}</article>
-              {message.createdAt ? <time className="conversation-message-time" dateTime={message.createdAt}>{formatConversationTime(message.createdAt)}</time> : null}
-            </div>)}
+            {visibleConversationMessages.filter((message) => message.id !== firstVisibleUserMessage?.id).map((message) => {
+              const proposalIds = aggregate.proposals.map((proposal) => proposal.id);
+              const validBlocks = message.blocks && prepareDisplayBlocks(message.blocks, { proposalIds }).valid;
+              const questionIndex = message.role === "assistant" && validBlocks ? message.blocks!.findIndex((block) => block.type === "question") : -1;
+              const questionBlock = questionIndex >= 0 ? message.blocks?.[questionIndex] : undefined;
+              const separateQuestion = Boolean(questionBlock);
+              const mainBlocks = separateQuestion ? message.blocks?.slice(0, questionIndex) : message.blocks;
+              const trailingBlocks = separateQuestion ? message.blocks?.slice(questionIndex + 1) : undefined;
+              const hasMainRow = !separateQuestion || Boolean(mainBlocks?.length);
+              const displayProps = { questionCatalog: QUESTION_CATALOG, proposalIds, messages: aggregate.messages, messageId: message.id, onNavigateSource: navigateToSourceMessage, onContextualSubmit: (response: ContextualResponse) => void contextualSubmitRef.current?.(response), onQuestionSubmit: (question: CatalogQuestion, answer: Parameters<typeof saveQuestionAnswer>[1], mode: CatalogQuestion["answerMode"]) => saveQuestionAnswer(question, answer, mode) };
+              return <Fragment key={message.id}>
+                {hasMainRow ? <div id={`conversation-message-${message.id}`} tabIndex={-1} className={`conversation-message-row conversation-message-row-${message.role}`}>
+                  {message.role === "assistant" ? <ConversationAvatar role="assistant" /> : null}
+                  <article className={`workspace-message workspace-message-${message.role}`}><span className="workspace-message-label">{message.role === "assistant" ? "Agent" : message.role === "system" ? "작업 상태" : "나"}</span>{mainBlocks?.length ? <DisplayBlocks blocks={mainBlocks} {...displayProps} /> : message.content ? <p>{message.content}</p> : null}</article>
+                  {message.createdAt ? <time className="conversation-message-time" dateTime={message.createdAt}>{formatConversationTime(message.createdAt)}</time> : null}
+                </div> : null}
+                {questionBlock ? <div id={!hasMainRow ? `conversation-message-${message.id}` : undefined} tabIndex={!hasMainRow ? -1 : undefined} className="conversation-message-row conversation-message-row-question"><ConversationAvatar role="assistant" /><DisplayBlocks blocks={[questionBlock]} {...displayProps} />{!hasMainRow && message.createdAt ? <time className="conversation-message-time" dateTime={message.createdAt}>{formatConversationTime(message.createdAt)}</time> : null}</div> : null}
+                {trailingBlocks?.length ? <div className="conversation-message-row conversation-message-row-assistant"><ConversationAvatar role="assistant" /><article className="workspace-message workspace-message-assistant"><span className="workspace-message-label">Agent</span><DisplayBlocks blocks={trailingBlocks} {...displayProps} /></article></div> : null}
+              </Fragment>;
+            })}
             {aggregate.generationJobs.filter((job) => job.status === "queued" || job.status === "running").map((job) => <GenerationJobStatus key={job.id} job={job} onCancel={cancelGenerationJob} />)}
             <p className="workspace-next-hint">이 대화에서 요구사항을 구체화할 수 있습니다.</p>
             {aggregate.answers.length ? <section className="question-answer-history" aria-label="질문 답변 이력"><h2>이전 답변</h2>{aggregate.answers.map((answer) => {
@@ -928,7 +945,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
               const value = answer.action === "defer" ? "나중에 결정" : answer.action === "skip" ? "건너뜀" : answer.action === "unknown" ? "잘 모르겠어요 · 설명 요청" : answer.action === "recommend" ? "추천 요청 · 검토 전" : [answer.customText, ...(answer.selectedValues ?? []).map((selected) => question?.options?.find((option) => option.value === selected)?.label ?? selected), answer.numberValue === undefined ? "" : String(answer.numberValue), answer.rangeValue ? `${answer.rangeValue.start}–${answer.rangeValue.end}` : "", ...(answer.rankedValues ?? []).map((ranked) => question?.options?.find((option) => option.value === ranked)?.label ?? ranked)].filter(Boolean).join(", ");
               return <article key={answer.id}><h3>{question?.prompt ?? answer.questionId}</h3><p>{value}</p>{reviewRequired ? <p role="status">선행 답변 변경으로 다시 검토가 필요합니다.</p> : null}{answer.action === "defer" ? <button className="question-answer-edit" type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>다시 결정</button> : answer.action === "answer" ? <button className="question-answer-edit" type="button" onClick={() => setReopenedQuestionAnswerId(answer.id)}>수정</button> : null}</article>;
             })}</section> : null}
-            <p className="question-complete-state" role="status">대화에 답하면 필요한 선택지가 여기 표시됩니다.</p>
+            {!visibleConversationMessages.some((message) => message.role === "assistant") ? <p className="question-complete-state" role="status">대화에 답하면 필요한 선택지가 여기 표시됩니다.</p> : null}
             <AiTurnComposer aggregate={aggregate} projectId={aggregate.project.id} onAggregateChange={applyAggregate} persistAggregate={persistAggregateNow} activeTurnCancellationRef={activeTurnCancellationRef} contextualSubmitRef={contextualSubmitRef} />
           </div>
         </section>
