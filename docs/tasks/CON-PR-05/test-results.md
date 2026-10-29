@@ -1,5 +1,20 @@
 # CON-PR-05 validation results
 
+## Current candidate and protected Preview — 2026-10-29
+
+Candidate `2ca794b6e683159b1f06fafaaf1160cdd90a4634` preserves contextual response targets and reports missing session-secret configuration as unavailable. Its protected Preview deployment is `dpl_C3WYqcFfDybgwxfzqhezeSduT998` (`windsoft-agent-blueprint-dy34nyavy.vercel.app`). A branch-scoped synthetic session was accepted by `/api/auth/session`; Google OAuth was not run.
+
+| Check | Result |
+| --- | --- |
+| `npm run test:unit` | 431 passed, 0 failed |
+| Conversation, Requirements, PRD, and proposal browser suites | 48 passed, 2 existing viewport skips, 0 failed; deterministic API/session fixtures on desktop and mobile |
+| `npm run build` | Passed; existing >500 kB chunk-size warning |
+| Independent review of `2ca794b` | No actionable findings |
+| Exact-HEAD canvas comparison | 1,481,837 / 1,573,352 matching pixels (94.1834%), below the 95% gate; report and screenshots are in `.pr-artifacts/UIR-PR-03/` |
+| Real provider turn on Preview | `POST /api/blueprint/turn` returned 503; Vercel runtime recorded provider HTTP 401 `invalid_api_key` for `gpt-5-mini` |
+
+The Production `OPENAI_API_KEY` value currently copied to this branch's Preview scope is invalid, so live recommendation, Requirements generation/ready/download, and same-revision PRD could not be exercised. No prompt, model profile, or token cap was changed. Replace the provider key in Vercel, then refresh the branch-scoped Preview value and repeat the real-browser flow. The failed live response does not count as provider-flow acceptance; deterministic browser results above do not replace it.
+
 ## Post-merge aborted-response evidence recovery — PR #96 — 2026-10-28
 
 An independent review after PR #94 merged found that its status-recovery path applied a succeeded turn without the active request's file excerpts. A recovered proposal backed by an uploaded file could therefore fail normalization as `AI_INVALID_OUTPUT`. PR #96 preserves those request-local excerpts through recovery and adds a regression that aborts the POST body, reads the succeeded result from the owner-scoped status endpoint, and verifies the persisted pending proposal retains the rebased source ID, excerpt, and location. The fix was independently reviewed with no remaining findings (see [`review-notes.md`](./review-notes.md)) and merged to `main` as `01eb994c76a52c6dd7ed102f14e9836ee61c99a1`.
