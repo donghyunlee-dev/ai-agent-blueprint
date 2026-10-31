@@ -12,7 +12,7 @@ const aggregate = {
     item('scope', 'scope'), item('out', 'out_of_scope'), item('metric', 'success_metric'), item('risk', 'risk'),
   ],
 };
-function envelope(task, payload) { return { task, promptVersion: task === 'REQUIREMENTS_DRAFT' ? 'v2' : 'v1', schemaVersion: 'v1', designRevision: 1, payload, referencedItemIds: aggregate.designItems.map(({id}) => id), referencedSourceIds: [], warnings: [] }; }
+function envelope(task, payload) { return { task, promptVersion: ['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW'].includes(task) ? 'v2' : 'v1', schemaVersion: 'v1', designRevision: 1, payload, referencedItemIds: aggregate.designItems.map(({id}) => id), referencedSourceIds: [], warnings: [] }; }
 const plan = buildRequirementsPlan(aggregate);
 const sections = () => plan.sections.map(({ key, title, sourceItemIds }) => ({ key, title, markdown: key === 'functional' ? '기능' : '', sourceItemIds }));
 const draft = () => envelope('REQUIREMENTS_DRAFT', { sections: sections(), requirements: plan.requirements.map(({ id, category, title, description, priority, sourceItemIds, acceptanceCriteria }) => ({ id,category,title,description,priority,sourceItemIds,acceptanceCriteria:priority === 'P0' ? [{ text:'결과 표시',sourceItemIds }] : [],openIssueIds:[] })) });

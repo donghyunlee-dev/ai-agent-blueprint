@@ -40,7 +40,7 @@ function providerOutput(name, plan) {
   const payload=task==='REQUIREMENTS_REVIEW'
     ? {verdict:'pass',issues:[],coverage:[]}
     : {sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:'',sourceItemIds})),requirements:plan.requirements.map(({id,category,title,description,priority,sourceItemIds})=>({id,category,title,description,priority,sourceItemIds,acceptanceCriteria:priority==='P0'?[{text:'완료 결과 표시',sourceItemIds}]:[],openIssueIds:[]}))};
-  return {task,promptVersion:task==='REQUIREMENTS_DRAFT'?'v2':'v1',schemaVersion:'v1',designRevision:2,payload,referencedItemIds:plan.confirmedItemIds,referencedSourceIds:[],warnings:[]};
+  return {task,promptVersion:['REQUIREMENTS_DRAFT','REQUIREMENTS_REVIEW'].includes(task)?'v2':'v1',schemaVersion:'v1',designRevision:2,payload,referencedItemIds:plan.confirmedItemIds,referencedSourceIds:[],warnings:[]};
 }
 
 test('requires a valid authenticated session before validating or calling AI', async () => {

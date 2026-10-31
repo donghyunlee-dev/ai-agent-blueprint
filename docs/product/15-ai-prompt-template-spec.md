@@ -215,7 +215,7 @@ Provider payload는 `m`(assistantMessage, 최대 200자), `p`(최대 4개 propos
 - Markdown 표현과 구조화 requirement 데이터의 의미가 일치해야 한다.
 ```
 
-## `REQUIREMENTS_REVIEW` — `requirements.review.v1`
+## `REQUIREMENTS_REVIEW` — `requirements.review.v2` / schema `requirements.review.v1`
 
 ```text
 Requirements draft를 수정하지 말고 품질 문제를 판정한다.
@@ -230,6 +230,7 @@ Requirements draft를 수정하지 말고 품질 문제를 판정한다.
 - 존재하지 않는 item/source ID
 
 각 issue에 severity, sectionKey, relatedItemIds, 설명을 제공한다.
+relatedItemIds는 plan 또는 draft sourceItemIds에 포함된 design item ID만 복사하며, 근거 ID가 없으면 빈 배열로 반환한다. coverage.targetId는 입력 plan에 포함된 design item ID, requirement ID 또는 section key만 사용한다. envelope의 referencedSourceIds는 source excerpt가 없는 이 task에서 빈 배열로 반환한다. ID를 만들거나 추측하지 않는다.
 입력 근거만으로 고칠 수 있으면 repairInstruction을 제공한다.
 새 사용자 결정이 필요하면 user_review_required로 판정한다.
 문서 본문을 직접 다시 작성하지 않는다.

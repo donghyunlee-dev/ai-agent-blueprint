@@ -37,6 +37,15 @@ test('Requirements draft only links open issues explicitly present in the valida
   assert.match(prompt.developerTemplate, /ID를 만들거나 추측하지 않는다/);
 });
 
+test('Requirements review uses only design IDs supplied by the plan or draft', () => {
+  const prompt = getPromptDefinition('REQUIREMENTS_REVIEW');
+  assert.equal(prompt.promptVersion, 'v2');
+  assert.equal(prompt.schemaVersion, 'v1');
+  assert.match(prompt.developerTemplate, /relatedItemIds는 입력 plan 또는 draft sourceItemIds에 실제로 포함된 design item ID만/);
+  assert.match(prompt.developerTemplate, /coverage\.targetId는 입력 plan에 포함된 design item ID, requirement ID 또는 section key만/);
+  assert.match(prompt.developerTemplate, /referencedSourceIds는 빈 배열/);
+});
+
 test('typed input is serialized as user context with source excerpts explicitly untrusted', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
   assert.equal(prompt.promptVersion, 'v10');
