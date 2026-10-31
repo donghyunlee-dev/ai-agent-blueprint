@@ -29,6 +29,7 @@ test('Requirements draft only links open issues explicitly present in the valida
   assert.equal(prompt.schemaVersion, 'v1');
   assert.match(prompt.developerTemplate, /openIssues에 실제로 제공된 ID만/);
   assert.match(prompt.developerTemplate, /openIssues가 비어 있으면 모든 requirement의 openIssueIds는 빈 배열/);
+  assert.match(prompt.developerTemplate, /acceptance criteria의 sourceItemIds는 해당 requirement의 plan sourceItemIds 중에서만/);
   assert.match(prompt.developerTemplate, /ID를 만들거나 추측하지 않는다/);
 });
 

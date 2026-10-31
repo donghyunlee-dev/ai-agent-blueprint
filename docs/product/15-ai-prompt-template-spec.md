@@ -208,6 +208,7 @@ Provider payload는 `m`(assistantMessage, 최대 200자), `p`(최대 4개 propos
 - 빠르다, 편리하다처럼 측정할 수 없는 표현만 사용하지 않는다.
 - 미정은 확정 사실로 채우지 않고 open issue로 표시한다.
 - `openIssueIds`에는 검증된 plan의 `openIssues`에 실제로 포함된 ID만 넣는다. `openIssues`가 비어 있으면 모든 requirement의 `openIssueIds`는 빈 배열이며, ID를 만들거나 추측하지 않는다.
+- 각 acceptance criterion의 `sourceItemIds`는 해당 requirement에 계획된 `sourceItemIds` 안에서만 선택한다.
 - plan에 없는 section이나 기능을 추가하지 않는다.
 - Markdown 표현과 구조화 requirement 데이터의 의미가 일치해야 한다.
 ```

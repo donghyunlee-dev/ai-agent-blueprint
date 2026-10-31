@@ -59,6 +59,17 @@ test('classifies an unknown provider reference as a task response validation fai
   );
 });
 
+test('rejects an acceptance criterion linked to a design item outside its planned requirement sources', async () => {
+  const output = draft();
+  const featureRequirement = output.payload.requirements.find((requirement) => requirement.sourceItemIds.includes('feature'));
+  featureRequirement.acceptanceCriteria[0].sourceItemIds = ['problem'];
+  await assert.rejects(
+    generateRequirements({ aggregate, runTask: async (task) => task === 'REQUIREMENTS_DRAFT' ? output : review('pass') }),
+    (error) => error.diagnostic?.task === 'REQUIREMENTS_DRAFT'
+      && error.diagnostic?.category === 'requirements_draft_contract_invalid',
+  );
+});
+
 test('keeps confirmed out of scope items only in the exclusions section', async () => {
   const scoped = structuredClone(aggregate);
   scoped.designItems.find((entry) => entry.id === 'out').acceptanceCriteria = [{ id:'excluded-ac', text:'제외 기능 완료', status:'confirmed' }];

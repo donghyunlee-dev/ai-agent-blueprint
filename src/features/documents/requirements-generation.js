@@ -22,7 +22,12 @@ function validateDraft(output, plan, aggregate) {
     const expected = plan.requirements.find((entry) => entry.id === requirement.id);
     if (expected && (requirement.category !== expected.category || requirement.priority !== expected.priority || requirement.sourceItemIds.join('|') !== expected.sourceItemIds.join('|'))) errors.push(`planned requirement mapping mismatch ${requirement.id}`);
     for (const id of requirement.sourceItemIds) if (!items.has(id)) errors.push(`unconfirmed requirement source ${id}`);
-    for (const criterion of requirement.acceptanceCriteria) for (const id of criterion.sourceItemIds) if (!items.has(id)) errors.push(`unconfirmed criterion source ${id}`);
+    for (const criterion of requirement.acceptanceCriteria) {
+      for (const id of criterion.sourceItemIds) {
+        if (!items.has(id)) errors.push(`unconfirmed criterion source ${id}`);
+        if (expected && !expected.sourceItemIds.includes(id)) errors.push(`criterion source outside planned requirement ${requirement.id}`);
+      }
+    }
     if (requirement.priority === 'P0' && !requirement.acceptanceCriteria.length) errors.push(`P0 acceptance criterion missing ${requirement.id}`);
     if (expected) {
       for (const itemId of expected.sourceItemIds) {
