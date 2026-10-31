@@ -76,6 +76,11 @@ function summarizeDraftErrors(errors) {
       : text.includes('planned requirement missing') ? 'planned_requirement_missing'
         : text.includes('unplanned requirement') ? 'unplanned_requirement'
           : text.includes('planned requirement mapping mismatch') ? 'planned_requirement_mapping_mismatch'
+            : text.includes('unconfirmed requirement source') ? 'unknown_or_excluded_requirement_source'
+              : text.includes('unconfirmed criterion source') ? 'unknown_or_excluded_criterion_source'
+                : text.includes('P0 acceptance criterion missing') ? 'p0_acceptance_criteria_missing'
+                  : text.includes('unconfirmed section source') ? 'unknown_or_excluded_section_source'
+                    : text.includes('section source coverage missing') ? 'section_source_coverage_missing'
             : text.includes('required sections mismatch') ? 'required_sections_mismatch'
               : 'document_plan_contract_invalid';
     return `$.payload:${category}`;
