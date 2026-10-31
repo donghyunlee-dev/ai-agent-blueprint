@@ -427,7 +427,7 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
         messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: 이번 묶음은 recommendationBatch.expectedCount와 같은 수의 후보를 반환하고, previousTitles의 제목이나 접근을 반복하지 마세요. 근거는 전달된 사용자 메시지나 파일 발췌만 사용하세요.` };
       }
       if (retry > 0 && validationFailureStage === 'references') {
-        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: evidence는 userTurn 또는 user-authored recentMessages의 실제 ID, 또는 SOURCE_EXCERPTS_UNTRUSTED_JSON의 request-local excerpt ID만 사용하세요. ID를 만들지 마세요.` };
+        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: message evidence는 TYPED_CONTEXT_JSON의 userInput.id 또는 conversationContext에서 role이 정확히 user인 entry의 id만 사용하세요. assistant나 다른 role의 ID, contextual question/card ID는 사용하지 마세요. file evidence는 SOURCE_EXCERPTS_UNTRUSTED_JSON의 request-local excerpt ID만 사용하세요. 근거가 없으면 후보를 생략하세요. ID를 만들지 마세요.` };
       }
       const taskConfig = aiModelRegistry.tasks[RECOMMENDATION_TASK];
       const modelProfile = taskConfig.profile;
@@ -711,7 +711,7 @@ export default async function handler(req, res, deps = {}) {
           if (retry > 0 && validationFailureStage === 'references' && referenceFailureCategories(referenceValidationErrors).some((category) => ['unknown_source_reference', 'non_user_message_evidence', 'non_request_excerpt_file_evidence', 'unsupported_evidence_type'].includes(category))) {
             messages[1] = {
               ...messages[1],
-              content: `${messages[1].content}\nVALIDATION RETRY: Evidence sourceType must be message or file. For message evidence, use only IDs from userTurn or user-authored recentMessages. For file evidence, use only request-local excerpt IDs from SOURCE_EXCERPTS_UNTRUSTED_JSON. Never use user_edit or agent_inference as evidence sourceType, and do not invent source IDs.`,
+              content: `${messages[1].content}\nVALIDATION RETRY: Evidence sourceType must be message or file. For message evidence, use only userInput.id or the id of a conversationContext entry whose role is exactly user. Never use an assistant or other-role ID, including contextual question/card IDs. For file evidence, use only excerpt IDs listed in SOURCE_EXCERPTS_UNTRUSTED_JSON. If no user-authored message or file excerpt grounds a proposal, omit the proposal and keep the assistantMessage/followUp. Do not invent IDs.`,
             };
           }
           if (retry > 0 && validationFailureStage === 'domain') {

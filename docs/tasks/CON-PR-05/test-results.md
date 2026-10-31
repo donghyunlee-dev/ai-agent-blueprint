@@ -6,6 +6,16 @@ The latest deployed PR #97 source (`4dc4025`) was redeployed to `dpl_3CfT31and7k
 
 The source diagnosis found that `resolveTaskModel()` ignored task-level reasoning settings and always used the profile default. This meant the existing `OPTION_RECOMMEND: minimal` setting was not reaching the provider either. The current source fix applies each task's reasoning override, configures `TURN_ANALYZE` as `minimal`, and keeps the 1,800-token cap unchanged. Focused registry and turn API tests pass (47/47); full validation and a fresh live Preview run after this fix remain pending. Requirements-ready/download and same-revision PRD-ready/download are not yet verified.
 
+### Exact Preview after task-level reasoning fix — 2026-10-31
+
+Commit `12bd7d4` was deployed as `dpl_GYx8XeqwygxW68tAD1G5PqqqV6DV` at `https://windsoft-agent-blueprint-r2ywarh4p.vercel.app`. Preview session bootstrap/lookup returned 204/200, the free turn returned 200, and the explicit recommendation request returned a context-generated follow-up with no candidates. Submitting its selected response returned 502 `AI_INVALID_OUTPUT`. Sanitized runtime diagnostics for function request `8qqlw-1793406233372-72ebf2bbadbe` identified `TURN_RESPONSE_VALIDATION_FAILED`, stage `references`, 2 attempts, category `non_user_message_evidence`. This provider output was complete; the remaining failure is evidence grounding. The current source changes the prompt to v9 with an explicit user-authored evidence rule; validation and exact-Preview rerun are pending.
+
+## Preview key refreshed — 2026-10-31
+
+After the user updated the Preview `OPENAI_API_KEY` and redeployed, the latest Ready Preview at `https://windsoft-agent-blueprint-r2ywarh4p.vercel.app` accepted the synthetic session (bootstrap 204, session 200), completed a live free turn (200), and returned a contextual follow-up from `OPTION_RECOMMEND` (200, no candidates because the initial context was insufficient). Submitting the answer still returned 502 `AI_INVALID_OUTPUT`. The response is complete; evidence validation rejects assistant-authored message IDs.
+
+The current source fixes both sides of that contract: `TURN_ANALYZE` prompt v9 and its bounded retry identify `userInput.id` plus user-role `conversationContext` IDs, while `OPTION_RECOMMEND` prompt v8/schema v7 and its retry now use those same actual typed-context keys. A regression test verifies that an assistant ID is corrected to a user ID. Validation: `npm run test:unit` 449/449, `npm run test:golden` 57/57, `npm run build` passed with the existing large-chunk warning, and deterministic desktop/mobile Playwright passed 48 with 2 viewport skips. The fixed source has not yet been deployed to Preview; its live retry, 11 candidates, proposal approval, and Requirements → PRD flow remain unverified.
+
 ## Current PR #97 candidate — 2026-10-29
 
 ### Exact deployed candidate `dbc89e0` — 2026-10-29

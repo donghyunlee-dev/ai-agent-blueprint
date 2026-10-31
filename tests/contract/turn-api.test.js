@@ -32,7 +32,7 @@ function currentTurnAnalyzeOutput(value) {
     x: proposal.affectedItemIds ?? [],
   })) : payload.proposals;
   return {
-    ...value, promptVersion: 'v8', schemaVersion: 'v6',
+    ...value, promptVersion: 'v9', schemaVersion: 'v6',
     payload: { m: payload.assistantMessage, p: proposals, ...(payload.followUp ? { f: payload.followUp } : {}) },
   };
 }
@@ -74,9 +74,9 @@ async function runHandler(req, res, deps = {}) {
         const contextText = userContent.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)?.[1];
         const batch = contextText ? JSON.parse(contextText).recommendationBatch : undefined;
         const start = batch?.index === 3 ? 8 : batch?.index === 2 ? 4 : 0;
-        output = { ...output, promptVersion: 'v7', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
+        output = { ...output, promptVersion: 'v8', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
       }
-      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v7', schemaVersion: 'v7' };
+      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v8', schemaVersion: 'v7' };
       return output;
     },
   });
@@ -171,7 +171,7 @@ test('TURN validation logs sanitized schema paths without model output', async (
   console.error = (...values) => logged.push(values);
   try {
     const invalidOutput = {
-      task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
+      task: 'TURN_ANALYZE', promptVersion: 'v9', schemaVersion: 'v6', designRevision: 0,
       payload: { m: '확인했습니다.', p: [], [canary]: true },
       referencedItemIds: [], referencedSourceIds: [], warnings: [],
     };
@@ -625,7 +625,7 @@ test('TURN_ANALYZE uses bounded correction when follow-up options are not an arr
 
 test('TURN_ANALYZE names the field limit when a contextual follow-up exceeds its schema bound', async () => {
   const invalid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v9', schemaVersion: 'v6', designRevision: 0,
     payload: { m: '확인했습니다.', p: [], f: { componentType: 'free_text', topic: '예약', prompt: '가'.repeat(161), required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] } },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
@@ -651,6 +651,23 @@ test('turn endpoint gives a bounded reference correction when the provider inven
   assert.equal(res.statusCode,200,JSON.stringify(res.body));
   assert.equal(calls.length,2);
   assert.match(calls[1].messages[1].content,/included an item ID that was not provided/);
+  assert.equal(res.body.proposals.length,1);
+});
+
+test('turn endpoint corrects evidence that cites an assistant-authored conversation message', async () => {
+  const assistantMessage = { id:'assistant-message-1', role:'assistant', kind:'text', content:'앞서 제안한 운영 방식을 검토합니다.' };
+  const invalid = structuredClone(output);
+  invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 규칙',description:'예약 규칙을 지킨다.'},rationale:'대화 내용을 반영합니다.',evidence:[{sourceType:'message',sourceId:assistantMessage.id}],affectedItemIds:[] }];
+  const valid = structuredClone(output);
+  valid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 규칙',description:'예약 규칙을 지킨다.'},rationale:'사용자가 말한 조건입니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[]}];
+  const inputs=[];
+  const res=response();
+  await runHandler(request({ ...body, recentMessages:[assistantMessage] }),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{inputs.push(input);return inputs.length===1?invalid:valid;}});
+  assert.equal(res.statusCode,200,JSON.stringify(res.body));
+  assert.equal(inputs.length,2);
+  assert.match(inputs[1].messages[1].content,/userInput\.id/);
+  assert.match(inputs[1].messages[1].content,/conversationContext.*role.*user/);
+  assert.match(inputs[1].messages[1].content,/omit the proposal/);
   assert.equal(res.body.proposals.length,1);
 });
 
@@ -686,12 +703,12 @@ test('turn endpoint gives a bounded design-item correction after domain validati
 
 test('TURN_ANALYZE v6 gives a bounded correction for malformed serialized proposal snapshots', async () => {
   const invalid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v9', schemaVersion: 'v6', designRevision: 0,
     payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: '{', r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
   const valid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v8', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v9', schemaVersion: 'v6', designRevision: 0,
     payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: JSON.stringify({ type: 'requirement', title: '예약 충돌 확인', description: '겹치는 예약을 저장하지 않습니다.' }), r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
@@ -790,17 +807,19 @@ test('recommendation evidence accepts only user-authored messages or request exc
     ],
     sources: [source],
   };
-  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
+  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v8', schemaVersion: 'v7', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
 
   const assistantEvidence = response();
   let assistantCalls = 0;
+  const assistantInputs = [];
   await runHandler(request(requestBody), assistantEvidence, {
     store: createMemoryAuthStore(),
-    requestStructuredOutput: async () => { assistantCalls += 1; return outputFor(() => [{ sourceType: 'message', sourceId: 'prior-assistant' }]); },
+    requestStructuredOutput: async (input) => { assistantInputs.push(input); assistantCalls += 1; return assistantCalls === 1 ? outputFor(() => [{ sourceType: 'message', sourceId: 'prior-assistant' }]) : outputFor(() => [{ sourceType: 'message', sourceId: 'prior-user' }]); },
   });
-  assert.equal(assistantEvidence.statusCode, 502);
-  assert.equal(assistantEvidence.body.error, 'AI_INVALID_OUTPUT');
-  assert.equal(assistantCalls, 2);
+  assert.equal(assistantEvidence.statusCode, 200, JSON.stringify(assistantEvidence.body));
+  assert.equal(assistantCalls, 4);
+  assert.match(assistantInputs[1].messages[1].content, /userInput\.id/);
+  assert.match(assistantInputs[1].messages[1].content, /conversationContext에서 role이 정확히 user/);
 
   for (const mismatchedEvidence of [
     [{ sourceType: 'file', sourceId: 'prior-user' }],
@@ -830,7 +849,7 @@ test('recommendation evidence accepts only user-authored messages or request exc
 
 test('contextual text targets preserve the actual answer and route only explicit recommendation actions', async () => {
   const prompt='“추천해 주세요”라는 예시와 관계없이 예약 기준을 입력해 주세요.';
-  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v7',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
+  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v8',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
   const cases=[
     {mode:'number',text:'24',value:{numberValue:24}},
     {mode:'range',text:'9–18',value:{rangeValue:{start:9,end:18}}},
