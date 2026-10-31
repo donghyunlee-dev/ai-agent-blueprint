@@ -129,7 +129,7 @@ test('GET turn status returns the owner-scoped outcome and hides it from other u
   assert.equal(other.body.error, 'TURN_NOT_FOUND');
 });
 
-test('TURN validation logs a fixed reference failure category without request data', async () => {
+test('TURN drops an ungrounded file proposal without logging request data', async () => {
   const canary = 'private-source-12345678901234567890';
   const priorConsoleError = console.error;
   const logged = [];
@@ -150,16 +150,12 @@ test('TURN validation logs a fixed reference failure category without request da
       store: createMemoryAuthStore(),
       requestStructuredOutput: async () => invalidOutput,
     });
-    assert.equal(res.statusCode, 502);
-    assert.equal(res.body.error, 'AI_INVALID_OUTPUT');
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.proposals, []);
   } finally {
     console.error = priorConsoleError;
   }
-  assert.deepEqual(logged, [['TURN_RESPONSE_VALIDATION_FAILED', {
-    stage: 'references',
-    attempts: 2,
-    referenceFailures: ['non_request_excerpt_file_evidence', 'unknown_source_reference'],
-  }]]);
+  assert.deepEqual(logged, []);
   assert.doesNotMatch(JSON.stringify(logged), new RegExp(canary));
   assert.doesNotMatch(JSON.stringify(logged), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
 });
@@ -671,6 +667,20 @@ test('turn endpoint corrects evidence that cites an assistant-authored conversat
   assert.equal(res.body.proposals.length,1);
 });
 
+test('turn endpoint drops still-ungrounded proposals after bounded correction and preserves the conversation response', async () => {
+  const assistantMessage = { id:'assistant-message-2', role:'assistant', kind:'text', content:'앞서 제안한 운영 방식을 검토합니다.' };
+  const invalid = structuredClone(output);
+  invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 규칙',description:'예약 규칙을 지킨다.'},rationale:'대화 내용을 반영합니다.',evidence:[{sourceType:'message',sourceId:assistantMessage.id}],affectedItemIds:[]}];
+  invalid.payload.followUp = { componentType:'free_text',topic:'예약 정책',prompt:'취소 가능 시점을 알려주세요.',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement'] };
+  const inputs=[];
+  const res=response();
+  await runHandler(request({ ...body, recentMessages:[assistantMessage] }),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{inputs.push(input);return invalid;}});
+  assert.equal(inputs.length,2);
+  assert.equal(res.statusCode,200,JSON.stringify(res.body));
+  assert.deepEqual(res.body.proposals,[]);
+  assert.equal(res.body.followUp.prompt,'취소 가능 시점을 알려주세요.');
+});
+
 test('turn endpoint corrects unsupported evidence types and IDs on its bounded retry', async () => {
   const invalid = structuredClone(output);
   invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 확인',description:'예약 충돌을 확인한다.'},rationale:'예약 문제를 해결합니다.',evidence:[{sourceType:'agent_inference',sourceId:'invented-message'}],affectedItemIds:[] }];
@@ -953,8 +963,8 @@ test('turn endpoint accepts only request-local excerpt IDs as file citation IDs'
   const invalid = response();
   let invalidCalls = 0;
   await runHandler(request(requestBody), invalid, { store:createMemoryAuthStore(), requestStructuredOutput:async () => { invalidCalls++; return responseWithCitation('canonical-source'); } });
-  assert.equal(invalid.statusCode, 502);
-  assert.equal(invalid.body.error, 'AI_INVALID_OUTPUT');
+  assert.equal(invalid.statusCode, 200);
+  assert.deepEqual(invalid.body.proposals, []);
   assert.equal(invalidCalls, 2);
 
   const valid = response();

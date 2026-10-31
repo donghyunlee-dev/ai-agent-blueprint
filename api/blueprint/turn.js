@@ -808,6 +808,26 @@ export default async function handler(req, res, deps = {}) {
         ].find(([, result]) => !result.valid);
         validationError = failedValidation?.[1].errors ?? null;
         validationFailureStage = failedValidation?.[0] ?? undefined;
+        let acceptedOutput = normalizedOutput;
+        if (retry === 1 && task === TASK && includeModelProposals && validationFailureStage === 'references'
+          && schemaResult.valid && metadataResult.valid && domainResult.valid && choiceTargets.valid && taskPayloads.valid) {
+          const proposals = validatedOutput.payload?.proposals ?? [];
+          const groundedProposals = proposals.filter((proposal) => validateReferences({ proposals: [proposal] }, manifest, targetContext).valid);
+          if (groundedProposals.length < proposals.length) {
+            const filteredOutput = { ...validatedOutput, payload: { ...validatedOutput.payload, proposals: groundedProposals } };
+            const filteredReferences = validateReferences(filteredOutput, manifest, targetContext);
+            const filteredDomain = validateTurnAnalyzeV6(filteredOutput.payload);
+            const filteredProposals = proposalsInChoices(filteredOutput.payload);
+            const filteredTargets = validateProposalTargets(filteredProposals, targetContext);
+            const filteredPayloads = validateProposalPayloads(filteredProposals);
+            if (filteredReferences.valid && filteredDomain.valid && filteredTargets.valid && filteredPayloads.valid) {
+              acceptedOutput = filteredOutput;
+              validationError = null;
+              validationFailureStage = undefined;
+              referenceValidationErrors = [];
+            }
+          }
+        }
         const currentLedgerEntry = requestLedgerEntries.at(-1);
         if (currentLedgerEntry?.status === 'started') {
           const finalized = finalizedTurnLedgerEntry(currentLedgerEntry, validationError ? 'failed' : 'succeeded', validationError ? 'AI_INVALID_OUTPUT' : undefined);
@@ -815,7 +835,7 @@ export default async function handler(req, res, deps = {}) {
           await persistCurrentLedger();
         }
         if (!validationError) {
-          output = normalizedOutput;
+          output = acceptedOutput;
           break;
         }
       }
