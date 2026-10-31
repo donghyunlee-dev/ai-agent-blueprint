@@ -38,6 +38,117 @@ test('contextual help continues as a freeform conversation without a fixed quest
   expect(submitted).not.toHaveProperty('answer');
 });
 
+test('older contextual question retains its recommendation target',async({page})=>{
+  const turns:any[]=[];
+  await page.route('**/api/blueprint/turn',async(route)=>{
+    const body=route.request().postDataJSON();turns.push(body);
+    if(turns.length===1){
+      await route.fulfill({status:200,json:{assistantMessage:'회의실 예약 서비스를 함께 구체화하겠습니다.',proposals:[],followUp:{type:'question',id:'user-role-followup',topic:'사용자',prompt:'주로 누가 이 서비스를 사용하나요?',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['user_role'],options:[{value:'employee',label:'일반 직원',description:'회의실을 검색하고 예약하는 구성원'},{value:'admin',label:'관리자',description:'회의실 정보와 예약 현황을 관리하는 담당자'},{value:'operations',label:'총무팀',description:'회의실 운영을 총괄하고 정책을 관리하는 팀'},{value:'visitor',label:'방문자',description:'외부 방문객이 회의실을 예약하는 경우'}]},referencedItemIds:[],referencedSourceIds:[]}});
+      return;
+    }
+    if(turns.length===2){
+      await route.fulfill({status:200,json:{assistantMessage:'예약 정책도 확인하겠습니다.',proposals:[],followUp:{type:'question',id:'reservation-followup',topic:'예약 정책',prompt:'예약 취소는 언제까지 허용하나요?',answerMode:'text',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['constraint']},referencedItemIds:[],referencedSourceIds:[]}});
+      return;
+    }
+    const candidates=Array.from({length:11},(_,index)=>({id:`recommendation-${index+1}`,title:`회의실 운영안 ${index+1}`,rationale:'대화에서 확인한 회의실 서비스 맥락에 맞습니다.',tradeoffs:['운영 기준을 정해야 합니다.'],assumptions:['회의실 목록이 최신 상태입니다.'],evidence:[{sourceType:'message',sourceId:body.recentMessages.find((message:any)=>message.role==='user').id,excerpt:'사내 회의실 예약 서비스를 만들고 싶어요.'}],proposalDraft:{operation:'create',targetType:'design_item',after:{type:'requirement',title:`회의실 운영안 ${index+1}`,description:'회의실 예약과 운영을 지원합니다.'},rationale:'대화에서 확인한 사용자 맥락에 기반합니다.',evidence:[{sourceType:'message',sourceId:body.recentMessages.find((message:any)=>message.role==='user').id}],affectedItemIds:[]}}));
+    await route.fulfill({status:200,json:{assistantMessage:'대화에서 확인한 조건에 맞는 추천 후보입니다.',proposals:[],recommendationCandidates:{type:'recommendation_candidates',id:'recommendations-user-role',candidates},referencedItemIds:[],referencedSourceIds:[]}});
+  });
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  const composer=page.getByRole('textbox',{name:'AI에 보낼 자유 답변'});
+  await composer.fill('사내 회의실 예약 서비스를 만들고 싶어요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  const card=page.locator('.contextual-question-card').filter({hasText:'주로 누가 이 서비스를 사용하나요?'});
+  await expect(card.getByRole('heading',{name:'주로 누가 이 서비스를 사용하나요?'})).toBeVisible();
+  await expect(page.locator('.conversation-message-row-question').filter({has:card})).toHaveCount(1);
+  await expect(card.getByRole('button',{name:'답변 제출'})).toHaveCount(0);
+  await composer.fill('예약 정책도 함께 정하고 싶어요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await expect(page.getByRole('heading',{name:'예약 취소는 언제까지 허용하나요?'})).toBeVisible();
+  await card.getByRole('button',{name:'추천해 주세요'}).click();
+  await expect(page.getByRole('heading',{name:'대화에서 확인한 조건에 맞는 추천'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'이 추천 선택'})).toHaveCount(11);
+  const originalMessage=turns[2].recentMessages.find((message:any)=>message.blocks?.some((block:any)=>block.id==='user-role-followup'));
+  expect(turns[2].userTurn).toMatchObject({kind:'text',text:'추천해 주세요.',responseTo:{messageId:originalMessage.id,blockId:'user-role-followup',customText:'추천해 주세요.'}});
+  expect(turns[2].recentMessages.some((message:any)=>message.blocks?.some((block:any)=>block.type==='question'&&block.prompt==='주로 누가 이 서비스를 사용하나요?'))).toBe(true);
+});
+
+test('the same help text on a different card starts a new request after a failed answer',async({page})=>{
+  const submissions:any[]=[];
+  await page.route('**/api/blueprint/turn',async(route)=>{
+    const body=route.request().postDataJSON();submissions.push(body);
+    if(submissions.length===3){await route.fulfill({status:500,json:{error:'AI_PROVIDER_ERROR'}});return;}
+    const followUp=submissions.length<=2?{type:'question',id:`help-question-${submissions.length}`,topic:'예약',prompt:submissions.length===1?'예약 인원은 몇 명인가요?':'예약 시간은 언제인가요?',answerMode:'text',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}:undefined;
+    await route.fulfill({status:200,json:{assistantMessage:`대화 ${submissions.length} 응답입니다.`,proposals:[],...(followUp?{followUp}:{}),referencedItemIds:[],referencedSourceIds:[]}});
+  });
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  const composer=page.getByRole('textbox',{name:'AI에 보낼 자유 답변'});
+  await composer.fill('회의실 예약 기준을 정하고 싶어요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  const older=page.locator('.contextual-question-card').filter({hasText:'예약 인원은 몇 명인가요?'});
+  await expect(older).toBeVisible();
+  await composer.fill('예약 시간도 정하고 싶어요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  const latest=page.locator('.contextual-question-card').filter({hasText:'예약 시간은 언제인가요?'});
+  await expect(latest).toBeVisible();
+  await older.getByRole('button',{name:'잘 모르겠어요'}).click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await latest.getByRole('button',{name:'잘 모르겠어요'}).click();
+  await expect(page.locator('.workspace-message-assistant').filter({hasText:'대화 4 응답입니다.'})).toBeVisible();
+  expect(submissions[2].userTurn.text).toBe(submissions[3].userTurn.text);
+  expect(submissions[2].userTurn.responseTo.blockId).toBe('help-question-1');
+  expect(submissions[3].userTurn.responseTo.blockId).toBe('help-question-2');
+  expect(submissions[3].logicalRequestId).not.toBe(submissions[2].logicalRequestId);
+  expect(submissions[3].userTurn.id).not.toBe(submissions[2].userTurn.id);
+});
+
+test('a contextual question stays standalone and preserves later explanation order',async({page})=>{
+  const ownerKey=await deriveOwnerKey(identity);
+  await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const tx=db.transaction('projects','readwrite');const store=tx.objectStore('projects');const request=store.get(projectId);
+    request.onsuccess=()=>{const record=request.result;const createdAt=new Date().toISOString();record.messages=[{id:'source-user',threadId:'thread',role:'user',kind:'text',content:'사내 회의실 예약 서비스를 만들고 싶어요.',createdAt},{id:'source-assistant',threadId:'thread',role:'assistant',kind:'text',content:'사용자 대상을 확인하겠습니다.',createdAt,blocks:[{type:'assistant_text',content:'사용자 대상을 확인하겠습니다.'},{type:'question',id:'middle-question',topic:'사용자',prompt:'이 서비스를 누가 사용하나요?',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['user_role'],options:[{value:'employee',label:'직원'},{value:'admin',label:'관리자'}]},{type:'explanation',title:'사용자 구분의 이유',summary:'사용자별 접근 권한을 구분합니다.',comparisons:[],returnToQuestionId:'middle-question'}]}];store.put(record);};
+    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  const card=page.locator('.conversation-message-row-question .contextual-question-card');
+  await expect(card.getByRole('heading',{name:'이 서비스를 누가 사용하나요?'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'사용자 구분의 이유'})).toBeVisible();
+  expect(await card.evaluate((node)=>Boolean(node.compareDocumentPosition(document.querySelector('.ai-block-explanation')!)&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  await expect(page.locator('#conversation-message-source-assistant')).toContainText('사용자 대상을 확인하겠습니다.');
+});
+
+test('a turn with proposals and a follow-up persists pending proposals and renders a standalone card',async({page},testInfo)=>{
+  await page.route('**/api/blueprint/turn',async(route)=>{
+    const body=route.request().postDataJSON();
+    await route.fulfill({status:200,json:{assistantMessage:'회의실 예약 서비스를 함께 구체화하겠습니다.',proposals:[{operation:'create',targetType:'design_item',after:{type:'product_definition',title:'사내 회의실 예약 서비스',description:'사내 회의실을 예약합니다.'},rationale:'사용자의 서비스 아이디어입니다.',evidence:[{sourceType:'message',sourceId:body.userTurn.id}],affectedItemIds:[]}],followUp:{type:'question',id:'proposal-followup',topic:'사용자',prompt:'누가 회의실을 예약하나요?',answerMode:'single',required:true,allowCustomAnswer:false,allowUnknown:true,allowDefer:true,targetItemTypes:['user_role'],options:[{value:'employee',label:'일반 직원'},{value:'admin',label:'관리자'}]},referencedItemIds:[],referencedSourceIds:[]}});
+  });
+  await page.goto(`/blueprints/${projectId}#conversation`);
+  await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('사내 회의실 예약 서비스를 만들고 싶어요.');
+  await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+  await page.getByRole('button',{name:'동의하고 계속'}).click();
+  const card=page.locator('.conversation-message-row-question .contextual-question-card');
+  await expect(card.getByRole('heading',{name:'누가 회의실을 예약하나요?'})).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  const ownerKey=await deriveOwnerKey(identity);
+  const saved=await page.evaluate(async({databaseName,projectId})=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const req=indexedDB.open(databaseName,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    const record=await new Promise<any>((resolve,reject)=>{const req=db.transaction('projects').objectStore('projects').get(projectId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});db.close();return record;
+  },{databaseName:databaseNameForOwner(ownerKey),projectId});
+  expect(saved.proposals).toHaveLength(1);
+  expect(saved.proposals[0]).toMatchObject({status:'pending',after:{title:'사내 회의실 예약 서비스'}});
+  expect(saved.designItems).toHaveLength(0);
+  expect(saved.messages.at(-1).blocks.map((block:any)=>block.type)).toEqual(['assistant_text','question']);
+  if(testInfo.project.name==='desktop-chromium'){
+    const questionBox=await card.boundingBox();
+    const assistantBox=await page.locator('.workspace-message-assistant').first().boundingBox();
+    expect(questionBox!.width).toBeGreaterThan(assistantBox!.width);
+  }
+  await page.reload();
+  await expect(card.getByRole('heading',{name:'누가 회의실을 예약하나요?'})).toBeVisible();
+});
+
 test('free conversation, generated choice, eleven grounded candidates, approval and source navigation',async({page},testInfo)=>{
   const sourceQuote='예약 취소는 시작 두 시간 전까지 가능합니다.';
   let reservationSourceId:string|undefined;
@@ -73,7 +184,7 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
       }
       recommendationBlock.candidates.forEach((candidate)=>{candidate.evidence[0].sourceId=body.userTurn.id;candidate.proposalDraft.evidence[0].sourceId=body.userTurn.id;});
       const model='gpt-5-mini';
-      const requestLedgerEntries=Array.from({length:3},(_,index)=>({id:`recommendation-ledger-${index+1}`,projectId, generationJobId:body.generationJobId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,task:'OPTION_RECOMMEND',promptVersion:'v7',schemaVersion:'v7',modelProfile:'DEFAULT',resolvedModel:model,reasoningEffort:'low',designRevision:body.projectSummary.designRevision,estimatedInputTokens:100+index,estimatedOutputTokens:2000,estimatedCostUsd:calculateEstimatedCost(model,{inputTokens:100+index,outputTokens:2000}),status:'succeeded',createdAt:new Date().toISOString(),finishedAt:new Date().toISOString()}));
+      const requestLedgerEntries=Array.from({length:3},(_,index)=>({id:`recommendation-ledger-${index+1}`,projectId, generationJobId:body.generationJobId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,task:'OPTION_RECOMMEND',promptVersion:'v11',schemaVersion:'v7',modelProfile:'DEFAULT',resolvedModel:model,reasoningEffort:'minimal',designRevision:body.projectSummary.designRevision,estimatedInputTokens:100+index,estimatedOutputTokens:2000,estimatedCostUsd:calculateEstimatedCost(model,{inputTokens:100+index,outputTokens:2000}),status:'succeeded',createdAt:new Date().toISOString(),finishedAt:new Date().toISOString()}));
       await route.fulfill({status:200,json:{assistantMessage:'확인한 조건에 맞는 추천 후보입니다.',proposals:[],recommendationCandidates:recommendationBlock,requestLedgerEntries,referencedItemIds:[],referencedSourceIds:[]}});
       return;
     }
@@ -98,7 +209,7 @@ test('free conversation, generated choice, eleven grounded candidates, approval 
       const documentId='con-pr-05-requirements';
       const sections=requirementKeys.map((key,order)=>({id:`req-${key}`,projectId,documentId,key,title:key,markdown:'검토된 요구사항 초안입니다.',order,sourceItemIds:key==='functional'?body.designItems.filter((item:any)=>item.type==='requirement').map((item:any)=>item.id):[],origin:'generated',syncStatus:'current',updatedAt:now}));
       const requirementId=body.designItems.find((item:any)=>item.type==='requirement')?.id;
-      await route.fulfill({status:200,json:{document:{id:documentId,projectId,type:'requirements',title:'회의실 예약 요구사항 명세',status:'review_required',designRevision:body.designRevision,version:1,sectionIds:sections.map((section)=>section.id),requirements:[{id:'REQ-001',category:'functional',title:'예약 가능 여부 확인',description:'회의실 예약 조건을 확인한다.',priority:'P0',sourceItemIds:requirementId?[requirementId]:[],acceptanceCriteria:[{text:'예약 결과를 표시한다.',sourceItemIds:requirementId?[requirementId]:[]}],openIssueIds:[]}],requirementLinks:[{sectionKey:'functional',requirementIds:['REQ-001']}],openIssues:[],reviewIssues:[],generationArtifact:'con-pr-05-requirements-generated',createdAt:now,updatedAt:now},sections,job:{id:'req-job',projectId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,type:'REQUIREMENTS_DRAFT',promptVersion:'v1',schemaVersion:'v1',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:body.designRevision,status:'succeeded',targetIds:[documentId],startedAt:now,finishedAt:now}}});
+      await route.fulfill({status:200,json:{document:{id:documentId,projectId,type:'requirements',title:'회의실 예약 요구사항 명세',status:'review_required',designRevision:body.designRevision,version:1,sectionIds:sections.map((section)=>section.id),requirements:[{id:'REQ-001',category:'functional',title:'예약 가능 여부 확인',description:'예약 조건을 확인한다.',priority:'P0',sourceItemIds:requirementId?[requirementId]:[],acceptanceCriteria:[{text:'예약 결과를 표시한다.',sourceItemIds:requirementId?[requirementId]:[]}],openIssueIds:[]}],requirementLinks:[{sectionKey:'functional',requirementIds:['REQ-001']}],openIssues:[],reviewIssues:[],generationArtifact:'con-pr-05-requirements-generated',createdAt:now,updatedAt:now},sections,job:{id:'req-job',projectId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,type:'REQUIREMENTS_DRAFT',promptVersion:'v2',schemaVersion:'v1',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:body.designRevision,status:'succeeded',targetIds:[documentId],startedAt:now,finishedAt:now}}});
       return;
     }
     prdGenerateRequest=body;
@@ -313,10 +424,67 @@ test('renders number, range and rank follow-ups as typed decision controls',asyn
   await page.getByRole('button',{name:'답변 제출'}).last().click();
   await expect(page.locator('.workspace-message-assistant').filter({hasText:'정한 기준을 기록했습니다.'})).toBeVisible();
   expect(submissions[0].userTurn.text).toContain('예약 수용량');
-  expect(submissions[1].userTurn.text).toBe('24');
-  expect(submissions[2].userTurn.text).toBe('9–18');
+  expect(submissions[1].userTurn).toMatchObject({text:'24',responseTo:{blockId:'typed-1',numberValue:24}});
+  expect(submissions[2].userTurn).toMatchObject({text:'9–18',responseTo:{blockId:'typed-2',rangeValue:{start:9,end:18}}});
   expect(submissions[3].userTurn.text).toMatch(/충돌 방지, 빠른 예약/);
 });
+
+for(const form of [
+  {mode:'number',prompt:'몇 명까지 예약할 수 있어야 할까요?',answer:'24'},
+  {mode:'range',prompt:'운영 시간을 정해 주세요.',answer:'9–18'},
+  {mode:'text',prompt:'예약 취소 정책을 설명해 주세요.',answer:'시작 두 시간 전까지 취소할 수 있습니다.'},
+]){
+  test(`older ${form.mode} card preserves its target for answers, help and deferral`,async({page})=>{
+    const submissions:any[]=[];
+    const latestPrompt='새 예약 알림은 어디로 보낼까요?';
+    await page.route('**/api/blueprint/turn',async(route)=>{
+      const body=route.request().postDataJSON();submissions.push(body);
+      const followUp=submissions.length===1?{type:'question',id:'older-typed-question',topic:'예약 정책',prompt:form.prompt,answerMode:form.mode,required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}:submissions.length===2?{type:'question',id:'latest-notification-question',topic:'알림',prompt:latestPrompt,answerMode:'text',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}:undefined;
+      await route.fulfill({status:200,json:{assistantMessage:`대화 응답 ${submissions.length}을 기록했습니다.`,proposals:[],...(followUp?{followUp}:{}),referencedItemIds:[],referencedSourceIds:[]}});
+    });
+    await page.goto(`/blueprints/${projectId}#conversation`);
+    const composer=page.getByRole('textbox',{name:'AI에 보낼 자유 답변'});
+    await composer.fill('회의실 예약 정책을 정하고 싶어요.');
+    await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+    await page.getByRole('button',{name:'동의하고 계속'}).click();
+    const older=page.locator('.contextual-question-card').filter({has:page.getByRole('heading',{name:form.prompt,exact:true})});
+    await expect(older).toBeVisible();
+    await composer.fill('예약 알림도 함께 정하고 싶어요.');
+    await page.getByRole('button',{name:'AI로 답변 분석'}).click();
+    const latest=page.locator('.contextual-question-card').filter({has:page.getByRole('heading',{name:latestPrompt,exact:true})});
+    const latestDraft=latest.getByRole('textbox',{name:'답변',exact:true});
+    await latestDraft.fill('이메일 알림 초안');
+    if(form.mode==='number')await older.getByRole('spinbutton',{name:'숫자'}).fill(form.answer);
+    else if(form.mode==='range'){
+      await older.getByRole('spinbutton',{name:'시작'}).fill('9');
+      await older.getByRole('spinbutton',{name:'끝'}).fill('18');
+    }else await older.getByRole('textbox',{name:'답변',exact:true}).fill(form.answer);
+    await older.getByRole('button',{name:'답변 제출'}).click();
+    await expect(page.locator('.workspace-message-assistant').filter({hasText:'대화 응답 3을 기록했습니다.'})).toBeVisible();
+    await expect(latestDraft).toHaveValue('이메일 알림 초안');
+    await older.getByRole('button',{name:'잘 모르겠어요'}).click();
+    await expect(page.locator('.workspace-message-assistant').filter({hasText:'대화 응답 4을 기록했습니다.'})).toBeVisible();
+    await expect(latestDraft).toHaveValue('이메일 알림 초안');
+    await older.getByRole('button',{name:'나중에 결정',exact:true}).click();
+    await expect(page.locator('.workspace-message-assistant').filter({hasText:'대화 응답 5을 기록했습니다.'})).toBeVisible();
+    const originalMessage=submissions[1].recentMessages.find((message:any)=>message.blocks?.some((block:any)=>block.id==='older-typed-question'));
+    const target={messageId:originalMessage.id,blockId:'older-typed-question'};
+    const typedValue=form.mode==='number'?{numberValue:24}:form.mode==='range'?{rangeValue:{start:9,end:18}}:{customText:form.answer};
+    expect(submissions.slice(2).map((submission)=>submission.userTurn)).toMatchObject([
+      {kind:'text',text:form.answer,responseTo:{...target,...typedValue}},
+      {kind:'text',text:'이 항목은 아직 모르겠습니다.',responseTo:{...target,customText:'이 항목은 아직 모르겠습니다.'}},
+      {kind:'text',text:'이 항목은 나중에 결정하겠습니다.',responseTo:{...target,customText:'이 항목은 나중에 결정하겠습니다.'}},
+    ]);
+    for(const submission of submissions.slice(2)){
+      expect(submission.userTurn.text).not.toContain(latestPrompt);
+      expect(submission.recentMessages.some((message:any)=>message.blocks?.some((block:any)=>block.id==='older-typed-question'&&block.prompt===form.prompt))).toBe(true);
+    }
+    expect(submissions[1].userTurn.text).toBe('예약 알림도 함께 정하고 싶어요.');
+    expect(submissions[1].userTurn).not.toHaveProperty('responseTo');
+    await expect(latestDraft).toHaveValue('이메일 알림 초안');
+    await expect(latest.getByRole('heading',{name:latestPrompt,exact:true})).toBeVisible();
+  });
+}
 
 test('insufficient recommendation context asks one contextual follow-up without padding eleven candidates',async({page},testInfo)=>{
   let submitted:any;
@@ -497,7 +665,7 @@ test('applies a completed response when the user cancels before response handlin
     const now=new Date().toISOString();
     await route.fulfill({status:200,json:{
       assistantMessage:'응답은 도착했지만 사용자가 표시 전에 취소했습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[],
-      requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v7',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'succeeded',createdAt:now,finishedAt:now}],
+      requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v10',schemaVersion:'v7',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'minimal',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'succeeded',createdAt:now,finishedAt:now}],
     }});
   });
   await page.goto(`/blueprints/${projectId}#conversation`);
@@ -523,7 +691,7 @@ test('persists the failed generation status with returned provider accounting',a
   await page.route('**/api/blueprint/turn',async(route)=>{
     requestBody=route.request().postDataJSON();
     const now=new Date().toISOString();
-    await route.fulfill({status:502,json:{error:'AI_OUTPUT_INCOMPLETE',requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v7',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'failed',errorCode:'AI_OUTPUT_INCOMPLETE',createdAt:now,finishedAt:now}]}});
+    await route.fulfill({status:502,json:{error:'AI_OUTPUT_INCOMPLETE',requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v10',schemaVersion:'v7',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'minimal',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'failed',errorCode:'AI_OUTPUT_INCOMPLETE',createdAt:now,finishedAt:now}]}});
   });
   await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('답변이 잘리는 경우를 확인합니다.');
@@ -560,7 +728,7 @@ test('recovers server-side accounting after an aborted response body',async({pag
   });
   let requestBody:any;
   const ledgerId='aborted-body-recovered-ledger';
-  const ledgerFor=(body:any)=>({id:ledgerId,projectId,generationJobId:body.generationJobId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,task:'TURN_ANALYZE',promptVersion:'v7',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'unknown',errorCode:'AI_REQUEST_UNKNOWN',createdAt:new Date().toISOString(),finishedAt:new Date().toISOString()});
+  const ledgerFor=(body:any)=>({id:ledgerId,projectId,generationJobId:body.generationJobId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,task:'TURN_ANALYZE',promptVersion:'v10',schemaVersion:'v7',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'minimal',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'unknown',errorCode:'AI_REQUEST_UNKNOWN',createdAt:new Date().toISOString(),finishedAt:new Date().toISOString()});
   await page.route(/\/api\/blueprint\/turn(?:\?.*)?$/,async(route)=>{
     if(route.request().method()==='GET'){
       await route.fulfill({status:200,json:{status:'unknown',errorCode:'AI_REQUEST_UNKNOWN',requestLedgerEntries:[ledgerFor(requestBody)]}});

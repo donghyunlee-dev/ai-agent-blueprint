@@ -9,7 +9,7 @@ import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricin
 import { createLedgerEntry, projectAiUsageFromLedger } from '../../src/infrastructure/ai/request-ledger.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
 import { selectContext } from '../../src/infrastructure/ai/context-selector.js';
-import { getAuthStore } from '../_lib/auth-store.js';
+import { getAuthStore, logAuthStoreFailure } from '../_lib/auth-store.js';
 import { requestStructuredOutput, sendJson } from '../_lib/blueprint-openai.js';
 import { rejectCrossOriginMutation } from '../_lib/require-session.js';
 import { requireSession } from '../_lib/session.js';
@@ -43,7 +43,7 @@ function validIds(body) {
     && (body.generationJobId === undefined || (typeof body.generationJobId === 'string' && body.generationJobId.length >= 16 && body.generationJobId.length <= 200));
 }
 
-function prepareTurn(body, definition, task = TASK) {
+function prepareTurn(body, definition, task = TASK, currentTarget = body.userTurn.responseTo ?? null) {
   const taskConfig = aiModelRegistry.tasks[task];
   const profile = taskConfig.profile;
   const resolvedModel = aiModelRegistry.profiles[profile].model;
@@ -52,7 +52,7 @@ function prepareTurn(body, definition, task = TASK) {
     prompt: definition.systemTemplate,
     rules: definition.developerTemplate,
     projectSummary: body.projectSummary,
-    currentTarget: body.userTurn.responseTo ?? null,
+    currentTarget,
     userInput: body.userTurn,
   };
   const textTokens = (value) => {
@@ -69,7 +69,7 @@ function prepareTurn(body, definition, task = TASK) {
   const selected = selectContext({ task, items, fixedTokens: textTokens(JSON.stringify(fixedContext)) + 256 });
   const byType = (type) => selected.items.filter((item) => item.type === type);
   const promptInput = {
-    currentTarget: body.userTurn.responseTo ?? null,
+    currentTarget,
     confirmedDesignItems: byType('confirmed_design').map(({ id }) => body.relevantDesignItems.find((item) => item.id === id)),
     conversationContext: byType('recent_message').map(({ id }) => body.recentMessages.find((message) => message.id === id)),
     userInput: body.userTurn,
@@ -167,6 +167,24 @@ function selectedChoiceProposals(body) {
   const message = body.recentMessages.find((item) => item.id === responseTo.messageId && item.role === 'assistant');
   const block = message?.blocks?.find((item) => item.id === responseTo.blockId);
   if (!block) return { valid: false, proposals: [] };
+  if (body.userTurn.kind === 'text') {
+    if (block.type !== 'question' || ['choiceId','selectedValues','rankedValues'].some((key) => Object.hasOwn(responseTo,key))) return { valid:false, proposals:[] };
+    const fields = ['customText','numberValue','rangeValue'].filter((key) => Object.hasOwn(responseTo,key));
+    if (fields.length !== 1) return { valid:false, proposals:[] };
+    let valid = false;
+    if (fields[0] === 'numberValue') {
+      valid = block.answerMode === 'number' && Number.isFinite(responseTo.numberValue) && body.userTurn.text === String(responseTo.numberValue);
+    } else if (fields[0] === 'rangeValue') {
+      const {start,end} = responseTo.rangeValue;
+      valid = block.answerMode === 'range' && Number.isFinite(start) && Number.isFinite(end) && start <= end && body.userTurn.text === `${start}–${end}`;
+    } else {
+      const text = responseTo.customText;
+      const allowedAction = text === '추천해 주세요.' || (text === '이 항목은 아직 모르겠습니다.' && block.allowUnknown) || (text === '이 항목은 나중에 결정하겠습니다.' && block.allowDefer);
+      const disabledAction = (text === '이 항목은 아직 모르겠습니다.' && !block.allowUnknown) || (text === '이 항목은 나중에 결정하겠습니다.' && !block.allowDefer);
+      valid = Boolean(text.trim()) && text === body.userTurn.text && !disabledAction && (block.answerMode === 'text' || allowedAction);
+    }
+    return { valid, proposals:[], ...(valid ? {currentTarget:{...responseTo,question:block}} : {}) };
+  }
   if (body.userTurn.kind === 'recommendation_choice') {
     if (block.type !== 'recommendation_candidates' || !responseTo.choiceId) return { valid: false, proposals: [] };
     const candidate = block.candidates.find((item) => item.id === responseTo.choiceId);
@@ -233,8 +251,12 @@ function domainFailureCategories(errors) {
   const patterns = [
     [/recommendations require an explicit user request/, 'unsolicited_recommendations'],
     [/recommendations must contain exactly eleven candidates/, 'recommendation_count'],
+    [/recommendation batch must contain exactly|recommendation batch count is invalid/, 'recommendation_batch_count'],
+    [/recommendation batch titles must be distinct/, 'duplicate_recommendation_titles'],
+    [/recommendation batches cannot include a follow-up/, 'recommendation_follow_up_conflict'],
     [/recommendations must be distinct/, 'duplicate_recommendation_titles'],
     [/each recommendation needs user-grounded evidence/, 'recommendation_evidence_missing'],
+    [/recommendations contain unsafe copy/, 'unsafe_turn_copy'],
     [/insufficient recommendation context must ask a follow-up question/, 'missing_recommendation_follow_up'],
     [/recommendation candidates and follow-up cannot be returned together/, 'recommendation_follow_up_conflict'],
     [/followUp\.componentType|followUp options|followUp option values/, 'invalid_follow_up_contract'],
@@ -256,6 +278,20 @@ function domainFailureCategories(errors) {
   ];
   for (const error of errors) categories.add(patterns.find(([pattern]) => pattern.test(error))?.[1] ?? 'other_domain_failure');
   return [...categories].sort();
+}
+
+function schemaFailureDetails(errors) {
+  return [...new Set(errors.map((error) => {
+    const [rawPath, detail = 'invalid shape'] = error.split(': ', 2);
+    const path = rawPath.replace(/\[\d+\]/g, '[*]');
+    const safePath = detail === 'additional property' ? path.replace(/\.[^.\[]+$/, '.*') : path;
+    const category = detail === 'required' ? 'missing_required_field'
+      : detail === 'additional property' ? 'additional_property'
+        : detail === 'invalid enum' ? 'invalid_enum'
+          : /pattern mismatch|minLength|maxItems|minItems|minimum/.test(detail) ? 'constraint_violation'
+            : /expected/.test(detail) ? 'invalid_shape' : 'invalid_value';
+    return `${safePath}:${category}`;
+  }))].sort();
 }
 
 function recommendationProposalDraft(candidate) {
@@ -371,6 +407,13 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
   };
   for (let batchIndex = 0; batchIndex < batchSizes.length; batchIndex += 1) {
     const expectedCount = batchSizes[batchIndex];
+    const batchSchema = structuredClone(schemas.envelopes[RECOMMENDATION_TASK]);
+    const recommendationArraySchema = batchSchema.properties.payload.properties.r;
+    if (batchIndex > 0) {
+      recommendationArraySchema.minItems = expectedCount;
+      recommendationArraySchema.maxItems = expectedCount;
+      delete batchSchema.properties.payload.properties.f;
+    }
     const batchContext = {
       ...promptInput,
       recommendationBatch: {
@@ -392,10 +435,12 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
         messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: 지정된 JSON Schema를 따르고 이번 묶음에 필요한 후보만 완성된 값으로 반환하세요.` };
       }
       if (retry > 0 && validationFailureStage === 'domain') {
-        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: 이번 묶음은 recommendationBatch.expectedCount와 같은 수의 후보를 반환하고, previousTitles의 제목이나 접근을 반복하지 마세요. 근거는 전달된 사용자 메시지나 파일 발췌만 사용하세요.` };
+        const failures = domainFailureCategories(validationError);
+        const previousTitles = JSON.stringify(batchContext.recommendationBatch.previousTitles);
+        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: 이번 호출에서는 recommendationBatch.expectedCount와 정확히 같은 수만 반환하고 전체 11개를 다시 출력하지 마세요. previousTitles와 제목이 겹치지 않아야 합니다. 각 e.i는 TYPED_CONTEXT_JSON의 userInput.id 또는 role이 정확히 user인 conversationContext entry ID만 message 근거로 사용하고, file 근거는 SOURCE_EXCERPTS_UNTRUSTED_JSON excerpt ID만 사용하세요. k는 product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue 중 하나만 사용하세요. ${failures.includes('recommendation_follow_up_conflict') ? '직전 응답은 후보와 후속 질문을 함께 반환해 거부됐습니다. 후보가 있으면 f를 생략하고, 첫 묶음에 맥락이 부족할 때만 r=[]와 f를 반환하세요. ' : ''}${failures.includes('recommendation_batch_count') ? '이번 묶음 수가 잘못됐습니다. expectedCount를 그대로 맞추세요. ' : ''}${failures.includes('duplicate_recommendation_titles') ? `이전 배치 제목은 ${previousTitles}입니다. 이 목록과 겹치지 않고 이번 묶음 안에서도 각 후보 제목이 서로 달라야 합니다. ` : ''}${failures.includes('recommendation_evidence_missing') ? '사용자 근거가 없는 후보는 생략하세요. ' : ''}근거와 payload 규칙에 맞는 후보만 반환하세요.` };
       }
       if (retry > 0 && validationFailureStage === 'references') {
-        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: evidence는 userTurn 또는 user-authored recentMessages의 실제 ID, 또는 SOURCE_EXCERPTS_UNTRUSTED_JSON의 request-local excerpt ID만 사용하세요. ID를 만들지 마세요.` };
+        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: message evidence는 TYPED_CONTEXT_JSON의 userInput.id 또는 conversationContext에서 role이 정확히 user인 entry의 id만 사용하세요. assistant나 다른 role의 ID, contextual question/card ID는 사용하지 마세요. file evidence는 SOURCE_EXCERPTS_UNTRUSTED_JSON의 request-local excerpt ID만 사용하세요. 근거가 없으면 후보를 생략하세요. ID를 만들지 마세요.` };
       }
       const taskConfig = aiModelRegistry.tasks[RECOMMENDATION_TASK];
       const modelProfile = taskConfig.profile;
@@ -428,7 +473,7 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
       try {
         output = await requestStructuredOutput({
           name: definition.promptId.replaceAll('.', '_').replace(/_v\d+$/, ''),
-          schema: schemas.envelopes[RECOMMENDATION_TASK], messages, signal,
+          schema: batchSchema, messages, signal,
           model: aiModelRegistry.profiles.DEFAULT.model,
           reasoningEffort: aiModelRegistry.tasks[RECOMMENDATION_TASK].reasoning,
           maxOutputTokens: aiModelRegistry.tasks[RECOMMENDATION_TASK].maxOutputTokens,
@@ -450,7 +495,7 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
         await finalizeLedgerEntry(ledgerEntry, 'cancelled', 'AI_CANCELLED');
         return { cancelled: true, attempts: totalAttempts, requestLedgerEntries };
       }
-      const schemaResult = validateSchema(schemas.envelopes[RECOMMENDATION_TASK], output);
+      const schemaResult = validateSchema(batchSchema, output);
       const metadataResult = validateResponseMetadata(output, {
         task: RECOMMENDATION_TASK, promptVersion: definition.promptVersion,
         schemaVersion: definition.schemaVersion, designRevision: body.projectSummary.designRevision,
@@ -525,7 +570,8 @@ export default async function handler(req, res, deps = {}) {
         requestLedgerEntries: Array.isArray(turn.metadata?.requestLedgerEntries) ? turn.metadata.requestLedgerEntries : [],
         ...(turn.status === 'succeeded' && turn.result ? { result: turn.result } : {}),
       });
-    } catch {
+    } catch (error) {
+      logAuthStoreFailure('read_turn_status', error);
       return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
     }
   }
@@ -543,7 +589,7 @@ export default async function handler(req, res, deps = {}) {
 
   const definition = getPromptDefinition(task);
   let prepared;
-  try { prepared = prepareTurn(body, definition, task); }
+  try { prepared = prepareTurn(body, definition, task, selected.currentTarget); }
   catch (error) {
     if (String(error?.message ?? '').startsWith('AI_LEDGER_')) return fail(res, 400, 'AI_LEDGER_INVALID');
     return fail(res, 503, 'AI_BUDGET_UNAVAILABLE');
@@ -667,15 +713,19 @@ export default async function handler(req, res, deps = {}) {
             };
           }
           if (retry > 0 && validationFailureStage === 'schema') {
+            const boundedFieldCorrections = [];
+            if (validationError.some((error) => error.startsWith('$.payload.f.prompt:'))) boundedFieldCorrections.push('f.prompt must be at most 160 characters');
+            if (validationError.some((error) => error.startsWith('$.payload.f.topic:'))) boundedFieldCorrections.push('f.topic must be at most 60 characters');
+            if (validationError.some((error) => error.startsWith('$.payload.f.help:'))) boundedFieldCorrections.push('f.help must be at most 100 characters');
             messages[1] = {
               ...messages[1],
-              content: `${messages[1].content}\nVALIDATION RETRY: The previous response did not match the required JSON schema. Return a complete response with every required field and the correct value types. Do not add fields that are not in the schema.`,
+              content: `${messages[1].content}\nVALIDATION RETRY: The previous response did not match the required JSON schema. Return a complete response with every required field and the correct value types. Do not add fields that are not in the schema.${boundedFieldCorrections.length ? ` ${boundedFieldCorrections.join('; ')}.` : ''}`,
             };
           }
           if (retry > 0 && validationFailureStage === 'references' && referenceFailureCategories(referenceValidationErrors).some((category) => ['unknown_source_reference', 'non_user_message_evidence', 'non_request_excerpt_file_evidence', 'unsupported_evidence_type'].includes(category))) {
             messages[1] = {
               ...messages[1],
-              content: `${messages[1].content}\nVALIDATION RETRY: Evidence sourceType must be message or file. For message evidence, use only IDs from userTurn or user-authored recentMessages. For file evidence, use only request-local excerpt IDs from SOURCE_EXCERPTS_UNTRUSTED_JSON. Never use user_edit or agent_inference as evidence sourceType, and do not invent source IDs.`,
+              content: `${messages[1].content}\nVALIDATION RETRY: Evidence sourceType must be message or file. For message evidence, use only userInput.id or the id of a conversationContext entry whose role is exactly user. Never use an assistant or other-role ID, including contextual question/card IDs. For file evidence, use only excerpt IDs listed in SOURCE_EXCERPTS_UNTRUSTED_JSON. If no user-authored message or file excerpt grounds a proposal, omit the proposal and keep the assistantMessage/followUp. Do not invent IDs.`,
             };
           }
           if (retry > 0 && validationFailureStage === 'domain') {
@@ -683,13 +733,19 @@ export default async function handler(req, res, deps = {}) {
             if (failures.includes('invalid_design_item_type') || failures.includes('invalid_design_item_acceptance_criteria')) {
               messages[1] = {
                 ...messages[1],
-                content: `${messages[1].content}\nVALIDATION RETRY: For every design_item, type must be one of product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue. acceptanceCriteria must be omitted or be an array of non-empty {text: string} objects, for example [{"text":"예약 충돌이 차단된다."}]. Do not use a type such as feature and do not return acceptance criteria as strings.`,
+                content: `${messages[1].content}\nVALIDATION RETRY: For every design_item, type must be one of product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue. acceptanceCriteria must be omitted or be an array of non-empty {text: string} objects, for example [{"text":"예약 충돌이 차단된다."}]. Do not use a type such as feature and do not return acceptance criteria as strings. If the proposal cannot be represented with an allowed type, omit the entire proposal instead of inventing a type.`,
               };
             }
             if (failures.includes('invalid_proposal_snapshot')) {
               messages[1] = {
                 ...messages[1],
                 content: `${messages[1].content}\nVALIDATION RETRY: before/after 값은 유효한 JSON object를 문자열로 직렬화해 반환하세요. 따옴표와 괄호를 완전히 닫고, 문자열 길이는 180자 이내로 유지하세요. 유효한 object를 만들 수 없으면 해당 before/after 필드를 생략하세요.`,
+              };
+            }
+            if (failures.includes('unsupported_proposal_field')) {
+              messages[1] = {
+                ...messages[1],
+                content: `${messages[1].content}\nVALIDATION RETRY: design_item after에는 type, title, description, priority, confidence, attributes, relatedItemIds, acceptanceCriteria, parentId만 사용하세요. 다른 필드는 모두 제거하세요. 유효한 after를 만들 수 없으면 해당 proposal 전체를 생략하세요.`,
               };
             }
           }
@@ -772,6 +828,32 @@ export default async function handler(req, res, deps = {}) {
         ].find(([, result]) => !result.valid);
         validationError = failedValidation?.[1].errors ?? null;
         validationFailureStage = failedValidation?.[0] ?? undefined;
+        let acceptedOutput = normalizedOutput;
+        if (retry === 1 && task === TASK && includeModelProposals
+          && ['references', 'domain', 'proposal_targets', 'proposal_payloads'].includes(validationFailureStage)
+          && schemaResult.valid && metadataResult.valid) {
+          const proposals = validatedOutput.payload?.proposals ?? [];
+          const validProposals = proposals.filter((proposal) => (
+            validateTurnAnalyzeV6({ assistantMessage: '', proposals: [proposal] }).valid
+            && validateReferences({ proposals: [proposal] }, manifest, targetContext).valid
+            && validateProposalTargets([proposal], targetContext).valid
+            && validateProposalPayloads([proposal]).valid
+          ));
+          if (validProposals.length < proposals.length) {
+            const filteredOutput = { ...validatedOutput, payload: { ...validatedOutput.payload, proposals: validProposals } };
+            const filteredReferences = validateReferences(filteredOutput, manifest, targetContext);
+            const filteredDomain = validateTurnAnalyzeV6(filteredOutput.payload);
+            const filteredProposals = proposalsInChoices(filteredOutput.payload);
+            const filteredTargets = validateProposalTargets(filteredProposals, targetContext);
+            const filteredPayloads = validateProposalPayloads(filteredProposals);
+            if (filteredReferences.valid && filteredDomain.valid && filteredTargets.valid && filteredPayloads.valid) {
+              acceptedOutput = filteredOutput;
+              validationError = null;
+              validationFailureStage = undefined;
+              referenceValidationErrors = [];
+            }
+          }
+        }
         const currentLedgerEntry = requestLedgerEntries.at(-1);
         if (currentLedgerEntry?.status === 'started') {
           const finalized = finalizedTurnLedgerEntry(currentLedgerEntry, validationError ? 'failed' : 'succeeded', validationError ? 'AI_INVALID_OUTPUT' : undefined);
@@ -779,7 +861,7 @@ export default async function handler(req, res, deps = {}) {
           await persistCurrentLedger();
         }
         if (!validationError) {
-          output = normalizedOutput;
+          output = acceptedOutput;
           break;
         }
       }
@@ -793,6 +875,8 @@ export default async function handler(req, res, deps = {}) {
           ? { referenceFailures: referenceFailureCategories(referenceValidationErrors) }
           : validationFailureStage === 'domain'
             ? { domainFailures: domainFailureCategories(validationError) }
+          : validationFailureStage === 'schema'
+            ? { schemaFailures: schemaFailureDetails(validationError) }
           : {};
         console.error('TURN_RESPONSE_VALIDATION_FAILED', { stage: validationFailureStage, attempts: validationAttempts, ...failureDetails });
         if (!await finishTurn(store, key, { status: 'failed', attemptId, errorCode: 'AI_INVALID_OUTPUT' })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');

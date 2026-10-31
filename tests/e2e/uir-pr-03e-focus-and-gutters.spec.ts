@@ -120,11 +120,10 @@ test('conversation and summary content keep the specified desktop insets and mob
     const composer = document.querySelector('.ai-turn-composer') as HTMLElement;
     const conversationCard = document.querySelector('.workspace-conversation') as HTMLElement;
     const questionCard = document.querySelector('.workspace-panels[data-stage="conversation"] .question-card, .workspace-panels[data-stage="conversation"] .contextual-question-card') as HTMLElement;
-    const assistantMessage = document.querySelector('.workspace-panels[data-stage="conversation"] .workspace-message-assistant') as HTMLElement;
     const read = (element: HTMLElement) => ({ paddingLeft: Number.parseFloat(getComputedStyle(element).paddingLeft), paddingRight: Number.parseFloat(getComputedStyle(element).paddingRight), paddingBottom: Number.parseFloat(getComputedStyle(element).paddingBottom) });
     const questionCardBounds = questionCard.getBoundingClientRect();
     const composerBounds = composer.getBoundingClientRect();
-    return { conversation: read(conversation), conversationEndSpacerHeight: Number.parseFloat(getComputedStyle(conversation, '::after').height), summary: read(summary), inspector: read(inspector), layout: layout.getBoundingClientRect().toJSON(), conversationCard: conversationCard.getBoundingClientRect().toJSON(), summaryCard: summary.getBoundingClientRect().toJSON(), questionCard: questionCardBounds.toJSON(), assistantMessage: assistantMessage.getBoundingClientRect().toJSON(), composer: composerBounds.toJSON(), questionComposerGap: composerBounds.top - questionCardBounds.bottom, layoutPadding: read(layout), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    return { conversation: read(conversation), conversationEndSpacerHeight: Number.parseFloat(getComputedStyle(conversation, '::after').height), summary: read(summary), inspector: read(inspector), layout: layout.getBoundingClientRect().toJSON(), conversationCard: conversationCard.getBoundingClientRect().toJSON(), summaryCard: summary.getBoundingClientRect().toJSON(), questionCard: questionCardBounds.toJSON(), composer: composerBounds.toJSON(), questionComposerGap: composerBounds.top - questionCardBounds.bottom, layoutPadding: read(layout), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
   expect(geometry.overflow).toBe(false);
   if (viewport.width === 1440) {
@@ -139,7 +138,7 @@ test('conversation and summary content keep the specified desktop insets and mob
     expect(Math.abs(geometry.composer.x + geometry.composer.width - viewport.width + 34)).toBeLessThanOrEqual(1);
     expect(geometry.composer.x + geometry.composer.width).toBeGreaterThan(geometry.summaryCard.x);
     expect(Math.abs(geometry.conversationCard.y + geometry.conversationCard.height - geometry.composer.y - geometry.composer.height - 10)).toBeLessThanOrEqual(1);
-    expect(geometry.questionComposerGap, JSON.stringify({ questionCard: geometry.questionCard, assistantMessage: geometry.assistantMessage, composer: geometry.composer })).toBeGreaterThanOrEqual(10);
+    expect(geometry.questionComposerGap, JSON.stringify({ questionCard: geometry.questionCard, composer: geometry.composer })).toBeGreaterThanOrEqual(10);
   } else {
     await expect(page.locator('.workspace-panels[data-stage="conversation"] .contextual-question-card, .workspace-panels[data-stage="conversation"] .question-card').first()).toBeInViewport();
     expect(geometry.composer.bottom).toBeLessThanOrEqual(viewport.height + 1);
@@ -206,7 +205,7 @@ test('conversation and summary content keep the specified desktop insets and mob
     expect(transitionGeometry.composer.y + transitionGeometry.composer.height).toBeLessThanOrEqual(transitionGeometry.conversationCard.y + transitionGeometry.conversationCard.height + 1);
     const endScroll1024 = await scrollToQuestionEnd('.workspace-panels[data-stage="conversation"] .workspace-conversation-content');
     expect(endScroll1024.contentScrollTop).toBeGreaterThan(0);
-    expect(endScroll1024.questionComposerGap).toBeGreaterThanOrEqual(10);
+    expect(endScroll1024.questionComposerGap, JSON.stringify(endScroll1024)).toBeGreaterThanOrEqual(10);
     expect(endScroll1024.windowScrollY).toBe(0);
     await writeFile(`${gutterArtifactDirectory}/scroll-1024x768.json`, JSON.stringify({ viewport: { width: 1024, height: 768 }, endScroll1024 }, null, 2));
   } else {

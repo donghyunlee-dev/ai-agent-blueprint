@@ -8,7 +8,7 @@ import { aiModelRegistry } from '../../../src/infrastructure/ai/model-registry.j
 import { canRequestAi } from '../../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../../src/infrastructure/ai/model-pricing.js';
 import { createLedgerEntry } from '../../../src/infrastructure/ai/request-ledger.js';
-import { getAuthStore } from '../../_lib/auth-store.js';
+import { getAuthStore, logAuthStoreFailure } from '../../_lib/auth-store.js';
 import { requestStructuredOutput, sendJson } from '../../_lib/blueprint-openai.js';
 import { rejectCrossOriginMutation } from '../../_lib/require-session.js';
 import { requireSession } from '../../_lib/session.js';
@@ -19,6 +19,21 @@ import { issueSetupGuideGenerationArtifact } from '../../_lib/requirements-attes
 const MAX_BODY_BYTES = 100_000;
 const TASKS = new Set(['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR', 'SETUP_GUIDE_DRAFT', 'PRD_DRAFT', 'PRD_REVIEW', 'PRD_REPAIR']);
 const fail = (res, status, error, extra = {}) => sendJson(res, status, { error, ...extra });
+async function runStoreOperation(operationName, operation) {
+  try { return await operation(); }
+  catch (error) {
+    logAuthStoreFailure(operationName, error);
+    throw Object.assign(new Error('AUTH_STORE_UNAVAILABLE'), { code: 'AUTH_STORE_UNAVAILABLE' });
+  }
+}
+function publicGenerationError(error) {
+  if (error?.code === 'AUTH_STORE_UNAVAILABLE' || error?.message === 'AUTH_STORE_UNAVAILABLE') return 'AUTH_STORE_UNAVAILABLE';
+  if (error?.code === 'AI_OUTPUT_INCOMPLETE') return 'AI_OUTPUT_INCOMPLETE';
+  if (error?.code === 'AI_INVALID_OUTPUT') return 'AI_INVALID_OUTPUT';
+  if (error?.code === 'AI_PROVIDER_REJECTED') return 'AI_PROVIDER_REJECTED';
+  if (error?.statusCode === 429) return 'AI_RATE_LIMITED';
+  return null;
+}
 function ownerNamespace(user) {
   const secret = process.env.APP_SESSION_SECRET;
   if (!secret) throw new Error('AUTH_STORE_NOT_CONFIGURED');
@@ -51,12 +66,12 @@ export default async function handler(req, res, deps = {}) {
     key = turnKey(ownerNamespace(session.user), body.projectId, body.logicalRequestId);
     const attemptId = body.attemptId;
     const claimTask = isSetupGuide ? 'SETUP_GUIDE_DRAFT' : isPrd ? 'PRD_DRAFT' : 'REQUIREMENTS_DRAFT';
-    const claim = await claimTurn(store, key, turnFingerprint(body), attemptId, { task: claimTask, designRevision: body.designRevision });
+    const claim = await runStoreOperation('claim_document_request', () => claimTurn(store, key, turnFingerprint(body), attemptId, { task: claimTask, designRevision: body.designRevision }));
     if (claim.kind === 'conflict') return fail(res, 409, 'AI_REQUEST_CONFLICT');
     if (claim.kind === 'processing') return fail(res, 409, 'AI_REQUEST_IN_PROGRESS');
     if (claim.kind === 'unknown') return fail(res, 503, 'AI_REQUEST_UNKNOWN');
     if (claim.kind === 'replay') return sendJson(res, 200, claim.result);
-    if (!await finishTurn(store, key, { status: 'running', attemptId })) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
+    if (!await runStoreOperation('mark_document_request_running', () => finishTurn(store, key, { status: 'running', attemptId }))) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
     const aggregate = isPrd
       ? { project: body.project, designItems: body.designItems, documents: body.documents, sections: body.sections, generationJobs: body.generationJobs, proposals: [] }
       : isSetupGuide ? { project:body.project,designItems:body.designItems,sources:body.sources,documents:[],sections:[],generationJobs:[],proposals:[],activityEntries:[] }
@@ -70,11 +85,12 @@ export default async function handler(req, res, deps = {}) {
       const messages = definition.buildInput(isPrd
         ? { currentTarget: task === 'PRD_DRAFT' ? input.plan : task === 'PRD_REVIEW' ? { plan: input.plan, draft: input.draft } : { plan: input.plan, sections: input.sections, issues: input.issues }, confirmedDesignItems: input.requirements, unknownsAndConflicts: input.openIssues, designRevision: input.designRevision }
         : isSetupGuide ? { currentTarget:input.plan,confirmedDesignItems:input.designItems,unknownsAndConflicts:input.openIssues,sourceExcerpts:input.sourceExcerpts,designRevision:input.designRevision }
-          : { currentTarget: input.plan, confirmedDesignItems: input.designItems.filter((item) => item.status === 'confirmed'), unknownsAndConflicts: input.openIssues, designRevision: input.designRevision });
+          : { currentTarget: task === 'REQUIREMENTS_DRAFT' ? input.plan : task === 'REQUIREMENTS_REVIEW' ? { plan: input.plan, draft: input.draft } : { plan: input.plan, sections: input.sections, issues: input.issues }, confirmedDesignItems: input.designItems.filter((item) => item.status === 'confirmed'), unknownsAndConflicts: input.openIssues, designRevision: input.designRevision });
       const taskConfig = aiModelRegistry.tasks[task];
       const inputTokens = estimateTokens(messages);
       const profile = taskConfig.profile;
       const resolvedModel = aiModelRegistry.profiles[profile].model;
+      let providerSchemaInvalid = false;
       for (let retry = 0; retry <= aiModelRegistry.projectLimits.schemaRetriesPerTask; retry += 1) {
         const budget = canRequestAi(usage, { task, profile, resolvedModel, estimatedInputTokens: inputTokens, maxOutputTokens: taskConfig.maxOutputTokens });
         if (!budget.allowed || budget.decision !== 'allow') throw Object.assign(new Error('AI_BUDGET_EXCEEDED'), { code: 'AI_BUDGET_EXCEEDED' });
@@ -82,6 +98,7 @@ export default async function handler(req, res, deps = {}) {
         usage = { ...usage, foregroundCalls: usage.foregroundCalls + 1, finalCalls: usage.finalCalls + (profile === 'FINAL' ? 1 : 0), inputTokens: usage.inputTokens + inputTokens, outputReasoningTokens: usage.outputReasoningTokens + taskConfig.maxOutputTokens, estimatedCostUsd: usage.estimatedCostUsd + estimatedCostUsd };
         const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''), schema: schemas.envelopes[task], messages, model: resolvedModel, reasoningEffort: taskConfig.reasoning, maxOutputTokens: taskConfig.maxOutputTokens });
         const validation = validateSchema(schemas.envelopes[task], output);
+        providerSchemaInvalid ||= !validation.valid;
         const createdAt = new Date().toISOString();
         requestLedgerEntries.push(createLedgerEntry({
           id: crypto.randomUUID(), projectId: body.projectId, generationJobId, logicalRequestId: body.logicalRequestId, attemptId,
@@ -92,7 +109,7 @@ export default async function handler(req, res, deps = {}) {
         }));
         if (validation.valid) return output;
       }
-      throw Object.assign(new Error('AI_INVALID_OUTPUT'), { code: 'AI_INVALID_OUTPUT' });
+      throw Object.assign(new Error('AI_INVALID_OUTPUT'), { code: 'AI_INVALID_OUTPUT', diagnostic: { task, category: providerSchemaInvalid ? 'provider_schema_invalid' : 'provider_output_invalid' } });
     };
     const result = isPrd
       ? await generatePrd({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask })
@@ -105,6 +122,9 @@ export default async function handler(req, res, deps = {}) {
     return sendJson(res, 200, result);
   } catch (error) {
     if (store && key) { try { const code = /^[A-Z0-9_:-]{1,80}$/.test(error.code ?? '') ? error.code : 'AI_GENERATION_FAILED'; await finishTurn(store, key, { status: 'failed', attemptId: req.body?.attemptId, errorCode: code }); } catch { /* Preserve the original error response. */ } }
+    if (error?.message === 'AI_INVALID_OUTPUT' || error?.message === 'DOCUMENT_OUTPUT_INVALID') {
+      console.error('DOCUMENT_OUTPUT_VALIDATION_FAILED', error.diagnostic ?? { task: 'unknown', category: 'document_output_invalid' });
+    }
     if (error?.message === 'AUTH_STORE_NOT_CONFIGURED') return fail(res, 503, 'AUTH_STORE_NOT_CONFIGURED');
     if (error?.message === 'REQUIREMENTS_BLOCKED') return fail(res, 409, 'REQUIREMENTS_BLOCKED', { blockers: error.blockers });
     if (error?.message === 'SETUP_GUIDE_BLOCKED') return fail(res, 409, 'SETUP_GUIDE_BLOCKED', { blockers:error.blockers });
@@ -113,6 +133,8 @@ export default async function handler(req, res, deps = {}) {
     if (error?.message === 'DOCUMENT_OUTPUT_INVALID' || error?.message === 'AI_INVALID_OUTPUT') return fail(res, 502, 'AI_INVALID_OUTPUT');
     if (error?.message === 'PRD_REVIEW_REJECTED') return fail(res, 422, 'PRD_REVIEW_REJECTED');
     if (error?.message === 'AI_BUDGET_EXCEEDED') return fail(res, 429, 'AI_BUDGET_EXCEEDED');
+    const publicError = publicGenerationError(error);
+    if (publicError) return fail(res, error.statusCode || (publicError === 'AUTH_STORE_UNAVAILABLE' || publicError === 'AI_PROVIDER_REJECTED' ? 503 : publicError === 'AI_RATE_LIMITED' ? 429 : 502), publicError, { retryable: true });
     return fail(res, error.statusCode || 502, 'AI_GENERATION_FAILED', { retryable: true });
   }
 }

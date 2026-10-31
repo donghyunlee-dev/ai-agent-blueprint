@@ -11,6 +11,28 @@ const identity = {
 const projectId = 'qlt-pr-01-responsive-conversation';
 const artifactDirectory = '.pr-artifacts/QLT-PR-01';
 
+async function authorizeProtectedPreview(page: any) {
+  const previewUrl = process.env.PLAYWRIGHT_PREVIEW_URL;
+  if (!previewUrl) return;
+  const parsedUrl = new URL(previewUrl);
+  const isBlueprintGitPreview = /^windsoft-agent-bluepr-git-[a-z0-9-]+-donghyunlees-projects-e43b52b1\.vercel\.app$/.test(parsedUrl.hostname);
+  if (parsedUrl.protocol !== 'https:' || parsedUrl.port || parsedUrl.username || parsedUrl.password || parsedUrl.pathname !== '/' || parsedUrl.search || parsedUrl.hash || !isBlueprintGitPreview) {
+    throw new Error('PLAYWRIGHT_PREVIEW_URL_MUST_BE_A_WINDSOFT_PREVIEW_DEPLOYMENT');
+  }
+  const token = process.env.VERCEL_OIDC_TOKEN;
+  if (!token) throw new Error('VERCEL_OIDC_TOKEN_REQUIRED_FOR_PREVIEW');
+  const previewOrigin = parsedUrl.origin;
+  await page.route('**/*', async (route: any) => {
+    if (new URL(route.request().url()).origin !== previewOrigin) {
+      await route.continue();
+      return;
+    }
+    await route.continue({ headers: { ...route.request().headers(), 'x-vercel-trusted-oidc-idp-token': token } });
+  });
+}
+
+test.beforeEach(async ({ page }) => authorizeProtectedPreview(page));
+
 async function seedConversation(page: any) {
   await page.route('**/api/auth/session', (route: any) => route.fulfill({
     status: 200,
@@ -181,6 +203,16 @@ test('contextual question options adapt to conversation width without horizontal
     }
     for (let index = 1; index < geometry.rects.length; index += 1) {
       expect(geometry.rects[index].top).toBeGreaterThan(geometry.rects[index - 1].bottom);
+    }
+    if (viewport.width === 1023) {
+      const actions = question.locator('.question-card-actions');
+      await question.evaluate((element) => {
+        const scroller = element.closest('.workspace-conversation-content') as HTMLElement;
+        scroller.scrollTop = scroller.scrollHeight;
+      });
+      const actionsBottom = await actions.evaluate((element) => element.getBoundingClientRect().bottom);
+      const composerTop = await page.locator('.ai-turn-composer').evaluate((element) => element.getBoundingClientRect().top);
+      expect(actionsBottom, 'single-column answer actions remain reachable above the fixed composer at 1023px').toBeLessThanOrEqual(composerTop);
     }
     await page.screenshot({ path: `${artifactDirectory}/conversation-options-${viewport.width}x${viewport.height}.png`, scale: 'css' });
   }

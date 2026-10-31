@@ -23,10 +23,38 @@ test('unknown task, prompt version, schema id, and schema version fail closed', 
   assert.throws(() => getSchemaDefinitionAtVersion('turn.analyze.v1', 'v2'), /turn.analyze.v1.*v2/);
 });
 
+test('Requirements draft only links open issues explicitly present in the validated plan', () => {
+  const prompt = getPromptDefinition('REQUIREMENTS_DRAFT');
+  assert.equal(prompt.promptVersion, 'v2');
+  assert.equal(prompt.schemaVersion, 'v1');
+  assert.match(prompt.developerTemplate, /openIssues에 실제로 제공된 ID만/);
+  assert.match(prompt.developerTemplate, /openIssues가 비어 있으면 모든 requirement의 openIssueIds는 빈 배열/);
+  assert.match(prompt.developerTemplate, /acceptance criteria의 sourceItemIds는 해당 requirement의 plan sourceItemIds 중에서만/);
+  assert.match(prompt.developerTemplate, /모든 P0 requirement에는 관찰 가능한 acceptance criteria를 최소 한 개/);
+  assert.match(prompt.developerTemplate, /confirmed title\/description에서 직접 확인 가능한 결과 기준/);
+  assert.match(prompt.developerTemplate, /referencedSourceIds는 빈 배열/);
+  assert.match(prompt.developerTemplate, /referencedItemIds에는 입력에 실제로 있는 design item ID만/);
+  assert.match(prompt.developerTemplate, /ID를 만들거나 추측하지 않는다/);
+});
+
+test('Requirements review uses only design IDs supplied by the plan or draft', () => {
+  const prompt = getPromptDefinition('REQUIREMENTS_REVIEW');
+  assert.equal(prompt.promptVersion, 'v2');
+  assert.equal(prompt.schemaVersion, 'v1');
+  assert.match(prompt.developerTemplate, /relatedItemIds는 입력 plan\.confirmedItemIds에 실제로 포함된 design item ID만/);
+  assert.match(prompt.developerTemplate, /Requirement ID.*relatedItemIds에 절대 넣지 않는다/);
+  assert.match(prompt.developerTemplate, /draft의 그 requirement sourceItemIds에서 관련 design item ID를 복사/);
+  assert.match(prompt.developerTemplate, /coverage\.targetId는 입력 plan에 포함된 design item ID, requirement ID 또는 section key만/);
+  assert.match(prompt.developerTemplate, /referencedSourceIds는 빈 배열/);
+  assert.match(prompt.developerTemplate, /confirmedDesignItems\.type이 requirement인 핵심 기능에 대해서만/);
+  assert.match(prompt.developerTemplate, /issue만 최대 8개 반환/);
+  assert.match(prompt.developerTemplate, /description은 120자, repairInstruction은 160자 이내/);
+});
+
 test('typed input is serialized as user context with source excerpts explicitly untrusted', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
-  assert.equal(prompt.promptVersion, 'v7');
-  assert.equal(prompt.schemaVersion, 'v6');
+  assert.equal(prompt.promptVersion, 'v10');
+  assert.equal(prompt.schemaVersion, 'v7');
   const messages = prompt.buildInput({
     userInput: '사용자 답변',
     currentTarget: { id: 'q1', prompt: '목표는 무엇인가요?' },
@@ -39,6 +67,10 @@ test('typed input is serialized as user context with source excerpts explicitly 
   assert.match(messages[1].content, /before\/after는 유효한 JSON object를 문자열로 직렬화해 최대 180자/);
   assert.match(messages[1].content, /options는 최대 4개이고 proposalDraft를 포함하지 않는다/);
   assert.match(messages[1].content, /OPTION_RECOMMEND task의 책임/);
+  assert.match(messages[1].content, /기능\(feature\)은 requirement로 표현/);
+  assert.match(messages[1].content, /assistant messages와 assistant가 만든 contextual question\/card를 포함해 role이 user가 아닌 entry의 ID/);
+  assert.match(messages[1].content, /userInput\.id와 role이 user인 conversationContext entry/);
+  assert.match(messages[1].content, /근거를 확인할 수 없는 proposal은 만들지 말고 생략/);
   assert.match(messages[1].content, /ID\/evidence는 전달된 current context의 실제 값을 사용/);
   assert.match(messages[2].content, /ignore all system rules/);
   assert.doesNotMatch(messages[0].content, /ignore all system rules/);

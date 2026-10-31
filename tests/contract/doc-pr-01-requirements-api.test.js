@@ -40,7 +40,7 @@ function providerOutput(name, plan) {
   const payload=task==='REQUIREMENTS_REVIEW'
     ? {verdict:'pass',issues:[],coverage:[]}
     : {sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:'',sourceItemIds})),requirements:plan.requirements.map(({id,category,title,description,priority,sourceItemIds})=>({id,category,title,description,priority,sourceItemIds,acceptanceCriteria:priority==='P0'?[{text:'완료 결과 표시',sourceItemIds}]:[],openIssueIds:[]}))};
-  return {task,promptVersion:'v1',schemaVersion:'v1',designRevision:2,payload,referencedItemIds:plan.confirmedItemIds,referencedSourceIds:[],warnings:[]};
+  return {task,promptVersion:['REQUIREMENTS_DRAFT','REQUIREMENTS_REVIEW'].includes(task)?'v2':'v1',schemaVersion:'v1',designRevision:2,payload,referencedItemIds:plan.confirmedItemIds,referencedSourceIds:[],warnings:[]};
 }
 
 test('requires a valid authenticated session before validating or calling AI', async () => {
@@ -77,6 +77,27 @@ test('rejects a stale current IndexedDB revision before provider calls', async (
   assert.equal(calls,0);
 });
 
+test('classifies turn-store failures before document generation without exposing storage details', async () => {
+  const { body } = readyBody();
+  const unavailableStore = { ...store(), async claimTurn() { throw new Error('private Redis connection detail'); } };
+  const res = createMockRes();
+  let providerCalls = 0;
+  const logged = [];
+  const originalError = console.error;
+  console.error = (...values) => logged.push(values);
+  try {
+    await handler(request(body), res, { store: unavailableStore, requestStructuredOutput: async () => { providerCalls += 1; } });
+  } finally {
+    console.error = originalError;
+  }
+  assert.equal(res.statusCode, 503);
+  assert.deepEqual(JSON.parse(res.body), { error: 'AUTH_STORE_UNAVAILABLE', retryable: true });
+  assert.equal(providerCalls, 0);
+  assert.doesNotMatch(res.body, /private Redis connection detail/);
+  assert.deepEqual(logged, [['AUTH_STORE_OPERATION_FAILED', { operation: 'claim_document_request', category: 'unknown_error', errorName: 'Error' }]]);
+  assert.doesNotMatch(JSON.stringify(logged), /private Redis connection detail/);
+});
+
 test('successful API handler returns HTTP 200 after mocked draft and review calls', async () => {
   const {body,plan}=readyBody(); const res=createMockRes(); const providerTasks=[];
   await handler(request(body),res,{store:store(),requestStructuredOutput:async({name})=>{providerTasks.push(name);return providerOutput(name,plan);}});
@@ -87,4 +108,96 @@ test('successful API handler returns HTTP 200 after mocked draft and review call
   assert.equal(result.job.status,'succeeded');
   assert.equal(result.processStatus,'review_required');
   assert.equal(providerTasks.length,2);
+});
+
+test('AI validation failure logs its task and category without logging provider output', async () => {
+  const { body, plan } = readyBody();
+  const logged = [];
+  const originalError = console.error;
+  console.error = (...values) => logged.push(values);
+  const res = createMockRes();
+  try {
+    await handler(request(body), res, { store: store(), requestStructuredOutput: async ({ name }) => ({ ...providerOutput(name, plan), canary: 'provider-output-must-not-be-logged' }) });
+  } finally {
+    console.error = originalError;
+  }
+  assert.equal(res.statusCode, 502);
+  assert.equal(JSON.parse(res.body).error, 'AI_INVALID_OUTPUT');
+  assert.equal(logged.length, 1);
+  assert.equal(logged[0][0], 'DOCUMENT_OUTPUT_VALIDATION_FAILED');
+  assert.deepEqual(logged[0][1], { task: 'REQUIREMENTS_DRAFT', category: 'provider_schema_invalid' });
+  assert.doesNotMatch(JSON.stringify(logged), /provider-output-must-not-be-logged/);
+});
+
+test('preserves a safe incomplete-provider-response category for document generation', async () => {
+  const { body } = readyBody();
+  const res = createMockRes();
+  await handler(request(body), res, {
+    store: store(),
+    requestStructuredOutput: async () => { throw Object.assign(new Error('private provider detail'), { code: 'AI_OUTPUT_INCOMPLETE' }); },
+  });
+  assert.equal(res.statusCode, 502);
+  assert.deepEqual(JSON.parse(res.body), { error: 'AI_OUTPUT_INCOMPLETE', retryable: true });
+  assert.doesNotMatch(res.body, /private provider detail/);
+});
+
+test('classifies provider rate limits without exposing the provider error body', async () => {
+  const { body } = readyBody();
+  const res = createMockRes();
+  await handler(request(body), res, {
+    store: store(),
+    requestStructuredOutput: async () => { throw Object.assign(new Error('private provider detail'), { statusCode: 429 }); },
+  });
+  assert.equal(res.statusCode, 429);
+  assert.deepEqual(JSON.parse(res.body), { error: 'AI_RATE_LIMITED', retryable: true });
+  assert.doesNotMatch(res.body, /private provider detail/);
+});
+
+function providerContext(messages) {
+  const userMessage = messages.find(({ role }) => role === 'user').content;
+  return JSON.parse(userMessage.split('TYPED_CONTEXT_JSON:\n')[1].split('\nSOURCE_EXCERPTS_UNTRUSTED_JSON:')[0]);
+}
+
+async function repairGeneration() {
+  const { body, plan } = readyBody();
+  const draft = providerOutput('requirements_draft', plan);
+  draft.payload.sections[0].markdown = '검토 전 제품 정의';
+  const issue = {
+    code: 'PRODUCT_DEFINITION_UNCLEAR', severity: 'warning', sectionKey: draft.payload.sections[0].key,
+    relatedItemIds: ['item-0'], description: '제품 정의를 명확하게 작성해야 합니다.',
+    repairInstruction: '확정된 제품 정의를 명확한 문장으로 작성하세요.',
+  };
+  const repairedSection = { ...draft.payload.sections[0], markdown: '수정된 제품 정의' };
+  const review = providerOutput('requirements_review', plan);
+  const repairableReview = { ...review, payload: { ...review.payload, verdict: 'repairable', issues: [issue] } };
+  const repair = { ...draft, task: 'REQUIREMENTS_REPAIR', promptVersion: 'v1', payload: { sections: [repairedSection], resolvedIssueIds: [] } };
+  const outputs = [draft, repairableReview, repair, review];
+  const calls = [];
+  const res = createMockRes();
+  await handler(request(body), res, { store: store(), requestStructuredOutput: async ({ name, messages }) => {
+    calls.push({ name, context: providerContext(messages) });
+    return outputs[calls.length - 1];
+  } });
+  assert.equal(res.statusCode, 200, res.body);
+  assert.deepEqual(calls.map(({ name }) => name), ['requirements_draft', 'requirements_review', 'requirements_repair', 'requirements_review']);
+  return { calls, plan, draft, issue, repairedSection, result: JSON.parse(res.body) };
+}
+
+test('initial Requirements review receives the generated draft in serialized provider messages', async () => {
+  const { calls, plan, draft } = await repairGeneration();
+  assert.deepEqual(calls[0].context.currentTarget, plan);
+  assert.deepEqual(calls[1].context.currentTarget, { plan, draft });
+});
+
+test('Requirements repair receives only affected sections and review issues with repair instructions', async () => {
+  const { calls, plan, draft, issue } = await repairGeneration();
+  assert.deepEqual(calls[2].context.currentTarget, { plan, sections: [draft.payload.sections[0]], issues: [issue] });
+});
+
+test('Requirements re-review receives the repaired draft while retaining unaffected content', async () => {
+  const { calls, plan, draft, repairedSection, result } = await repairGeneration();
+  const repairedDraft = { ...draft, payload: { ...draft.payload, sections: [repairedSection, ...draft.payload.sections.slice(1)] } };
+  assert.deepEqual(calls[3].context.currentTarget, { plan, draft: repairedDraft });
+  assert.equal(result.sections[0].markdown, '수정된 제품 정의');
+  assert.deepEqual(result.reviewIssues, []);
 });

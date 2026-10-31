@@ -2,6 +2,7 @@ import { computeDesignReadiness } from '../design/readiness.js';
 import { buildRequirementsPlan, REQUIREMENTS_SECTIONS, validateRequirementsPlan } from './document-plan.js';
 import { schemas, validateSchema } from '../../infrastructure/ai/schemas/index.js';
 import { validateReferences, validateResponseMetadata } from '../../infrastructure/ai/context-manifest.js';
+import { getPromptDefinition } from '../../infrastructure/ai/prompt-registry.js';
 
 const nowIso = () => new Date().toISOString();
 const makeId = () => globalThis.crypto.randomUUID();
@@ -17,11 +18,16 @@ function validateDraft(output, plan, aggregate) {
   for (const id of expectedIds) if (!actualIds.has(id)) errors.push(`planned requirement missing ${id}`);
   for (const id of actualIds) if (!expectedIds.has(id)) errors.push(`unplanned requirement ${id}`);
   const items = new Map(aggregate.designItems.filter((item) => item.status === 'confirmed' && item.type !== 'out_of_scope' && !item.archivedAt).map((item) => [item.id, item]));
-  for (const requirement of output.payload.requirements) {
+  for (const [requirementIndex, requirement] of output.payload.requirements.entries()) {
     const expected = plan.requirements.find((entry) => entry.id === requirement.id);
     if (expected && (requirement.category !== expected.category || requirement.priority !== expected.priority || requirement.sourceItemIds.join('|') !== expected.sourceItemIds.join('|'))) errors.push(`planned requirement mapping mismatch ${requirement.id}`);
     for (const id of requirement.sourceItemIds) if (!items.has(id)) errors.push(`unconfirmed requirement source ${id}`);
-    for (const criterion of requirement.acceptanceCriteria) for (const id of criterion.sourceItemIds) if (!items.has(id)) errors.push(`unconfirmed criterion source ${id}`);
+    for (const [criterionIndex, criterion] of requirement.acceptanceCriteria.entries()) {
+      for (const id of criterion.sourceItemIds) {
+        if (!items.has(id)) errors.push(`unconfirmed criterion source ${id}`);
+        if (expected && !expected.sourceItemIds.includes(id)) errors.push(`$.payload.requirements[${requirementIndex}].acceptanceCriteria[${criterionIndex}].sourceItemIds:outside_planned_requirement_source`);
+      }
+    }
     if (requirement.priority === 'P0' && !requirement.acceptanceCriteria.length) errors.push(`P0 acceptance criterion missing ${requirement.id}`);
     if (expected) {
       for (const itemId of expected.sourceItemIds) {
@@ -43,12 +49,56 @@ function validateDraft(output, plan, aggregate) {
   return { valid: errors.length === 0, errors };
 }
 
+function summarizeReferenceErrors(errors) {
+  return errors.slice(0, 8).map((error) => {
+    const text = String(error);
+    const path = text.split(':', 1)[0];
+    const category = text.includes('unknown item') ? 'unknown_item_reference'
+      : text.includes('unknown source') || text.includes('request excerpt') ? 'unknown_source_reference'
+        : text.includes('unknown requirement') ? 'unknown_requirement_reference'
+          : text.includes('unknown open issue') ? 'unknown_open_issue_reference'
+            : text.includes('unknown section') ? 'unknown_section_reference'
+              : text.includes('unknown issue') ? 'unknown_issue_reference'
+                : text.includes('unsupported AI evidence type') ? 'unsupported_evidence_type'
+                  : text.includes('message evidence') ? 'invalid_message_evidence'
+                    : text.includes('file evidence') ? 'invalid_file_evidence'
+                      : text.includes('targetId') ? 'invalid_proposal_target'
+                        : 'invalid_reference';
+    return `${path}:${category}`;
+  });
+}
+
+function summarizeDraftErrors(errors) {
+  return errors.slice(0, 8).map((error) => {
+    const text = String(error);
+    if (text.startsWith('$.')) return text;
+    const category = text.includes('acceptance criteria coverage missing') ? 'acceptance_criteria_coverage_missing'
+      : text.includes('planned requirement missing') ? 'planned_requirement_missing'
+        : text.includes('unplanned requirement') ? 'unplanned_requirement'
+          : text.includes('planned requirement mapping mismatch') ? 'planned_requirement_mapping_mismatch'
+            : text.includes('unconfirmed requirement source') ? 'unknown_or_excluded_requirement_source'
+              : text.includes('unconfirmed criterion source') ? 'unknown_or_excluded_criterion_source'
+                : text.includes('P0 acceptance criterion missing') ? 'p0_acceptance_criteria_missing'
+                  : text.includes('unconfirmed section source') ? 'unknown_or_excluded_section_source'
+                    : text.includes('section source coverage missing') ? 'section_source_coverage_missing'
+            : text.includes('required sections mismatch') ? 'required_sections_mismatch'
+              : 'document_plan_contract_invalid';
+    return `$.payload:${category}`;
+  });
+}
+
+function summarizeMetadataErrors(errors) {
+  return errors.map((error) => `${String(error).split(' ', 1)[0]}:metadata_mismatch`).slice(0, 4);
+}
+
 function validateTaskOutput(task, output, revision, manifest, targetContext) {
   const schemaResult = validateSchema(schemas.envelopes[task], output);
-  if (!schemaResult.valid) return schemaResult;
-  const metadata = validateResponseMetadata(output, { task, promptVersion: 'v1', schemaVersion: 'v1', designRevision: revision });
-  if (!metadata.valid) return metadata;
-  return validateReferences(output, manifest, targetContext);
+  if (!schemaResult.valid) return { ...schemaResult, diagnosticCategory: 'schema_invalid' };
+  const { promptVersion, schemaVersion } = getPromptDefinition(task);
+  const metadata = validateResponseMetadata(output, { task, promptVersion, schemaVersion, designRevision: revision });
+  if (!metadata.valid) return { ...metadata, diagnosticCategory: 'metadata_invalid', diagnosticDetails: summarizeMetadataErrors(metadata.errors) };
+  const references = validateReferences(output, manifest, targetContext);
+  return references.valid ? references : { ...references, diagnosticCategory: 'references_invalid', diagnosticDetails: summarizeReferenceErrors(references.errors) };
 }
 
 export async function generateRequirements({ aggregate, runTask, logicalRequestId = '', attemptId = '', generationJobId, now = nowIso, idFactory = makeId } = {}) {
@@ -60,17 +110,17 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
   if (!planValidation.valid) throw Object.assign(new Error('DOCUMENT_PLAN_INVALID'), { errors: planValidation.errors });
   const revision = aggregate.project.designRevision;
   const manifest = { designItemIds: aggregate.designItems.filter((item) => ['confirmed', 'deferred'].includes(item.status) && !item.archivedAt).map((item) => item.id), sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] };
-  const targetContext = { designItems: aggregate.designItems.map(({ id }) => ({ id })), sectionKeys: REQUIREMENTS_SECTIONS.map(({ key }) => key), openIssueIds: plan.openIssues.map(({ id }) => id), issueIds: [] };
+  const targetContext = { designItems: aggregate.designItems.map(({ id }) => ({ id })), requirementIds: plan.requirements.map(({ id }) => id), sectionKeys: REQUIREMENTS_SECTIONS.map(({ key }) => key), openIssueIds: plan.openIssues.map(({ id }) => id), issueIds: [] };
   const input = { project: aggregate.project, plan, designItems: aggregate.designItems.filter((item) => item.status === 'confirmed' || item.status === 'deferred').map(({ id, type, title, description, status, priority, acceptanceCriteria, relatedItemIds }) => ({ id, type, title, description, status, priority, acceptanceCriteria, relatedItemIds })), openIssues: plan.openIssues, designRevision: revision };
   const call = async (task, extra = {}) => {
     const output = await runTask(task, { ...input, ...extra });
     const valid = validateTaskOutput(task, output, revision, manifest, targetContext);
-    if (!valid.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: valid.errors });
+    if (!valid.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: valid.errors, diagnostic: { task, category: valid.diagnosticCategory ?? 'task_response_invalid', ...(valid.diagnosticDetails ? { details: valid.diagnosticDetails } : {}) } });
     return output;
   };
   const draft = await call('REQUIREMENTS_DRAFT');
   const draftValidation = validateDraft(draft, plan, aggregate);
-  if (!draftValidation.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: draftValidation.errors });
+  if (!draftValidation.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: draftValidation.errors, diagnostic: { task: 'REQUIREMENTS_DRAFT', category: 'requirements_draft_contract_invalid', details: summarizeDraftErrors(draftValidation.errors) } });
   let finalDraft = draft;
   let review = await call('REQUIREMENTS_REVIEW', { draft: finalDraft });
   let reviewIssues = review.payload.issues;
@@ -81,7 +131,7 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
       const sectionUpdates = new Map(repaired.payload.sections.map((section) => [section.key, section]));
       finalDraft = { ...finalDraft, payload: { ...finalDraft.payload, sections: finalDraft.payload.sections.map((section) => sectionUpdates.get(section.key) ?? section) } };
       const afterRepair = validateDraft(finalDraft, plan, aggregate);
-      if (!afterRepair.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: afterRepair.errors });
+      if (!afterRepair.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: afterRepair.errors, diagnostic: { task: 'REQUIREMENTS_REPAIR', category: 'requirements_repair_contract_invalid' } });
       review = await call('REQUIREMENTS_REVIEW', { draft: finalDraft });
       reviewIssues = review.payload.issues;
     }
@@ -95,7 +145,8 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
     return { id: idFactory(), projectId: aggregate.project.id, documentId, key, title, markdown: section.markdown, order, sourceItemIds: section.sourceItemIds, origin: 'generated', syncStatus: aggregate.project.designRevision === revision ? 'current' : 'stale', updatedAt: timestamp };
   });
   const document = { id: documentId, projectId: aggregate.project.id, type: 'requirements', title: `${aggregate.project.title} 요구사항`, status: 'review_required', designRevision: revision, version: Math.max(0, ...(aggregate.documents ?? []).filter((entry) => entry.type === 'requirements').map((entry) => entry.version)) + 1, sectionIds: sections.map(({ id }) => id), requirements: finalDraft.payload.requirements, openIssues: plan.openIssues, reviewIssues: userReviewRequired ? reviewIssues : [], createdAt: timestamp, updatedAt: timestamp };
-  const job = { id: generationJobId ?? idFactory(), projectId: aggregate.project.id, logicalRequestId, attemptId, type: 'REQUIREMENTS_DRAFT', promptVersion: 'v1', schemaVersion: 'v1', modelProfile: 'DEFAULT', resolvedModel: 'gpt-5-mini', reasoningEffort: 'low', designRevision: revision, status: 'succeeded', targetIds: [documentId, ...sections.map(({ id }) => id)], startedAt: timestamp, finishedAt: timestamp };
+  const { promptVersion, schemaVersion } = getPromptDefinition('REQUIREMENTS_DRAFT');
+  const job = { id: generationJobId ?? idFactory(), projectId: aggregate.project.id, logicalRequestId, attemptId, type: 'REQUIREMENTS_DRAFT', promptVersion, schemaVersion, modelProfile: 'DEFAULT', resolvedModel: 'gpt-5-mini', reasoningEffort: 'low', designRevision: revision, status: 'succeeded', targetIds: [documentId, ...sections.map(({ id }) => id)], startedAt: timestamp, finishedAt: timestamp };
   return { document, sections, requirements: finalDraft.payload.requirements, openIssues: plan.openIssues, reviewIssues: userReviewRequired ? reviewIssues : [], job, plan, processStatus: 'review_required' };
 }
 

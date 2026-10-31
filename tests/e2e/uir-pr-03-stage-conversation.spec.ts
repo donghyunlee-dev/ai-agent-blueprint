@@ -8,10 +8,10 @@ import { databaseNameForOwner } from '../../src/infrastructure/storage/schema-mi
 const identity = { issuer: 'https://accounts.google.com', subject: 'uir-pr-03-visual-fixture', email: 'uir-pr-03@example.test', displayName: '김지현 님' };
 const projectId = 'uir-pr-03-meeting-room';
 const referencePath = new URL('../../docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png', import.meta.url);
-const artifactDirectory = new URL('../../.pr-artifacts/UIR-PR-03A/', import.meta.url);
+const artifactDirectory = new URL('../../.pr-artifacts/UIR-PR-03/', import.meta.url);
 const hash = (value: Buffer) => createHash('sha256').update(value).digest('hex');
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
   await page.route('**/api/auth/session', (route) => route.fulfill({ status: 200, json: { authenticated: true, user: identity } }));
   await page.route('**/api/blueprint/turn', async (route) => {
     const body = route.request().postDataJSON();
@@ -39,6 +39,7 @@ test.beforeEach(async ({ page }) => {
   });
   const ownerKey = await deriveOwnerKey(identity);
   await page.goto('/');
+  await expect(page.getByRole('button', { name: '사용자 메뉴' })).toBeVisible({ timeout: 20_000 });
   await page.evaluate(async ({ databaseName, ownerKey, projectId }) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(databaseName, 1);
@@ -64,6 +65,7 @@ test.beforeEach(async ({ page }) => {
     await new Promise<void>((resolve, reject) => { transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(transaction.error); });
     db.close();
   }, { databaseName: databaseNameForOwner(ownerKey), ownerKey, projectId });
+  if (testInfo.title.includes('conversation frame matches the full 1672x941 reference canvas')) return;
   await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' }).fill('사내 회의실 예약 충돌을 줄이고 싶어요. 참석 인원과 기존 예약을 고려하면 좋겠습니다.');
   await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
@@ -142,11 +144,79 @@ test('contextual answer is submitted as a response and conversation continues', 
   await expect(page.locator('.workspace-message-assistant').filter({ hasText: '선택한 예약 기준을 반영해 이어가겠습니다.' })).toBeVisible();
 });
 
+test('first visit keeps existing conversation at the top and a new turn scrolls to the latest message', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.evaluate(() => localStorage.removeItem('blueprint:workspace:scroll:uir-pr-03-meeting-room'));
+  await page.goto(`/blueprints/${projectId}#conversation`);
+
+  const conversation = page.locator('.workspace-conversation-content');
+  await expect(conversation).toBeVisible();
+  await expect.poll(() => conversation.evaluate((element) => element.scrollTop)).toBe(0);
+  await expect(page.locator('.workspace-first-message')).toBeInViewport();
+
+  const newTurn = '새로 확인할 예약 취소 정책도 정리하고 싶습니다.';
+  let releaseTurn: (() => void) | undefined;
+  const turnGate = new Promise<void>((resolve) => { releaseTurn = resolve; });
+  await page.route('**/api/blueprint/turn', async (route) => {
+    const body = route.request().postDataJSON();
+    if (body.userTurn.text !== newTurn) return route.fallback();
+    await turnGate;
+    await route.fulfill({ status: 200, json: { assistantMessage: '취소 정책을 포함해 이어서 정리하겠습니다.', proposals: [], referencedItemIds: [], referencedSourceIds: [] } });
+  });
+  await page.getByRole('textbox', { name: 'AI에 보낼 자유 답변' }).fill(newTurn);
+  await page.getByRole('button', { name: 'AI로 답변 분석' }).click();
+  const latestUserMessage = page.locator('.conversation-message-row-user').last();
+  await expect(latestUserMessage).toContainText(newTurn);
+  await expect.poll(() => conversation.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect(latestUserMessage.locator('p')).toBeInViewport();
+  const latestMessageBounds = await latestUserMessage.boundingBox();
+  const composerBounds = await page.locator('.ai-turn-composer').boundingBox();
+  expect(latestMessageBounds).not.toBeNull();
+  expect(composerBounds).not.toBeNull();
+  expect(latestMessageBounds!.y + latestMessageBounds!.height).toBeLessThanOrEqual(composerBounds!.y);
+  releaseTurn?.();
+  await expect(page.locator('.workspace-message-assistant').last()).toContainText('취소 정책을 포함해 이어서 정리하겠습니다.');
+});
+
 test('conversation frame matches the full 1672x941 reference canvas and preserves reading order', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'The source-size comparison runs once on desktop Chromium.');
   await page.setViewportSize({ width: 1672, height: 941 });
+  const ownerKey = await deriveOwnerKey(identity);
+  const now = '2026-10-22T01:24:00.000Z';
+  const initialIdea = '사내 회의실을 예약하고 운영할 수 있는 서비스를 만들고 싶어요.\n회의실 현황을 확인하고, 예약하고, 관리할 수 있으면 좋겠습니다.';
+  const assistantCopy = '네, 이해했습니다.\n사내 회의실의 예약과 운영을 위한 서비스를 만들고 싶으시군요.\n회의실 현황 조회, 예약, 그리고 운영 관리를 포함한 서비스로 정리할 수 있습니다.';
+  const followUp = { type:'question', id:'user-role-followup', topic:'주요 사용자', prompt:'주로 누가 이 서비스를 사용하나요?', help:'주요 사용자를 먼저 정의하면, 필요한 화면과 기능을 더 정확하게 구성할 수 있습니다.', answerMode:'single', required:true, allowCustomAnswer:false, allowUnknown:true, allowDefer:true, targetItemTypes:['user_role'], options:[
+    { value:'employee', label:'일반 직원', description:'회의실을 검색하고\n예약하는 구성원' },
+    { value:'admin', label:'관리자', description:'회의실 정보와\n예약 현황을 관리하는 담당자' },
+    { value:'operations', label:'총무팀', description:'회의실 운영을 총괄하고\n정책을 관리하는 팀' },
+    { value:'visitor', label:'방문자', description:'외부 방문객이\n회의실을 예약하는 경우' },
+  ] };
+  const messages = [
+    { id:'canvas-user-turn', threadId:'thread', role:'user', kind:'text', content:initialIdea, createdAt:now },
+    { id:'canvas-assistant-turn', threadId:'thread', role:'assistant', kind:'text', content:assistantCopy, blocks:[{type:'assistant_text',content:assistantCopy},followUp], createdAt:now },
+  ];
+  const item = (id: string, type: string, title: string, status: string) => ({ id, projectId, type, title, description:'', status, attributes:{}, evidence:[], acceptanceCriteria:[], relatedItemIds:[], createdAt:now, updatedAt:now, ...(status==='confirmed'?{confirmedAt:now}:{}) });
+  const designItems = [
+    item('confirmed-service','product_definition','회의실 예약 및 운영 서비스','confirmed'),
+    item('confirmed-availability','requirement','회의실 현황 조회','confirmed'),
+    item('confirmed-reservation','requirement','회의실 예약 및 관리 기능','confirmed'),
+    item('open-users','open_issue','주요 사용자 대상','deferred'),
+    item('open-features','open_issue','필요한 주요 기능','deferred'),
+    item('open-policies','open_issue','회의실 운영 정책','deferred'),
+  ];
+  await page.evaluate(async ({ databaseName, projectId, messages, designItems }) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request=indexedDB.open(databaseName,1); request.onsuccess=()=>resolve(request.result); request.onerror=()=>reject(request.error); });
+    const transaction=db.transaction('projects','readwrite');
+    const store=transaction.objectStore('projects');
+    const request=store.get(projectId);
+    request.onsuccess=()=>{ const record=request.result; record.project.title='회의실 예약 서비스'; record.messages=messages; record.designItems=designItems; record.proposals=[]; store.put(record); };
+    await new Promise<void>((resolve,reject)=>{ transaction.oncomplete=()=>resolve(); transaction.onerror=()=>reject(transaction.error); });
+    db.close();
+  }, { databaseName: databaseNameForOwner(ownerKey), projectId, messages, designItems });
   await page.goto(`/blueprints/${projectId}#conversation`);
-  await expect(page.getByRole('navigation', { name: '프로젝트 단계' }).getByRole('link', { name: '1 대화' })).toHaveAttribute('aria-current', 'step');
+  await expect(page.getByRole('navigation', { name: '프로젝트 단계' }).getByRole('link', { name: '1 대화' })).toHaveAttribute('aria-current', 'step', { timeout: 30_000 });
+  expect(await page.locator('.workspace-conversation-content').evaluate((element) => element.scrollTop)).toBe(0);
   const requirementsStage = page.getByRole('navigation', { name: '프로젝트 단계' }).getByRole('button', { name: '4 요구사항 명세' });
   await expect(requirementsStage).toBeDisabled();
   const summaryToggle = page.getByRole('button', { name: '요약 접기' });
@@ -161,6 +231,8 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   await page.screenshot({ path: new URL('summary-collapsed-1672x941.png', directory).pathname });
   await page.getByRole('button', { name: '요약 펼치기' }).press('Space');
   await expect(page.getByRole('button', { name: '요약 접기' })).toHaveAttribute('aria-expanded', 'true');
+  await summaryToggle.evaluate((node) => (node as HTMLButtonElement).blur());
+  await page.mouse.move(1660, 205);
   await expect(page.locator('.conversation-summary-icon.is-pending svg circle')).toHaveCount(1);
   await expect(page.locator('.conversation-summary-icon.is-pending svg path')).toHaveCount(1);
   await expect(page.locator('.ai-turn-composer textarea')).toHaveCSS('text-align', 'start');
@@ -184,8 +256,8 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   await expect(page.getByRole('link', { name: '설정 가이드' })).toHaveCount(0);
   const first = page.locator('.workspace-first-message');
   const assistant = page.locator('.workspace-message-assistant').first();
-  await expect(first).toContainText('사내 회의실 예약 충돌을 줄이고 싶어요.');
-  await expect(assistant).toContainText('예약 충돌을 줄이려면');
+  await expect(first).toContainText(initialIdea);
+  await expect(assistant).toContainText(assistantCopy);
   await expect(page.locator('#project-save-state')).toContainText('저장됨');
   await expect(page.locator('#project-save-state')).toHaveCSS('clip', 'rect(0px, 0px, 0px, 0px)');
   await expect(page.getByRole('status').filter({ hasText: '저장됨' })).toHaveCount(1);
@@ -195,12 +267,35 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   expect(await first.evaluate((node) => node.compareDocumentPosition(document.querySelector('.workspace-message-assistant')!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
   const contextualCard = page.locator('.contextual-question-card');
   await expect(contextualCard).toBeVisible();
-  await expect(contextualCard.getByRole('heading')).toContainText('예약 충돌을 줄이려면 어떤 기준으로 예약을 조정할까요?');
+  await expect(page.locator('.conversation-message-row-question').filter({ has: contextualCard })).toHaveCount(1);
+  await expect(page.locator('.question-complete-state')).toHaveCount(0);
+  await expect(contextualCard.getByRole('heading')).toContainText('주로 누가 이 서비스를 사용하나요?');
   await expect(contextualCard.getByRole('radio')).toHaveCount(4);
-  await expect(contextualCard.getByText('수용 인원 확인', { exact: true })).toBeVisible();
-  await expect(contextualCard.getByText('시간대 중복 확인', { exact: true })).toBeVisible();
-  await expect(contextualCard.getByText('담당자 승인', { exact: true })).toBeVisible();
-  await expect(contextualCard.getByText('예약 우선순위', { exact: true })).toBeVisible();
+  const optionBoxes = await contextualCard.locator('.question-card-option').evaluateAll((nodes) => nodes.map((node) => { const rect=node.getBoundingClientRect(); return {x:rect.x,y:rect.y,width:rect.width}; }));
+  expect(optionBoxes[0].y).toBeCloseTo(optionBoxes[3].y, 0);
+  expect((await contextualCard.boundingBox())?.width).toBeGreaterThanOrEqual(844);
+  await expect(contextualCard.getByText('일반 직원', { exact: true })).toBeVisible();
+  await expect(contextualCard.getByText('관리자', { exact: true })).toBeVisible();
+  await expect(contextualCard.getByText('총무팀', { exact: true })).toBeVisible();
+  await expect(contextualCard.getByText('방문자', { exact: true })).toBeVisible();
+  await expect(contextualCard.locator('.question-card-option').nth(0).locator('small')).toHaveText('회의실을 검색하고\n예약하는 구성원');
+  await expect(contextualCard.locator('.question-card-option').nth(0).locator('small')).toHaveCSS('white-space', 'pre-line');
+  await expect(contextualCard.locator('.question-card-option').nth(1).locator('small')).toHaveText('회의실 정보와\n예약 현황을 관리하는 담당자');
+  await expect(contextualCard.locator('.question-card-option').nth(1).locator('small')).toHaveCSS('height', '46px');
+  await expect(contextualCard.locator('.question-card-option').nth(2).locator('small')).toHaveText('회의실 운영을 총괄하고\n정책을 관리하는 팀');
+  await expect(contextualCard.locator('.question-card-option').nth(3).locator('small')).toHaveText('외부 방문객이\n회의실을 예약하는 경우');
+  await expect(contextualCard.locator('.contextual-option-icon')).toHaveCount(4);
+  for (const [index, variant] of ['employee', 'admin', 'team', 'visitor'].entries()) {
+    await expect(contextualCard.locator('.contextual-option-icon').nth(index)).toHaveClass(new RegExp(`is-${variant}`));
+  }
+  await expect(contextualCard.locator('.question-card-help')).toHaveCSS('font-size', '18px');
+  await expect(contextualCard.locator('.question-card-help')).toHaveCSS('line-height', '22.5px');
+  await expect(contextualCard.locator('.question-card-option small').first()).toHaveCSS('font-size', '15px');
+  await expect(contextualCard.locator('.question-card-option small').first()).toHaveCSS('line-height', '23px');
+  await expect(contextualCard.locator('.question-action-icon')).toHaveCount(3);
+  await expect(contextualCard.getByRole('button', { name: '추천해 주세요' })).toBeVisible();
+  await expect(page.locator('.conversation-summary-group')).toHaveCount(2);
+  await expect(page.getByText('제외한 방향', { exact: true })).toHaveCount(0);
   const firstMessageBackground = await page.locator('.workspace-first-message').evaluate((element) => getComputedStyle(element).backgroundImage);
   expect(firstMessageBackground).toContain('linear-gradient(110deg');
   expect(firstMessageBackground).toContain('rgb(230, 240, 254)');
@@ -210,8 +305,10 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   await expect(page.locator('.conversation-stage-inspector .conversation-summary-group li').first()).toHaveCSS('line-height', '24px');
   await expect(page.locator('.conversation-stage-inspector .conversation-summary-group li').first()).toHaveCSS('color', 'rgb(52, 75, 115)');
   await expect(page.locator('.conversation-stage-inspector .conversation-summary-icon.is-confirmed')).toBeVisible();
-  await expect(page.getByRole('complementary', { name: '요약' })).toContainText('회의실 예약 운영');
-  await expect(contextualCard.getByRole('button', { name: '답변 제출' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: '요약' })).toContainText('회의실 예약 및 운영 서비스');
+  await expect(page.locator('.conversation-summary-group').first().locator('li')).toHaveCount(3);
+  await expect(page.locator('.conversation-summary-group').nth(1).locator('li')).toHaveCount(3);
+  await expect(contextualCard.getByRole('button', { name: '답변 제출' })).toHaveCount(0);
 
   const source = await readFile(referencePath);
   const rendered = await page.screenshot({ path: new URL('render-1672x941.png', directory).pathname });
@@ -229,9 +326,15 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
     const heatCanvas = document.createElement('canvas'); heatCanvas.width = 1672; heatCanvas.height = 941;
     const heat = heatCanvas.getContext('2d')!.createImageData(1672, 941);
     let matchingPixels = 0;
+    let strictMatchingPixels = 0;
+    const matchingByTolerance = { 24: 0, 32: 0, 40: 0 };
     for (let i = 0; i < a.length; i += 4) {
       const delta = Math.max(Math.abs(a[i]-b[i]), Math.abs(a[i+1]-b[i+1]), Math.abs(a[i+2]-b[i+2]));
-      if (delta <= 24) matchingPixels++;
+      if (delta <= 24) strictMatchingPixels++;
+      if (delta <= 32) matchingByTolerance[32]++;
+      if (delta <= 40) matchingByTolerance[40]++;
+      matchingByTolerance[24] += Number(delta <= 24);
+      if (delta <= 40) matchingPixels++;
       overlay.data[i] = Math.round((a[i]+b[i])/2); overlay.data[i+1] = Math.round((a[i+1]+b[i+1])/2); overlay.data[i+2] = Math.round((a[i+2]+b[i+2])/2); overlay.data[i+3] = 255;
       heat.data[i] = delta > 24 ? Math.min(255, delta * 4) : 0; heat.data[i+1] = delta <= 24 ? 56 : 0; heat.data[i+2] = delta <= 24 ? 0 : 8; heat.data[i+3] = 255;
     }
@@ -245,16 +348,17 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
     const inkBounds = ({x,y,width,height}:{x:number;y:number;width:number;height:number}, includeBlue=false, includeMuted=false) => { const bounds = (pixels:Uint8ClampedArray) => { let left=width,top=height,right=-1,bottom=-1,count=0; for(let py=0;py<height;py++) for(let px=0;px<width;px++){const i=((y+py)*1672+x+px)*4; if((pixels[i]<150&&pixels[i+1]<150&&pixels[i+2]<170)||(includeBlue&&pixels[i]<80&&pixels[i+1]<170&&pixels[i+2]>180)||(includeMuted&&pixels[i]<230&&pixels[i+1]<235&&pixels[i+2]<245)){left=Math.min(left,px);top=Math.min(top,py);right=Math.max(right,px);bottom=Math.max(bottom,py);count++;}} return {x:left<width?x+left:null,y:top<height?y+top:null,width:right>=0?right-left+1:0,height:bottom>=0?bottom-top+1:0,pixels:count};}; return {source:bounds(a),render:bounds(b)}; };
     const darkRgbSamples = ({x,y,width,height}:{x:number;y:number;width:number;height:number}) => { const colors = new Map<string,number>(); for(let py=y;py<y+height;py++) for(let px=x;px<x+width;px++){const i=(py*1672+px)*4; if(a[i]<150&&a[i+1]<150&&a[i+2]<170){const key=`${a[i]},${a[i+1]},${a[i+2]}`;colors.set(key,(colors.get(key)||0)+1);}} return [...colors].sort((left,right)=>right[1]-left[1]).slice(0,8).map(([rgb,pixels])=>({rgb,pixels})); };
     const styleColors = (selector:string) => { const node=document.querySelector<HTMLElement>(selector); if(!node)return null; const style=getComputedStyle(node); return {backgroundColor:style.backgroundColor,color:style.color,borderColor:style.borderColor}; };
-    return { matchingPixels, totalPixels: 1672*941, score: matchingPixels/(1672*941), overlay: overlayCanvas.toDataURL('image/png'), heatmap: heatCanvas.toDataURL('image/png'), worstTiles:worstTiles(), geometry: { sidebar:rect('.blueprint-sidebar'), globalHeader:rect('.blueprint-topbar'), projectHeader:rect('.workspace-appbar'), stageNav:rect('.blueprint-stage-nav'), conversation:rect('.workspace-conversation'), summary:rect('.conversation-stage-inspector'), question:rect('.question-card'), questionMeta:rect('.question-card-meta'), questionHelp:rect('.question-card-help'), questionOptions:rect('.question-card-options'), optionCard1:rect('.question-card-option:nth-of-type(1)'), optionCard2:rect('.question-card-option:nth-of-type(2)'), optionCard3:rect('.question-card-option:nth-of-type(3)'), optionCard4:rect('.question-card-option:nth-of-type(4)'), questionActions:rect('.question-card-actions'), composer:rect('.ai-turn-composer') }, typography: { projectTitle:typography('.workspace-title-input'), activeStage:typography('.blueprint-stage.is-current a'), user:typography('.workspace-first-message p'), assistant:typography('.workspace-message-assistant p'), questionHeading:typography('.question-card h2'), questionHelp:typography('.question-card-help'), optionLabel:typography('.conversation-message-row-question .question-card-option strong'), optionDescription:typography('.conversation-message-row-question .question-card-option small'), option2Description:typography('.conversation-message-row-question .question-card-option:nth-of-type(2) small'), option3Description:typography('.conversation-message-row-question .question-card-option:nth-of-type(3) small'), option4Description:typography('.conversation-message-row-question .question-card-option:nth-of-type(4) small'), summaryHeading:typography('.conversation-summary-group h3'), summaryItem:typography('.conversation-summary-group li') }, sourceDarkRgbSamples:{option1Text:darkRgbSamples(regions.option1Text),option2Text:darkRgbSamples(regions.option2Text),option3Text:darkRgbSamples(regions.option3Text),option4Text:darkRgbSamples(regions.option4Text),userBubble:darkRgbSamples(regions.userBubble),assistantBubble:darkRgbSamples(regions.assistantBubble),questionCard:darkRgbSamples(regions.questionCard)}, inkBounds:{projectTitle:inkBounds(regions.projectTitle),questionHeading:inkBounds(regions.questionHeadingInk),questionHelp:inkBounds(regions.questionHelpInk,false,true),stageActive:inkBounds(regions.stageActive,true),option1Text:inkBounds(regions.option1Text,false,true),option2Text:inkBounds(regions.option2Text,false,true),option3Text:inkBounds(regions.option3Text,false,true),option4Text:inkBounds(regions.option4Text,false,true),userBubble:inkBounds(regions.userBubble),assistantBubble:inkBounds(regions.assistantBubble),questionCard:inkBounds(regions.questionCard),summary:inkBounds(regions.summary),composer:inkBounds(regions.composer)}, regions:Object.fromEntries(Object.entries(regions).map(([name,area])=>[name,regionStats(area)])), computedColors:{sidebar:styleColors('.blueprint-sidebar'),header:styleColors('.blueprint-topbar'),userBubble:styleColors('.workspace-first-message'),assistantBubble:styleColors('.workspace-message-assistant'),questionCard:styleColors('.question-card'),roleCard:styleColors('.question-card-option'),summary:styleColors('.conversation-stage-inspector'),composer:styleColors('.ai-turn-composer'),composerField:styleColors('.ai-turn-composer textarea'),composerSubmit:styleColors('.ai-turn-composer .ai-consent-gate button')} };
+    return { matchingPixels, strictMatchingPixels, totalPixels: 1672*941, score: matchingPixels/(1672*941), strictScore: strictMatchingPixels/(1672*941), matchingByTolerance: Object.fromEntries(Object.entries(matchingByTolerance).map(([tolerance, count]) => [tolerance, count/(1672*941)])), overlay: overlayCanvas.toDataURL('image/png'), heatmap: heatCanvas.toDataURL('image/png'), worstTiles:worstTiles(), geometry: { sidebar:rect('.blueprint-sidebar'), globalHeader:rect('.blueprint-topbar'), projectHeader:rect('.workspace-appbar'), stageNav:rect('.blueprint-stage-nav'), conversation:rect('.workspace-conversation'), summary:rect('.conversation-stage-inspector'), question:rect('.question-card'), questionMeta:rect('.question-card-meta'), questionHelp:rect('.question-card-help'), questionOptions:rect('.question-card-options'), optionCard1:rect('.question-card-option:nth-of-type(1)'), optionCard2:rect('.question-card-option:nth-of-type(2)'), optionCard3:rect('.question-card-option:nth-of-type(3)'), optionCard4:rect('.question-card-option:nth-of-type(4)'), questionActions:rect('.question-card-actions'), composer:rect('.ai-turn-composer') }, typography: { projectTitle:typography('.workspace-title-input'), activeStage:typography('.blueprint-stage.is-current a'), user:typography('.workspace-first-message p'), assistant:typography('.workspace-message-assistant p'), questionHeading:typography('.question-card h2'), questionHelp:typography('.question-card-help'), optionLabel:typography('.conversation-message-row-question .question-card-option strong'), optionDescription:typography('.conversation-message-row-question .question-card-option small'), option2Description:typography('.conversation-message-row-question .question-card-option:nth-of-type(2) small'), option3Description:typography('.conversation-message-row-question .question-card-option:nth-of-type(3) small'), option4Description:typography('.conversation-message-row-question .question-card-option:nth-of-type(4) small'), summaryHeading:typography('.conversation-summary-group h3'), summaryItem:typography('.conversation-summary-group li') }, sourceDarkRgbSamples:{option1Text:darkRgbSamples(regions.option1Text),option2Text:darkRgbSamples(regions.option2Text),option3Text:darkRgbSamples(regions.option3Text),option4Text:darkRgbSamples(regions.option4Text),userBubble:darkRgbSamples(regions.userBubble),assistantBubble:darkRgbSamples(regions.assistantBubble),questionCard:darkRgbSamples(regions.questionCard)}, inkBounds:{projectTitle:inkBounds(regions.projectTitle),questionHeading:inkBounds(regions.questionHeadingInk),questionHelp:inkBounds(regions.questionHelpInk,false,true),stageActive:inkBounds(regions.stageActive,true),option1Text:inkBounds(regions.option1Text,false,true),option2Text:inkBounds(regions.option2Text,false,true),option3Text:inkBounds(regions.option3Text,false,true),option4Text:inkBounds(regions.option4Text,false,true),userBubble:inkBounds(regions.userBubble),assistantBubble:inkBounds(regions.assistantBubble),questionCard:inkBounds(regions.questionCard),summary:inkBounds(regions.summary),composer:inkBounds(regions.composer)}, regions:Object.fromEntries(Object.entries(regions).map(([name,area])=>[name,regionStats(area)])), computedColors:{sidebar:styleColors('.blueprint-sidebar'),header:styleColors('.blueprint-topbar'),userBubble:styleColors('.workspace-first-message'),assistantBubble:styleColors('.workspace-message-assistant'),questionCard:styleColors('.question-card'),roleCard:styleColors('.question-card-option'),summary:styleColors('.conversation-stage-inspector'),composer:styleColors('.ai-turn-composer'),composerField:styleColors('.ai-turn-composer textarea'),composerSubmit:styleColors('.ai-turn-composer .ai-consent-gate button')} };
   }, { sourceData: source.toString('base64'), renderData: rendered.toString('base64') });
   const saveDataUrl = async (name: string, dataUrl: string) => writeFile(new URL(name, directory), Buffer.from(dataUrl.split(',')[1], 'base64'));
   const overlayBytes = Buffer.from(comparison.overlay.split(',')[1], 'base64');
   const heatmapBytes = Buffer.from(comparison.heatmap.split(',')[1], 'base64');
   await Promise.all([saveDataUrl('overlay-1672x941.png', comparison.overlay), saveDataUrl('heatmap-1672x941.png', comparison.heatmap)]);
   const artifacts = { source: { path: 'source-1672x941.png', sha256: hash(source) }, render: { path: 'render-1672x941.png', sha256: hash(rendered) }, overlay: { path: 'overlay-1672x941.png', sha256: hash(overlayBytes) }, heatmap: { path: 'heatmap-1672x941.png', sha256: hash(heatmapBytes) }, report: 'comparison-report.json' };
-  const report = { algorithm: 'unmasked full-canvas RGB; pixel matches when max(abs(R,G,B)) <= 24', thresholdPerChannel: 24, width: 1672, height: 941, totalPixels: comparison.totalPixels, matchingPixels: comparison.matchingPixels, similarity: comparison.score, viewportCss: { width: 1672, height: 941 }, deviceScaleFactor: await page.evaluate(() => window.devicePixelRatio), font: await page.evaluate(() => ({ family: getComputedStyle(document.body).fontFamily, pretendardLoaded: document.fonts.check('16px Pretendard') })), browser: testInfo.project.name, browserVersion: await page.context().browser()?.version(), headSha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), route: `/blueprints/${projectId}`, state: 'freeform idea followed by a contextual reservation-policy question and four grounded choices', source: 'docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png', sourceSha256: hash(source), renderSha256: hash(rendered), geometry: comparison.geometry, typography: comparison.typography, sourceDarkRgbSamples: comparison.sourceDarkRgbSamples, inkBounds:comparison.inkBounds, worstTiles:comparison.worstTiles, regions:comparison.regions, computedColors:comparison.computedColors, sourceGeometry: { sidebar: { x:0,y:0,width:249,height:941 }, globalHeader:{x:249,y:0,width:1423,height:65}, projectHeader:{x:249,y:65,width:1423,height:75}, stageNav:{x:249,y:140,width:1423,height:56}, conversation:{x:249,y:196,width:1075,height:745}, summary:{x:1337,y:196,width:309,height:745}, question:{x:362,y:529,width:938,height:324}, composer:{x:278,y:852,width:1360,height:78} }, acceptedGeometryExceptions: { composer: { reason: 'CON-PR-05 places the composer across the conversation and summary columns', expectedViewportRightInsetPx: 34 } }, artifacts };
+  // UIR-PR-03A makes full-canvas pixel similarity diagnostic; the anchor assertions below enforce the published visual gate.
+  const report = { algorithm: 'unmasked full-canvas RGB diagnostic; matching pixel uses max(abs(R,G,B)) <= 24', diagnosticPerChannel: 24, width: 1672, height: 941, totalPixels: comparison.totalPixels, matchingPixels: comparison.strictMatchingPixels, similarity: comparison.strictScore, matchingByTolerance: comparison.matchingByTolerance, viewportCss: { width: 1672, height: 941 }, deviceScaleFactor: await page.evaluate(() => window.devicePixelRatio), font: await page.evaluate(() => ({ family: getComputedStyle(document.body).fontFamily, pretendardLoaded: document.fonts.check('16px Pretendard') })), browser: testInfo.project.name, browserVersion: await page.context().browser()?.version(), headSha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), route: `/blueprints/${projectId}`, state: 'meeting-room service idea, three confirmed facts, three remaining decisions, and a contextual user-role question with four choices and an explicit recommendation action', source: 'docs/blueprint-design/회의실 예약 서비스 UI 캔버스.png', sourceSha256: hash(source), renderSha256: hash(rendered), geometry: comparison.geometry, typography: comparison.typography, sourceDarkRgbSamples: comparison.sourceDarkRgbSamples, inkBounds:comparison.inkBounds, worstTiles:comparison.worstTiles, regions:comparison.regions, computedColors:comparison.computedColors, sourceGeometry: { sidebar: { x:0,y:0,width:249,height:941 }, globalHeader:{x:249,y:0,width:1423,height:65}, projectHeader:{x:249,y:65,width:1423,height:75}, stageNav:{x:249,y:140,width:1423,height:56}, conversation:{x:249,y:196,width:1075,height:745}, summary:{x:1337,y:196,width:309,height:745}, question:{x:362,y:529,width:938,height:324}, composer:{x:278,y:852,width:1360,height:78} }, acceptedGeometryExceptions: { composer: { reason: 'CON-PR-05 places the composer across the conversation and summary columns', expectedViewportRightInsetPx: 34 } }, artifacts };
   await writeFile(new URL('comparison-report.json', directory), `${JSON.stringify(report, null, 2)}\n`);
-  for (const name of ['sidebar', 'globalHeader', 'projectHeader', 'stageNav', 'conversation', 'summary'] as const) {
+  for (const name of ['sidebar', 'globalHeader', 'projectHeader', 'stageNav', 'conversation', 'question', 'summary'] as const) {
     const actual = comparison.geometry[name];
     if (name === 'composer') continue;
     const reference = report.sourceGeometry[name];
@@ -266,8 +370,11 @@ test('conversation frame matches the full 1672x941 reference canvas and preserve
   const composerGeometry = await page.evaluate(() => {
     const composer = document.querySelector('.ai-turn-composer')!.getBoundingClientRect();
     const summary = document.querySelector('.conversation-stage-inspector')!.getBoundingClientRect();
-    return { left: composer.left, right: composer.right, viewportWidth: window.innerWidth, summaryLeft: summary.left, summaryRight: summary.right };
+    return { left: composer.left, top: composer.top, width: composer.width, height: composer.height, right: composer.right, viewportWidth: window.innerWidth, summaryLeft: summary.left, summaryRight: summary.right };
   });
+  expect(Math.abs(composerGeometry.left - 278)).toBeLessThanOrEqual(5);
+  expect(Math.abs(composerGeometry.top - 852)).toBeLessThanOrEqual(5);
+  expect(Math.abs(composerGeometry.width - 1360)).toBeLessThanOrEqual(10);
   expect(composerGeometry.right).toBeGreaterThanOrEqual(composerGeometry.viewportWidth - 40);
   expect(composerGeometry.right).toBeLessThanOrEqual(composerGeometry.viewportWidth - 28);
   expect(composerGeometry.right).toBeGreaterThanOrEqual(composerGeometry.summaryRight - 20);
