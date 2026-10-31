@@ -46,6 +46,9 @@ test('Requirements review uses only design IDs supplied by the plan or draft', (
   assert.match(prompt.developerTemplate, /draft의 그 requirement sourceItemIds에서 관련 design item ID를 복사/);
   assert.match(prompt.developerTemplate, /coverage\.targetId는 입력 plan에 포함된 design item ID, requirement ID 또는 section key만/);
   assert.match(prompt.developerTemplate, /referencedSourceIds는 빈 배열/);
+  assert.match(prompt.developerTemplate, /confirmedDesignItems\.type이 requirement인 핵심 기능에 대해서만/);
+  assert.match(prompt.developerTemplate, /issue만 최대 8개 반환/);
+  assert.match(prompt.developerTemplate, /description은 120자, repairInstruction은 160자 이내/);
 });
 
 test('typed input is serialized as user context with source excerpts explicitly untrusted', () => {
