@@ -77,6 +77,18 @@ test('rejects a stale current IndexedDB revision before provider calls', async (
   assert.equal(calls,0);
 });
 
+test('classifies turn-store failures before document generation without exposing storage details', async () => {
+  const { body } = readyBody();
+  const unavailableStore = { ...store(), async claimTurn() { throw new Error('private Redis connection detail'); } };
+  const res = createMockRes();
+  let providerCalls = 0;
+  await handler(request(body), res, { store: unavailableStore, requestStructuredOutput: async () => { providerCalls += 1; } });
+  assert.equal(res.statusCode, 503);
+  assert.deepEqual(JSON.parse(res.body), { error: 'AUTH_STORE_UNAVAILABLE', retryable: true });
+  assert.equal(providerCalls, 0);
+  assert.doesNotMatch(res.body, /private Redis connection detail/);
+});
+
 test('successful API handler returns HTTP 200 after mocked draft and review calls', async () => {
   const {body,plan}=readyBody(); const res=createMockRes(); const providerTasks=[];
   await handler(request(body),res,{store:store(),requestStructuredOutput:async({name})=>{providerTasks.push(name);return providerOutput(name,plan);}});
