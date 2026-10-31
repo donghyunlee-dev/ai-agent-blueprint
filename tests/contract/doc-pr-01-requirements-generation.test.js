@@ -51,7 +51,9 @@ test('blocks readiness and invalid coverage before provider call', async () => {
 test('classifies an unknown provider reference as a task response validation failure', async () => {
   await assert.rejects(
     generateRequirements({ aggregate, runTask: async () => ({ ...draft(), referencedItemIds: ['missing-item'] }) }),
-    (error) => error.diagnostic?.task === 'REQUIREMENTS_DRAFT' && error.diagnostic?.category === 'references_invalid',
+    (error) => error.diagnostic?.task === 'REQUIREMENTS_DRAFT'
+      && error.diagnostic?.category === 'references_invalid'
+      && error.diagnostic?.details?.includes('$.referencedItemIds:unknown_item_reference'),
   );
 });
 

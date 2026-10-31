@@ -43,13 +43,32 @@ function validateDraft(output, plan, aggregate) {
   return { valid: errors.length === 0, errors };
 }
 
+function summarizeReferenceErrors(errors) {
+  return errors.slice(0, 8).map((error) => {
+    const text = String(error);
+    const path = text.split(':', 1)[0];
+    const category = text.includes('unknown item') ? 'unknown_item_reference'
+      : text.includes('unknown source') || text.includes('request excerpt') ? 'unknown_source_reference'
+        : text.includes('unknown requirement') ? 'unknown_requirement_reference'
+          : text.includes('unknown open issue') ? 'unknown_open_issue_reference'
+            : text.includes('unknown section') ? 'unknown_section_reference'
+              : text.includes('unknown issue') ? 'unknown_issue_reference'
+                : text.includes('unsupported AI evidence type') ? 'unsupported_evidence_type'
+                  : text.includes('message evidence') ? 'invalid_message_evidence'
+                    : text.includes('file evidence') ? 'invalid_file_evidence'
+                      : text.includes('targetId') ? 'invalid_proposal_target'
+                        : 'invalid_reference';
+    return `${path}:${category}`;
+  });
+}
+
 function validateTaskOutput(task, output, revision, manifest, targetContext) {
   const schemaResult = validateSchema(schemas.envelopes[task], output);
   if (!schemaResult.valid) return { ...schemaResult, diagnosticCategory: 'schema_invalid' };
   const metadata = validateResponseMetadata(output, { task, promptVersion: 'v1', schemaVersion: 'v1', designRevision: revision });
   if (!metadata.valid) return { ...metadata, diagnosticCategory: 'metadata_invalid' };
   const references = validateReferences(output, manifest, targetContext);
-  return references.valid ? references : { ...references, diagnosticCategory: 'references_invalid' };
+  return references.valid ? references : { ...references, diagnosticCategory: 'references_invalid', diagnosticDetails: summarizeReferenceErrors(references.errors) };
 }
 
 export async function generateRequirements({ aggregate, runTask, logicalRequestId = '', attemptId = '', generationJobId, now = nowIso, idFactory = makeId } = {}) {
@@ -66,7 +85,7 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
   const call = async (task, extra = {}) => {
     const output = await runTask(task, { ...input, ...extra });
     const valid = validateTaskOutput(task, output, revision, manifest, targetContext);
-    if (!valid.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: valid.errors, diagnostic: { task, category: valid.diagnosticCategory ?? 'task_response_invalid' } });
+    if (!valid.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: valid.errors, diagnostic: { task, category: valid.diagnosticCategory ?? 'task_response_invalid', ...(valid.diagnosticDetails ? { details: valid.diagnosticDetails } : {}) } });
     return output;
   };
   const draft = await call('REQUIREMENTS_DRAFT');
