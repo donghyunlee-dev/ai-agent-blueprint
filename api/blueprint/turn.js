@@ -407,6 +407,12 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
   };
   for (let batchIndex = 0; batchIndex < batchSizes.length; batchIndex += 1) {
     const expectedCount = batchSizes[batchIndex];
+    const batchSchema = structuredClone(schemas.envelopes[RECOMMENDATION_TASK]);
+    const recommendationArraySchema = batchSchema.properties.payload.properties.r;
+    if (batchIndex > 0) {
+      recommendationArraySchema.minItems = expectedCount;
+      recommendationArraySchema.maxItems = expectedCount;
+    }
     const batchContext = {
       ...promptInput,
       recommendationBatch: {
@@ -465,7 +471,7 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
       try {
         output = await requestStructuredOutput({
           name: definition.promptId.replaceAll('.', '_').replace(/_v\d+$/, ''),
-          schema: schemas.envelopes[RECOMMENDATION_TASK], messages, signal,
+          schema: batchSchema, messages, signal,
           model: aiModelRegistry.profiles.DEFAULT.model,
           reasoningEffort: aiModelRegistry.tasks[RECOMMENDATION_TASK].reasoning,
           maxOutputTokens: aiModelRegistry.tasks[RECOMMENDATION_TASK].maxOutputTokens,
@@ -487,7 +493,7 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
         await finalizeLedgerEntry(ledgerEntry, 'cancelled', 'AI_CANCELLED');
         return { cancelled: true, attempts: totalAttempts, requestLedgerEntries };
       }
-      const schemaResult = validateSchema(schemas.envelopes[RECOMMENDATION_TASK], output);
+      const schemaResult = validateSchema(batchSchema, output);
       const metadataResult = validateResponseMetadata(output, {
         task: RECOMMENDATION_TASK, promptVersion: definition.promptVersion,
         schemaVersion: definition.schemaVersion, designRevision: body.projectSummary.designRevision,

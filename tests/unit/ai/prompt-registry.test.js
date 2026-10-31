@@ -25,8 +25,8 @@ test('unknown task, prompt version, schema id, and schema version fail closed', 
 
 test('typed input is serialized as user context with source excerpts explicitly untrusted', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
-  assert.equal(prompt.promptVersion, 'v9');
-  assert.equal(prompt.schemaVersion, 'v6');
+  assert.equal(prompt.promptVersion, 'v10');
+  assert.equal(prompt.schemaVersion, 'v7');
   const messages = prompt.buildInput({
     userInput: '사용자 답변',
     currentTarget: { id: 'q1', prompt: '목표는 무엇인가요?' },

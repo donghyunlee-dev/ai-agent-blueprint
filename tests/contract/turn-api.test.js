@@ -32,7 +32,7 @@ function currentTurnAnalyzeOutput(value) {
     x: proposal.affectedItemIds ?? [],
   })) : payload.proposals;
   return {
-    ...value, promptVersion: 'v9', schemaVersion: 'v6',
+    ...value, promptVersion: 'v10', schemaVersion: 'v7',
     payload: { m: payload.assistantMessage, p: proposals, ...(payload.followUp ? { f: payload.followUp } : {}) },
   };
 }
@@ -167,7 +167,7 @@ test('TURN validation logs sanitized schema paths without model output', async (
   console.error = (...values) => logged.push(values);
   try {
     const invalidOutput = {
-      task: 'TURN_ANALYZE', promptVersion: 'v9', schemaVersion: 'v6', designRevision: 0,
+      task: 'TURN_ANALYZE', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0,
       payload: { m: '확인했습니다.', p: [], [canary]: true },
       referencedItemIds: [], referencedSourceIds: [], warnings: [],
     };
@@ -296,6 +296,7 @@ test('turn endpoint validates, calls the injected provider, and replays success 
   assert.equal(providerConfig.model, 'gpt-5-mini');
   assert.equal(providerConfig.reasoningEffort, 'minimal');
   assert.equal(providerConfig.maxOutputTokens, 1800);
+  assert.equal(providerConfig.schema.properties.payload.properties.p.maxItems, 4);
   assert.doesNotMatch(JSON.stringify(recordedMetadata[0]), /hello|Test|p1/);
   const retry = response();
   await runHandler(request({ ...body, attemptId: 'attempt-2' }), retry, deps);
@@ -436,6 +437,7 @@ test('explicit recommendation requests use OPTION_RECOMMEND and normalize compac
   assert.equal(calls[0].name, 'option_recommend');
   assert.equal(calls[0].reasoningEffort, 'minimal');
   assert.equal(calls[0].maxOutputTokens, 2000);
+  assert.deepEqual(calls.slice(0, 3).map((call) => [call.schema.properties.payload.properties.r.minItems, call.schema.properties.payload.properties.r.maxItems]), [[0, 4], [4, 4], [3, 3]]);
   assert.deepEqual(calls.slice(0, 3).map((call) => JSON.parse(call.messages[2].content.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)[1]).recommendationBatch.expectedCount), [4, 4, 3]);
   assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   assert.equal(res.body.proposals.length, 0);
@@ -628,7 +630,7 @@ test('TURN_ANALYZE uses bounded correction when follow-up options are not an arr
 
 test('TURN_ANALYZE names the field limit when a contextual follow-up exceeds its schema bound', async () => {
   const invalid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v9', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0,
     payload: { m: '확인했습니다.', p: [], f: { componentType: 'free_text', topic: '예약', prompt: '가'.repeat(161), required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] } },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
@@ -733,12 +735,12 @@ test('turn endpoint gives a bounded design-item correction after domain validati
 
 test('TURN_ANALYZE v6 gives a bounded correction for malformed serialized proposal snapshots', async () => {
   const invalid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v9', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0,
     payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: '{', r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
   const valid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v9', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0,
     payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: JSON.stringify({ type: 'requirement', title: '예약 충돌 확인', description: '겹치는 예약을 저장하지 않습니다.' }), r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
