@@ -238,8 +238,8 @@ See [`docs/delivery/evidence/CON-PR-05/README.md`](../../delivery/evidence/CON-P
 | --- | --- |
 | Preview deployment | Ready at [`windsoft-agent-blueprint-9cyzozrmn.vercel.app`](https://windsoft-agent-blueprint-9cyzozrmn.vercel.app), deployment `dpl_6oG3REZpqoLeLSQjdhBj2KhzNFZq`, exact code SHA `c5b51e32d984060b3e2173585354ba9eb13fc385` |
 | Synthetic session, no Google OAuth | `POST /api/auth/session` returned 204; authenticated `GET /api/auth/session` returned 200 |
-| Live conversation API | `POST /api/blueprint/turn` returned 503 `AUTH_STORE_UNAVAILABLE`; reading the turn status returned the same 503 |
-| Live Requirements generation | `POST /api/blueprint/documents/generate` returned 502 `AI_GENERATION_FAILED`; the current response does not expose a safe provider diagnostic |
+| Live conversation API | `POST /api/blueprint/turn` returned 503 `AUTH_STORE_UNAVAILABLE` (Vercel request `9dbzt-1793454413279-859563fd0ad6`); reading the turn status returned the same 503 (request `nc4n9-1793454440669-b984d8cb620b`) |
+| Live Requirements generation | `POST /api/blueprint/documents/generate` returned 502 `AI_GENERATION_FAILED` (Vercel request `kwbjl-1793454300434-ceb094bb2fe0`); the current response does not expose a safe provider diagnostic |
 | Desktop/mobile browser flow | `npm run build` passed with the existing >500 kB chunk warning; the CON-PR-05, Requirements, and PRD readiness Playwright specs passed 42/42 across desktop and mobile. These tests use deterministic API fixtures and do not establish live-provider completion. |
 
 The Preview branch has `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` configured, but runtime turn-state reads and writes are unavailable. Vercel CLI masks Preview secrets as `[SENSITIVE]`, so their values and connectivity could not be verified locally. The live Requirements request did not produce a document; readiness confirmation and same-revision PRD generation remain unverified. No Production deployment or Google OAuth request was made.
