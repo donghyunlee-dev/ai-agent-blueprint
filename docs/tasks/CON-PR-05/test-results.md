@@ -231,3 +231,15 @@ The evidence workflow now runs the active freeform conversation, contextual choi
 ## Screenshot evidence
 
 See [`docs/delivery/evidence/CON-PR-05/README.md`](../../delivery/evidence/CON-PR-05/README.md) for final-viewport screenshots captured at 1440×900 and 390×844.
+
+## PR #97 live Preview retry — 2026-10-31
+
+| Check | Result |
+| --- | --- |
+| Preview deployment | Ready at [`windsoft-agent-blueprint-9cyzozrmn.vercel.app`](https://windsoft-agent-blueprint-9cyzozrmn.vercel.app), deployment `dpl_6oG3REZpqoLeLSQjdhBj2KhzNFZq`, exact code SHA `c5b51e32d984060b3e2173585354ba9eb13fc385` |
+| Synthetic session, no Google OAuth | `POST /api/auth/session` returned 204; authenticated `GET /api/auth/session` returned 200 |
+| Live conversation API | `POST /api/blueprint/turn` returned 503 `AUTH_STORE_UNAVAILABLE`; reading the turn status returned the same 503 |
+| Live Requirements generation | `POST /api/blueprint/documents/generate` returned 502 `AI_GENERATION_FAILED`; the current response does not expose a safe provider diagnostic |
+| Desktop/mobile browser flow | `npm run build` passed with the existing >500 kB chunk warning; the CON-PR-05, Requirements, and PRD readiness Playwright specs passed 42/42 across desktop and mobile. These tests use deterministic API fixtures and do not establish live-provider completion. |
+
+The Preview branch has `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` configured, but runtime turn-state reads and writes are unavailable. Vercel CLI masks Preview secrets as `[SENSITIVE]`, so their values and connectivity could not be verified locally. The live Requirements request did not produce a document; readiness confirmation and same-revision PRD generation remain unverified. No Production deployment or Google OAuth request was made.
