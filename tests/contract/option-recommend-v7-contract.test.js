@@ -5,10 +5,10 @@ import { schemas } from '../../src/infrastructure/ai/schemas/index.js';
 import { getPromptDefinition } from '../../src/infrastructure/ai/prompt-registry.js';
 import { validateOptionRecommendV7Batch } from '../../src/infrastructure/ai/conversation-turn-contract.js';
 
-test('OPTION_RECOMMEND v9 prompt requests contextual 4/4/3 batches under the existing v7 schema and output cap', () => {
+test('OPTION_RECOMMEND v10 prompt requests contextual 4/4/3 batches under the existing v7 schema and output cap', () => {
   const prompt = getPromptDefinition('OPTION_RECOMMEND');
   const schema = schemas.tasks.OPTION_RECOMMEND;
-  assert.equal(prompt.promptVersion, 'v9');
+  assert.equal(prompt.promptVersion, 'v10');
   assert.equal(prompt.schemaVersion, 'v7');
   assert.equal(aiModelRegistry.tasks.OPTION_RECOMMEND.maxOutputTokens, 2000);
   assert.equal(schema.properties.r.maxItems, 4);

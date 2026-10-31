@@ -4,9 +4,9 @@
 
 이 문서는 각 `AiTaskType`이 사용할 실제 prompt template의 역할, 변수, 금지 규칙과 기본 문구를 정의한다. 구현자는 의미를 임의 변경하지 않고 versioned Prompt Registry로 옮긴다. JSON Schema는 [프롬프트·응답 계약](13-prompt-and-response-contracts.md)을 따른다.
 
-> **현재 대화 runtime:** 자유 turn은 `TURN_ANALYZE` prompt v9/schema `turn.analyze.v6`, 명시적 추천 요청은 `OPTION_RECOMMEND` prompt v9/schema `option.recommend.v7`을 사용한다. 추천은 대화에서 얻은 근거를 바탕으로 4·4·3 후보를 순차 생성하고, 각 provider 호출은 별도 예산 기록으로 남긴다. 이전 대화 schema와 추천 schema v1~v6는 registry 호환 및 회귀 검증용으로 유지한다. 자유 대화의 질문 순서는 `QUESTION_CATALOG`에 종속되지 않는다.
+> **현재 대화 runtime:** 자유 turn은 `TURN_ANALYZE` prompt v9/schema `turn.analyze.v6`, 명시적 추천 요청은 `OPTION_RECOMMEND` prompt v10/schema `option.recommend.v7`을 사용한다. 추천은 대화에서 얻은 근거를 바탕으로 4·4·3 후보를 순차 생성하고, 각 provider 호출은 별도 예산 기록으로 남긴다. 이전 대화 schema와 추천 schema v1~v6는 registry 호환 및 회귀 검증용으로 유지한다. 자유 대화의 질문 순서는 `QUESTION_CATALOG`에 종속되지 않는다.
 
-`OPTION_RECOMMEND` prompt v9은 기존 v7 provider schema를 사용하되 중복 최상위 참조와 경고 배열을 빈 배열로 제한한다. Message evidence는 `userInput.id` 또는 `conversationContext`에서 role이 정확히 `user`인 entry의 ID만 허용하며, file evidence는 request-local excerpt ID만 허용한다. 후보 `designItem.type`은 design-item allowlist를 따르고, 한 호출은 `recommendationBatch.expectedCount`만 출력하며, server가 4·4·3 순서를 전달하고 앞서 만든 제목을 제외하도록 지시한다. 첫 호출에서 근거가 부족하면 빈 후보와 contextual follow-up을 반환하고 나머지 호출은 실행하지 않는다. 충분한 context에서는 모든 묶음이 통과한 뒤에만 정확히 11개를 표시한다. 각 dispatch의 input/output 추정치와 비용을 budget 검사에 반영하고 request ledger에 기록한다.
+`OPTION_RECOMMEND` prompt v10은 기존 v7 provider schema를 사용하되 중복 최상위 참조와 경고 배열을 빈 배열로 제한한다. Message evidence는 `userInput.id` 또는 `conversationContext`에서 role이 정확히 `user`인 entry의 ID만 허용하며, file evidence는 request-local excerpt ID만 허용한다. 후보 `designItem.type`은 design-item allowlist를 따르고, 한 호출은 `recommendationBatch.expectedCount`만 출력하며, server가 4·4·3 순서를 전달하고 앞서 만든 제목을 제외하도록 지시한다. 첫 호출에서 근거가 부족하면 빈 후보와 contextual follow-up을 반환하고 나머지 호출은 실행하지 않는다. 충분한 context에서는 모든 묶음이 통과한 뒤에만 정확히 11개를 표시한다. 각 dispatch의 input/output 추정치와 비용을 budget 검사에 반영하고 request ledger에 기록한다.
 
 `TURN_ANALYZE` prompt v9/schema v6는 자유 입력, 대화 context, confirmed design, 허용된 source excerpt에 근거해 자연스러운 응답과 pending proposal을 만든다. Provider payload는 `m`(assistant text, 200자 이내), `p`(최대 8개 proposal), 선택적 `f`(follow-up)로 제한한다. Proposal은 `o/t/i/b/a/r/e/x` compact key를 사용하며 `before`/`after`는 최대 180자의 JSON object 문자열, rationale은 최대 100자, evidence는 최대 2개, affected IDs는 최대 4개다. message evidence는 `userInput.id` 또는 `conversationContext`에서 `role: "user"`인 entry의 `id`만 쓴다. assistant message와 contextual question/card는 evidence로 사용할 수 없으며, File evidence는 `SOURCE_EXCERPTS_UNTRUSTED_JSON`에 전달된 excerpt ID만 쓴다. 사용자 메시지나 file excerpt로 근거가 없는 proposal은 생략한다. create design item의 type은 도메인 allowlist를 따르며, software feature는 `requirement`로 표현한다. Server가 snapshot 문자열을 parse한 뒤 기존 proposal validator로 검증하고 request-local file evidence를 복원한다. 질문은 필요할 때만 하나 만들며 options는 최대 4개이고 proposal draft를 중첩하지 않는다. 추천 후보는 이 task에서 만들지 않고 별도 `OPTION_RECOMMEND` task가 처리한다. renderer type는 strict allowlist를 사용하며 proposal target은 `design_item`과 `acceptance_criterion`으로 제한한다. `answerInterpretation`, warnings, 불필요한 참조 요약은 출력에서 제외한다. 질문 순서, 저장·승인 상태, readiness와 문서 상태는 모델이 결정하지 않는다. v5 schema는 이전 작업 호환용으로 그대로 등록한다. model profile, reasoning과 1,800 output-token cap은 변경하지 않는다.
 
@@ -132,7 +132,7 @@ Provider payload는 `m`(assistantMessage, 최대 200자), `p`(최대 8개 propos
 - 사용자가 제공하지 않은 내용을 채우거나 후보를 임의로 padding하지 않는다. proposal, 선택, 추천을 confirmed로 표시하지 않는다.
 - 다음 질문 순서, readiness, 승인, persisted state, process state, Requirements/PRD 상태 또는 document action을 결정하지 않는다.
 
-## `OPTION_RECOMMEND` — prompt `v9` / schema `v7`
+## `OPTION_RECOMMEND` — prompt `v10` / schema `v7`
 
 ```text
 사용자가 명시적으로 추천을 요청한 경우, 현재 대화와 설계 및 허용된 자료에서 근거를 찾아 구별되는 후보 11개를 만든다.
@@ -140,13 +140,13 @@ Provider payload는 `m`(assistantMessage, 최대 200자), `p`(최대 8개 propos
 판단 순서:
 1. 사용자 요청과 confirmed design에서 추천 목적과 제약을 확인한다.
 2. 현재 user-authored messages와 request-local file excerpts에서 후보별 evidence를 찾는다.
-3. 근거가 충분하면 정확히 11개의 서로 다른 후보를 반환한다. compact payload의 root key는 `m`(assistantMessage, 12자 이내), `r`(recommendations), optional `f`(followUp)다. candidate key는 `t`(title, 8자 이내), `r`(rationale, 12자 이내), `x`(trade-off 0~1개, 8자 이내), `a`(assumption 0~1개, 8자 이내), `e`({`s`: sourceType, `i`: sourceId, 36자 이내}), `k`(designItem type), `d`(designItem description, 12자 이내)만 사용한다. v6 provider schema enforces these string bounds with `pattern` to reduce payload size and truncation risk under the existing 2,000-token cap; it does not guarantee response completion or reserve a fixed reasoning budget. 각 후보는 실제 근거 하나를 포함한다. designItem title은 후보 title과 같으므로 반복하지 않는다.
-4. 근거가 부족하면 `r: []`와 필요한 맥락을 묻는 contextual `f`를 반환한다. v6 schema는 `topic` 60자, `prompt` 160자, `help` 120자, 선택지 최대 6개와 각 문자열 길이를 제한한다.
+3. 근거가 충분하면 정확히 11개의 서로 다른 후보를 반환한다. compact payload의 root key는 `m`(assistantMessage, 12자 이내), `r`(recommendations), optional `f`(followUp)다. candidate key는 `t`(title, 8자 이내), `r`(rationale, 12자 이내), `x`(trade-off 0~1개, 8자 이내), `a`(assumption 0~1개, 8자 이내), `e`({`s`: sourceType, `i`: sourceId, 36자 이내}), `k`(designItem type), `d`(designItem description, 12자 이내)만 사용한다. v7 provider schema enforces these string bounds with `pattern` to reduce payload size and truncation risk under the existing 2,000-token cap; it does not guarantee response completion or reserve a fixed reasoning budget. 각 후보는 실제 근거 하나를 포함한다. designItem title은 후보 title과 같으므로 반복하지 않는다.
+4. 한 호출은 `recommendationBatch.expectedCount`의 후보만 반환하고, 전체 11개를 한 호출에 넣지 않는다. 후보 `designItem.type`은 design-item allowlist를 따른다. `r`에 후보가 있으면 `f`를 반환하지 않는다. 첫 호출에서 맥락이 부족할 때만 `r: []`와 필요한 맥락을 묻는 contextual `f`를 반환한다. v7 schema는 `topic` 60자, `prompt` 160자, `help` 120자, 선택지 최대 6개와 각 문자열 길이를 제한한다.
 
 규칙:
 - 자유 문장에 없는 제품 사실을 만들지 않는다. 후보는 고정 목록에서 선택하지 않는다.
 - message evidence는 실제 `userInput.id` 또는 `conversationContext`에서 role이 정확히 `user`인 entry의 ID만 사용한다. assistant와 다른 role의 ID, contextual question/card ID는 사용하지 않는다. file evidence는 현재 요청의 `SOURCE_EXCERPTS_UNTRUSTED_JSON`에 제공된 excerpt ID만 사용한다. excerpt 원문과 위치는 서버가 제공된 자료에서 연결한다.
-- 후보를 11개보다 적게 채우거나 중복된 제목으로 padding하지 않는다.
+- 후보를 11개보다 적게 채우거나 중복된 제목으로 padding하지 않는다. 한 응답에 후보와 follow-up을 같이 넣지 않는다.
 - ID, proposal envelope, action, route, 저장 상태를 만들지 않는다. 서버가 검증 후 ID와 pending proposal draft를 만든다.
 - 추천을 확정, 선택 또는 승인으로 표시하지 않는다.
 - assistantMessage는 24자 이내로 쓴다. 후보 이유·장단점·전제·설명은 짧은 구절로 작성한다.

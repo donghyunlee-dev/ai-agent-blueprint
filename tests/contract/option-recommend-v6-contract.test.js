@@ -7,7 +7,7 @@ import { schemas, validateSchema } from '../../src/infrastructure/ai/schemas/ind
 
 test('OPTION_RECOMMEND v6 remains compatible while active v7 schema bounds one batch', () => {
   const prompt = getPromptDefinition('OPTION_RECOMMEND');
-  assert.equal(prompt.promptVersion, 'v9');
+  assert.equal(prompt.promptVersion, 'v10');
   assert.equal(prompt.schemaVersion, 'v7');
   assert.equal(prompt.schemaId, 'option.recommend.v7');
   assert.equal(prompt.schema.properties.r.maxItems, 4);

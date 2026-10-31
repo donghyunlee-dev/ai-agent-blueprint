@@ -74,9 +74,9 @@ async function runHandler(req, res, deps = {}) {
         const contextText = userContent.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)?.[1];
         const batch = contextText ? JSON.parse(contextText).recommendationBatch : undefined;
         const start = batch?.index === 3 ? 8 : batch?.index === 2 ? 4 : 0;
-        output = { ...output, promptVersion: 'v9', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
+        output = { ...output, promptVersion: 'v10', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
       }
-      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v9', schemaVersion: 'v7' };
+      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v10', schemaVersion: 'v7' };
       return output;
     },
   });
@@ -582,11 +582,14 @@ test('turn endpoint uses bounded correction for malformed recommendation candida
   delete invalidCandidates[0].title;
   const invalidFollowUp = outputFor([]);
   invalidFollowUp.payload.followUp = { componentType: 'free_text', topic: '예약', prompt: '어떤 조건인가요?', options: 'not-an-array', required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] };
+  const conflictingFollowUp = outputFor(Array.from({ length: 11 }, (_, index) => candidate(index)));
+  conflictingFollowUp.payload.followUp = { componentType: 'free_text', topic: '예약', prompt: '어떤 조건인가요?', required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] };
   const invalidOutputs = [
     outputFor(invalidCandidates),
     outputFor({ not: 'an array' }),
     outputFor([null, ...Array.from({ length: 10 }, (_, index) => candidate(index))]),
     invalidFollowUp,
+    conflictingFollowUp,
   ];
   for (const [index, invalidOutput] of invalidOutputs.entries()) {
     const outputs = [invalidOutput, outputFor(Array.from({ length: 11 }, (_, candidateIndex) => candidate(candidateIndex)))];
@@ -599,7 +602,8 @@ test('turn endpoint uses bounded correction for malformed recommendation candida
     });
     assert.equal(res.statusCode, 200, `case=${index} calls=${calls} ${JSON.stringify(res.body)}`);
     assert.equal(calls, 4);
-    assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: 지정된 JSON Schema를 따르고 이번 묶음에 필요한 후보만/);
+    if (index === 4) assert.match(inputs[1].messages[1].content, /후보가 있으면 f를 생략하고/);
+    else assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: 지정된 JSON Schema를 따르고 이번 묶음에 필요한 후보만/);
     assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   }
 });
@@ -833,7 +837,7 @@ test('recommendation evidence accepts only user-authored messages or request exc
     ],
     sources: [source],
   };
-  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v9', schemaVersion: 'v7', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
+  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
 
   const assistantEvidence = response();
   let assistantCalls = 0;
@@ -875,7 +879,7 @@ test('recommendation evidence accepts only user-authored messages or request exc
 
 test('contextual text targets preserve the actual answer and route only explicit recommendation actions', async () => {
   const prompt='“추천해 주세요”라는 예시와 관계없이 예약 기준을 입력해 주세요.';
-  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v9',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
+  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v10',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
   const cases=[
     {mode:'number',text:'24',value:{numberValue:24}},
     {mode:'range',text:'9–18',value:{rangeValue:{start:9,end:18}}},
