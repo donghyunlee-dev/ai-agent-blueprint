@@ -728,6 +728,12 @@ export default async function handler(req, res, deps = {}) {
                 content: `${messages[1].content}\nVALIDATION RETRY: before/after 값은 유효한 JSON object를 문자열로 직렬화해 반환하세요. 따옴표와 괄호를 완전히 닫고, 문자열 길이는 180자 이내로 유지하세요. 유효한 object를 만들 수 없으면 해당 before/after 필드를 생략하세요.`,
               };
             }
+            if (failures.includes('unsupported_proposal_field')) {
+              messages[1] = {
+                ...messages[1],
+                content: `${messages[1].content}\nVALIDATION RETRY: design_item after에는 type, title, description, priority, confidence, attributes, relatedItemIds, acceptanceCriteria, parentId만 사용하세요. 다른 필드는 모두 제거하세요. 유효한 after를 만들 수 없으면 해당 proposal 전체를 생략하세요.`,
+              };
+            }
           }
           const activeUsage = projectAiUsageFromLedger([...(body.requestLedgerEntries ?? []), ...requestLedgerEntries], body.projectSummary.projectId);
           const taskConfig = aiModelRegistry.tasks[task];
@@ -809,12 +815,18 @@ export default async function handler(req, res, deps = {}) {
         validationError = failedValidation?.[1].errors ?? null;
         validationFailureStage = failedValidation?.[0] ?? undefined;
         let acceptedOutput = normalizedOutput;
-        if (retry === 1 && task === TASK && includeModelProposals && validationFailureStage === 'references'
-          && schemaResult.valid && metadataResult.valid && domainResult.valid && choiceTargets.valid && taskPayloads.valid) {
+        if (retry === 1 && task === TASK && includeModelProposals
+          && ['references', 'domain', 'proposal_targets', 'proposal_payloads'].includes(validationFailureStage)
+          && schemaResult.valid && metadataResult.valid) {
           const proposals = validatedOutput.payload?.proposals ?? [];
-          const groundedProposals = proposals.filter((proposal) => validateReferences({ proposals: [proposal] }, manifest, targetContext).valid);
-          if (groundedProposals.length < proposals.length) {
-            const filteredOutput = { ...validatedOutput, payload: { ...validatedOutput.payload, proposals: groundedProposals } };
+          const validProposals = proposals.filter((proposal) => (
+            validateTurnAnalyzeV6({ assistantMessage: '', proposals: [proposal] }).valid
+            && validateReferences({ proposals: [proposal] }, manifest, targetContext).valid
+            && validateProposalTargets([proposal], targetContext).valid
+            && validateProposalPayloads([proposal]).valid
+          ));
+          if (validProposals.length < proposals.length) {
+            const filteredOutput = { ...validatedOutput, payload: { ...validatedOutput.payload, proposals: validProposals } };
             const filteredReferences = validateReferences(filteredOutput, manifest, targetContext);
             const filteredDomain = validateTurnAnalyzeV6(filteredOutput.payload);
             const filteredProposals = proposalsInChoices(filteredOutput.payload);

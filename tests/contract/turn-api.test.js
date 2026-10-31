@@ -681,6 +681,19 @@ test('turn endpoint drops still-ungrounded proposals after bounded correction an
   assert.equal(res.body.followUp.prompt,'취소 가능 시점을 알려주세요.');
 });
 
+test('turn endpoint drops an invalid proposal snapshot after bounded domain correction', async () => {
+  const invalid = structuredClone(output);
+  invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 규칙',description:'예약 규칙을 지킨다.',unregisteredField:'must be omitted'},rationale:'대화 내용을 반영합니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[]}];
+  invalid.payload.followUp = { componentType:'free_text',topic:'예약 정책',prompt:'취소 가능 시점을 알려주세요.',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement'] };
+  let calls=0;
+  const res=response();
+  await runHandler(request(body),res,{store:createMemoryAuthStore(),requestStructuredOutput:async()=>{calls++;return invalid;}});
+  assert.equal(calls,2);
+  assert.equal(res.statusCode,200,JSON.stringify(res.body));
+  assert.deepEqual(res.body.proposals,[]);
+  assert.equal(res.body.followUp.prompt,'취소 가능 시점을 알려주세요.');
+});
+
 test('turn endpoint corrects unsupported evidence types and IDs on its bounded retry', async () => {
   const invalid = structuredClone(output);
   invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 확인',description:'예약 충돌을 확인한다.'},rationale:'예약 문제를 해결합니다.',evidence:[{sourceType:'agent_inference',sourceId:'invented-message'}],affectedItemIds:[] }];
