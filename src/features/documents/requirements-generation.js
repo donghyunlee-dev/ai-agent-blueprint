@@ -45,10 +45,11 @@ function validateDraft(output, plan, aggregate) {
 
 function validateTaskOutput(task, output, revision, manifest, targetContext) {
   const schemaResult = validateSchema(schemas.envelopes[task], output);
-  if (!schemaResult.valid) return schemaResult;
+  if (!schemaResult.valid) return { ...schemaResult, diagnosticCategory: 'schema_invalid' };
   const metadata = validateResponseMetadata(output, { task, promptVersion: 'v1', schemaVersion: 'v1', designRevision: revision });
-  if (!metadata.valid) return metadata;
-  return validateReferences(output, manifest, targetContext);
+  if (!metadata.valid) return { ...metadata, diagnosticCategory: 'metadata_invalid' };
+  const references = validateReferences(output, manifest, targetContext);
+  return references.valid ? references : { ...references, diagnosticCategory: 'references_invalid' };
 }
 
 export async function generateRequirements({ aggregate, runTask, logicalRequestId = '', attemptId = '', generationJobId, now = nowIso, idFactory = makeId } = {}) {
@@ -65,7 +66,7 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
   const call = async (task, extra = {}) => {
     const output = await runTask(task, { ...input, ...extra });
     const valid = validateTaskOutput(task, output, revision, manifest, targetContext);
-    if (!valid.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: valid.errors, diagnostic: { task, category: 'task_response_invalid' } });
+    if (!valid.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: valid.errors, diagnostic: { task, category: valid.diagnosticCategory ?? 'task_response_invalid' } });
     return output;
   };
   const draft = await call('REQUIREMENTS_DRAFT');

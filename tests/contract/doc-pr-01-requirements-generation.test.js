@@ -48,6 +48,13 @@ test('blocks readiness and invalid coverage before provider call', async () => {
   assert.equal(count, 1);
 });
 
+test('classifies an unknown provider reference as a task response validation failure', async () => {
+  await assert.rejects(
+    generateRequirements({ aggregate, runTask: async () => ({ ...draft(), referencedItemIds: ['missing-item'] }) }),
+    (error) => error.diagnostic?.task === 'REQUIREMENTS_DRAFT' && error.diagnostic?.category === 'references_invalid',
+  );
+});
+
 test('keeps confirmed out of scope items only in the exclusions section', async () => {
   const scoped = structuredClone(aggregate);
   scoped.designItems.find((entry) => entry.id === 'out').acceptanceCriteria = [{ id:'excluded-ac', text:'제외 기능 완료', status:'confirmed' }];
