@@ -412,6 +412,7 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
     if (batchIndex > 0) {
       recommendationArraySchema.minItems = expectedCount;
       recommendationArraySchema.maxItems = expectedCount;
+      delete batchSchema.properties.payload.properties.f;
     }
     const batchContext = {
       ...promptInput,

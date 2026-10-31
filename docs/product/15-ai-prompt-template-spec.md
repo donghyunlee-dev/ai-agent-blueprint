@@ -4,7 +4,7 @@
 
 이 문서는 각 `AiTaskType`이 사용할 실제 prompt template의 역할, 변수, 금지 규칙과 기본 문구를 정의한다. 구현자는 의미를 임의 변경하지 않고 versioned Prompt Registry로 옮긴다. JSON Schema는 [프롬프트·응답 계약](13-prompt-and-response-contracts.md)을 따른다.
 
-> **현재 대화 runtime:** 자유 turn은 `TURN_ANALYZE` prompt v10/schema `turn.analyze.v7`, 명시적 추천 요청은 `OPTION_RECOMMEND` prompt v11/schema `option.recommend.v7`을 사용한다. 추천은 대화에서 얻은 근거를 바탕으로 4·4·3 후보를 순차 생성하고, 두 번째와 세 번째 provider 호출은 JSON Schema에서 해당 묶음의 정확한 개수를 강제한다. 각 provider 호출은 별도 예산 기록으로 남긴다. 이전 대화 schema와 추천 schema v1~v6는 registry 호환 및 회귀 검증용으로 유지한다. 자유 대화의 질문 순서는 `QUESTION_CATALOG`에 종속되지 않는다.
+> **현재 대화 runtime:** 자유 turn은 `TURN_ANALYZE` prompt v10/schema `turn.analyze.v7`, 명시적 추천 요청은 `OPTION_RECOMMEND` prompt v11/schema `option.recommend.v7`을 사용한다. 추천은 대화에서 얻은 근거를 바탕으로 4·4·3 후보를 순차 생성하고, 두 번째와 세 번째 provider 호출은 JSON Schema에서 해당 묶음의 정확한 개수를 강제하고 follow-up field를 제외한다. 각 provider 호출은 별도 예산 기록으로 남긴다. 이전 대화 schema와 추천 schema v1~v6는 registry 호환 및 회귀 검증용으로 유지한다. 자유 대화의 질문 순서는 `QUESTION_CATALOG`에 종속되지 않는다.
 
 `OPTION_RECOMMEND` prompt v11은 기존 v7 provider schema를 사용하되 중복 최상위 참조와 경고 배열을 빈 배열로 제한한다. Message evidence는 `userInput.id` 또는 `conversationContext`에서 role이 정확히 `user`인 entry의 ID만 허용하며, file evidence는 request-local excerpt ID만 허용한다. 후보 `designItem.type`은 design-item allowlist를 따르고, 한 호출은 `recommendationBatch.expectedCount`만 출력하며, server가 4·4·3 순서를 전달하고 앞서 만든 제목을 제외하도록 지시하며, 중복 제목 검증 재시도에는 이전 제목을 직접 열거한다. 첫 호출에서 근거가 부족하면 빈 후보와 contextual follow-up을 반환하고 나머지 호출은 실행하지 않는다. 충분한 context에서는 모든 묶음이 통과한 뒤에만 정확히 11개를 표시한다. 각 dispatch의 input/output 추정치와 비용을 budget 검사에 반영하고 request ledger에 기록한다.
 
@@ -141,7 +141,7 @@ Provider payload는 `m`(assistantMessage, 최대 200자), `p`(최대 4개 propos
 1. 사용자 요청과 confirmed design에서 추천 목적과 제약을 확인한다.
 2. 현재 user-authored messages와 request-local file excerpts에서 후보별 evidence를 찾는다.
 3. 근거가 충분하면 정확히 11개의 서로 다른 후보를 반환한다. compact payload의 root key는 `m`(assistantMessage, 12자 이내), `r`(recommendations), optional `f`(followUp)다. candidate key는 `t`(title, 8자 이내), `r`(rationale, 12자 이내), `x`(trade-off 0~1개, 8자 이내), `a`(assumption 0~1개, 8자 이내), `e`({`s`: sourceType, `i`: sourceId, 36자 이내}), `k`(designItem type), `d`(designItem description, 12자 이내)만 사용한다. v7 provider schema enforces these string bounds with `pattern` to reduce payload size and truncation risk under the existing 2,000-token cap; it does not guarantee response completion or reserve a fixed reasoning budget. 각 후보는 실제 근거 하나를 포함한다. designItem title은 후보 title과 같으므로 반복하지 않는다.
-4. 한 호출은 `recommendationBatch.expectedCount`의 후보만 반환하고, 전체 11개를 한 호출에 넣지 않는다. 후보 `designItem.type`은 design-item allowlist를 따른다. `r`에 후보가 있으면 `f`를 반환하지 않는다. 첫 호출에서 맥락이 부족할 때만 `r: []`와 필요한 맥락을 묻는 contextual `f`를 반환한다. v7 schema는 `topic` 60자, `prompt` 160자, `help` 120자, 선택지 최대 6개와 각 문자열 길이를 제한한다.
+4. 한 호출은 `recommendationBatch.expectedCount`의 후보만 반환하고, 전체 11개를 한 호출에 넣지 않는다. 두 번째와 세 번째 provider schema에는 `f` follow-up field가 없다. 후보 `designItem.type`은 design-item allowlist를 따른다. `r`에 후보가 있으면 `f`를 반환하지 않는다. 첫 호출에서 맥락이 부족할 때만 `r: []`와 필요한 맥락을 묻는 contextual `f`를 반환한다. v7 schema는 `topic` 60자, `prompt` 160자, `help` 120자, 선택지 최대 6개와 각 문자열 길이를 제한한다.
 
 규칙:
 - 자유 문장에 없는 제품 사실을 만들지 않는다. 후보는 고정 목록에서 선택하지 않는다.
