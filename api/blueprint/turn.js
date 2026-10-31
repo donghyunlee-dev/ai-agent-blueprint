@@ -251,8 +251,12 @@ function domainFailureCategories(errors) {
   const patterns = [
     [/recommendations require an explicit user request/, 'unsolicited_recommendations'],
     [/recommendations must contain exactly eleven candidates/, 'recommendation_count'],
+    [/recommendation batch must contain exactly|recommendation batch count is invalid/, 'recommendation_batch_count'],
+    [/recommendation batch titles must be distinct/, 'duplicate_recommendation_titles'],
+    [/recommendation batches cannot include a follow-up/, 'recommendation_follow_up_conflict'],
     [/recommendations must be distinct/, 'duplicate_recommendation_titles'],
     [/each recommendation needs user-grounded evidence/, 'recommendation_evidence_missing'],
+    [/recommendations contain unsafe copy/, 'unsafe_turn_copy'],
     [/insufficient recommendation context must ask a follow-up question/, 'missing_recommendation_follow_up'],
     [/recommendation candidates and follow-up cannot be returned together/, 'recommendation_follow_up_conflict'],
     [/followUp\.componentType|followUp options|followUp option values/, 'invalid_follow_up_contract'],
@@ -424,7 +428,8 @@ async function analyzeRecommendationBatches({ body, definition, promptInput, man
         messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: 지정된 JSON Schema를 따르고 이번 묶음에 필요한 후보만 완성된 값으로 반환하세요.` };
       }
       if (retry > 0 && validationFailureStage === 'domain') {
-        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: 이번 묶음은 recommendationBatch.expectedCount와 같은 수의 후보를 반환하고, previousTitles의 제목이나 접근을 반복하지 마세요. 근거는 전달된 사용자 메시지나 파일 발췌만 사용하세요.` };
+        const failures = domainFailureCategories(validationError);
+        messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: 이번 호출에서는 recommendationBatch.expectedCount와 정확히 같은 수만 반환하고 전체 11개를 다시 출력하지 마세요. previousTitles와 제목이 겹치지 않아야 합니다. 각 e.i는 TYPED_CONTEXT_JSON의 userInput.id 또는 role이 정확히 user인 conversationContext entry ID만 message 근거로 사용하고, file 근거는 SOURCE_EXCERPTS_UNTRUSTED_JSON excerpt ID만 사용하세요. k는 product_definition, problem, goal, user_role, scenario, scope, out_of_scope, requirement, constraint, technical_decision, success_metric, risk, open_issue 중 하나만 사용하세요. ${failures.includes('recommendation_batch_count') ? '이번 묶음 수가 잘못됐습니다. expectedCount를 그대로 맞추세요. ' : ''}${failures.includes('duplicate_recommendation_titles') ? 'previousTitles를 복사하지 말고 각 후보 제목을 서로 다르게 만드세요. ' : ''}${failures.includes('recommendation_evidence_missing') ? '사용자 근거가 없는 후보는 생략하세요. ' : ''}근거와 payload 규칙에 맞는 후보만 반환하세요.` };
       }
       if (retry > 0 && validationFailureStage === 'references') {
         messages[1] = { ...messages[1], content: `${messages[1].content}\nVALIDATION RETRY: message evidence는 TYPED_CONTEXT_JSON의 userInput.id 또는 conversationContext에서 role이 정확히 user인 entry의 id만 사용하세요. assistant나 다른 role의 ID, contextual question/card ID는 사용하지 마세요. file evidence는 SOURCE_EXCERPTS_UNTRUSTED_JSON의 request-local excerpt ID만 사용하세요. 근거가 없으면 후보를 생략하세요. ID를 만들지 마세요.` };

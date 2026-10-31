@@ -74,9 +74,9 @@ async function runHandler(req, res, deps = {}) {
         const contextText = userContent.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)?.[1];
         const batch = contextText ? JSON.parse(contextText).recommendationBatch : undefined;
         const start = batch?.index === 3 ? 8 : batch?.index === 2 ? 4 : 0;
-        output = { ...output, promptVersion: 'v8', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
+        output = { ...output, promptVersion: 'v9', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
       }
-      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v8', schemaVersion: 'v7' };
+      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v9', schemaVersion: 'v7' };
       return output;
     },
   });
@@ -556,10 +556,13 @@ test('turn endpoint retries recommendations whose proposal drafts cannot create 
   const valid = recommendationOutput(Array.from({ length: 11 }, (_, index) => makeCandidate(index, () => ({ type: 'requirement', description: '예약 충돌을 줄입니다.' }))));
   const requestBody = { ...body, logicalRequestId: 'logical-recommendation-retry-123', userTurn: { id: 'm1', kind: 'text', text: '추천해 주세요. 예약 충돌을 줄이고 싶어요.' } };
   let calls = 0;
+  const inputs = [];
   const res = response();
-  await runHandler(request(requestBody), res, { store: createMemoryAuthStore(), requestStructuredOutput: async () => (++calls === 1 ? invalid : valid) });
+  await runHandler(request(requestBody), res, { store: createMemoryAuthStore(), requestStructuredOutput: async (input) => { inputs.push(input); return (++calls === 1 ? invalid : valid); } });
   assert.equal(res.statusCode, 200, JSON.stringify(res.body));
   assert.equal(calls, 4);
+  assert.match(inputs[1].messages[1].content, /recommendationBatch\.expectedCount/);
+  assert.match(inputs[1].messages[1].content, /product_definition, problem, goal, user_role/);
   assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   assert.equal(res.body.recommendationCandidates.candidates.every((candidate) => candidate.proposalDraft.after.type === 'requirement' && typeof candidate.proposalDraft.after.description === 'string'), true);
 });
@@ -830,7 +833,7 @@ test('recommendation evidence accepts only user-authored messages or request exc
     ],
     sources: [source],
   };
-  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v8', schemaVersion: 'v7', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
+  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v9', schemaVersion: 'v7', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
 
   const assistantEvidence = response();
   let assistantCalls = 0;
@@ -872,7 +875,7 @@ test('recommendation evidence accepts only user-authored messages or request exc
 
 test('contextual text targets preserve the actual answer and route only explicit recommendation actions', async () => {
   const prompt='“추천해 주세요”라는 예시와 관계없이 예약 기준을 입력해 주세요.';
-  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v8',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
+  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v9',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
   const cases=[
     {mode:'number',text:'24',value:{numberValue:24}},
     {mode:'range',text:'9–18',value:{rangeValue:{start:9,end:18}}},
