@@ -89,6 +89,25 @@ test('successful API handler returns HTTP 200 after mocked draft and review call
   assert.equal(providerTasks.length,2);
 });
 
+test('AI validation failure logs its task and category without logging provider output', async () => {
+  const { body, plan } = readyBody();
+  const logged = [];
+  const originalError = console.error;
+  console.error = (...values) => logged.push(values);
+  const res = createMockRes();
+  try {
+    await handler(request(body), res, { store: store(), requestStructuredOutput: async ({ name }) => ({ ...providerOutput(name, plan), canary: 'provider-output-must-not-be-logged' }) });
+  } finally {
+    console.error = originalError;
+  }
+  assert.equal(res.statusCode, 502);
+  assert.equal(JSON.parse(res.body).error, 'AI_INVALID_OUTPUT');
+  assert.equal(logged.length, 1);
+  assert.equal(logged[0][0], 'DOCUMENT_OUTPUT_VALIDATION_FAILED');
+  assert.deepEqual(logged[0][1], { task: 'REQUIREMENTS_DRAFT', category: 'provider_schema_invalid' });
+  assert.doesNotMatch(JSON.stringify(logged), /provider-output-must-not-be-logged/);
+});
+
 function providerContext(messages) {
   const userMessage = messages.find(({ role }) => role === 'user').content;
   return JSON.parse(userMessage.split('TYPED_CONTEXT_JSON:\n')[1].split('\nSOURCE_EXCERPTS_UNTRUSTED_JSON:')[0]);

@@ -75,6 +75,7 @@ export default async function handler(req, res, deps = {}) {
       const inputTokens = estimateTokens(messages);
       const profile = taskConfig.profile;
       const resolvedModel = aiModelRegistry.profiles[profile].model;
+      let providerSchemaInvalid = false;
       for (let retry = 0; retry <= aiModelRegistry.projectLimits.schemaRetriesPerTask; retry += 1) {
         const budget = canRequestAi(usage, { task, profile, resolvedModel, estimatedInputTokens: inputTokens, maxOutputTokens: taskConfig.maxOutputTokens });
         if (!budget.allowed || budget.decision !== 'allow') throw Object.assign(new Error('AI_BUDGET_EXCEEDED'), { code: 'AI_BUDGET_EXCEEDED' });
@@ -82,6 +83,7 @@ export default async function handler(req, res, deps = {}) {
         usage = { ...usage, foregroundCalls: usage.foregroundCalls + 1, finalCalls: usage.finalCalls + (profile === 'FINAL' ? 1 : 0), inputTokens: usage.inputTokens + inputTokens, outputReasoningTokens: usage.outputReasoningTokens + taskConfig.maxOutputTokens, estimatedCostUsd: usage.estimatedCostUsd + estimatedCostUsd };
         const output = await (deps.requestStructuredOutput ?? requestStructuredOutput)({ name: definition.promptId.replaceAll('.', '_').replace(/_v1$/, ''), schema: schemas.envelopes[task], messages, model: resolvedModel, reasoningEffort: taskConfig.reasoning, maxOutputTokens: taskConfig.maxOutputTokens });
         const validation = validateSchema(schemas.envelopes[task], output);
+        providerSchemaInvalid ||= !validation.valid;
         const createdAt = new Date().toISOString();
         requestLedgerEntries.push(createLedgerEntry({
           id: crypto.randomUUID(), projectId: body.projectId, generationJobId, logicalRequestId: body.logicalRequestId, attemptId,
@@ -92,7 +94,7 @@ export default async function handler(req, res, deps = {}) {
         }));
         if (validation.valid) return output;
       }
-      throw Object.assign(new Error('AI_INVALID_OUTPUT'), { code: 'AI_INVALID_OUTPUT' });
+      throw Object.assign(new Error('AI_INVALID_OUTPUT'), { code: 'AI_INVALID_OUTPUT', diagnostic: { task, category: providerSchemaInvalid ? 'provider_schema_invalid' : 'provider_output_invalid' } });
     };
     const result = isPrd
       ? await generatePrd({ aggregate, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, generationJobId, runTask })
@@ -105,6 +107,9 @@ export default async function handler(req, res, deps = {}) {
     return sendJson(res, 200, result);
   } catch (error) {
     if (store && key) { try { const code = /^[A-Z0-9_:-]{1,80}$/.test(error.code ?? '') ? error.code : 'AI_GENERATION_FAILED'; await finishTurn(store, key, { status: 'failed', attemptId: req.body?.attemptId, errorCode: code }); } catch { /* Preserve the original error response. */ } }
+    if (error?.message === 'AI_INVALID_OUTPUT' || error?.message === 'DOCUMENT_OUTPUT_INVALID') {
+      console.error('DOCUMENT_OUTPUT_VALIDATION_FAILED', error.diagnostic ?? { task: 'unknown', category: 'document_output_invalid' });
+    }
     if (error?.message === 'AUTH_STORE_NOT_CONFIGURED') return fail(res, 503, 'AUTH_STORE_NOT_CONFIGURED');
     if (error?.message === 'REQUIREMENTS_BLOCKED') return fail(res, 409, 'REQUIREMENTS_BLOCKED', { blockers: error.blockers });
     if (error?.message === 'SETUP_GUIDE_BLOCKED') return fail(res, 409, 'SETUP_GUIDE_BLOCKED', { blockers:error.blockers });

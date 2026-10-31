@@ -65,12 +65,12 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
   const call = async (task, extra = {}) => {
     const output = await runTask(task, { ...input, ...extra });
     const valid = validateTaskOutput(task, output, revision, manifest, targetContext);
-    if (!valid.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: valid.errors });
+    if (!valid.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: valid.errors, diagnostic: { task, category: 'task_response_invalid' } });
     return output;
   };
   const draft = await call('REQUIREMENTS_DRAFT');
   const draftValidation = validateDraft(draft, plan, aggregate);
-  if (!draftValidation.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: draftValidation.errors });
+  if (!draftValidation.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: draftValidation.errors, diagnostic: { task: 'REQUIREMENTS_DRAFT', category: 'requirements_draft_contract_invalid' } });
   let finalDraft = draft;
   let review = await call('REQUIREMENTS_REVIEW', { draft: finalDraft });
   let reviewIssues = review.payload.issues;
@@ -81,7 +81,7 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
       const sectionUpdates = new Map(repaired.payload.sections.map((section) => [section.key, section]));
       finalDraft = { ...finalDraft, payload: { ...finalDraft.payload, sections: finalDraft.payload.sections.map((section) => sectionUpdates.get(section.key) ?? section) } };
       const afterRepair = validateDraft(finalDraft, plan, aggregate);
-      if (!afterRepair.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: afterRepair.errors });
+      if (!afterRepair.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: afterRepair.errors, diagnostic: { task: 'REQUIREMENTS_REPAIR', category: 'requirements_repair_contract_invalid' } });
       review = await call('REQUIREMENTS_REVIEW', { draft: finalDraft });
       reviewIssues = review.payload.issues;
     }
