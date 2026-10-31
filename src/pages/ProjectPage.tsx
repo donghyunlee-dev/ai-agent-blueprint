@@ -33,6 +33,7 @@ import { RequirementsDocument, RequirementsPageHeader } from "../components/blue
 import { PrdDocument } from "../components/blueprint/PrdDocument.js";
 import { SetupGuideDocument } from "../components/blueprint/SetupGuideDocument.js";
 import { commitRequirementsResult } from "../features/documents/requirements-generation.js";
+import { documentGenerationErrorMessage } from "../features/documents/document-generation-error.js";
 import { assessRequirementsReady, confirmRequirementsReady } from "../features/documents/requirements-ready.js";
 import { commitPrdResult, validatePrdAllowed } from "../features/documents/prd-generation.js";
 import { commitSetupGuideResult } from "../features/documents/setup-guide-generation.js";
@@ -750,6 +751,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     setRequirementsGenerating(true);
     setRequirementsError(null);
     const attemptId = crypto.randomUUID();
+    let responseErrorCode: string | undefined;
     try {
       const repository = repositoryFactory();
       const current = await repository.get(ownerKey, projectId);
@@ -770,7 +772,8 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         if (payload.error === 'REQUIREMENTS_BLOCKED') throw new Error((payload.blockers ?? []).map((item: { reason?:string }) => item.reason).filter(Boolean).join(' '));
-        throw new Error(payload.error === 'AI_BUDGET_EXCEEDED' ? '요청 예산을 초과해 생성하지 못했습니다.' : '요구사항 명세를 생성하지 못했습니다. 저장된 설계는 유지됩니다. 다시 시도해 주세요.');
+        responseErrorCode = typeof payload.error === 'string' ? payload.error : undefined;
+        throw new Error(documentGenerationErrorMessage(responseErrorCode, 'requirements'));
       }
       const committed = await repository.transact(ownerKey, projectId, (current) => ({ status: 'updated', aggregate: commitRequirementsResult(current, payload, current.project.designRevision) }));
       if (!committed.aggregate) throw new Error('저장 결과를 확인하지 못했습니다. 설계는 보존됐으며 다시 시도할 수 있습니다.');
@@ -826,6 +829,7 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
     const guard = validatePrdAllowed(snapshot);
     if (!guard.allowed) { setPrdError('PRD를 생성할 수 없습니다. 요구사항 명세를 검토하고 최신 설계 revision에서 검토 완료로 확정해 주세요.'); return; }
     setPrdGenerating(true); setPrdError(null);
+    let responseErrorCode: string | undefined;
     try {
       const repository = repositoryFactory();
       const current = await repository.get(ownerKey, projectId);
@@ -843,12 +847,16 @@ export function ProjectPage({ repositoryFactory = getIndexedDbProjectRepository 
         }),
       });
       const payload=await response.json().catch(()=>({}));
-      if(!response.ok) throw new Error(payload.error==='PRD_BLOCKED'?'PRD_BLOCKED':payload.error==='AI_BUDGET_EXCEEDED'?'AI_BUDGET_EXCEEDED':'PRD_GENERATION_FAILED');
+      if(!response.ok) {
+        if(payload.error==='PRD_BLOCKED') throw new Error('PRD_BLOCKED');
+        responseErrorCode=typeof payload.error==='string'?payload.error:undefined;
+        throw new Error(documentGenerationErrorMessage(responseErrorCode,'prd'));
+      }
       const saved=await repository.transact(ownerKey,projectId,(latest)=>({status:'updated',aggregate:commitPrdResult(latest,payload,latest.project.designRevision)}));
       if(!saved.aggregate) throw new Error('PRD_SAVE_FAILED');
       aggregateRef.current=saved.aggregate;setAggregate(saved.aggregate);saverRef.current?.schedule(saved.aggregate);
-    } catch {
-      setPrdError('PRD를 생성하지 못했습니다. 요구사항 명세와 설계는 유지됩니다. 검토 완료 상태와 최신 revision을 확인한 뒤 다시 시도해 주세요.');
+    } catch (error) {
+      setPrdError(responseErrorCode ? error instanceof Error ? error.message : documentGenerationErrorMessage(responseErrorCode,'prd') : 'PRD를 생성하지 못했습니다. 요구사항 명세와 설계는 유지됩니다. 검토 완료 상태와 최신 revision을 확인한 뒤 다시 시도해 주세요.');
     } finally { setPrdGenerating(false); }
   }
 

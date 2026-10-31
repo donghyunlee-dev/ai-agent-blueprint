@@ -19,6 +19,14 @@ import { issueSetupGuideGenerationArtifact } from '../../_lib/requirements-attes
 const MAX_BODY_BYTES = 100_000;
 const TASKS = new Set(['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR', 'SETUP_GUIDE_DRAFT', 'PRD_DRAFT', 'PRD_REVIEW', 'PRD_REPAIR']);
 const fail = (res, status, error, extra = {}) => sendJson(res, status, { error, ...extra });
+function publicGenerationError(error) {
+  if (error?.code === 'AUTH_STORE_UNAVAILABLE' || error?.message === 'AUTH_STORE_UNAVAILABLE') return 'AUTH_STORE_UNAVAILABLE';
+  if (error?.code === 'AI_OUTPUT_INCOMPLETE') return 'AI_OUTPUT_INCOMPLETE';
+  if (error?.code === 'AI_INVALID_OUTPUT') return 'AI_INVALID_OUTPUT';
+  if (error?.code === 'AI_PROVIDER_REJECTED') return 'AI_PROVIDER_REJECTED';
+  if (error?.statusCode === 429) return 'AI_RATE_LIMITED';
+  return null;
+}
 function ownerNamespace(user) {
   const secret = process.env.APP_SESSION_SECRET;
   if (!secret) throw new Error('AUTH_STORE_NOT_CONFIGURED');
@@ -118,6 +126,8 @@ export default async function handler(req, res, deps = {}) {
     if (error?.message === 'DOCUMENT_OUTPUT_INVALID' || error?.message === 'AI_INVALID_OUTPUT') return fail(res, 502, 'AI_INVALID_OUTPUT');
     if (error?.message === 'PRD_REVIEW_REJECTED') return fail(res, 422, 'PRD_REVIEW_REJECTED');
     if (error?.message === 'AI_BUDGET_EXCEEDED') return fail(res, 429, 'AI_BUDGET_EXCEEDED');
+    const publicError = publicGenerationError(error);
+    if (publicError) return fail(res, error.statusCode || (publicError === 'AUTH_STORE_UNAVAILABLE' || publicError === 'AI_PROVIDER_REJECTED' ? 503 : publicError === 'AI_RATE_LIMITED' ? 429 : 502), publicError, { retryable: true });
     return fail(res, error.statusCode || 502, 'AI_GENERATION_FAILED', { retryable: true });
   }
 }

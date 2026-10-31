@@ -108,6 +108,30 @@ test('AI validation failure logs its task and category without logging provider 
   assert.doesNotMatch(JSON.stringify(logged), /provider-output-must-not-be-logged/);
 });
 
+test('preserves a safe incomplete-provider-response category for document generation', async () => {
+  const { body } = readyBody();
+  const res = createMockRes();
+  await handler(request(body), res, {
+    store: store(),
+    requestStructuredOutput: async () => { throw Object.assign(new Error('private provider detail'), { code: 'AI_OUTPUT_INCOMPLETE' }); },
+  });
+  assert.equal(res.statusCode, 502);
+  assert.deepEqual(JSON.parse(res.body), { error: 'AI_OUTPUT_INCOMPLETE', retryable: true });
+  assert.doesNotMatch(res.body, /private provider detail/);
+});
+
+test('classifies provider rate limits without exposing the provider error body', async () => {
+  const { body } = readyBody();
+  const res = createMockRes();
+  await handler(request(body), res, {
+    store: store(),
+    requestStructuredOutput: async () => { throw Object.assign(new Error('private provider detail'), { statusCode: 429 }); },
+  });
+  assert.equal(res.statusCode, 429);
+  assert.deepEqual(JSON.parse(res.body), { error: 'AI_RATE_LIMITED', retryable: true });
+  assert.doesNotMatch(res.body, /private provider detail/);
+});
+
 function providerContext(messages) {
   const userMessage = messages.find(({ role }) => role === 'user').content;
   return JSON.parse(userMessage.split('TYPED_CONTEXT_JSON:\n')[1].split('\nSOURCE_EXCERPTS_UNTRUSTED_JSON:')[0]);
