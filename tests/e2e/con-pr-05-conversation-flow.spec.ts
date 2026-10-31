@@ -665,7 +665,7 @@ test('applies a completed response when the user cancels before response handlin
     const now=new Date().toISOString();
     await route.fulfill({status:200,json:{
       assistantMessage:'응답은 도착했지만 사용자가 표시 전에 취소했습니다.',proposals:[],referencedItemIds:[],referencedSourceIds:[],
-      requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v8',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'succeeded',createdAt:now,finishedAt:now}],
+      requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v8',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'minimal',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'succeeded',createdAt:now,finishedAt:now}],
     }});
   });
   await page.goto(`/blueprints/${projectId}#conversation`);
@@ -691,7 +691,7 @@ test('persists the failed generation status with returned provider accounting',a
   await page.route('**/api/blueprint/turn',async(route)=>{
     requestBody=route.request().postDataJSON();
     const now=new Date().toISOString();
-    await route.fulfill({status:502,json:{error:'AI_OUTPUT_INCOMPLETE',requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v8',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'failed',errorCode:'AI_OUTPUT_INCOMPLETE',createdAt:now,finishedAt:now}]}});
+    await route.fulfill({status:502,json:{error:'AI_OUTPUT_INCOMPLETE',requestLedgerEntries:[{id:ledgerId,projectId,generationJobId:requestBody.generationJobId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,task:'TURN_ANALYZE',promptVersion:'v8',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'minimal',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'failed',errorCode:'AI_OUTPUT_INCOMPLETE',createdAt:now,finishedAt:now}]}});
   });
   await page.goto(`/blueprints/${projectId}#conversation`);
   await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('답변이 잘리는 경우를 확인합니다.');
@@ -728,7 +728,7 @@ test('recovers server-side accounting after an aborted response body',async({pag
   });
   let requestBody:any;
   const ledgerId='aborted-body-recovered-ledger';
-  const ledgerFor=(body:any)=>({id:ledgerId,projectId,generationJobId:body.generationJobId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,task:'TURN_ANALYZE',promptVersion:'v8',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'unknown',errorCode:'AI_REQUEST_UNKNOWN',createdAt:new Date().toISOString(),finishedAt:new Date().toISOString()});
+  const ledgerFor=(body:any)=>({id:ledgerId,projectId,generationJobId:body.generationJobId,logicalRequestId:body.logicalRequestId,attemptId:body.attemptId,task:'TURN_ANALYZE',promptVersion:'v8',schemaVersion:'v6',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'minimal',designRevision:0,estimatedInputTokens:20,estimatedOutputTokens:1800,estimatedCostUsd:0.001,status:'unknown',errorCode:'AI_REQUEST_UNKNOWN',createdAt:new Date().toISOString(),finishedAt:new Date().toISOString()});
   await page.route(/\/api\/blueprint\/turn(?:\?.*)?$/,async(route)=>{
     if(route.request().method()==='GET'){
       await route.fulfill({status:200,json:{status:'unknown',errorCode:'AI_REQUEST_UNKNOWN',requestLedgerEntries:[ledgerFor(requestBody)]}});

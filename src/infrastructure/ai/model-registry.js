@@ -6,6 +6,7 @@ const taskRows = {
 };
 const tasks = Object.fromEntries(Object.entries(taskRows).map(([task,[profile,maxInputTokens,maxOutputTokens,timeoutMs=45_000]]) => [task,{profile,reasoning:'low',maxInputTokens,maxOutputTokens,timeoutMs}]));
 tasks.OPTION_RECOMMEND = { ...tasks.OPTION_RECOMMEND, reasoning: 'minimal' };
+tasks.TURN_ANALYZE = { ...tasks.TURN_ANALYZE, reasoning: 'minimal' };
 const promptIds = {
   QUESTION_COMPOSE:'question.compose', QUESTION_EXPLAIN:'question.explain', TURN_ANALYZE:'turn.analyze', OPTION_RECOMMEND:'option.recommend', CONTEXT_COMPACT:'context.compact', REQUIREMENTS_DRAFT:'requirements.draft', REQUIREMENTS_REVIEW:'requirements.review', REQUIREMENTS_REPAIR:'requirements.repair', SETUP_GUIDE_DRAFT:'setup.guide.draft', PRD_DRAFT:'prd.draft', PRD_REVIEW:'prd.review', PRD_REPAIR:'prd.repair', DOCUMENT_PATCH:'document.patch', CONSISTENCY_REVIEW:'consistency.review',
 };
@@ -49,7 +50,7 @@ export function resolveTaskModel(task, env = process.env) {
     task,
     profile: taskConfig.profile,
     modelId: profile.modelId,
-    reasoningEffort: profile.reasoningEffort,
+    reasoningEffort: taskConfig.reasoning ?? profile.reasoningEffort,
     maxInputTokens: taskConfig.maxInputTokens,
     maxOutputTokens: taskConfig.maxOutputTokens,
     timeoutMs: taskConfig.timeoutMs,

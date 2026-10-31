@@ -6,9 +6,10 @@ const env = { AI_MODEL_LIGHT: 'gpt-5.6-luna', AI_MODEL_DEFAULT: 'gpt-5-mini', AI
 
 test('resolves task profile using the configured physical model and registered token limits', () => {
   assert.deepEqual(resolveTaskModel('TURN_ANALYZE', env), {
-    task: 'TURN_ANALYZE', profile: 'DEFAULT', modelId: 'gpt-5-mini', reasoningEffort: 'low',
+    task: 'TURN_ANALYZE', profile: 'DEFAULT', modelId: 'gpt-5-mini', reasoningEffort: 'minimal',
     maxInputTokens: 8000, maxOutputTokens: 1800, timeoutMs: 120_000,
   });
+  assert.equal(resolveTaskModel('OPTION_RECOMMEND', env).reasoningEffort, 'minimal');
   assert.equal(resolveModelProfile('LIGHT', env).modelId, 'gpt-5.6-luna');
   assert.equal(resolveModelProfile('FINAL', env).modelId, 'gpt-5.6-terra');
 });

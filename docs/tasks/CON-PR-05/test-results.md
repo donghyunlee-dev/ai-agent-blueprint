@@ -1,5 +1,11 @@
 # CON-PR-05 validation results
 
+## Latest protected Preview diagnosis — 2026-10-31
+
+The latest deployed PR #97 source (`4dc4025`) was redeployed to `dpl_3CfT31and7krh44ERTfP1RGPXrHL` at `https://windsoft-agent-blueprint-d3xtj19g8.vercel.app` with a fresh branch-scoped Preview test-session token. Synthetic session bootstrap returned 204 and session lookup returned 200. A live free turn returned 200, then `OPTION_RECOMMEND` returned a contextual single-choice follow-up with no candidates, as intended when details were insufficient. Submitting that card reached the provider but returned 502 `AI_OUTPUT_INCOMPLETE`. The deployment runtime recorded `TURN_ANALYZE` / `gpt-5-mini`, 2,454 input tokens, 1,800/1,800 output tokens, and 384 reasoning tokens (`max_output_tokens`).
+
+The source diagnosis found that `resolveTaskModel()` ignored task-level reasoning settings and always used the profile default. This meant the existing `OPTION_RECOMMEND: minimal` setting was not reaching the provider either. The current source fix applies each task's reasoning override, configures `TURN_ANALYZE` as `minimal`, and keeps the 1,800-token cap unchanged. Focused registry and turn API tests pass (47/47); full validation and a fresh live Preview run after this fix remain pending. Requirements-ready/download and same-revision PRD-ready/download are not yet verified.
+
 ## Current PR #97 candidate — 2026-10-29
 
 ### Exact deployed candidate `dbc89e0` — 2026-10-29

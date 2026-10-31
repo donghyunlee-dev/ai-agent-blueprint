@@ -57,11 +57,13 @@ Blueprint의 AI 품질을 유지하면서 $10 단위의 선불 API 크레딧으�
 
 `maxOutputTokens`는 보이는 출력과 reasoning token을 함께 포함한다. 상한은 목표치가 아니며 응답은 필요한 만큼만 생성한다.
 
+각 task의 `reasoning` 설정은 모델 profile의 기본 reasoning을 덮어쓴다. task 설정이 없을 때만 profile 기본값을 사용한다.
+
 | 작업 | 프로필 | reasoning | 최대 input | `maxOutputTokens` | 호출 조건 |
 | --- | --- | --- | ---: | ---: | --- |
 | `QUESTION_COMPOSE` | LIGHT | low | 3,000 | 500 | catalog 문구로 부족할 때만 |
 | `QUESTION_EXPLAIN` | LIGHT | low | 4,000 | 700 | 정적 도움말로 부족할 때만 |
-| `TURN_ANALYZE` | DEFAULT | low | 8,000 | 1,800 | 자유 입력·파일 발췌 |
+| `TURN_ANALYZE` | DEFAULT | minimal | 8,000 | 1,800 | 자유 입력·파일 발췌 |
 | `OPTION_RECOMMEND` | DEFAULT | minimal | 10,000 | 2,000 | 사용자가 추천 요청 |
 | `CONTEXT_COMPACT` | LIGHT | low | 12,000 | 1,200 | context threshold 초과 |
 | `REQUIREMENTS_DRAFT` | DEFAULT | low | 30,000 | 8,000 | deterministic plan 검증 후 |

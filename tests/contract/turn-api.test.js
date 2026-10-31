@@ -298,7 +298,7 @@ test('turn endpoint validates, calls the injected provider, and replays success 
   assert.ok(recordedMetadata[0].estimatedInputTokens > 0);
   assert.equal(providerConfig.timeoutMs, 120_000);
   assert.equal(providerConfig.model, 'gpt-5-mini');
-  assert.equal(providerConfig.reasoningEffort, 'low');
+  assert.equal(providerConfig.reasoningEffort, 'minimal');
   assert.equal(providerConfig.maxOutputTokens, 1800);
   assert.doesNotMatch(JSON.stringify(recordedMetadata[0]), /hello|Test|p1/);
   const retry = response();
