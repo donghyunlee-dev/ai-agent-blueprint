@@ -230,7 +230,7 @@ Requirements draft를 수정하지 말고 품질 문제를 판정한다.
 - 존재하지 않는 item/source ID
 
 각 issue에 severity, sectionKey, relatedItemIds, 설명을 제공한다.
-relatedItemIds는 plan 또는 draft sourceItemIds에 포함된 design item ID만 복사하며, 근거 ID가 없으면 빈 배열로 반환한다. coverage.targetId는 입력 plan에 포함된 design item ID, requirement ID 또는 section key만 사용한다. envelope의 referencedSourceIds는 source excerpt가 없는 이 task에서 빈 배열로 반환한다. ID를 만들거나 추측하지 않는다.
+relatedItemIds는 `plan.confirmedItemIds`에 포함된 design item ID만 복사하며, 근거 ID가 없으면 빈 배열로 반환한다. Requirement ID(예: `REQ-001`)는 design item ID가 아니므로 `relatedItemIds`에 사용하지 않는다. 특정 requirement에 issue가 있으면 해당 requirement의 `sourceItemIds`에서 관련 ID를 복사한다. coverage.targetId는 입력 plan에 포함된 design item ID, requirement ID 또는 section key만 사용한다. envelope의 referencedSourceIds는 source excerpt가 없는 이 task에서 빈 배열로 반환한다. ID를 만들거나 추측하지 않는다.
 입력 근거만으로 고칠 수 있으면 repairInstruction을 제공한다.
 새 사용자 결정이 필요하면 user_review_required로 판정한다.
 문서 본문을 직접 다시 작성하지 않는다.

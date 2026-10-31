@@ -41,7 +41,9 @@ test('Requirements review uses only design IDs supplied by the plan or draft', (
   const prompt = getPromptDefinition('REQUIREMENTS_REVIEW');
   assert.equal(prompt.promptVersion, 'v2');
   assert.equal(prompt.schemaVersion, 'v1');
-  assert.match(prompt.developerTemplate, /relatedItemIds는 입력 plan 또는 draft sourceItemIds에 실제로 포함된 design item ID만/);
+  assert.match(prompt.developerTemplate, /relatedItemIds는 입력 plan\.confirmedItemIds에 실제로 포함된 design item ID만/);
+  assert.match(prompt.developerTemplate, /Requirement ID.*relatedItemIds에 절대 넣지 않는다/);
+  assert.match(prompt.developerTemplate, /draft의 그 requirement sourceItemIds에서 관련 design item ID를 복사/);
   assert.match(prompt.developerTemplate, /coverage\.targetId는 입력 plan에 포함된 design item ID, requirement ID 또는 section key만/);
   assert.match(prompt.developerTemplate, /referencedSourceIds는 빈 배열/);
 });
