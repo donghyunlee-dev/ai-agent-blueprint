@@ -59,6 +59,23 @@ test('classifies an unknown provider reference as a task response validation fai
   );
 });
 
+test('classifies a repair response metadata mismatch without exposing provider values', async () => {
+  const calls = [];
+  await assert.rejects(
+    generateRequirements({ aggregate, runTask: async (task) => {
+      calls.push(task);
+      if (task === 'REQUIREMENTS_DRAFT') return draft();
+      if (task === 'REQUIREMENTS_REVIEW') return review('repairable', [{ code: 'COPY', severity: 'warning', sectionKey: 'functional', relatedItemIds: ['feature'], description: '기능 문구를 정리합니다.', repairInstruction: '확정된 기능을 간결하게 표현하세요.' }]);
+      return { ...envelope(task, { sections: sections().filter((section) => section.key === 'functional'), resolvedIssueIds: [] }), promptVersion: 'v2' };
+    } }),
+    (error) => error.diagnostic?.task === 'REQUIREMENTS_REPAIR'
+      && error.diagnostic?.category === 'metadata_invalid'
+      && error.diagnostic?.details?.includes('promptVersion:metadata_mismatch')
+      && !JSON.stringify(error.diagnostic).includes('v2'),
+  );
+  assert.deepEqual(calls, ['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR']);
+});
+
 test('rejects an acceptance criterion linked to a design item outside its planned requirement sources', async () => {
   const output = draft();
   const featureRequirement = output.payload.requirements.find((requirement) => requirement.sourceItemIds.includes('feature'));

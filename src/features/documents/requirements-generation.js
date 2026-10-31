@@ -87,12 +87,16 @@ function summarizeDraftErrors(errors) {
   });
 }
 
+function summarizeMetadataErrors(errors) {
+  return errors.map((error) => `${String(error).split(' ', 1)[0]}:metadata_mismatch`).slice(0, 4);
+}
+
 function validateTaskOutput(task, output, revision, manifest, targetContext) {
   const schemaResult = validateSchema(schemas.envelopes[task], output);
   if (!schemaResult.valid) return { ...schemaResult, diagnosticCategory: 'schema_invalid' };
   const { promptVersion, schemaVersion } = getPromptDefinition(task);
   const metadata = validateResponseMetadata(output, { task, promptVersion, schemaVersion, designRevision: revision });
-  if (!metadata.valid) return { ...metadata, diagnosticCategory: 'metadata_invalid' };
+  if (!metadata.valid) return { ...metadata, diagnosticCategory: 'metadata_invalid', diagnosticDetails: summarizeMetadataErrors(metadata.errors) };
   const references = validateReferences(output, manifest, targetContext);
   return references.valid ? references : { ...references, diagnosticCategory: 'references_invalid', diagnosticDetails: summarizeReferenceErrors(references.errors) };
 }
