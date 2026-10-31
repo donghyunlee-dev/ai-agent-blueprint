@@ -205,6 +205,7 @@ Provider payload는 `m`(assistantMessage, 최대 200자), `p`(최대 4개 propos
 
 규칙:
 - P0 수용 기준은 화면 또는 시스템 결과로 판정 가능해야 한다.
+- 모든 P0 requirement에 관찰 가능한 수용 기준을 하나 이상 작성한다. plan에 확정 수용 기준이 없으면 해당 requirement의 확정된 title/description에서 확인할 수 있는 결과로 작성하고 새 기능을 추가하지 않는다.
 - 빠르다, 편리하다처럼 측정할 수 없는 표현만 사용하지 않는다.
 - 미정은 확정 사실로 채우지 않고 open issue로 표시한다.
 - `openIssueIds`에는 검증된 plan의 `openIssues`에 실제로 포함된 ID만 넣는다. `openIssues`가 비어 있으면 모든 requirement의 `openIssueIds`는 빈 배열이며, ID를 만들거나 추측하지 않는다.

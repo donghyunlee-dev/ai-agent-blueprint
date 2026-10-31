@@ -30,6 +30,8 @@ test('Requirements draft only links open issues explicitly present in the valida
   assert.match(prompt.developerTemplate, /openIssues에 실제로 제공된 ID만/);
   assert.match(prompt.developerTemplate, /openIssues가 비어 있으면 모든 requirement의 openIssueIds는 빈 배열/);
   assert.match(prompt.developerTemplate, /acceptance criteria의 sourceItemIds는 해당 requirement의 plan sourceItemIds 중에서만/);
+  assert.match(prompt.developerTemplate, /모든 P0 requirement에는 관찰 가능한 acceptance criteria를 최소 한 개/);
+  assert.match(prompt.developerTemplate, /confirmed title\/description에서 직접 확인 가능한 결과 기준/);
   assert.match(prompt.developerTemplate, /referencedSourceIds는 빈 배열/);
   assert.match(prompt.developerTemplate, /referencedItemIds에는 입력에 실제로 있는 design item ID만/);
   assert.match(prompt.developerTemplate, /ID를 만들거나 추측하지 않는다/);
