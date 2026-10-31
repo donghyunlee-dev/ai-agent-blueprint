@@ -16,7 +16,7 @@ function envelope(task, payload) { return { task, promptVersion: ['REQUIREMENTS_
 const plan = buildRequirementsPlan(aggregate);
 const sections = () => plan.sections.map(({ key, title, sourceItemIds }) => ({ key, title, markdown: key === 'functional' ? '기능' : '', sourceItemIds }));
 const draft = () => envelope('REQUIREMENTS_DRAFT', { sections: sections(), requirements: plan.requirements.map(({ id, category, title, description, priority, sourceItemIds, acceptanceCriteria }) => ({ id,category,title,description,priority,sourceItemIds,acceptanceCriteria:priority === 'P0' ? [{ text:'결과 표시',sourceItemIds }] : [],openIssueIds:[] })) });
-const review = (verdict, issues = []) => envelope('REQUIREMENTS_REVIEW', { verdict, issues, coverage: [{targetId:'feature',status:'covered'}] });
+const review = (verdict, issues = []) => envelope('REQUIREMENTS_REVIEW', { verdict, issues, coverage: [{targetId:plan.requirements[0].id,status:'covered'}] });
 
 test('runs deterministic plan then Mini draft/review and returns review_required without automatic ready', async () => {
   const calls = [];

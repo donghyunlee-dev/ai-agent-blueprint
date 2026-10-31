@@ -106,7 +106,7 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
   if (!planValidation.valid) throw Object.assign(new Error('DOCUMENT_PLAN_INVALID'), { errors: planValidation.errors });
   const revision = aggregate.project.designRevision;
   const manifest = { designItemIds: aggregate.designItems.filter((item) => ['confirmed', 'deferred'].includes(item.status) && !item.archivedAt).map((item) => item.id), sourceExcerptIds: [], recentMessageIds: [], summaryIds: [] };
-  const targetContext = { designItems: aggregate.designItems.map(({ id }) => ({ id })), sectionKeys: REQUIREMENTS_SECTIONS.map(({ key }) => key), openIssueIds: plan.openIssues.map(({ id }) => id), issueIds: [] };
+  const targetContext = { designItems: aggregate.designItems.map(({ id }) => ({ id })), requirementIds: plan.requirements.map(({ id }) => id), sectionKeys: REQUIREMENTS_SECTIONS.map(({ key }) => key), openIssueIds: plan.openIssues.map(({ id }) => id), issueIds: [] };
   const input = { project: aggregate.project, plan, designItems: aggregate.designItems.filter((item) => item.status === 'confirmed' || item.status === 'deferred').map(({ id, type, title, description, status, priority, acceptanceCriteria, relatedItemIds }) => ({ id, type, title, description, status, priority, acceptanceCriteria, relatedItemIds })), openIssues: plan.openIssues, designRevision: revision };
   const call = async (task, extra = {}) => {
     const output = await runTask(task, { ...input, ...extra });
