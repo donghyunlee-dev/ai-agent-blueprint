@@ -66,7 +66,8 @@ test('rejects an acceptance criterion linked to a design item outside its planne
   await assert.rejects(
     generateRequirements({ aggregate, runTask: async (task) => task === 'REQUIREMENTS_DRAFT' ? output : review('pass') }),
     (error) => error.diagnostic?.task === 'REQUIREMENTS_DRAFT'
-      && error.diagnostic?.category === 'requirements_draft_contract_invalid',
+      && error.diagnostic?.category === 'requirements_draft_contract_invalid'
+      && error.diagnostic?.details?.includes('$.payload.requirements[5].acceptanceCriteria[0].sourceItemIds:outside_planned_requirement_source'),
   );
 });
 

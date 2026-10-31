@@ -18,14 +18,14 @@ function validateDraft(output, plan, aggregate) {
   for (const id of expectedIds) if (!actualIds.has(id)) errors.push(`planned requirement missing ${id}`);
   for (const id of actualIds) if (!expectedIds.has(id)) errors.push(`unplanned requirement ${id}`);
   const items = new Map(aggregate.designItems.filter((item) => item.status === 'confirmed' && item.type !== 'out_of_scope' && !item.archivedAt).map((item) => [item.id, item]));
-  for (const requirement of output.payload.requirements) {
+  for (const [requirementIndex, requirement] of output.payload.requirements.entries()) {
     const expected = plan.requirements.find((entry) => entry.id === requirement.id);
     if (expected && (requirement.category !== expected.category || requirement.priority !== expected.priority || requirement.sourceItemIds.join('|') !== expected.sourceItemIds.join('|'))) errors.push(`planned requirement mapping mismatch ${requirement.id}`);
     for (const id of requirement.sourceItemIds) if (!items.has(id)) errors.push(`unconfirmed requirement source ${id}`);
-    for (const criterion of requirement.acceptanceCriteria) {
+    for (const [criterionIndex, criterion] of requirement.acceptanceCriteria.entries()) {
       for (const id of criterion.sourceItemIds) {
         if (!items.has(id)) errors.push(`unconfirmed criterion source ${id}`);
-        if (expected && !expected.sourceItemIds.includes(id)) errors.push(`criterion source outside planned requirement ${requirement.id}`);
+        if (expected && !expected.sourceItemIds.includes(id)) errors.push(`$.payload.requirements[${requirementIndex}].acceptanceCriteria[${criterionIndex}].sourceItemIds:outside_planned_requirement_source`);
       }
     }
     if (requirement.priority === 'P0' && !requirement.acceptanceCriteria.length) errors.push(`P0 acceptance criterion missing ${requirement.id}`);
@@ -68,6 +68,20 @@ function summarizeReferenceErrors(errors) {
   });
 }
 
+function summarizeDraftErrors(errors) {
+  return errors.slice(0, 8).map((error) => {
+    const text = String(error);
+    if (text.startsWith('$.')) return text;
+    const category = text.includes('acceptance criteria coverage missing') ? 'acceptance_criteria_coverage_missing'
+      : text.includes('planned requirement missing') ? 'planned_requirement_missing'
+        : text.includes('unplanned requirement') ? 'unplanned_requirement'
+          : text.includes('planned requirement mapping mismatch') ? 'planned_requirement_mapping_mismatch'
+            : text.includes('required sections mismatch') ? 'required_sections_mismatch'
+              : 'document_plan_contract_invalid';
+    return `$.payload:${category}`;
+  });
+}
+
 function validateTaskOutput(task, output, revision, manifest, targetContext) {
   const schemaResult = validateSchema(schemas.envelopes[task], output);
   if (!schemaResult.valid) return { ...schemaResult, diagnosticCategory: 'schema_invalid' };
@@ -97,7 +111,7 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
   };
   const draft = await call('REQUIREMENTS_DRAFT');
   const draftValidation = validateDraft(draft, plan, aggregate);
-  if (!draftValidation.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: draftValidation.errors, diagnostic: { task: 'REQUIREMENTS_DRAFT', category: 'requirements_draft_contract_invalid' } });
+  if (!draftValidation.valid) throw Object.assign(new Error('DOCUMENT_OUTPUT_INVALID'), { errors: draftValidation.errors, diagnostic: { task: 'REQUIREMENTS_DRAFT', category: 'requirements_draft_contract_invalid', details: summarizeDraftErrors(draftValidation.errors) } });
   let finalDraft = draft;
   let review = await call('REQUIREMENTS_REVIEW', { draft: finalDraft });
   let reviewIssues = review.payload.issues;
