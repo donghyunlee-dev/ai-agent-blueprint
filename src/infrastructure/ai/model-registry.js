@@ -16,8 +16,8 @@ export const aiModelRegistry = Object.freeze({
   tasks: Object.freeze(tasks),
 });
 export const promptRegistry = Object.freeze(Object.fromEntries(Object.entries(promptIds).map(([task,id]) => {
-  const promptVersion = task === 'TURN_ANALYZE' ? 'v10' : task === 'OPTION_RECOMMEND' ? 'v11' : ['PRD_REVIEW', 'CONSISTENCY_REVIEW'].includes(task) ? 'v2' : 'v1';
-  const schemaVersion = ['TURN_ANALYZE', 'OPTION_RECOMMEND'].includes(task) ? 'v7' : promptVersion;
+  const promptVersion = task === 'TURN_ANALYZE' ? 'v10' : task === 'OPTION_RECOMMEND' ? 'v11' : ['PRD_REVIEW', 'CONSISTENCY_REVIEW', 'REQUIREMENTS_DRAFT'].includes(task) ? 'v2' : 'v1';
+  const schemaVersion = ['TURN_ANALYZE', 'OPTION_RECOMMEND'].includes(task) ? 'v7' : task === 'REQUIREMENTS_DRAFT' ? 'v1' : promptVersion;
   return [task, Object.freeze({ task, promptId:id, promptVersion, schemaId:`${id}.${schemaVersion}`, schemaVersion, modelProfile:taskRows[task][0] })];
 })));
 

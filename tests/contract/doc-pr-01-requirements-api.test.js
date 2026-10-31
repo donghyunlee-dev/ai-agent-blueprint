@@ -40,7 +40,7 @@ function providerOutput(name, plan) {
   const payload=task==='REQUIREMENTS_REVIEW'
     ? {verdict:'pass',issues:[],coverage:[]}
     : {sections:plan.sections.map(({key,title,sourceItemIds})=>({key,title,markdown:'',sourceItemIds})),requirements:plan.requirements.map(({id,category,title,description,priority,sourceItemIds})=>({id,category,title,description,priority,sourceItemIds,acceptanceCriteria:priority==='P0'?[{text:'완료 결과 표시',sourceItemIds}]:[],openIssueIds:[]}))};
-  return {task,promptVersion:'v1',schemaVersion:'v1',designRevision:2,payload,referencedItemIds:plan.confirmedItemIds,referencedSourceIds:[],warnings:[]};
+  return {task,promptVersion:task==='REQUIREMENTS_DRAFT'?'v2':'v1',schemaVersion:'v1',designRevision:2,payload,referencedItemIds:plan.confirmedItemIds,referencedSourceIds:[],warnings:[]};
 }
 
 test('requires a valid authenticated session before validating or calling AI', async () => {
@@ -125,7 +125,7 @@ async function repairGeneration() {
   const repairedSection = { ...draft.payload.sections[0], markdown: '수정된 제품 정의' };
   const review = providerOutput('requirements_review', plan);
   const repairableReview = { ...review, payload: { ...review.payload, verdict: 'repairable', issues: [issue] } };
-  const repair = { ...draft, task: 'REQUIREMENTS_REPAIR', payload: { sections: [repairedSection], resolvedIssueIds: [] } };
+  const repair = { ...draft, task: 'REQUIREMENTS_REPAIR', promptVersion: 'v1', payload: { sections: [repairedSection], resolvedIssueIds: [] } };
   const outputs = [draft, repairableReview, repair, review];
   const calls = [];
   const res = createMockRes();

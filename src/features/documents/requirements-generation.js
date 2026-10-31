@@ -2,6 +2,7 @@ import { computeDesignReadiness } from '../design/readiness.js';
 import { buildRequirementsPlan, REQUIREMENTS_SECTIONS, validateRequirementsPlan } from './document-plan.js';
 import { schemas, validateSchema } from '../../infrastructure/ai/schemas/index.js';
 import { validateReferences, validateResponseMetadata } from '../../infrastructure/ai/context-manifest.js';
+import { getPromptDefinition } from '../../infrastructure/ai/prompt-registry.js';
 
 const nowIso = () => new Date().toISOString();
 const makeId = () => globalThis.crypto.randomUUID();
@@ -65,7 +66,8 @@ function summarizeReferenceErrors(errors) {
 function validateTaskOutput(task, output, revision, manifest, targetContext) {
   const schemaResult = validateSchema(schemas.envelopes[task], output);
   if (!schemaResult.valid) return { ...schemaResult, diagnosticCategory: 'schema_invalid' };
-  const metadata = validateResponseMetadata(output, { task, promptVersion: 'v1', schemaVersion: 'v1', designRevision: revision });
+  const { promptVersion, schemaVersion } = getPromptDefinition(task);
+  const metadata = validateResponseMetadata(output, { task, promptVersion, schemaVersion, designRevision: revision });
   if (!metadata.valid) return { ...metadata, diagnosticCategory: 'metadata_invalid' };
   const references = validateReferences(output, manifest, targetContext);
   return references.valid ? references : { ...references, diagnosticCategory: 'references_invalid', diagnosticDetails: summarizeReferenceErrors(references.errors) };
@@ -115,7 +117,8 @@ export async function generateRequirements({ aggregate, runTask, logicalRequestI
     return { id: idFactory(), projectId: aggregate.project.id, documentId, key, title, markdown: section.markdown, order, sourceItemIds: section.sourceItemIds, origin: 'generated', syncStatus: aggregate.project.designRevision === revision ? 'current' : 'stale', updatedAt: timestamp };
   });
   const document = { id: documentId, projectId: aggregate.project.id, type: 'requirements', title: `${aggregate.project.title} 요구사항`, status: 'review_required', designRevision: revision, version: Math.max(0, ...(aggregate.documents ?? []).filter((entry) => entry.type === 'requirements').map((entry) => entry.version)) + 1, sectionIds: sections.map(({ id }) => id), requirements: finalDraft.payload.requirements, openIssues: plan.openIssues, reviewIssues: userReviewRequired ? reviewIssues : [], createdAt: timestamp, updatedAt: timestamp };
-  const job = { id: generationJobId ?? idFactory(), projectId: aggregate.project.id, logicalRequestId, attemptId, type: 'REQUIREMENTS_DRAFT', promptVersion: 'v1', schemaVersion: 'v1', modelProfile: 'DEFAULT', resolvedModel: 'gpt-5-mini', reasoningEffort: 'low', designRevision: revision, status: 'succeeded', targetIds: [documentId, ...sections.map(({ id }) => id)], startedAt: timestamp, finishedAt: timestamp };
+  const { promptVersion, schemaVersion } = getPromptDefinition('REQUIREMENTS_DRAFT');
+  const job = { id: generationJobId ?? idFactory(), projectId: aggregate.project.id, logicalRequestId, attemptId, type: 'REQUIREMENTS_DRAFT', promptVersion, schemaVersion, modelProfile: 'DEFAULT', resolvedModel: 'gpt-5-mini', reasoningEffort: 'low', designRevision: revision, status: 'succeeded', targetIds: [documentId, ...sections.map(({ id }) => id)], startedAt: timestamp, finishedAt: timestamp };
   return { document, sections, requirements: finalDraft.payload.requirements, openIssues: plan.openIssues, reviewIssues: userReviewRequired ? reviewIssues : [], job, plan, processStatus: 'review_required' };
 }
 

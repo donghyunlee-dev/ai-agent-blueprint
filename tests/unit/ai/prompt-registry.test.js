@@ -23,6 +23,15 @@ test('unknown task, prompt version, schema id, and schema version fail closed', 
   assert.throws(() => getSchemaDefinitionAtVersion('turn.analyze.v1', 'v2'), /turn.analyze.v1.*v2/);
 });
 
+test('Requirements draft only links open issues explicitly present in the validated plan', () => {
+  const prompt = getPromptDefinition('REQUIREMENTS_DRAFT');
+  assert.equal(prompt.promptVersion, 'v2');
+  assert.equal(prompt.schemaVersion, 'v1');
+  assert.match(prompt.developerTemplate, /openIssues에 실제로 제공된 ID만/);
+  assert.match(prompt.developerTemplate, /openIssues가 비어 있으면 모든 requirement의 openIssueIds는 빈 배열/);
+  assert.match(prompt.developerTemplate, /ID를 만들거나 추측하지 않는다/);
+});
+
 test('typed input is serialized as user context with source excerpts explicitly untrusted', () => {
   const prompt = getPromptDefinition('TURN_ANALYZE');
   assert.equal(prompt.promptVersion, 'v10');

@@ -12,7 +12,7 @@ const aggregate = {
     item('scope', 'scope'), item('out', 'out_of_scope'), item('metric', 'success_metric'), item('risk', 'risk'),
   ],
 };
-function envelope(task, payload) { return { task, promptVersion: 'v1', schemaVersion: 'v1', designRevision: 1, payload, referencedItemIds: aggregate.designItems.map(({id}) => id), referencedSourceIds: [], warnings: [] }; }
+function envelope(task, payload) { return { task, promptVersion: task === 'REQUIREMENTS_DRAFT' ? 'v2' : 'v1', schemaVersion: 'v1', designRevision: 1, payload, referencedItemIds: aggregate.designItems.map(({id}) => id), referencedSourceIds: [], warnings: [] }; }
 const plan = buildRequirementsPlan(aggregate);
 const sections = () => plan.sections.map(({ key, title, sourceItemIds }) => ({ key, title, markdown: key === 'functional' ? '기능' : '', sourceItemIds }));
 const draft = () => envelope('REQUIREMENTS_DRAFT', { sections: sections(), requirements: plan.requirements.map(({ id, category, title, description, priority, sourceItemIds, acceptanceCriteria }) => ({ id,category,title,description,priority,sourceItemIds,acceptanceCriteria:priority === 'P0' ? [{ text:'결과 표시',sourceItemIds }] : [],openIssueIds:[] })) });
@@ -25,6 +25,8 @@ test('runs deterministic plan then Mini draft/review and returns review_required
   assert.equal(result.document.status, 'review_required');
   assert.equal(result.document.designRevision, 1);
   assert.equal(result.sections.length, 11);
+  assert.equal(result.job.promptVersion, 'v2');
+  assert.equal(result.job.schemaVersion, 'v1');
 });
 
 test('repairs at most once and leaves user-review issues unresolved after final review', async () => {
