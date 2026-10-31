@@ -129,6 +129,24 @@ test('GET turn status returns the owner-scoped outcome and hides it from other u
   assert.equal(other.body.error, 'TURN_NOT_FOUND');
 });
 
+test('GET turn status logs a safe category when Upstash rejects the read', async () => {
+  const logged = [];
+  const originalError = console.error;
+  console.error = (...values) => logged.push(values);
+  try {
+    const res = response();
+    await handler(getRequest({ projectId: 'p1', logicalRequestId: 'logical-1234567890123456' }), res, {
+      store: { async readTurn() { throw Object.assign(new Error('invalid username-password pair, command was: ["GET","private-key"]'), { name: 'UpstashError' }); } },
+    });
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.body.error, 'AUTH_STORE_UNAVAILABLE');
+  } finally {
+    console.error = originalError;
+  }
+  assert.deepEqual(logged, [['AUTH_STORE_OPERATION_FAILED', { operation: 'read_turn_status', category: 'credentials_rejected', errorName: 'UpstashError' }]]);
+  assert.doesNotMatch(JSON.stringify(logged), /private-key|username-password/);
+});
+
 test('TURN drops an ungrounded file proposal without logging request data', async () => {
   const canary = 'private-source-12345678901234567890';
   const priorConsoleError = console.error;

@@ -8,7 +8,7 @@ import { aiModelRegistry } from '../../../src/infrastructure/ai/model-registry.j
 import { canRequestAi } from '../../../src/infrastructure/ai/budget.js';
 import { calculateEstimatedCost } from '../../../src/infrastructure/ai/model-pricing.js';
 import { createLedgerEntry } from '../../../src/infrastructure/ai/request-ledger.js';
-import { getAuthStore } from '../../_lib/auth-store.js';
+import { getAuthStore, logAuthStoreFailure } from '../../_lib/auth-store.js';
 import { requestStructuredOutput, sendJson } from '../../_lib/blueprint-openai.js';
 import { rejectCrossOriginMutation } from '../../_lib/require-session.js';
 import { requireSession } from '../../_lib/session.js';
@@ -19,9 +19,12 @@ import { issueSetupGuideGenerationArtifact } from '../../_lib/requirements-attes
 const MAX_BODY_BYTES = 100_000;
 const TASKS = new Set(['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR', 'SETUP_GUIDE_DRAFT', 'PRD_DRAFT', 'PRD_REVIEW', 'PRD_REPAIR']);
 const fail = (res, status, error, extra = {}) => sendJson(res, status, { error, ...extra });
-async function runStoreOperation(operation) {
+async function runStoreOperation(operationName, operation) {
   try { return await operation(); }
-  catch { throw Object.assign(new Error('AUTH_STORE_UNAVAILABLE'), { code: 'AUTH_STORE_UNAVAILABLE' }); }
+  catch (error) {
+    logAuthStoreFailure(operationName, error);
+    throw Object.assign(new Error('AUTH_STORE_UNAVAILABLE'), { code: 'AUTH_STORE_UNAVAILABLE' });
+  }
 }
 function publicGenerationError(error) {
   if (error?.code === 'AUTH_STORE_UNAVAILABLE' || error?.message === 'AUTH_STORE_UNAVAILABLE') return 'AUTH_STORE_UNAVAILABLE';
@@ -63,12 +66,12 @@ export default async function handler(req, res, deps = {}) {
     key = turnKey(ownerNamespace(session.user), body.projectId, body.logicalRequestId);
     const attemptId = body.attemptId;
     const claimTask = isSetupGuide ? 'SETUP_GUIDE_DRAFT' : isPrd ? 'PRD_DRAFT' : 'REQUIREMENTS_DRAFT';
-    const claim = await runStoreOperation(() => claimTurn(store, key, turnFingerprint(body), attemptId, { task: claimTask, designRevision: body.designRevision }));
+    const claim = await runStoreOperation('claim_document_request', () => claimTurn(store, key, turnFingerprint(body), attemptId, { task: claimTask, designRevision: body.designRevision }));
     if (claim.kind === 'conflict') return fail(res, 409, 'AI_REQUEST_CONFLICT');
     if (claim.kind === 'processing') return fail(res, 409, 'AI_REQUEST_IN_PROGRESS');
     if (claim.kind === 'unknown') return fail(res, 503, 'AI_REQUEST_UNKNOWN');
     if (claim.kind === 'replay') return sendJson(res, 200, claim.result);
-    if (!await runStoreOperation(() => finishTurn(store, key, { status: 'running', attemptId }))) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
+    if (!await runStoreOperation('mark_document_request_running', () => finishTurn(store, key, { status: 'running', attemptId }))) return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
     const aggregate = isPrd
       ? { project: body.project, designItems: body.designItems, documents: body.documents, sections: body.sections, generationJobs: body.generationJobs, proposals: [] }
       : isSetupGuide ? { project:body.project,designItems:body.designItems,sources:body.sources,documents:[],sections:[],generationJobs:[],proposals:[],activityEntries:[] }

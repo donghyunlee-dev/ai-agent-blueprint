@@ -82,11 +82,20 @@ test('classifies turn-store failures before document generation without exposing
   const unavailableStore = { ...store(), async claimTurn() { throw new Error('private Redis connection detail'); } };
   const res = createMockRes();
   let providerCalls = 0;
-  await handler(request(body), res, { store: unavailableStore, requestStructuredOutput: async () => { providerCalls += 1; } });
+  const logged = [];
+  const originalError = console.error;
+  console.error = (...values) => logged.push(values);
+  try {
+    await handler(request(body), res, { store: unavailableStore, requestStructuredOutput: async () => { providerCalls += 1; } });
+  } finally {
+    console.error = originalError;
+  }
   assert.equal(res.statusCode, 503);
   assert.deepEqual(JSON.parse(res.body), { error: 'AUTH_STORE_UNAVAILABLE', retryable: true });
   assert.equal(providerCalls, 0);
   assert.doesNotMatch(res.body, /private Redis connection detail/);
+  assert.deepEqual(logged, [['AUTH_STORE_OPERATION_FAILED', { operation: 'claim_document_request', category: 'unknown_error', errorName: 'Error' }]]);
+  assert.doesNotMatch(JSON.stringify(logged), /private Redis connection detail/);
 });
 
 test('successful API handler returns HTTP 200 after mocked draft and review calls', async () => {

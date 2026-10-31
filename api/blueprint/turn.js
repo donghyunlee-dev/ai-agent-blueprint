@@ -9,7 +9,7 @@ import { calculateEstimatedCost } from '../../src/infrastructure/ai/model-pricin
 import { createLedgerEntry, projectAiUsageFromLedger } from '../../src/infrastructure/ai/request-ledger.js';
 import { aiModelRegistry } from '../../src/infrastructure/ai/model-registry.js';
 import { selectContext } from '../../src/infrastructure/ai/context-selector.js';
-import { getAuthStore } from '../_lib/auth-store.js';
+import { getAuthStore, logAuthStoreFailure } from '../_lib/auth-store.js';
 import { requestStructuredOutput, sendJson } from '../_lib/blueprint-openai.js';
 import { rejectCrossOriginMutation } from '../_lib/require-session.js';
 import { requireSession } from '../_lib/session.js';
@@ -570,7 +570,8 @@ export default async function handler(req, res, deps = {}) {
         requestLedgerEntries: Array.isArray(turn.metadata?.requestLedgerEntries) ? turn.metadata.requestLedgerEntries : [],
         ...(turn.status === 'succeeded' && turn.result ? { result: turn.result } : {}),
       });
-    } catch {
+    } catch (error) {
+      logAuthStoreFailure('read_turn_status', error);
       return fail(res, 503, 'AUTH_STORE_UNAVAILABLE');
     }
   }
