@@ -13,7 +13,7 @@ test('all documented AI tasks have exact profile and token limits', () => {
     const value = aiModelRegistry.tasks[task];
     assert.deepEqual(value, { profile, reasoning: ['TURN_ANALYZE', 'OPTION_RECOMMEND'].includes(task) ? 'minimal' : 'low', maxInputTokens, maxOutputTokens, timeoutMs });
     const prompt = promptRegistry[task];
-    const promptVersion=['TURN_ANALYZE','OPTION_RECOMMEND'].includes(task)?'v10':['PRD_REVIEW','CONSISTENCY_REVIEW'].includes(task)?'v2':'v1';
+    const promptVersion=task === 'TURN_ANALYZE' ? 'v10' : task === 'OPTION_RECOMMEND' ? 'v11':['PRD_REVIEW','CONSISTENCY_REVIEW'].includes(task)?'v2':'v1';
     const schemaVersion=['TURN_ANALYZE','OPTION_RECOMMEND'].includes(task)?'v7':promptVersion;
     assert.deepEqual([prompt.promptId, prompt.promptVersion, prompt.schemaId, prompt.schemaVersion], [task.toLowerCase().replaceAll('_','.'), promptVersion, `${task.toLowerCase().replaceAll('_','.')}.${schemaVersion}`, schemaVersion]);
   }
@@ -29,7 +29,7 @@ test('TURN_ANALYZE prompt restricts message evidence to user-authored sources', 
 });
 test('OPTION_RECOMMEND prompt restricts message evidence to user-authored context IDs', () => {
   const prompt = getPromptDefinition('OPTION_RECOMMEND');
-  assert.equal(prompt.promptVersion, 'v10');
+  assert.equal(prompt.promptVersion, 'v11');
   assert.equal(prompt.schemaVersion, 'v7');
   assert.match(prompt.developerTemplate, /userInput\.id/);
   assert.match(prompt.developerTemplate, /conversationContext.*role.*user/);

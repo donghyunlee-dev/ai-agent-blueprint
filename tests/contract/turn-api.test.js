@@ -53,7 +53,7 @@ function currentRecommendationOutput(value) {
     : payload.recommendations;
   return {
     ...value,
-    promptVersion: 'v7',
+    promptVersion: 'v11',
     schemaVersion: 'v7',
     payload: {
       m: shortText(payload.assistantMessage, 12),
@@ -74,9 +74,9 @@ async function runHandler(req, res, deps = {}) {
         const contextText = userContent.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)?.[1];
         const batch = contextText ? JSON.parse(contextText).recommendationBatch : undefined;
         const start = batch?.index === 3 ? 8 : batch?.index === 2 ? 4 : 0;
-        output = { ...output, promptVersion: 'v10', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
+        output = { ...output, promptVersion: 'v11', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
       }
-      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v10', schemaVersion: 'v7' };
+      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v11', schemaVersion: 'v7' };
       return output;
     },
   });
@@ -447,6 +447,35 @@ test('explicit recommendation requests use OPTION_RECOMMEND and normalize compac
   assert.equal(secondBatchContext.recommendationBatch.previousTitles.length, 4);
   assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.after.type, 'requirement');
   assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.evidence[0].sourceId, 'm1');
+});
+
+test('OPTION_RECOMMEND retry names prior titles when a later batch duplicates a candidate', async () => {
+  const calls = [];
+  const outputFor = (titles) => ({
+    task: 'OPTION_RECOMMEND', promptVersion: 'v7', schemaVersion: 'v7', designRevision: 0,
+    payload: { m: '추천 후보', r: titles.map((title) => ({ t: title, r: '중복 예약 방지', x: [], a: [], e: { s: 'message', i: 'm1' }, k: 'requirement', d: '충돌 시 차단' })) },
+    referencedItemIds: [], referencedSourceIds: [], warnings: [],
+  });
+  const first = ['기본1', '기본2', '기본3', '기본4'];
+  const duplicateBatch = ['기본1', '후보5', '후보6', '후보7'];
+  const correctedBatch = ['다른5', '다른6', '다른7', '다른8'];
+  const finalBatch = ['마지막9', '마지막0', '추가11'];
+  const res = response();
+  await runHandler(request({ ...body, logicalRequestId: 'logical-recommend-title-retry-123', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약에 맞는 추천안 11개를 보여주세요.' } }), res, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async (input) => {
+      calls.push(input);
+      const context = JSON.parse(input.messages[2].content.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)[1]);
+      if (context.recommendationBatch.index === 1) return outputFor(first);
+      if (context.recommendationBatch.index === 2) return outputFor(calls.length === 3 ? correctedBatch : duplicateBatch);
+      return outputFor(finalBatch);
+    },
+  });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(calls.length, 4);
+  assert.match(calls[2].messages[1].content, /\["기본1","기본2","기본3","기본4"\]/);
+  assert.match(calls[2].messages[1].content, /이번 묶음 안에서도 각 후보 제목이 서로 달라야/);
+  assert.equal(res.body.recommendationCandidates.candidates.length, 11);
 });
 
 test('OPTION_RECOMMEND stops before a later batch when cumulative call budget is exhausted', async () => {
@@ -839,7 +868,7 @@ test('recommendation evidence accepts only user-authored messages or request exc
     ],
     sources: [source],
   };
-  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
+  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v11', schemaVersion: 'v7', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
 
   const assistantEvidence = response();
   let assistantCalls = 0;
@@ -881,7 +910,7 @@ test('recommendation evidence accepts only user-authored messages or request exc
 
 test('contextual text targets preserve the actual answer and route only explicit recommendation actions', async () => {
   const prompt='“추천해 주세요”라는 예시와 관계없이 예약 기준을 입력해 주세요.';
-  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v10',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
+  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v11',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
   const cases=[
     {mode:'number',text:'24',value:{numberValue:24}},
     {mode:'range',text:'9–18',value:{rangeValue:{start:9,end:18}}},
