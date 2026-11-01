@@ -1,5 +1,21 @@
 # CON-PR-05 validation results
 
+## Live acceptance harness preparation — 2026-11-01
+
+Added `npm run test:e2e:live-preview`, an opt-in Playwright flow that uses the protected Preview, synthetic Preview session, real conversation/document APIs, explicit proposal approval, document readiness, and same-revision PRD generation/download. It does not mock APIs or attempt Google OAuth. Before the browser starts, the config checks that the deployment is Ready Preview for the exact expected Git ref and commit SHA; the test uses only a fresh browser context and read-only IndexedDB assertions.
+
+| Check | Result |
+| --- | --- |
+| Live test TypeScript check and `git diff --check` | Passed |
+| `npm run build` | Passed; existing >500 kB chunk-size warning |
+| Deterministic CON-PR-05, Requirements, and PRD Playwright suite | 42 passed across desktop and mobile |
+| PR #99 GitHub CI | Passed `npm run test:ci` and `npm audit --omit=dev`; workflow [41262787396](https://github.com/donghyunlee-dev/ai-agent-blueprint/actions/runs/41262787396) completed successfully. The separate UI evidence workflow [41262787308](https://github.com/donghyunlee-dev/ai-agent-blueprint/actions/runs/41262787308) also passed. |
+| `npm run test:e2e:live-preview -- --list` against Preview `dpl_H62WHvFbwetV38e5pFWcCbe2c2xZ`, ref `codex/contextual-recommendation-action`, SHA `6a231402c180609c72079b91706a91d221418e24` | Passed; found the isolated live test and verified exact deployment source metadata |
+| Live provider browser flow | Not run: local Vercel environment cannot retrieve `PREVIEW_E2E_SESSION_TOKEN`, `OPENAI_API_KEY`, or either Upstash secret; this Preview branch has no Upstash resource connected. Existing live diagnostics show Redis `ENOTFOUND` before OpenAI, so the flow cannot reach conversation or document generation. |
+| Production URL guard | Passed runtime negative check; config rejected the Ready Production deployment before Playwright started |
+
+The Vercel CLI lists the branch's Preview secrets as Hidden but does not return their values to local commands. A human must provision/connect a dedicated Preview Redis, correct the branch-scoped Redis URL/token, and securely provide the existing Preview session token to the local run environment. Do not reuse Production Redis. Once storage reads and writes work, run the documented command with the exact product deployment SHA. Until then, no live-provider or Requirements/PRD completion claim is established.
+
 ## Follow-up after Preview key refresh — 2026-10-31
 
 After the user updated the protected Preview `OPENAI_API_KEY` and redeployed, Preview session bootstrap returned 204 and session lookup returned 200. On the deployed `d23ee8a` build at `https://windsoft-agent-blueprint-9xm98wqbe.vercel.app`, a live free turn returned 200; `OPTION_RECOMMEND` returned 11 candidates (200), a selected candidate persisted as a proposal (200), and the user-visible proposal approval succeeded. Requirements generation did not run because the approved recommendation alone left the design readiness gate blocked. A second scenario with answered follow-ups reached `AI_INVALID_OUTPUT`: sanitized runtime logs identified recommendation `recommendation_batch_count` after two attempts and `TURN_ANALYZE` responses reaching the existing 1,800-token output limit. The failure was reproducible with the exact Preview but not caused by key configuration.
