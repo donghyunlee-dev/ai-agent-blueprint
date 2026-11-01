@@ -9,6 +9,7 @@ Added `npm run test:e2e:live-preview`, an opt-in Playwright flow that uses the p
 | Live test TypeScript check and `git diff --check` | Passed |
 | `npm run build` | Passed; existing >500 kB chunk-size warning |
 | Deterministic CON-PR-05, Requirements, and PRD Playwright suite | 42 passed across desktop and mobile |
+| PR #99 GitHub CI | Passed `npm run test:ci` and `npm audit --omit=dev`; workflow [41262787396](https://github.com/donghyunlee-dev/ai-agent-blueprint/actions/runs/41262787396) completed successfully. The separate UI evidence workflow [41262787308](https://github.com/donghyunlee-dev/ai-agent-blueprint/actions/runs/41262787308) also passed. |
 | `npm run test:e2e:live-preview -- --list` against Preview `dpl_H62WHvFbwetV38e5pFWcCbe2c2xZ`, ref `codex/contextual-recommendation-action`, SHA `6a231402c180609c72079b91706a91d221418e24` | Passed; found the isolated live test and verified exact deployment source metadata |
 | Live provider browser flow | Not run: local Vercel environment cannot retrieve `PREVIEW_E2E_SESSION_TOKEN`, `OPENAI_API_KEY`, or either Upstash secret; this Preview branch has no Upstash resource connected. Existing live diagnostics show Redis `ENOTFOUND` before OpenAI, so the flow cannot reach conversation or document generation. |
 | Production URL guard | Passed runtime negative check; config rejected the Ready Production deployment before Playwright started |
