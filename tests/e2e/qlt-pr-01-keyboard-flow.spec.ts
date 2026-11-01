@@ -292,7 +292,7 @@ test('keyboard-only project creation through PRD download without Google OAuth',
       await route.fulfill({ status: 200, json: {
         document: { id: documentId, projectId, type: 'requirements', title: '회의실 예약 요구사항 명세', status: 'review_required', designRevision: body.designRevision, version: 1, sectionIds: sections.map((section) => section.id), requirements: [{ id: 'keyboard-REQ-001', category: 'functional', title: '예약 충돌 확인', description: '예약 요청이 기존 일정과 충돌하는지 확인한다.', priority: 'P0', sourceItemIds: requirement ? [requirement.id] : [], acceptanceCriteria: [{ text: '예약 결과와 충돌 여부를 담당자가 확인할 수 있다.', sourceItemIds: requirement ? [requirement.id] : [] }], openIssueIds: [] }], requirementLinks: [{ sectionKey: 'functional', requirementIds: ['keyboard-REQ-001'] }], openIssues: [], reviewIssues: [], generationArtifact: 'keyboard-requirements-generated', createdAt: now, updatedAt: now },
         sections,
-        job: { id: 'keyboard-requirements-job', projectId, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, type: 'REQUIREMENTS_DRAFT', promptVersion: 'v1', schemaVersion: 'v1', modelProfile: 'DEFAULT', resolvedModel: 'gpt-5-mini', reasoningEffort: 'low', designRevision: body.designRevision, status: 'succeeded', targetIds: [documentId], startedAt: now, finishedAt: now },
+        job: { id: 'keyboard-requirements-job', projectId, logicalRequestId: body.logicalRequestId, attemptId: body.attemptId, type: 'REQUIREMENTS_DRAFT', promptVersion: 'v2', schemaVersion: 'v1', modelProfile: 'DEFAULT', resolvedModel: 'gpt-5-mini', reasoningEffort: 'low', designRevision: body.designRevision, status: 'succeeded', targetIds: [documentId], startedAt: now, finishedAt: now },
       } });
       return;
     }

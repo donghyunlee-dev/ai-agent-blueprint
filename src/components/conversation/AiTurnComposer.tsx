@@ -39,12 +39,13 @@ type AiTurnComposerProps = {
   aggregate: BlueprintAggregate;
   projectId: string;
   onAggregateChange: (aggregate: BlueprintAggregate) => void;
+  onUserTurn: () => void;
   persistAggregate: (aggregate: BlueprintAggregate) => Promise<void>;
   activeTurnCancellationRef: MutableRefObject<{jobId:string;abort:()=>void}|null>;
   contextualSubmitRef?: MutableRefObject<((response:ContextualResponse)=>Promise<void>)|null>;
 };
 
-export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persistAggregate, activeTurnCancellationRef, contextualSubmitRef }: AiTurnComposerProps) {
+export function AiTurnComposer({ aggregate, projectId, onAggregateChange, onUserTurn, persistAggregate, activeTurnCancellationRef, contextualSubmitRef }: AiTurnComposerProps) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string|null>(null);
@@ -53,7 +54,7 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
   const [confirmedUnknownJobId, setConfirmedUnknownJobId] = useState<string|null>(null);
   useEffect(() => { const timer=window.setInterval(()=>setRecoveryNow(Date.now()),60_000); return ()=>window.clearInterval(timer); }, []);
   const controllerRef = useRef<AbortController|null>(null);
-  const pendingTurnRef = useRef<{text:string;logicalRequestId:string;generationJobId:string;userMessage:ConversationMessage}|null>(null);
+  const pendingTurnRef = useRef<{text:string;requestKey:string;logicalRequestId:string;generationJobId:string;userMessage:ConversationMessage}|null>(null);
   const aggregateRef = useRef(aggregate);
   aggregateRef.current = aggregate;
   const unknownJob = aggregate.generationJobs.filter((item)=>item.errorCode==='AI_REQUEST_UNKNOWN').sort((a,b)=>(b.finishedAt??'').localeCompare(a.finishedAt??''))[0];
@@ -88,7 +89,7 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
       {type:'assistant_text',content:data.assistantMessage},
       ...(data.followUp ? [data.followUp as DisplayBlock] : []),
       ...(data.recommendationCandidates ? [data.recommendationCandidates as DisplayBlock] : []),
-      ...(ids.length ? [{type:'proposal_summary' as const,proposalIds:ids}] : []),
+      ...(ids.length && !data.followUp ? [{type:'proposal_summary' as const,proposalIds:ids}] : []),
     ];
     const valid = prepareDisplayBlocks(nextBlocks, { proposalIds: ids });
     if (!valid.valid) throw new Error('AI_INVALID_OUTPUT');
@@ -197,11 +198,12 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
   async function submitTurn(text:string, kind:'text'|'choice'|'recommendation_choice'='text', responseTo?:ContextualResponse['responseTo']) {
     const current = aggregateRef.current;
     text = text.trim(); if (!text || busy || recovery.blocked) return;
+    const requestKey = JSON.stringify({text,kind,responseTo});
     let pending = pendingTurnRef.current;
-    if (!pending || pending.text !== text) {
+    if (!pending || pending.requestKey !== requestKey) {
       const now = new Date().toISOString();
       const logicalRequestId = crypto.randomUUID();
-      pending = {text,logicalRequestId,generationJobId:crypto.randomUUID(),userMessage:{id:crypto.randomUUID(),threadId:current.thread.id,logicalRequestId,role:'user',kind:'text',content:text,createdAt:now}};
+      pending = {text,requestKey,logicalRequestId,generationJobId:crypto.randomUUID(),userMessage:{id:crypto.randomUUID(),threadId:current.thread.id,logicalRequestId,role:'user',kind:'text',content:text,createdAt:now}};
       pendingTurnRef.current = pending;
     }
     const {logicalRequestId,userMessage} = pending;
@@ -215,6 +217,7 @@ export function AiTurnComposer({ aggregate, projectId, onAggregateChange, persis
       setError('입력을 저장하지 못해 요청을 보내지 않았습니다. 입력은 유지됩니다.');
       return;
     }
+    onUserTurn();
     aggregateRef.current = withUserMessage; onAggregateChange(withUserMessage);
     const contextMessagesBeforeTurn = current.messages.filter((message)=>message.id!==userMessage.id);
     const context = compactConversationContext({messages:contextMessagesBeforeTurn,summary:current.thread.summary,threshold:20});

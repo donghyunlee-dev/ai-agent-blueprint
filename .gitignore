@@ -14,3 +14,7 @@ vite.config.d.ts
 playwright-report/
 test-results/
 coverage/
+.vercel
+.env
+.env.*
+!.env.example

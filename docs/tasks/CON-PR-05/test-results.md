@@ -1,5 +1,90 @@
 # CON-PR-05 validation results
 
+## Follow-up after Preview key refresh — 2026-10-31
+
+After the user updated the protected Preview `OPENAI_API_KEY` and redeployed, Preview session bootstrap returned 204 and session lookup returned 200. On the deployed `d23ee8a` build at `https://windsoft-agent-blueprint-9xm98wqbe.vercel.app`, a live free turn returned 200; `OPTION_RECOMMEND` returned 11 candidates (200), a selected candidate persisted as a proposal (200), and the user-visible proposal approval succeeded. Requirements generation did not run because the approved recommendation alone left the design readiness gate blocked. A second scenario with answered follow-ups reached `AI_INVALID_OUTPUT`: sanitized runtime logs identified recommendation `recommendation_batch_count` after two attempts and `TURN_ANALYZE` responses reaching the existing 1,800-token output limit. The failure was reproducible with the exact Preview but not caused by key configuration.
+
+The current PR #97 source candidate responds to live evidence by limiting each `TURN_ANALYZE` turn to four pending proposals (without changing its 1,800-token budget), constraining later recommendation schemas to exact 4/3 counts, and omitting the follow-up field from those later schemas. Runtime versions are `TURN_ANALYZE` prompt v10/schema v7 and `OPTION_RECOMMEND` prompt/schema v11/v7. Before the latest schema tightening, local validation passed: unit/contract 454/454, golden 57/57, build passed with the existing chunk-size warning, conversation-flow Playwright 38/38, and Requirements/PRD-readiness Playwright 4/4. Live Preview verified free turns, 11 recommendations, selection and proposal approval; another live run showed a candidate/follow-up conflict, now prevented by the later-batch provider schema. Live document generation currently returns `AI_INVALID_OUTPUT` from the protected Preview; request-scoped logs now record the task and sanitized schema, metadata, or reference categories/paths without provider output so the failure can be fixed on evidence. Requirements ready/download and same-revision PRD generation/download remain unverified.
+
+## Latest protected Preview diagnosis — 2026-10-31
+
+The latest deployed PR #97 source (`4dc4025`) was redeployed to `dpl_3CfT31and7krh44ERTfP1RGPXrHL` at `https://windsoft-agent-blueprint-d3xtj19g8.vercel.app` with a fresh branch-scoped Preview test-session token. Synthetic session bootstrap returned 204 and session lookup returned 200. A live free turn returned 200, then `OPTION_RECOMMEND` returned a contextual single-choice follow-up with no candidates, as intended when details were insufficient. Submitting that card reached the provider but returned 502 `AI_OUTPUT_INCOMPLETE`. The deployment runtime recorded `TURN_ANALYZE` / `gpt-5-mini`, 2,454 input tokens, 1,800/1,800 output tokens, and 384 reasoning tokens (`max_output_tokens`).
+
+The source diagnosis found that `resolveTaskModel()` ignored task-level reasoning settings and always used the profile default. This meant the existing `OPTION_RECOMMEND: minimal` setting was not reaching the provider either. The current source fix applies each task's reasoning override, configures `TURN_ANALYZE` as `minimal`, and keeps the 1,800-token cap unchanged. Focused registry and turn API tests pass (47/47); full validation and a fresh live Preview run after this fix remain pending. Requirements-ready/download and same-revision PRD-ready/download are not yet verified.
+
+### Exact Preview after task-level reasoning fix — 2026-10-31
+
+Commit `12bd7d4` was deployed as `dpl_GYx8XeqwygxW68tAD1G5PqqqV6DV` at `https://windsoft-agent-blueprint-r2ywarh4p.vercel.app`. Preview session bootstrap/lookup returned 204/200, the free turn returned 200, and the explicit recommendation request returned a context-generated follow-up with no candidates. Submitting its selected response returned 502 `AI_INVALID_OUTPUT`. Sanitized runtime diagnostics for function request `8qqlw-1793406233372-72ebf2bbadbe` identified `TURN_RESPONSE_VALIDATION_FAILED`, stage `references`, 2 attempts, category `non_user_message_evidence`. This provider output was complete; the remaining failure is evidence grounding. The current source changes the prompt to v9 with an explicit user-authored evidence rule; validation and exact-Preview rerun are pending.
+
+## Preview key refreshed — 2026-10-31
+
+After the user updated the Preview `OPENAI_API_KEY` and redeployed, the latest Ready Preview at `https://windsoft-agent-blueprint-r2ywarh4p.vercel.app` accepted the synthetic session (bootstrap 204, session 200), completed a live free turn (200), and returned a contextual follow-up from `OPTION_RECOMMEND` (200, no candidates because the initial context was insufficient). Submitting the answer still returned 502 `AI_INVALID_OUTPUT`. The response is complete; evidence validation rejects assistant-authored message IDs.
+
+The current source fixes both sides of that contract: `TURN_ANALYZE` prompt v9 and its bounded retry identify `userInput.id` plus user-role `conversationContext` IDs, while `OPTION_RECOMMEND` prompt v10/schema v7 and its retry now use those same actual typed-context keys plus explicit candidate type and per-batch count rules. A regression test verifies that an assistant ID is corrected to a user ID. After the final bounded-evidence fallback change, validation is `npm run test:unit` 451/451, `npm run test:golden` 57/57, `npm run build` passed with the existing large-chunk warning, and deterministic desktop/mobile Playwright passed 48 with 2 viewport skips. A subsequent live answer turn still cited an assistant message after retry (`non_user_message_evidence`); the next live free turn also returned proposal-local domain failures (`invalid_proposal_snapshot`, `unsupported_proposal_field`). The source now retries with explicit allowed-field guidance, then removes only proposal drafts that still fail their own evidence/domain/target/payload checks and preserves the otherwise valid assistant response/follow-up. Regression tests cover both cases. Preview `00dc9d1` accepted the free turn after proposal-local filtering, but live recommendation returned 502 `AI_INVALID_OUTPUT`; Preview `ea7c268` still returned 502 after two attempts. Sanitized runtime logs identified `recommendation_follow_up_conflict`: the provider returned recommendation candidates and a follow-up together. Current local source bumps `OPTION_RECOMMEND` to prompt v10 and explicitly forbids that combination in both the prompt and retry. This fix is uncommitted and unpushed; exact-HEAD live recommendation, 11 candidates, proposal approval, and Requirements → PRD flow remain unverified.
+
+## Current PR #97 candidate — 2026-10-29
+
+### Exact deployed candidate `dbc89e0` — 2026-10-29
+
+The protected Preview for source HEAD `dbc89e077b1d2c733f777dff5f0310df9caab745` is Ready as deployment `dpl_DAbsqMpoDnPBp7hygkm2wKFVg69T` at `https://windsoft-agent-blueprint-fm9ckh09z.vercel.app`. Vercel deployed the 12 API route files successfully after the standalone session route was folded into `/api/auth/session`. A branch-scoped Preview token minted the fixed synthetic session with `POST /api/auth/session` (204); the session probe returned 200. Google OAuth was excluded.
+
+| Check | Result |
+| --- | --- |
+| Exact-deployment protected Preview browser flow: conversation, recommendations, proposals, Requirements, PRD, responsive states | 48 passed, 2 existing viewport skips; deterministic API/session fixtures on desktop and mobile |
+| Initial provider configuration | The first deployment used a rejected Preview key and returned 503 `AI_UNAVAILABLE`. After the user updated the branch-scoped `OPENAI_API_KEY`, deployment `dpl_DyJY7empiGJ6jRqN9h42vQbzf1b9` became Ready; synthetic session bootstrap returned 204 and session probe returned 200 |
+| Live free conversation | A short turn returned 200 in one run. Two other turns stopped at the `TURN_ANALYZE` 1,800-token cap (`gpt-5-mini`, 512 reasoning tokens); runtime requests `869hx-1793256680584-7166999d0ba5` and `9gcvj-1793256978103-22f003e65ce9` returned 502 `AI_OUTPUT_INCOMPLETE` |
+| Live recommendation | The explicit `OPTION_RECOMMEND` path returned 200 with a context-generated single-choice follow-up and no candidates, as designed when required context is missing. A later answer turn returned 502 after two domain-validation attempts because the generated design item used an unsupported type (`invalid_design_item_type`; request `8cmcx-1793257207893-ba503a2f0e4c`) |
+| Requirements → PRD | Not reached; live provider flow is still incomplete |
+| `npm run test:unit` | 444 passed, 0 failed |
+| `npm run test:golden` | 57/57 synthetic fixtures passed; no provider calls |
+| Local conversation, Requirements, and PRD browser suites | 42 passed on desktop and mobile |
+| `npm run build` / bundle-secret check | Passed; existing >500 kB chunk warning; no configured secrets in built assets |
+| Independent review of Preview session route fix | No actionable findings; production logout and headerless Preview logout remain intact |
+
+The key is accepted by the branch-scoped Preview. `TURN_ANALYZE` v8 is deployed as `dpl_A8179PZLuUqvkLsFh6P52VKkHGVj`; live turns and the recommendation follow-up returned 200, and a later request completed all 11 candidates and candidate selection. Approval is not yet verified. Another turn returned 502 after two schema-validation attempts because `f.prompt` exceeded its 160-character limit (`TURN_RESPONSE_VALIDATION_FAILED`, request `j86lg-1793258606720-f0d7bafcb2b7`). The API now feeds that field limit into the bounded correction while logging only sanitized failure categories and schema paths. The next live attempt hit `OPTION_RECOMMEND`'s unchanged 2,000-token cap: 1,877 input and 2,000 output, including 640 reasoning tokens. `OPTION_RECOMMEND` now uses GPT-5 Mini `minimal` reasoning to reserve more of the existing output budget for its 4/4/3 candidates. Before this task-parameter change, turn API coverage passed (40/40), the full unit/contract suite passed (444/444), golden fixtures passed (57/57), and the build passed with the existing chunk-size warning. Live approval, Requirements-ready/download, and same-revision PRD-ready/download remain unverified.
+
+### Deployment route limit and correction
+
+The deployment attempt for `ed597b8` built successfully but Vercel rejected it because the standalone bootstrap route would raise this Hobby deployment to 13 serverless functions (limit 12). Commit `43d240f48edabe5e7e231a867fa657c70c36f118` moves the Preview-only bootstrap into the existing `POST /api/auth/session` route and deletes the standalone route, keeping the source route count at 12. Vercel deployed that correction in the exact candidate above. Independent security review found no actionable issues. Exact-HEAD local validation: `npm run test:unit` **444/444**, `npm run test:golden` **57/57**, `npm run build` passed with the existing chunk-size warning, and `git diff --check` passed.
+
+### Previous exact-HEAD candidate `6bc4c72`
+
+Source Preview HEAD: `6bc4c72453080a5985ba4a05b06366bee20b2455` (`codex/contextual-recommendation-action`), deployed as `dpl_EL2jVEhQ5kN54iWVonSXsyxXtom8` (`https://windsoft-agent-blueprint-q58v8kiiv.vercel.app`). The branch alias resolves to this Ready deployment. The Requirements provider-input fix is deployed in this candidate. Preview fixture browser tests below ran against this exact deployment.
+
+| Check | Result |
+| --- | --- |
+| `npm run test:unit` | 434 passed, 0 failed |
+| `npm run test:golden` | 57/57 synthetic fixtures passed; no provider calls |
+| GitHub `npm run test:e2e:ci` | 315 passed, 5 skipped, 0 failed |
+| Exact-HEAD canvas geometry regression | 1 passed; 94.0158% full-canvas pixel score is diagnostic only under UIR-PR-03A |
+| Protected Preview conversation, Requirements, PRD, proposal, keyboard, and responsive journeys | 48 passed, 2 existing viewport-specific skips; deterministic auth/API fixtures, no Google OAuth |
+| Protected Preview keyboard-only home → PRD download and responsive journeys | 7 passed, 1 existing mobile viewport-matrix skip; deterministic auth/API fixtures, no Google OAuth |
+| `npm run build` / bundle-secret check | Passed; existing >500 kB chunk warning; no configured secrets in built assets |
+| Full-canvas score | 1,479,200 / 1,573,352 (94.0158% at per-channel delta 24), diagnostic only under UIR-PR-03A |
+| Anchor geometry | Exact-HEAD test passed the position and size tolerances in `docs/ui/07-visual-acceptance.md`; report is in `.pr-artifacts/UIR-PR-03/comparison-report.json` |
+| Live provider | Still open. The prior real Preview turn returned `invalid_api_key` (HTTP 401); no live-provider result is claimed by fixture tests. |
+
+The protected Preview browser suite used a short-lived Vercel development OIDC token and did not print or commit it. It verifies the live deployed shell and deterministic user journey, not provider output. GitHub deployment `7405534696` confirms SHA `6bc4c72453080a5985ba4a05b06366bee20b2455`; all listed GitHub checks passed on that SHA.
+
+The Requirements document API previously serialized only the plan for every Requirements task. Commit `3ae92661cb05a5474e215a146ee40e8bb5fc6709` adds regression coverage that inspects the actual serialized provider messages and passes the current draft to review/re-review and the affected sections plus issue instructions to the one allowed repair. Before the fix, all three new assertions failed while the five existing API tests passed; after the fix, the focused Requirements/PRD contracts passed 12/12, the full unit/contract suite passed 434/434, and the production build passed with the existing chunk-size warning.
+
+Commit `f3a77ac8fc921cd1a3f98decbe1e25b9f5b83e6e` initially added a standalone Preview-only synthetic session bootstrap route for live API acceptance without Google OAuth; that route exceeded Vercel's function limit and was removed in `43d240f`. The bootstrap now reuses `POST /api/auth/session`. Its environment token must be branch-scoped and Preview `APP_SESSION_SECRET` must differ from Production; session secrets are not available to `vercel env run`. An earlier real Preview turn returned `invalid_api_key` (HTTP 401). Authenticated real-provider generation remains unverified.
+
+## Current candidate and protected Preview — 2026-10-29
+
+Candidate `2ca794b6e683159b1f06fafaaf1160cdd90a4634` preserves contextual response targets and reports missing session-secret configuration as unavailable. Its protected Preview deployment is `dpl_C3WYqcFfDybgwxfzqhezeSduT998` (`windsoft-agent-blueprint-dy34nyavy.vercel.app`). A branch-scoped synthetic session was accepted by `/api/auth/session`; Google OAuth was not run.
+
+| Check | Result |
+| --- | --- |
+| `npm run test:unit` | 431 passed, 0 failed |
+| Conversation, Requirements, PRD, and proposal browser suites | 48 passed, 2 existing viewport skips, 0 failed; deterministic API/session fixtures on desktop and mobile |
+| `npm run build` | Passed; existing >500 kB chunk-size warning |
+| Independent review of `2ca794b` | No actionable findings |
+| Historical canvas comparison | 1,481,837 / 1,573,352 matching pixels (94.1834%). The prior 95% pixel gate is superseded by UIR-PR-03A; current anchor acceptance is recorded in the PR #97 section below |
+| Real provider turn on Preview | `POST /api/blueprint/turn` returned 503; Vercel runtime recorded provider HTTP 401 `invalid_api_key` for `gpt-5-mini` |
+
+The Production `OPENAI_API_KEY` value currently copied to this branch's Preview scope is invalid, so live recommendation, Requirements generation/ready/download, and same-revision PRD could not be exercised. No prompt, model profile, or token cap was changed. Replace the provider key in Vercel, then refresh the branch-scoped Preview value and repeat the real-browser flow. The failed live response does not count as provider-flow acceptance; deterministic browser results above do not replace it.
+
 ## Post-merge aborted-response evidence recovery — PR #96 — 2026-10-28
 
 An independent review after PR #94 merged found that its status-recovery path applied a succeeded turn without the active request's file excerpts. A recovered proposal backed by an uploaded file could therefore fail normalization as `AI_INVALID_OUTPUT`. PR #96 preserves those request-local excerpts through recovery and adds a regression that aborts the POST body, reads the succeeded result from the owner-scoped status endpoint, and verifies the persisted pending proposal retains the rebased source ID, excerpt, and location. The fix was independently reviewed with no remaining findings (see [`review-notes.md`](./review-notes.md)) and merged to `main` as `01eb994c76a52c6dd7ed102f14e9836ee61c99a1`.
@@ -146,3 +231,23 @@ The evidence workflow now runs the active freeform conversation, contextual choi
 ## Screenshot evidence
 
 See [`docs/delivery/evidence/CON-PR-05/README.md`](../../delivery/evidence/CON-PR-05/README.md) for final-viewport screenshots captured at 1440×900 and 390×844.
+
+## PR #97 live Preview retry — 2026-10-31
+
+| Check | Result |
+| --- | --- |
+| Preview deployment | Ready at [`windsoft-agent-blueprint-9cyzozrmn.vercel.app`](https://windsoft-agent-blueprint-9cyzozrmn.vercel.app), deployment `dpl_6oG3REZpqoLeLSQjdhBj2KhzNFZq`, exact code SHA `c5b51e32d984060b3e2173585354ba9eb13fc385` |
+| Synthetic session, no Google OAuth | `POST /api/auth/session` returned 204; authenticated `GET /api/auth/session` returned 200 |
+| Live conversation API | `POST /api/blueprint/turn` returned 503 `AUTH_STORE_UNAVAILABLE` (Vercel request `9dbzt-1793454413279-859563fd0ad6`); reading the turn status returned the same 503 (request `nc4n9-1793454440669-b984d8cb620b`) |
+| Live Requirements generation | `POST /api/blueprint/documents/generate` returned 502 `AI_GENERATION_FAILED` (Vercel request `kwbjl-1793454300434-ceb094bb2fe0`); the current response does not expose a safe provider diagnostic |
+| Desktop/mobile browser flow | `npm run build` passed with the existing >500 kB chunk warning; the CON-PR-05, Requirements, and PRD readiness Playwright specs passed 42/42 across desktop and mobile. These tests use deterministic API fixtures and do not establish live-provider completion. |
+| Latest exact-HEAD Preview status read | On Ready deployment `dpl_6p3Zd673GnGkxQtU7zQLYG4Zt8ar` at SHA `7b7866dce728c8d29012b3453ca0d3467c67a9c4`, the authenticated turn-status GET again returned 503 `AUTH_STORE_UNAVAILABLE` (requests `fxgnw-1793454732367-cd824cabda60` and `hf5wm-1793455084208-1fdbd5ba3439`) |
+| Preview status read after the user reported updating the OpenAI key and redeploying | Protected Preview session bootstrap returned 204 and session verification returned 200. The authenticated turn-status GET still returned 503 `AUTH_STORE_UNAVAILABLE` on the latest listed deployment (request `fxgnw-1793455559840-4121c737262d`); the request fails in turn-state storage before an OpenAI call, so the key update is not yet verified by a real provider request. |
+| Exact PR #97 HEAD `5747782fed28c2a4d49f3e36d7b5640e0ba4224f` Preview deployment | Vercel deployment `dpl_4vs19YfqXYyDWpD3xeT49iWETYx2` is Ready. Protected session bootstrap/authentication returned 204/200. The authenticated turn-status GET returned 503 `AUTH_STORE_UNAVAILABLE`, so real provider and document-flow acceptance remain unverified on this exact HEAD. |
+| Live Requirements attempt on exact HEAD `5747782fed28c2a4d49f3e36d7b5640e0ba4224f` | `POST /api/blueprint/documents/generate` returned 502 `AI_GENERATION_FAILED` before any provider call because the turn-store claim failed. Commit `e20e6e3` adds a regression test and safe `AUTH_STORE_UNAVAILABLE` classification for this storage failure; its exact-HEAD Preview is pending. |
+| Exact HEAD `e20e6e342e53587c6dd71db5ebc1d01af89f3a60` Preview recheck | Vercel deployment `dpl_By18bevtsToDoaX2UzHeBStrXJC2` is Ready. Protected session bootstrap/authentication returned 204/200. The authenticated turn-status GET returned 503 `AUTH_STORE_UNAVAILABLE`, and a valid Requirements generation request returned 503 `{error: AUTH_STORE_UNAVAILABLE, retryable: true}`. Both are blocked before any OpenAI call. |
+| Safe Redis diagnostics on application HEAD `c8b9eb705e0229d791f22264de61b112bef222e5` | Ready Preview `dpl_5nkmPm8nNo9X9mtXfGiFKgLDtMtW` returned 204/200 for synthetic session bootstrap/authentication. Turn status returned 503 (`7r7lg-1793456709975-d1e192cf135f`) and Requirements generation returned 503 (`hf5wm-1793456715875-eea6a7b7e4d3`). Runtime logs recorded only sanitized `network_error`, `TypeError`, `ENOTFOUND` for the Upstash host lookup; no URL, token, command, or raw error text was logged. Requests fail before OpenAI. |
+| Nov 1 KST exact-source Preview recheck, source HEAD `e62200d5db4ed5af8480c1df93ec1561c5fde97e` | Ready deployment `dpl_AhqBsiN8uS1i6sAYp7EScf7tub7Y`. Synthetic session bootstrap/authentication returned 204/200. Turn-status GET returned 503 `AUTH_STORE_UNAVAILABLE` (`rdlb6-1793462115533-8df335ce4a94`; independent recheck `x922v-1793462125978-6718f5ac850b`) and valid Requirements generation returned 503 `AUTH_STORE_UNAVAILABLE` (`z9vhw-1793462121214-850cdc34e131`). Runtime logs identify sanitized `TypeError`/`ENOTFOUND` for both Redis operations before OpenAI. Preview Upstash variables are still listed as Hidden secrets created 3d ago; no env update is visible. |
+| Preview Upstash configuration diagnosis | `vercel env pull` placed the branch-scoped secrets in a temporary file; a local parser inspected only validity and hostname, then the temporary file was removed. `UPSTASH_REDIS_REST_URL` is not a valid URL (11 characters) and parses to no hostname. The Vercel project has no Upstash integration/resource connected, so the URL must come from the active Upstash DB configuration. Secret values were not printed or committed. |
+
+The Preview branch has `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` configured, but runtime turn-state reads are unavailable on the latest deployment. Vercel CLI masks Preview secrets as `[SENSITIVE]`, so their values and connectivity could not be verified locally. The live Requirements request did not produce a document; readiness confirmation and same-revision PRD generation remain unverified. No Production deployment or Google OAuth request was made.

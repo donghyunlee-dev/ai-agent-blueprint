@@ -248,11 +248,11 @@ test('context-generated follow-up preserves its prompt and submits a referenced 
   await page.getByRole('textbox',{name:'AI에 보낼 자유 답변'}).fill('회의실 예약이 겹칠 때 기준을 정하고 싶습니다.');
   await page.getByRole('button',{name:'AI로 답변 분석'}).click();
   await page.getByRole('button',{name:'동의하고 계속'}).click();
-  const assistant=page.locator('.workspace-message-assistant').last();
-  await expect(assistant.getByRole('heading',{name:'겹치는 예약은 어떤 기준으로 조정할까요?'})).toBeVisible();
-  await expect(assistant.getByRole('radio',{name:/참석 인원과 시간대/})).toBeVisible();
-  await assistant.getByRole('radio',{name:/참석 인원과 시간대/}).check();
-  await assistant.getByRole('button',{name:'답변 제출'}).click();
+  const followUp=page.locator('.conversation-message-row-question .contextual-question-card');
+  await expect(followUp.getByRole('heading',{name:'겹치는 예약은 어떤 기준으로 조정할까요?'})).toBeVisible();
+  await expect(followUp.getByRole('radio',{name:/참석 인원과 시간대/})).toBeVisible();
+  await followUp.getByRole('radio',{name:/참석 인원과 시간대/}).check();
+  await followUp.getByRole('button',{name:'답변 제출'}).click();
   await expect(page.locator('.workspace-message-assistant').filter({hasText:'선택한 기준을 반영해 이어가겠습니다.'})).toBeVisible();
   expect(turnPayloads).toHaveLength(2);
   expect(turnPayloads[1].userTurn).toMatchObject({kind:'choice',responseTo:{messageId:expect.any(String),blockId:'reservation-policy-follow-up',selectedValues:['capacity-window']}});

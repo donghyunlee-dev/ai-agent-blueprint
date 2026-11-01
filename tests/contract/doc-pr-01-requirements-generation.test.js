@@ -12,11 +12,11 @@ const aggregate = {
     item('scope', 'scope'), item('out', 'out_of_scope'), item('metric', 'success_metric'), item('risk', 'risk'),
   ],
 };
-function envelope(task, payload) { return { task, promptVersion: 'v1', schemaVersion: 'v1', designRevision: 1, payload, referencedItemIds: aggregate.designItems.map(({id}) => id), referencedSourceIds: [], warnings: [] }; }
+function envelope(task, payload) { return { task, promptVersion: ['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW'].includes(task) ? 'v2' : 'v1', schemaVersion: 'v1', designRevision: 1, payload, referencedItemIds: aggregate.designItems.map(({id}) => id), referencedSourceIds: [], warnings: [] }; }
 const plan = buildRequirementsPlan(aggregate);
 const sections = () => plan.sections.map(({ key, title, sourceItemIds }) => ({ key, title, markdown: key === 'functional' ? '기능' : '', sourceItemIds }));
 const draft = () => envelope('REQUIREMENTS_DRAFT', { sections: sections(), requirements: plan.requirements.map(({ id, category, title, description, priority, sourceItemIds, acceptanceCriteria }) => ({ id,category,title,description,priority,sourceItemIds,acceptanceCriteria:priority === 'P0' ? [{ text:'결과 표시',sourceItemIds }] : [],openIssueIds:[] })) });
-const review = (verdict, issues = []) => envelope('REQUIREMENTS_REVIEW', { verdict, issues, coverage: [{targetId:'feature',status:'covered'}] });
+const review = (verdict, issues = []) => envelope('REQUIREMENTS_REVIEW', { verdict, issues, coverage: [{targetId:plan.requirements[0].id,status:'covered'}] });
 
 test('runs deterministic plan then Mini draft/review and returns review_required without automatic ready', async () => {
   const calls = [];
@@ -25,6 +25,8 @@ test('runs deterministic plan then Mini draft/review and returns review_required
   assert.equal(result.document.status, 'review_required');
   assert.equal(result.document.designRevision, 1);
   assert.equal(result.sections.length, 11);
+  assert.equal(result.job.promptVersion, 'v2');
+  assert.equal(result.job.schemaVersion, 'v1');
 });
 
 test('repairs at most once and leaves user-review issues unresolved after final review', async () => {
@@ -46,6 +48,44 @@ test('blocks readiness and invalid coverage before provider call', async () => {
   await assert.rejects(() => generateRequirements({ aggregate: blocked, runTask: async () => { count += 1; } }), /REQUIREMENTS_BLOCKED/);
   await assert.rejects(() => generateRequirements({ aggregate, runTask: async () => { count += 1; return { ...draft(), payload: { sections: [], requirements: [] } }; } }), /DOCUMENT_OUTPUT_INVALID/);
   assert.equal(count, 1);
+});
+
+test('classifies an unknown provider reference as a task response validation failure', async () => {
+  await assert.rejects(
+    generateRequirements({ aggregate, runTask: async () => ({ ...draft(), referencedItemIds: ['missing-item'] }) }),
+    (error) => error.diagnostic?.task === 'REQUIREMENTS_DRAFT'
+      && error.diagnostic?.category === 'references_invalid'
+      && error.diagnostic?.details?.includes('$.referencedItemIds:unknown_item_reference'),
+  );
+});
+
+test('classifies a repair response metadata mismatch without exposing provider values', async () => {
+  const calls = [];
+  await assert.rejects(
+    generateRequirements({ aggregate, runTask: async (task) => {
+      calls.push(task);
+      if (task === 'REQUIREMENTS_DRAFT') return draft();
+      if (task === 'REQUIREMENTS_REVIEW') return review('repairable', [{ code: 'COPY', severity: 'warning', sectionKey: 'functional', relatedItemIds: ['feature'], description: '기능 문구를 정리합니다.', repairInstruction: '확정된 기능을 간결하게 표현하세요.' }]);
+      return { ...envelope(task, { sections: sections().filter((section) => section.key === 'functional'), resolvedIssueIds: [] }), promptVersion: 'v2' };
+    } }),
+    (error) => error.diagnostic?.task === 'REQUIREMENTS_REPAIR'
+      && error.diagnostic?.category === 'metadata_invalid'
+      && error.diagnostic?.details?.includes('promptVersion:metadata_mismatch')
+      && !JSON.stringify(error.diagnostic).includes('v2'),
+  );
+  assert.deepEqual(calls, ['REQUIREMENTS_DRAFT', 'REQUIREMENTS_REVIEW', 'REQUIREMENTS_REPAIR']);
+});
+
+test('rejects an acceptance criterion linked to a design item outside its planned requirement sources', async () => {
+  const output = draft();
+  const featureRequirement = output.payload.requirements.find((requirement) => requirement.sourceItemIds.includes('feature'));
+  featureRequirement.acceptanceCriteria[0].sourceItemIds = ['problem'];
+  await assert.rejects(
+    generateRequirements({ aggregate, runTask: async (task) => task === 'REQUIREMENTS_DRAFT' ? output : review('pass') }),
+    (error) => error.diagnostic?.task === 'REQUIREMENTS_DRAFT'
+      && error.diagnostic?.category === 'requirements_draft_contract_invalid'
+      && error.diagnostic?.details?.includes('$.payload.requirements[5].acceptanceCriteria[0].sourceItemIds:outside_planned_requirement_source'),
+  );
 });
 
 test('keeps confirmed out of scope items only in the exclusions section', async () => {

@@ -4,7 +4,7 @@ import { projectDecisionSummary } from '../../src/features/conversation/project-
 
 test('projects confirmed decisions and pending proposals from the current aggregate with source turn IDs', () => {
   const summary = projectDecisionSummary({
-    designItems:[{title:'회의실 예약',description:'충돌을 줄임',status:'confirmed',evidence:[{sourceType:'message',sourceId:'turn-1'}]},{title:'결제 방식',status:'review_required',evidence:[],acceptanceCriteria:[]}],sections:[],
+    designItems:[{title:'회의실 예약',description:'충돌을 줄임',status:'confirmed',evidence:[{sourceType:'message',sourceId:'turn-1'}]},{title:'결제 방식',status:'review_required',evidence:[],acceptanceCriteria:[]},{title:'주요 사용자 대상',status:'deferred',evidence:[],acceptanceCriteria:[]}],sections:[],
     proposals:[{status:'pending',after:{title:'승인 정책'},rationale:'운영 검토 필요',evidence:[{sourceType:'message',sourceId:'turn-2'}]}],
   });
   assert.equal(summary.confirmedFacts[0].text,'회의실 예약 · 충돌을 줄임');
@@ -12,6 +12,7 @@ test('projects confirmed decisions and pending proposals from the current aggreg
   assert.match(summary.unresolvedQuestions[0].text,/승인 정책/);
   assert.deepEqual(summary.unresolvedQuestions[0].sourceMessageIds,['turn-2']);
   assert.equal(summary.explicitUnknowns[0].text,'결제 방식 · 다시 검토 필요');
+  assert.equal(summary.explicitUnknowns[1].text,'주요 사용자 대상 · 나중에 결정');
 });
 
 test('labels stale pending proposals as conflicts in the remaining decisions projection', () => {

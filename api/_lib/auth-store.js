@@ -8,6 +8,35 @@ local count = redis.call('INCR', KEYS[1])
 if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
 return count
 `;
+const STORE_NETWORK_CODES = new Set(['ETIMEDOUT', 'ECONNRESET', 'EPIPE', 'ENOTFOUND', 'ECONNREFUSED', 'UND_ERR_CONNECT_TIMEOUT']);
+const STORE_ERROR_NAMES = new Set(['UpstashError', 'UpstashJSONParseError', 'UrlError', 'TypeError', 'AbortError']);
+
+export function authStoreFailureDetails(operation, error) {
+  const message = String(error?.message ?? '').split(', command was:')[0].toLowerCase();
+  const errorName = STORE_ERROR_NAMES.has(error?.name) ? error.name : 'Error';
+  const code = STORE_NETWORK_CODES.has(error?.code) ? error.code
+    : STORE_NETWORK_CODES.has(error?.cause?.code) ? error.cause.code : undefined;
+  const statusCode = Number.isInteger(error?.statusCode) && error.statusCode >= 400 && error.statusCode <= 599
+    ? error.statusCode : undefined;
+  const category = errorName === 'UrlError' ? 'invalid_url'
+    : statusCode === 401 || statusCode === 403 || /unauthori[sz]ed|authentication|invalid (?:username|password|token)|permission denied/.test(message) ? 'credentials_rejected'
+      : code ? 'network_error'
+        : statusCode === 429 || /rate limit|too many requests/.test(message) ? 'rate_limited'
+          : statusCode >= 500 || /temporarily unavailable|service unavailable|internal server error/.test(message) ? 'service_unavailable'
+            : errorName.startsWith('Upstash') ? 'upstash_rejected'
+              : 'unknown_error';
+  return {
+    operation,
+    category,
+    errorName,
+    ...(code ? { errorCode: code } : {}),
+    ...(statusCode ? { statusCode } : {}),
+  };
+}
+
+export function logAuthStoreFailure(operation, error) {
+  console.error('AUTH_STORE_OPERATION_FAILED', authStoreFailureDetails(operation, error));
+}
 
 function rateLimitKey(operation, ip) {
   const secret = process.env.APP_SESSION_SECRET;

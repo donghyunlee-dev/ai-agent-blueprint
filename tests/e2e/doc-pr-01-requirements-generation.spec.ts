@@ -34,7 +34,7 @@ test('generates a review_required Requirements document and supports section nav
     const sections=sectionKeys.map((key,order)=>({id:`section-${key}`,projectId,documentId,key,title:key==='functional'?'기능 요구사항':key,markdown:'검토 가능한 요구사항',order,sourceItemIds:key==='functional'?['feature']:[],origin:'generated',syncStatus:'current',updatedAt:now}));
     await route.fulfill({status:200,json:{
       document:{id:documentId,projectId,type:'requirements',title:'테스트 요구사항',status:'review_required',designRevision:4,version:1,sectionIds:sections.map((section)=>section.id),requirements:[{id:'REQ-001',category:'functional',title:'화면 결과 표시',description:'사용자에게 확인 결과를 보여준다.',priority:'P0',sourceItemIds:['feature'],acceptanceCriteria:[{text:'사용자가 확인 결과를 볼 수 있다',sourceItemIds:['feature']}],openIssueIds:[]}],openIssues:[],reviewIssues:[{code:'CHECK_COPY',severity:'warning',sectionKey:'functional',relatedItemIds:['feature'],description:'오류 상황의 문구를 확인해 주세요.'}],createdAt:now,updatedAt:now},sections,
-      job:{id:'job-1',projectId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,type:'REQUIREMENTS_DRAFT',promptVersion:'v1',schemaVersion:'v1',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:4,status:'succeeded',targetIds:[documentId],startedAt:now,finishedAt:now},
+      job:{id:'job-1',projectId,logicalRequestId:requestBody.logicalRequestId,attemptId:requestBody.attemptId,type:'REQUIREMENTS_DRAFT',promptVersion:'v2',schemaVersion:'v1',modelProfile:'DEFAULT',resolvedModel:'gpt-5-mini',reasoningEffort:'low',designRevision:4,status:'succeeded',targetIds:[documentId],startedAt:now,finishedAt:now},
     }});
   });
 

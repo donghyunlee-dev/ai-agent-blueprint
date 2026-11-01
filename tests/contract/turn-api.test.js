@@ -32,7 +32,7 @@ function currentTurnAnalyzeOutput(value) {
     x: proposal.affectedItemIds ?? [],
   })) : payload.proposals;
   return {
-    ...value, promptVersion: 'v7', schemaVersion: 'v6',
+    ...value, promptVersion: 'v10', schemaVersion: 'v7',
     payload: { m: payload.assistantMessage, p: proposals, ...(payload.followUp ? { f: payload.followUp } : {}) },
   };
 }
@@ -53,7 +53,7 @@ function currentRecommendationOutput(value) {
     : payload.recommendations;
   return {
     ...value,
-    promptVersion: 'v7',
+    promptVersion: 'v11',
     schemaVersion: 'v7',
     payload: {
       m: shortText(payload.assistantMessage, 12),
@@ -74,9 +74,9 @@ async function runHandler(req, res, deps = {}) {
         const contextText = userContent.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)?.[1];
         const batch = contextText ? JSON.parse(contextText).recommendationBatch : undefined;
         const start = batch?.index === 3 ? 8 : batch?.index === 2 ? 4 : 0;
-        output = { ...output, promptVersion: 'v7', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
+        output = { ...output, promptVersion: 'v11', schemaVersion: 'v7', payload: { ...output.payload, r: output.payload.r.slice(start, start + (batch?.expectedCount ?? 11)) } };
       }
-      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v7', schemaVersion: 'v7' };
+      if (output?.task === 'OPTION_RECOMMEND') output = { ...output, promptVersion: 'v11', schemaVersion: 'v7' };
       return output;
     },
   });
@@ -129,7 +129,25 @@ test('GET turn status returns the owner-scoped outcome and hides it from other u
   assert.equal(other.body.error, 'TURN_NOT_FOUND');
 });
 
-test('TURN validation logs a fixed reference failure category without request data', async () => {
+test('GET turn status logs a safe category when Upstash rejects the read', async () => {
+  const logged = [];
+  const originalError = console.error;
+  console.error = (...values) => logged.push(values);
+  try {
+    const res = response();
+    await handler(getRequest({ projectId: 'p1', logicalRequestId: 'logical-1234567890123456' }), res, {
+      store: { async readTurn() { throw Object.assign(new Error('invalid username-password pair, command was: ["GET","private-key"]'), { name: 'UpstashError' }); } },
+    });
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.body.error, 'AUTH_STORE_UNAVAILABLE');
+  } finally {
+    console.error = originalError;
+  }
+  assert.deepEqual(logged, [['AUTH_STORE_OPERATION_FAILED', { operation: 'read_turn_status', category: 'credentials_rejected', errorName: 'UpstashError' }]]);
+  assert.doesNotMatch(JSON.stringify(logged), /private-key|username-password/);
+});
+
+test('TURN drops an ungrounded file proposal without logging request data', async () => {
   const canary = 'private-source-12345678901234567890';
   const priorConsoleError = console.error;
   const logged = [];
@@ -150,18 +168,38 @@ test('TURN validation logs a fixed reference failure category without request da
       store: createMemoryAuthStore(),
       requestStructuredOutput: async () => invalidOutput,
     });
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.proposals, []);
+  } finally {
+    console.error = priorConsoleError;
+  }
+  assert.deepEqual(logged, []);
+  assert.doesNotMatch(JSON.stringify(logged), new RegExp(canary));
+  assert.doesNotMatch(JSON.stringify(logged), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
+});
+
+test('TURN validation logs sanitized schema paths without model output', async () => {
+  const canary = 'private-model-output-canary';
+  const priorConsoleError = console.error;
+  const logged = [];
+  console.error = (...values) => logged.push(values);
+  try {
+    const invalidOutput = {
+      task: 'TURN_ANALYZE', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0,
+      payload: { m: '확인했습니다.', p: [], [canary]: true },
+      referencedItemIds: [], referencedSourceIds: [], warnings: [],
+    };
+    const res = response();
+    await runHandler(request(body), res, { store: createMemoryAuthStore(), requestStructuredOutput: async () => invalidOutput });
     assert.equal(res.statusCode, 502);
     assert.equal(res.body.error, 'AI_INVALID_OUTPUT');
   } finally {
     console.error = priorConsoleError;
   }
   assert.deepEqual(logged, [['TURN_RESPONSE_VALIDATION_FAILED', {
-    stage: 'references',
-    attempts: 2,
-    referenceFailures: ['non_request_excerpt_file_evidence', 'unknown_source_reference'],
+    stage: 'schema', attempts: 2, schemaFailures: ['$.payload.*:additional_property'],
   }]]);
   assert.doesNotMatch(JSON.stringify(logged), new RegExp(canary));
-  assert.doesNotMatch(JSON.stringify(logged), /conversation-text-canary|prior-conversation-canary|file-content-canary/);
 });
 
 test('OPTION_RECOMMEND validation logs a fixed domain failure category without model output', async () => {
@@ -274,8 +312,9 @@ test('turn endpoint validates, calls the injected provider, and replays success 
   assert.ok(recordedMetadata[0].estimatedInputTokens > 0);
   assert.equal(providerConfig.timeoutMs, 120_000);
   assert.equal(providerConfig.model, 'gpt-5-mini');
-  assert.equal(providerConfig.reasoningEffort, 'low');
+  assert.equal(providerConfig.reasoningEffort, 'minimal');
   assert.equal(providerConfig.maxOutputTokens, 1800);
+  assert.equal(providerConfig.schema.properties.payload.properties.p.maxItems, 4);
   assert.doesNotMatch(JSON.stringify(recordedMetadata[0]), /hello|Test|p1/);
   const retry = response();
   await runHandler(request({ ...body, attemptId: 'attempt-2' }), retry, deps);
@@ -414,7 +453,10 @@ test('explicit recommendation requests use OPTION_RECOMMEND and normalize compac
   assert.equal(res.statusCode, 200, `${JSON.stringify(res.body)} calls=${calls.length} name=${calls[0]?.name ?? 'none'}`);
   assert.equal(calls.length, 3);
   assert.equal(calls[0].name, 'option_recommend');
+  assert.equal(calls[0].reasoningEffort, 'minimal');
   assert.equal(calls[0].maxOutputTokens, 2000);
+  assert.deepEqual(calls.slice(0, 3).map((call) => [call.schema.properties.payload.properties.r.minItems, call.schema.properties.payload.properties.r.maxItems]), [[0, 4], [4, 4], [3, 3]]);
+  assert.deepEqual(calls.slice(0, 3).map((call) => Object.hasOwn(call.schema.properties.payload.properties, 'f')), [true, false, false]);
   assert.deepEqual(calls.slice(0, 3).map((call) => JSON.parse(call.messages[2].content.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)[1]).recommendationBatch.expectedCount), [4, 4, 3]);
   assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   assert.equal(res.body.proposals.length, 0);
@@ -424,6 +466,35 @@ test('explicit recommendation requests use OPTION_RECOMMEND and normalize compac
   assert.equal(secondBatchContext.recommendationBatch.previousTitles.length, 4);
   assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.after.type, 'requirement');
   assert.equal(res.body.recommendationCandidates.candidates[0].proposalDraft.evidence[0].sourceId, 'm1');
+});
+
+test('OPTION_RECOMMEND retry names prior titles when a later batch duplicates a candidate', async () => {
+  const calls = [];
+  const outputFor = (titles) => ({
+    task: 'OPTION_RECOMMEND', promptVersion: 'v7', schemaVersion: 'v7', designRevision: 0,
+    payload: { m: '추천 후보', r: titles.map((title) => ({ t: title, r: '중복 예약 방지', x: [], a: [], e: { s: 'message', i: 'm1' }, k: 'requirement', d: '충돌 시 차단' })) },
+    referencedItemIds: [], referencedSourceIds: [], warnings: [],
+  });
+  const first = ['기본1', '기본2', '기본3', '기본4'];
+  const duplicateBatch = ['기본1', '후보5', '후보6', '후보7'];
+  const correctedBatch = ['다른5', '다른6', '다른7', '다른8'];
+  const finalBatch = ['마지막9', '마지막0', '추가11'];
+  const res = response();
+  await runHandler(request({ ...body, logicalRequestId: 'logical-recommend-title-retry-123', userTurn: { id: 'm1', kind: 'text', text: '회의실 예약에 맞는 추천안 11개를 보여주세요.' } }), res, {
+    store: createMemoryAuthStore(),
+    requestStructuredOutput: async (input) => {
+      calls.push(input);
+      const context = JSON.parse(input.messages[2].content.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)[1]);
+      if (context.recommendationBatch.index === 1) return outputFor(first);
+      if (context.recommendationBatch.index === 2) return outputFor(calls.length === 3 ? correctedBatch : duplicateBatch);
+      return outputFor(finalBatch);
+    },
+  });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(calls.length, 4);
+  assert.match(calls[2].messages[1].content, /\["기본1","기본2","기본3","기본4"\]/);
+  assert.match(calls[2].messages[1].content, /이번 묶음 안에서도 각 후보 제목이 서로 달라야/);
+  assert.equal(res.body.recommendationCandidates.candidates.length, 11);
 });
 
 test('OPTION_RECOMMEND stops before a later batch when cumulative call budget is exhausted', async () => {
@@ -535,10 +606,13 @@ test('turn endpoint retries recommendations whose proposal drafts cannot create 
   const valid = recommendationOutput(Array.from({ length: 11 }, (_, index) => makeCandidate(index, () => ({ type: 'requirement', description: '예약 충돌을 줄입니다.' }))));
   const requestBody = { ...body, logicalRequestId: 'logical-recommendation-retry-123', userTurn: { id: 'm1', kind: 'text', text: '추천해 주세요. 예약 충돌을 줄이고 싶어요.' } };
   let calls = 0;
+  const inputs = [];
   const res = response();
-  await runHandler(request(requestBody), res, { store: createMemoryAuthStore(), requestStructuredOutput: async () => (++calls === 1 ? invalid : valid) });
+  await runHandler(request(requestBody), res, { store: createMemoryAuthStore(), requestStructuredOutput: async (input) => { inputs.push(input); return (++calls === 1 ? invalid : valid); } });
   assert.equal(res.statusCode, 200, JSON.stringify(res.body));
   assert.equal(calls, 4);
+  assert.match(inputs[1].messages[1].content, /recommendationBatch\.expectedCount/);
+  assert.match(inputs[1].messages[1].content, /product_definition, problem, goal, user_role/);
   assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   assert.equal(res.body.recommendationCandidates.candidates.every((candidate) => candidate.proposalDraft.after.type === 'requirement' && typeof candidate.proposalDraft.after.description === 'string'), true);
 });
@@ -558,11 +632,14 @@ test('turn endpoint uses bounded correction for malformed recommendation candida
   delete invalidCandidates[0].title;
   const invalidFollowUp = outputFor([]);
   invalidFollowUp.payload.followUp = { componentType: 'free_text', topic: '예약', prompt: '어떤 조건인가요?', options: 'not-an-array', required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] };
+  const conflictingFollowUp = outputFor(Array.from({ length: 11 }, (_, index) => candidate(index)));
+  conflictingFollowUp.payload.followUp = { componentType: 'free_text', topic: '예약', prompt: '어떤 조건인가요?', required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] };
   const invalidOutputs = [
     outputFor(invalidCandidates),
     outputFor({ not: 'an array' }),
     outputFor([null, ...Array.from({ length: 10 }, (_, index) => candidate(index))]),
     invalidFollowUp,
+    conflictingFollowUp,
   ];
   for (const [index, invalidOutput] of invalidOutputs.entries()) {
     const outputs = [invalidOutput, outputFor(Array.from({ length: 11 }, (_, candidateIndex) => candidate(candidateIndex)))];
@@ -575,7 +652,8 @@ test('turn endpoint uses bounded correction for malformed recommendation candida
     });
     assert.equal(res.statusCode, 200, `case=${index} calls=${calls} ${JSON.stringify(res.body)}`);
     assert.equal(calls, 4);
-    assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: 지정된 JSON Schema를 따르고 이번 묶음에 필요한 후보만/);
+    if (index === 4) assert.match(inputs[1].messages[1].content, /후보가 있으면 f를 생략하고/);
+    else assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: 지정된 JSON Schema를 따르고 이번 묶음에 필요한 후보만/);
     assert.equal(res.body.recommendationCandidates.candidates.length, 11);
   }
 });
@@ -598,6 +676,23 @@ test('TURN_ANALYZE uses bounded correction when follow-up options are not an arr
   assert.match(inputs[1].messages[1].content, /VALIDATION RETRY: The previous response did not match the required JSON schema/);
 });
 
+test('TURN_ANALYZE names the field limit when a contextual follow-up exceeds its schema bound', async () => {
+  const invalid = {
+    task: 'TURN_ANALYZE', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0,
+    payload: { m: '확인했습니다.', p: [], f: { componentType: 'free_text', topic: '예약', prompt: '가'.repeat(161), required: true, allowCustomAnswer: true, allowUnknown: true, allowDefer: true, targetItemTypes: ['requirement'] } },
+    referencedItemIds: [], referencedSourceIds: [], warnings: [],
+  };
+  const inputs = [];
+  const res = response();
+  await runHandler(request(body), res, { store: createMemoryAuthStore(), requestStructuredOutput: async (input) => {
+    inputs.push(input);
+    return inputs.length === 1 ? invalid : { ...invalid, payload: { ...invalid.payload, f: { ...invalid.payload.f, prompt: '예약 우선순위를 알려주세요.' } } };
+  } });
+  assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+  assert.equal(inputs.length, 2);
+  assert.match(inputs[1].messages[1].content, /f\.prompt must be at most 160 characters/);
+});
+
 test('turn endpoint gives a bounded reference correction when the provider invents item IDs', async () => {
   const invalid = structuredClone(output);
   invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 확인',description:'예약 충돌을 확인한다.',relatedItemIds:['invented-item']},rationale:'예약 문제를 해결합니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[] }];
@@ -610,6 +705,50 @@ test('turn endpoint gives a bounded reference correction when the provider inven
   assert.equal(calls.length,2);
   assert.match(calls[1].messages[1].content,/included an item ID that was not provided/);
   assert.equal(res.body.proposals.length,1);
+});
+
+test('turn endpoint corrects evidence that cites an assistant-authored conversation message', async () => {
+  const assistantMessage = { id:'assistant-message-1', role:'assistant', kind:'text', content:'앞서 제안한 운영 방식을 검토합니다.' };
+  const invalid = structuredClone(output);
+  invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 규칙',description:'예약 규칙을 지킨다.'},rationale:'대화 내용을 반영합니다.',evidence:[{sourceType:'message',sourceId:assistantMessage.id}],affectedItemIds:[] }];
+  const valid = structuredClone(output);
+  valid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 규칙',description:'예약 규칙을 지킨다.'},rationale:'사용자가 말한 조건입니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[]}];
+  const inputs=[];
+  const res=response();
+  await runHandler(request({ ...body, recentMessages:[assistantMessage] }),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{inputs.push(input);return inputs.length===1?invalid:valid;}});
+  assert.equal(res.statusCode,200,JSON.stringify(res.body));
+  assert.equal(inputs.length,2);
+  assert.match(inputs[1].messages[1].content,/userInput\.id/);
+  assert.match(inputs[1].messages[1].content,/conversationContext.*role.*user/);
+  assert.match(inputs[1].messages[1].content,/omit the proposal/);
+  assert.equal(res.body.proposals.length,1);
+});
+
+test('turn endpoint drops still-ungrounded proposals after bounded correction and preserves the conversation response', async () => {
+  const assistantMessage = { id:'assistant-message-2', role:'assistant', kind:'text', content:'앞서 제안한 운영 방식을 검토합니다.' };
+  const invalid = structuredClone(output);
+  invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 규칙',description:'예약 규칙을 지킨다.'},rationale:'대화 내용을 반영합니다.',evidence:[{sourceType:'message',sourceId:assistantMessage.id}],affectedItemIds:[]}];
+  invalid.payload.followUp = { componentType:'free_text',topic:'예약 정책',prompt:'취소 가능 시점을 알려주세요.',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement'] };
+  const inputs=[];
+  const res=response();
+  await runHandler(request({ ...body, recentMessages:[assistantMessage] }),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{inputs.push(input);return invalid;}});
+  assert.equal(inputs.length,2);
+  assert.equal(res.statusCode,200,JSON.stringify(res.body));
+  assert.deepEqual(res.body.proposals,[]);
+  assert.equal(res.body.followUp.prompt,'취소 가능 시점을 알려주세요.');
+});
+
+test('turn endpoint drops an invalid proposal snapshot after bounded domain correction', async () => {
+  const invalid = structuredClone(output);
+  invalid.payload.proposals = [{ operation:'create',targetType:'design_item',after:{type:'requirement',title:'예약 규칙',description:'예약 규칙을 지킨다.',unregisteredField:'must be omitted'},rationale:'대화 내용을 반영합니다.',evidence:[{sourceType:'message',sourceId:'m1'}],affectedItemIds:[]}];
+  invalid.payload.followUp = { componentType:'free_text',topic:'예약 정책',prompt:'취소 가능 시점을 알려주세요.',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement'] };
+  let calls=0;
+  const res=response();
+  await runHandler(request(body),res,{store:createMemoryAuthStore(),requestStructuredOutput:async()=>{calls++;return invalid;}});
+  assert.equal(calls,2);
+  assert.equal(res.statusCode,200,JSON.stringify(res.body));
+  assert.deepEqual(res.body.proposals,[]);
+  assert.equal(res.body.followUp.prompt,'취소 가능 시점을 알려주세요.');
 });
 
 test('turn endpoint corrects unsupported evidence types and IDs on its bounded retry', async () => {
@@ -638,17 +777,18 @@ test('turn endpoint gives a bounded design-item correction after domain validati
   assert.equal(calls.length,2);
   assert.match(calls[1].messages[1].content,/type must be one of product_definition, problem, goal, user_role/);
   assert.match(calls[1].messages[1].content,/acceptanceCriteria must be omitted or be an array of non-empty \{text: string\} objects/);
+  assert.match(calls[1].messages[1].content,/omit the entire proposal instead of inventing a type/);
   assert.equal(res.body.proposals.length,1);
 });
 
 test('TURN_ANALYZE v6 gives a bounded correction for malformed serialized proposal snapshots', async () => {
   const invalid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v7', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0,
     payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: '{', r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
   const valid = {
-    task: 'TURN_ANALYZE', promptVersion: 'v7', schemaVersion: 'v6', designRevision: 0,
+    task: 'TURN_ANALYZE', promptVersion: 'v10', schemaVersion: 'v7', designRevision: 0,
     payload: { m: '예약 제안입니다.', p: [{ o: 'create', t: 'design_item', a: JSON.stringify({ type: 'requirement', title: '예약 충돌 확인', description: '겹치는 예약을 저장하지 않습니다.' }), r: '예약 충돌을 줄입니다.', e: [{ s: 'message', i: 'm1' }], x: [] }] },
     referencedItemIds: [], referencedSourceIds: [], warnings: [],
   };
@@ -747,17 +887,19 @@ test('recommendation evidence accepts only user-authored messages or request exc
     ],
     sources: [source],
   };
-  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v3', schemaVersion: 'v3', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
+  const outputFor = (evidenceFor) => ({ task: 'OPTION_RECOMMEND', promptVersion: 'v11', schemaVersion: 'v7', designRevision: 0, payload: { assistantMessage: '근거를 확인한 추천입니다.', recommendations: Array.from({ length: 11 }, (_, index) => candidate(index, evidenceFor(index))) }, referencedItemIds: [], referencedSourceIds: [], warnings: [] });
 
   const assistantEvidence = response();
   let assistantCalls = 0;
+  const assistantInputs = [];
   await runHandler(request(requestBody), assistantEvidence, {
     store: createMemoryAuthStore(),
-    requestStructuredOutput: async () => { assistantCalls += 1; return outputFor(() => [{ sourceType: 'message', sourceId: 'prior-assistant' }]); },
+    requestStructuredOutput: async (input) => { assistantInputs.push(input); assistantCalls += 1; return assistantCalls === 1 ? outputFor(() => [{ sourceType: 'message', sourceId: 'prior-assistant' }]) : outputFor(() => [{ sourceType: 'message', sourceId: 'prior-user' }]); },
   });
-  assert.equal(assistantEvidence.statusCode, 502);
-  assert.equal(assistantEvidence.body.error, 'AI_INVALID_OUTPUT');
-  assert.equal(assistantCalls, 2);
+  assert.equal(assistantEvidence.statusCode, 200, JSON.stringify(assistantEvidence.body));
+  assert.equal(assistantCalls, 4);
+  assert.match(assistantInputs[1].messages[1].content, /userInput\.id/);
+  assert.match(assistantInputs[1].messages[1].content, /conversationContext에서 role이 정확히 user/);
 
   for (const mismatchedEvidence of [
     [{ sourceType: 'file', sourceId: 'prior-user' }],
@@ -783,6 +925,66 @@ test('recommendation evidence accepts only user-authored messages or request exc
   assert.equal(groundedEvidence.body.recommendationCandidates.candidates.length, 11);
   assert.equal(groundedEvidence.body.recommendationCandidates.candidates[0].evidence[0].sourceId, 'canonical-file-1');
   assert.equal(groundedEvidence.body.recommendationCandidates.candidates[0].evidence[0].excerpt, source.text);
+});
+
+test('contextual text targets preserve the actual answer and route only explicit recommendation actions', async () => {
+  const prompt='“추천해 주세요”라는 예시와 관계없이 예약 기준을 입력해 주세요.';
+  const recommendationOutput={task:'OPTION_RECOMMEND',promptVersion:'v11',schemaVersion:'v7',designRevision:0,payload:{assistantMessage:'기준을 확인하겠습니다.',recommendations:[],followUp:{componentType:'free_text',topic:'추천 기준',prompt:'어떤 기준이 중요한가요?',required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']}},referencedItemIds:[],referencedSourceIds:[],warnings:[]};
+  const cases=[
+    {mode:'number',text:'24',value:{numberValue:24}},
+    {mode:'range',text:'9–18',value:{rangeValue:{start:9,end:18}}},
+    {mode:'text',text:'예약 기준',value:{customText:'예약 기준'}},
+    {mode:'number',text:'이 항목은 아직 모르겠습니다.',value:{customText:'이 항목은 아직 모르겠습니다.'}},
+    {mode:'number',text:'이 항목은 나중에 결정하겠습니다.',value:{customText:'이 항목은 나중에 결정하겠습니다.'}},
+    {mode:'number',text:'추천해 주세요.',value:{customText:'추천해 주세요.'},recommend:true},
+  ];
+  for(const [index,item] of cases.entries()){
+    const block={type:'question',id:'original-question',topic:'예약',prompt,answerMode:item.mode,required:true,allowCustomAnswer:true,allowUnknown:true,allowDefer:true,targetItemTypes:['requirement']};
+    const target={messageId:'original-assistant',blockId:block.id,...item.value};
+    const requestBody={...body,logicalRequestId:`logical-contextual-text-${index}`,userTurn:{id:'answer-turn',kind:'text',text:item.text,responseTo:target},recentMessages:[{id:'original-assistant',role:'assistant',kind:'text',content:prompt,blocks:[block]}]};
+    const calls=[];const res=response();
+    await runHandler(request(requestBody),res,{store:createMemoryAuthStore(),requestStructuredOutput:async(input)=>{calls.push(input);return item.recommend?recommendationOutput:output;}});
+    assert.equal(res.statusCode,200,JSON.stringify(res.body));
+    assert.equal(calls.length,1);
+    assert.equal(calls[0].name,item.recommend?'option_recommend':'turn_analyze');
+    const context=JSON.parse(calls[0].messages.find((message)=>message.role==='user').content.match(/TYPED_CONTEXT_JSON:\n([\s\S]*?)\nSOURCE_EXCERPTS_UNTRUSTED_JSON:/)[1]);
+    assert.equal(context.userInput.text,item.text);
+    assert.deepEqual(context.currentTarget,{...target,question:block});
+  }
+});
+
+test('contextual text targets reject missing questions, malformed typed values and disallowed actions before dispatch', async () => {
+  const block={type:'question',id:'number-question',topic:'수용 인원',prompt:'몇 명까지 예약할 수 있나요?',answerMode:'number',required:true,allowCustomAnswer:false,allowUnknown:false,allowDefer:false,targetItemTypes:['requirement']};
+  const target={messageId:'assistant-number',blockId:block.id};
+  const cases=[
+    {text:'24',responseTo:{...target,messageId:'missing',numberValue:24}},
+    {text:'24',responseTo:{...target,blockId:'missing',numberValue:24}},
+    {text:'24',responseTo:{...target,numberValue:'24'}},
+    {text:'24',responseTo:{...target,numberValue:Infinity}},
+    {text:'25',responseTo:{...target,numberValue:24}},
+    {text:'24',responseTo:{...target,numberValue:24,customText:'24'}},
+    {text:'24',responseTo:{...target,numberValue:24,selectedValues:[]}},
+    {text:'24',responseTo:{...target,numberValue:24,unknownField:'not allowed'}},
+    {text:'24',responseTo:{...target}},
+    {text:'24',responseTo:{...target,customText:'24'}},
+    {text:'이 항목은 아직 모르겠습니다.',responseTo:{...target,customText:'이 항목은 아직 모르겠습니다.'}},
+    {text:'이 항목은 나중에 결정하겠습니다.',responseTo:{...target,customText:'이 항목은 나중에 결정하겠습니다.'}},
+    {text:'18–9',responseTo:{...target,rangeValue:{start:18,end:9}},mode:'range'},
+    {text:'9–18',responseTo:{...target,rangeValue:{start:9,end:19}},mode:'range'},
+    {text:'답변',responseTo:{...target,customText:'다른 답변'},mode:'text'},
+    {text:' ',responseTo:{...target,customText:' '},mode:'text'},
+    {text:'24',responseTo:{...target,numberValue:24},mode:'text'},
+    {text:'24',responseTo:{...target,numberValue:24},role:'user'},
+  ];
+  let calls=0;
+  for(const [index,item] of cases.entries()){
+    const res=response();
+    const requestBody={...body,logicalRequestId:`logical-invalid-context-${index}`,userTurn:{id:'answer-turn',kind:'text',text:item.text,responseTo:item.responseTo},recentMessages:[{id:target.messageId,role:item.role??'assistant',kind:'text',content:block.prompt,blocks:[{...block,answerMode:item.mode??block.answerMode}]}]};
+    await runHandler(request(requestBody),res,{store:createMemoryAuthStore(),requestStructuredOutput:async()=>{calls++;return output;}});
+    assert.equal(res.statusCode,400,`case ${index}: ${JSON.stringify(res.body)}`);
+    assert.equal(res.body.error,'INVALID_REQUEST');
+  }
+  assert.equal(calls,0);
 });
 
 test('turn endpoint rejects a card choice that is not in the referenced contextual message', async () => {
@@ -831,8 +1033,8 @@ test('turn endpoint accepts only request-local excerpt IDs as file citation IDs'
   const invalid = response();
   let invalidCalls = 0;
   await runHandler(request(requestBody), invalid, { store:createMemoryAuthStore(), requestStructuredOutput:async () => { invalidCalls++; return responseWithCitation('canonical-source'); } });
-  assert.equal(invalid.statusCode, 502);
-  assert.equal(invalid.body.error, 'AI_INVALID_OUTPUT');
+  assert.equal(invalid.statusCode, 200);
+  assert.deepEqual(invalid.body.proposals, []);
   assert.equal(invalidCalls, 2);
 
   const valid = response();

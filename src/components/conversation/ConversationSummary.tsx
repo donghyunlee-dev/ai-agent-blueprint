@@ -7,7 +7,7 @@ export function ConversationSummary({ summary, availableMessageIds = [], onNavig
   const availableSources = new Set(availableMessageIds);
   const entries = summary ? [
     ['확정 내용', summary.confirmedFacts, 'confirmed'], ['남은 결정', [...summary.explicitUnknowns, ...summary.unresolvedQuestions], 'pending'],
-    ['제외한 방향', summary.rejectedDirections, 'neutral'],
+    ...(summary.rejectedDirections.length ? [['제외한 방향', summary.rejectedDirections, 'neutral'] as const] : []),
   ] as const : [];
 
   return <section className="conversation-summary" aria-label="요약">

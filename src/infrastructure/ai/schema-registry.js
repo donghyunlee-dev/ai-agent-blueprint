@@ -9,6 +9,7 @@ const entries = Object.entries(schemas.tasks).flatMap(([task, schema]) => {
     ['turn.analyze.v4:v4', Object.freeze({ id: 'turn.analyze.v4', version: 'v4', task, schema: schemas.turnAnalyzeV4 })],
     ['turn.analyze.v5:v5', Object.freeze({ id: 'turn.analyze.v5', version: 'v5', task, schema: schemas.turnAnalyzeV5 })],
     ['turn.analyze.v6:v6', Object.freeze({ id: 'turn.analyze.v6', version: 'v6', task, schema: schemas.turnAnalyzeV6 })],
+    ['turn.analyze.v7:v7', Object.freeze({ id: 'turn.analyze.v7', version: 'v7', task, schema: schemas.turnAnalyzeV7 })],
   ];
   if (task === 'OPTION_RECOMMEND') return [
     ['option.recommend.v1:v1', Object.freeze({ id: 'option.recommend.v1', version: 'v1', task, schema: schemas.optionRecommendV1 })],

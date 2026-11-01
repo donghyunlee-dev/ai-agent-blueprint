@@ -124,8 +124,9 @@ const turnFollowUpV6 = object({
   targetItemTypes: array(designItemTypes, 13),
 });
 const turnAnalyzeV6 = object({ m: boundedString(200), p: array(turnProposalV6, 8), f: opt(turnFollowUpV6) });
+const turnAnalyzeV7 = object({ m: boundedString(200), p: array(turnProposalV6, 4), f: opt(turnFollowUpV6) });
 const tasks = {
-  QUESTION_COMPOSE: composition, QUESTION_EXPLAIN: explanationPayload, TURN_ANALYZE: turnAnalyzeV6, OPTION_RECOMMEND: optionRecommendV7,
+  QUESTION_COMPOSE: composition, QUESTION_EXPLAIN: explanationPayload, TURN_ANALYZE: turnAnalyzeV7, OPTION_RECOMMEND: optionRecommendV7,
   CONTEXT_COMPACT: object({ confirmedFacts: array(fact), explicitUnknowns: array(fact), rejectedDirections: array(fact), unresolvedQuestions: array(fact), sourceMessageIds: strings }),
   REQUIREMENTS_DRAFT: requirementsDraft, REQUIREMENTS_REVIEW: review, REQUIREMENTS_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }), SETUP_GUIDE_DRAFT: setupGuideDraft,
   PRD_DRAFT: prdDraft, PRD_REVIEW: prdReview, PRD_REPAIR: object({ sections: array(section), resolvedIssueIds: strings }),
@@ -196,7 +197,7 @@ const setupGuideReadyRequest=object({confirmed:{type:'boolean'},projectId:string
 export const schemas = Object.freeze({
   displayBlock, normalizedBlocks: array(displayBlock, 6),
   tasks: Object.freeze(tasks), envelopes: Object.freeze({ ...Object.fromEntries(Object.keys(tasks).map(task => [task, taskEnvelope(task)])), TURN_ANALYZE_V5: turnAnalyzeV5Envelope }),
-  turnAnalyzeV2, turnAnalyzeV4, turnAnalyzeV5, turnAnalyzeV6, optionRecommendV1: recommendationPayload, optionRecommendV2, optionRecommendV3, optionRecommendV4, optionRecommendV5, optionRecommendV6, optionRecommendV7,
+  turnAnalyzeV2, turnAnalyzeV4, turnAnalyzeV5, turnAnalyzeV6, turnAnalyzeV7, optionRecommendV1: recommendationPayload, optionRecommendV2, optionRecommendV3, optionRecommendV4, optionRecommendV5, optionRecommendV6, optionRecommendV7,
   http: Object.freeze({ turnRequest, turnResponse, documentsGenerateRequest, requirementsGenerateRequest, prdGenerateRequest, setupGuideGenerateRequest, setupGuideReadyRequest, requirementsReadyRequest, documentsGenerateResponse: envelope, documentsPatchRequest, documentsPatchResponse: array(proposal), reviewRequest, reviewResponse }),
 });
 export function validateSchema(schema, value) {

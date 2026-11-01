@@ -21,15 +21,6 @@ const requirementMarkdown:Record<string,string>={
   open_issues:'결정이 필요한 질문과 근거를 정리합니다.\n- 미결정 질문\n- 담당자와 결정 기준',
 };
 
-async function setDocumentSectionReviewStatus(page:any,databaseName:string,projectId:string,status:'confirmed'|'review_required') {
-  await page.evaluate(async({databaseName,projectId,status}:any)=>{
-    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open(databaseName,1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
-    const tx=db.transaction('projects','readwrite');const store=tx.objectStore('projects');const request=store.get(projectId);
-    request.onsuccess=()=>{const record=request.result;const item=record.designItems.find((candidate:any)=>candidate.id==='doc-section-edit');item.status=status;item.attributes.consistencyReviewRequired=status==='review_required';store.put(record);};
-    await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
-  },{databaseName,projectId,status});
-}
-
 test('explicit Requirements confirmation unlocks same-revision PRD generation on desktop and mobile',async({page})=>{
   await page.route('**/api/auth/session',(route)=>route.fulfill({status:200,json:{authenticated:true,user:identity}}));
   const ownerKey=await deriveOwnerKey(identity);
@@ -52,7 +43,7 @@ test('explicit Requirements confirmation unlocks same-revision PRD generation on
     const sourceByKey:Record<string,string[]>={overview:['product'],problem_goals:['problem','goal'],users_scenarios:['user','scenario'],scope:['scope','exclusion'],features:['feature'],success_metrics:['metric'],risks:['risk'],release_plan:[],open_issues:['problem']};
     const sections=prdKeys.map((key,order)=>({id:`prd-${key}`,projectId,documentId:'prd-document',key,title:key,markdown:`${key} PRD`,order,sourceItemIds:sourceByKey[key],origin:'generated',syncStatus:'current',updatedAt:now}));
     await generationGate;
-    await route.fulfill({status:200,json:{document:{id:'prd-document',projectId,type:'prd',title:'테스트 PRD',status:'review_required',designRevision:4,version:1,sectionIds:sections.map((section)=>section.id),createdAt:now,updatedAt:now},sections,job:{id:'prd-job',projectId,logicalRequestId:prdRequest.logicalRequestId,attemptId:prdRequest.attemptId,type:'PRD_DRAFT',promptVersion:'v1',schemaVersion:'v1',modelProfile:'FINAL',resolvedModel:'gpt-5.6-terra',reasoningEffort:'low',designRevision:4,status:'succeeded',targetIds:['prd-document'],startedAt:now,finishedAt:now}}});
+    await route.fulfill({status:200,json:{document:{id:'prd-document',projectId,type:'prd',title:'테스트 PRD',status:'review_required',designRevision:5,version:1,sectionIds:sections.map((section)=>section.id),createdAt:now,updatedAt:now},sections,job:{id:'prd-job',projectId,logicalRequestId:prdRequest.logicalRequestId,attemptId:prdRequest.attemptId,type:'PRD_DRAFT',promptVersion:'v1',schemaVersion:'v1',modelProfile:'FINAL',resolvedModel:'gpt-5.6-terra',reasoningEffort:'low',designRevision:5,status:'succeeded',targetIds:['prd-document'],startedAt:now,finishedAt:now}}});
   });
   await page.goto(`/blueprints/${projectId}/requirements`);
   await expect(page.getByRole('heading',{name:'요구사항 명세 검토 완료'})).toBeVisible();
@@ -81,14 +72,38 @@ test('explicit Requirements confirmation unlocks same-revision PRD generation on
   await confirmation.getByRole('button',{name:'취소'}).click();
   await expect(page.getByText('검토 완료 확인',{exact:true})).toBeFocused();
   let stored=await readStored(page,databaseNameForOwner(ownerKey),projectId);
-  expect(stored.documents[0].status).toBe('review_required');
+  expect(stored.documents.find((document:any)=>document.type==='requirements').status).toBe('review_required');
   await page.getByRole('button',{name:'검토 완료 확인'}).click();
   await page.getByRole('dialog').getByRole('button',{name:'요구사항 명세 검토 완료'}).click();
   await expect(page.locator('.requirements-ready-review [role="status"]')).toContainText('요구사항 명세 검토 완료');
   await page.screenshot({path:test.info().outputPath(`requirements-ready-${viewport.width}x${viewport.height}.png`),scale:'css'});
   stored=await readStored(page,databaseNameForOwner(ownerKey),projectId);
-  expect(stored.documents[0].status).toBe('ready');expect(stored.documents[0].readyDesignRevision).toBe(4);expect(stored.documents[0].readyAt).toBeTruthy();
-  await setDocumentSectionReviewStatus(page,databaseNameForOwner(ownerKey),projectId,'review_required');
+  expect(stored.documents.find((document:any)=>document.type==='requirements').status).toBe('ready');expect(stored.documents.find((document:any)=>document.type==='requirements').readyDesignRevision).toBe(4);expect(stored.documents.find((document:any)=>document.type==='requirements').readyAt).toBeTruthy();
+  if (viewport.width < 768) await page.getByRole('button',{name:'목차 열기'}).click();
+  await page.getByRole('button',{name:'기능 요구사항',exact:true}).click();
+  await page.getByRole('button',{name:'섹션 편집'}).click();
+  const editedMarkdown=`${requirementMarkdown.functional}\n- 사용자가 내용을 검토한 뒤 저장합니다.`;
+  await page.getByLabel('문서 내용').fill(editedMarkdown);
+  await page.getByRole('button',{name:'영향 확인 후 저장'}).click();
+  await expect(page.getByRole('dialog')).toContainText('feature · 설명');
+  await page.getByRole('dialog').getByRole('button',{name:'확인하고 저장'}).click();
+  await expect(page.getByRole('button',{name:'검토 완료 확인'})).toBeEnabled();
+  await expect(page.locator('#project-save-state')).toContainText('저장됨');
+  stored=await readStored(page,databaseNameForOwner(ownerKey),projectId);
+  expect(stored.project.designRevision).toBe(5);
+  expect(stored.documents.find((document:any)=>document.type==='requirements').status).toBe('review_required');
+  expect(stored.documents.find((document:any)=>document.type==='requirements').readyDesignRevision).toBeUndefined();
+  await page.goto(`/blueprints/${projectId}/prd`);
+  await expect(page.getByRole('heading',{name:'PRD 생성 전 요구사항 명세 검토가 필요합니다'})).toBeVisible();
+  await expect(page.getByRole('button',{name:'PRD 생성'})).toHaveCount(0);
+  await page.goto(`/blueprints/${projectId}/requirements`);
+  await page.getByRole('button',{name:'검토 완료 확인'}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'요구사항 명세 검토 완료'}).click();
+  await expect(page.locator('.requirements-ready-review [role="status"]')).toContainText('설계 revision 5');
+  await expect(page.locator('#project-save-state')).toContainText('저장됨');
+  stored=await readStored(page,databaseNameForOwner(ownerKey),projectId);
+  expect(stored.documents.find((document:any)=>document.type==='requirements').status).toBe('ready');
+  expect(stored.documents.find((document:any)=>document.type==='requirements').readyDesignRevision).toBe(5);
   await page.getByRole('button',{name:'PRD 열기'}).click();
   await expect(page.getByRole('button',{name:'PRD 생성'})).toBeVisible();
   await page.getByRole('button',{name:'PRD 생성'}).click();
@@ -104,7 +119,7 @@ test('explicit Requirements confirmation unlocks same-revision PRD generation on
   await page.getByText('자료와 정합성 지원',{exact:true}).click();
   await expect(page.getByRole('heading',{name:'참고 자료'})).toBeVisible();
   await expect(page.getByRole('button',{name:'문서 정합성 검토'})).toBeVisible();
-  expect(prdRequest.documentType).toBe('prd');expect(prdRequest.designRevision).toBe(4);expect(prdRequest.documents[0].status).toBe('ready');
+  expect(prdRequest.documentType).toBe('prd');expect(prdRequest.designRevision).toBe(5);expect(prdRequest.documents[0].status).toBe('ready');
   expect(validateSchema(schemas.http.prdGenerateRequest,prdRequest).valid).toBe(true);
   expect(prdRequest.designItems.some((item:any)=>item.type==='document_section')).toBe(false);
   expect(prdRequest.designItems.some((item:any)=>item.id==='feature'&&item.type==='requirement')).toBe(true);

@@ -18,6 +18,20 @@ test("GET /api/auth/session returns 401 when there is no session cookie", async 
   assert.deepEqual(JSON.parse(res.body), { error: "AUTH_REQUIRED" });
 });
 
+test("GET /api/auth/session reports a missing signing secret as unavailable", async () => {
+  const secret = process.env.APP_SESSION_SECRET;
+  delete process.env.APP_SESSION_SECRET;
+  try {
+    const req = createMockReq({ url: "/api/auth/session" });
+    const res = createMockRes();
+    await sessionHandler(req, res);
+    assert.equal(res.statusCode, 503);
+    assert.deepEqual(JSON.parse(res.body), { error: "AUTH_UNAVAILABLE" });
+  } finally {
+    process.env.APP_SESSION_SECRET = secret;
+  }
+});
+
 test("GET /api/auth/session returns 401 for a tampered session cookie", async () => {
   const { value } = signSession({ issuer: "https://accounts.google.com", subject: "subject-1", email: "user@example.com" });
   const req = createMockReq({

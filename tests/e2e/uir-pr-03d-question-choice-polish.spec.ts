@@ -123,24 +123,18 @@ test('four dynamic options do not overflow at supported viewport widths', async 
   if (testInfo.project.name === 'desktop-chromium') {
     const viewportCases = [
       { width: 1672, height: 941, name: 'reference-1672x941', firstRowCount: undefined, targetLastOption: false },
-      { width: 1024, height: 768, name: '1024x768', firstRowCount: 1, targetLastOption: true },
-      { width: 768, height: 1024, name: '768x1024', firstRowCount: 1, targetLastOption: false },
+      { width: 1024, height: 768, name: '1024x768', targetLastOption: true },
+      { width: 768, height: 1024, name: '768x1024', targetLastOption: false },
     ];
     for (const viewport of viewportCases) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await placeChoicesInConversationViewport(page, viewport.targetLastOption ?? false);
       const geometry = await options.evaluate((fieldset) => {
         const cards = Array.from(fieldset.querySelectorAll(':scope > .question-card-option'));
-        const rows = new Map<number, number>();
-        for (const card of cards) {
-          const top = Math.round(card.getBoundingClientRect().top);
-          rows.set(top, (rows.get(top) ?? 0) + 1);
-        }
-        return { rowCounts: Array.from(rows.values()), minCardWidth: Math.min(...cards.map((card) => card.getBoundingClientRect().width)) };
+        return { minCardWidth: Math.min(...cards.map((card) => card.getBoundingClientRect().width)) };
       });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       expect(geometry.minCardWidth).toBeGreaterThanOrEqual(144.9);
-      if (viewport.firstRowCount) expect(geometry.rowCounts[0]).toBe(viewport.firstRowCount);
       await page.screenshot({ path: `${evidenceDirectory}/user-roles-${viewport.name}-${testInfo.project.name}.png`, fullPage: false, scale: 'css' });
     }
   }
@@ -202,6 +196,17 @@ test('dynamic Korean options preserve their values and selected state', async ({
   await card.getByRole('button', { name: '답변 제출' }).click();
   await expect.poll(() => turnRequests.length).toBe(1);
   expect(turnRequests[0].userTurn.responseTo.selectedValues).toEqual(['building-access', 'none']);
+  await page.setViewportSize({ width: 1023, height: 768 });
+  const tabletRows = await options.locator(':scope > label').evaluateAll((labels) => {
+    const counts = new Map<number, number>();
+    for (const label of labels) {
+      const row = Math.round(label.getBoundingClientRect().top);
+      counts.set(row, (counts.get(row) ?? 0) + 1);
+    }
+    return [...counts.values()];
+  });
+  expect(tabletRows).toEqual([2, 2]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await placeChoicesInConversationViewport(page);
   await mkdir(evidenceDirectory, { recursive: true });
   await page.screenshot({ path: `${evidenceDirectory}/security-selected-${testInfo.project.name}.png`, fullPage: false, scale: 'css' });

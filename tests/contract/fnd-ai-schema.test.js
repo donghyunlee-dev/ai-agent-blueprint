@@ -56,12 +56,13 @@ test('versioned response envelopes reject extra fields, unknown enums, and missi
  assert.equal(validateSchema(schemas.envelopes.TURN_ANALYZE_V5,unknownEnumTurnResponse).valid,false);
 });
 
-test('legacy turn v5 and compact turn v6 enforce the eight-proposal limit', () => {
+test('legacy turn v5 and compact turn schemas enforce their proposal limits', () => {
  const base={assistantMessage:'확인했습니다.',answerInterpretation:{additionalFacts:[],ambiguities:[]}};
  const proposals=Array.from({length:8},(_,index)=>({operation:'create',targetType:'design_item',rationale:`근거 ${index}`,evidence:[],affectedItemIds:[]}));
  assert.equal(validateSchema(schemas.turnAnalyzeV5,{...base,proposals}).valid,true);
  assert.equal(validateSchema(schemas.turnAnalyzeV5,{...base,proposals:[...proposals,proposals[0]]}).valid,false);
  const compact={m:'확인했습니다.',p:proposals.map((item)=>({o:item.operation,t:item.targetType,a:JSON.stringify({type:'requirement',title:'조건',description:'설명'}),r:item.rationale,e:[],x:[]}))};
- assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,compact).valid,true);
- assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{...compact,p:[...compact.p,compact.p[0]]}).valid,false);
+ assert.equal(validateSchema(schemas.turnAnalyzeV6,compact).valid,true);
+ assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{...compact,p:compact.p.slice(0,4)}).valid,true);
+ assert.equal(validateSchema(schemas.tasks.TURN_ANALYZE,{...compact,p:compact.p.slice(0,5)}).valid,false);
 });
