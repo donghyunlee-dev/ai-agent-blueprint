@@ -131,6 +131,20 @@ flowchart LR
 
 The deterministic browser tests mock the authenticated test session and AI/document APIs. For opt-in real-provider acceptance, `POST /api/auth/session` can mint the fixed synthetic owner only when `VERCEL_ENV=preview`, a branch-scoped `PREVIEW_E2E_SESSION_TOKEN` exists, and that token is sent in `x-preview-e2e-session-token`; without that header the endpoint keeps its normal logout behavior. Production always keeps normal logout behavior. Keep that Preview branch's `APP_SESSION_SECRET` distinct from Production. Use protected-preview access without disabling deployment protection, and do not claim live-provider success from fixture tests.
 
+The isolated live acceptance suite uses no API mocks and creates its project through the UI. Run it against a Ready Preview with the matching synthetic-session token available only in the local shell:
+
+```bash
+PREVIEW_E2E_SESSION_TOKEN="$PREVIEW_E2E_SESSION_TOKEN" \
+PLAYWRIGHT_PREVIEW_URL="https://<ready-preview-deployment>.vercel.app" \
+PLAYWRIGHT_EXPECTED_GIT_REF="codex/contextual-recommendation-action" \
+PLAYWRIGHT_EXPECTED_COMMIT_SHA="<exact-commit-under-acceptance>" \
+vc env run --environment preview --git-branch codex/contextual-recommendation-action \
+  --project windsoft-agent-blueprint --scope donghyunlees-projects-e43b52b1 \
+  -- npm run test:e2e:live-preview
+```
+
+The live config verifies the URL resolves to a Ready deployment whose Vercel target is `preview`, then checks Vercel's deployment API for the exact expected Git ref and commit SHA. It rejects Production, stale Preview, and another branch's deployment. Set the SHA to the product code commit under acceptance; do not use the local test-harness commit unless that is the code being accepted. `vc env run` supplies the protected-deployment OIDC token. The synthetic session token must come from the local secret store because Vercel does not pull that sensitive value into `env run`. Never put either token in source, command logs, screenshots, or reports. The live test sends no Google OAuth requests, records only sanitized task/status/revision metadata, and uses a fresh browser context so test projects remain in local IndexedDB.
+
 ## UI evidence requirements
 
 - Desktop: `1440×900`, active conversation, left thread/composer, right confirmed/remaining summary.

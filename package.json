@@ -15,6 +15,7 @@
     "test:golden": "node scripts/run-golden-eval.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ci": "playwright test --reporter=line,html --workers=1",
+    "test:e2e:live-preview": "playwright test --config=playwright.live-preview.config.ts",
     "test:ci": "npm run test:unit && npm run test:golden && npm run test:e2e:ci && npm run build && npm run check:bundle-secrets"
   },
   "dependencies": {
